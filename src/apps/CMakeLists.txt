@@ -1,0 +1,4 @@
+PROJECT(APPS)
+
+
+ADD_SUBDIRECTORY(mpitrace)
