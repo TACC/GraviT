@@ -19,7 +19,7 @@ namespace GVT {
         Material::~Material() {
         }
 
-        GVT::Math::Vector4f Material::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::lightsource* lightSource) {
+        GVT::Math::Vector4f Material::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource) {
             return GVT::Math::Vector4f();
         }
 
@@ -40,7 +40,7 @@ namespace GVT {
         Lambert::~Lambert() {
         }
 
-        GVT::Math::Vector4f Lambert::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& N, const GVT::Data::lightsource* lightSource) {
+        GVT::Math::Vector4f Lambert::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& N, const GVT::Data::LightSource* lightSource) {
             
             GVT::Math::Point4f L = ray.direction;
             L = L.normalize();
@@ -68,7 +68,7 @@ namespace GVT {
         Phong::~Phong() {
         }
 
-        GVT::Math::Vector4f Phong::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& N, const GVT::Data::lightsource* lightSource) {
+        GVT::Math::Vector4f Phong::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& N, const GVT::Data::LightSource* lightSource) {
             GVT::Math::Vector4f hitPoint = (GVT::Math::Vector4f)ray.origin + (ray.direction * ray.t);
             GVT::Math::Vector4f L = (GVT::Math::Vector4f)lightSource->position - hitPoint;
             
@@ -105,7 +105,7 @@ namespace GVT {
         BlinnPhong::~BlinnPhong() {
         }
 
-        GVT::Math::Vector4f BlinnPhong::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& N, const GVT::Data::lightsource* lightSource) {
+        GVT::Math::Vector4f BlinnPhong::shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& N, const GVT::Data::LightSource* lightSource) {
             GVT::Math::Vector4f hitPoint = (GVT::Math::Vector4f)ray.origin + (ray.direction * ray.t);
             GVT::Math::Vector4f L = (GVT::Math::Vector4f)lightSource->position - hitPoint;
             L = L.normalize();

@@ -40,11 +40,9 @@ namespace GVT {
                 return this;
             }
             
-            virtual GVT::Data::box3D getBoundingBox() {
-                return boundingBox;
+            virtual GVT::Data::box3D* getBoundingBox() {
+                return NULL;
             }
-            
-            GVT::Data::box3D boundingBox;
             
         };
         
@@ -65,7 +63,7 @@ namespace GVT {
             virtual void setMaterial(GVT::Data::Material* mat);
             virtual void addFace(int v0, int v1, int v2);
             
-            virtual GVT::Data::Color shade(GVT::Data::ray& r, GVT::Math::Vector4f normal, GVT::Data::lightsource* lsource);
+            virtual GVT::Data::Color shade(GVT::Data::ray& r, GVT::Math::Vector4f normal, GVT::Data::LightSource* lsource);
             GVT::Data::Material* mat;
 
             boost::container::vector<GVT::Math::Vector4f> vertices;
@@ -73,7 +71,7 @@ namespace GVT {
             boost::container::vector<GVT::Math::Vector4f> normals;
             boost::container::vector<GVT::Data::Mesh::face> faces;
 
-            
+            GVT::Data::box3D boundingBox;
 
         };
     }

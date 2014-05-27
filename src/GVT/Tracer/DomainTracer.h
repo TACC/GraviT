@@ -38,12 +38,15 @@ namespace GVT {
             virtual void generateRays() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
                     DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
-                    vector< int > len2List;
-                    this->rta.dataset->Intersect(this->rays[rc], len2List);
+                    GVT::Data::isecDomList len2List;
+                    this->rta.dataset->intersect(this->rays[rc], len2List);
                     // only keep rays that are meant for domains on this processor
                     if (!len2List.empty() && (len2List[0] % this->world_size) == this->rank) {
-                        for (int i = len2List.size() - 1; i >= 0; --i)
-                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
+//                        for (int i = len2List.size() - 1; i >= 0; --i)
+//                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
+                        
+                        this->rays[rc].domains.assign(len2List.rbegin(),len2List.rend());
+                        this->rta.dataset->getDomain(len2List[0])->marchIn(this->rays[rc]);
                         this->queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
                 }
@@ -93,15 +96,15 @@ namespace GVT {
                         if (domTarget >= 0) {
                             DEBUG(cerr << "Getting domain " << domTarget << endl);
                             if (domTarget != lastDomain)
-                                if (dom != NULL) dom->FreeData();
+                                if (dom != NULL) dom->free();
 
-                            dom = this->rta.dataset->GetDomain(domTarget);
+                            dom = this->rta.dataset->getDomain(domTarget);
 
                             // track domains loaded
                             if (domTarget != lastDomain) {
                                 ++domain_counter;
                                 lastDomain = domTarget;
-                                dom->LoadData();
+                                dom->load();
                             }
 
                             GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();

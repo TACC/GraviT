@@ -120,7 +120,7 @@ namespace GVT {
                         SUDO_DEBUG(if (DEBUG_RANK) cerr << this->rank << ": Getting domain " << domTarget << endl);
 
                         if (domTarget != lastDomain)
-                            if (dom != NULL) dom->FreeData();
+                            if (dom != NULL) dom->free();
 
                         // register the dataset so it doesn't get deleted
                         // if we build a lightmap
@@ -134,13 +134,13 @@ namespace GVT {
                                 lastDomain = domTarget;
                             }
                         } else {
-                            dom = this->rta.dataset->GetDomain(domTarget);
+                            dom = this->rta.dataset->getDomain(domTarget);
                             SUDO_DEBUG(if (DEBUG_RANK) cerr << this->rank << ": called GetDomain for dataset: " << dom << endl);
                             // track domain loads
                             if (domTarget != lastDomain) {
                                 ++domain_counter;
                                 lastDomain = domTarget;
-                                dom->LoadData();
+                                dom->load();
                             }
                         }
 

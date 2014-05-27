@@ -21,7 +21,7 @@ namespace GVT {
         };
 
         template<typename SRC_FORMAT, typename DST_FORMAT> inline DST_FORMAT transform(const SRC_FORMAT& param) {
-                return transform_impl<SRC_FORMAT,DST_FORMAT>::transform(param);
+            return transform_impl<SRC_FORMAT,DST_FORMAT>::transform(param);
         }
 
     };

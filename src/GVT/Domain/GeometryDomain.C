@@ -8,9 +8,9 @@
 namespace GVT {
     namespace Domain {
 
-        void GeometryDomain::FreeData() {
-            if (!domain_loaded) return;
-            for (int i = lights.size()-1; i >= 0; i--) {
+        void GeometryDomain::free() {
+            if (!isLoaded) return;
+            for (int i = lights.size() - 1; i >= 0; i--) {
                 delete lights[i];
                 lights.pop_back();
             }
@@ -18,21 +18,31 @@ namespace GVT {
                 delete mesh->mat;
                 mesh->mat = NULL;
             }
-            if(mesh) {
+            if (mesh) {
                 delete mesh;
                 mesh = NULL;
             }
-            domain_loaded = false;
+            isLoaded = false;
         }
 
-        bool GeometryDomain::Intersect(GVT::Data::ray& ray, vector<int>& intersections) {
-            bool hit = boundingBox.intersect(ray);
-            if (!hit) {
-                intersections.clear();
-                return false;
-            } else {
-                return true;
-            }
+//        bool GeometryDomain::intersect(GVT::Data::ray& ray, vector<int>& intersections) {
+//            if (!boundingBox.intersect(ray)) {
+//                intersections.clear();
+//                return false;
+//            } else {
+//                return true;
+//            }
+//        }
+
+        bool GeometryDomain::load() {
+            if (isLoaded) return true;
+            if (filename == "") return false;
+            mesh = readply(filename);
+            lights.push_back(new GVT::Data::PointLightSource(GVT::Math::Point4f(5.0, 5.0, 5.0, 1.f), GVT::Data::Color(1.f, 1.f, 1.f, 1.f)));
+            mesh->mat = new GVT::Data::Lambert(GVT::Data::Color(1.f, .0f, .0f, 1.f));
+            boundingBox = mesh->boundingBox;
+            isLoaded = true;
+            return isLoaded;
         }
 
         ostream&

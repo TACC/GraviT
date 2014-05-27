@@ -54,10 +54,13 @@ namespace GVT {
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
             virtual void addRay(GVT::Data::ray& r) {
-                vector<int> len2List;
-                this->rta.dataset->Intersect(r, len2List);
+                GVT::Data::isecDomList len2List;
+                this->rta.dataset->intersect(r, len2List);
                 if (!len2List.empty()) {
-                    r.domains.assign(len2List.begin(),len2List.end());
+                    r.domains.assign(len2List.rbegin(),len2List.rend());
+                    
+                    this->rta.dataset->getDomain(len2List[0])->marchIn(r);
+                    
                     queue[len2List[0]].push_back(r);
                     return;
                 }
@@ -103,11 +106,13 @@ namespace GVT {
             virtual void generateRays() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
                     DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
-                    vector<int> len2List;
-                    this->rta.dataset->Intersect(this->rays[rc], len2List);
+                    GVT::Data::isecDomList len2List;
+                    this->rta.dataset->intersect(this->rays[rc], len2List);
                     if (!len2List.empty()) {
-                        for (int i = len2List.size() - 1; i >= 0; --i)
-                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
+//                        for (int i = len2List.size() - 1; i >= 0; --i)
+//                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
+                        this->rays[rc].domains.assign(len2List.rbegin(),len2List.rbegin());
+                        this->rta.dataset->getDomain(len2List[0])->marchIn(this->rays[rc]);
                         queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
                 }

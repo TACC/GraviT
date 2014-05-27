@@ -22,87 +22,40 @@ namespace GVT {
     namespace Dataset {
 
         template<typename DomainType>
-        class Dataset : public abstract_dataset {
+        class Dataset : public GVTDataset {
         public:
 
             Dataset() {
             }
 
-            Dataset(string& filename) : abstract_dataset(filename) {
+            Dataset(string& filename) : GVTDataset(), conf_filename(filename) {
                 GVT_DEBUG(DBG_ALWAYS, "Filename : " + filename);
                 conf_filename = filename;
             }
 
-            virtual bool Init() {
+            virtual bool init() {
                 GVT_DEBUG(DBG_ALWAYS,"Generic load");
                 return false;
             }
-
-            int Size() {
-                return files.size();
-            }
-
-            virtual bool Intersect(GVT::Data::ray& r, vector<int>& domlist) {
-                std::map<int, GVT::Data::box3D > ::iterator itDom = dom_bbox.begin();
-                std::set<float> mtmin;
-                std::map<float, int> values;
-
-                for (; itDom != dom_bbox.end(); itDom++) {
-                    GVT::Data::box3D bbox = itDom->second;
-                    int idx = itDom->first;
-                    float tmin = FLT_MAX, tmax;
-                    if (bbox.intersect(r, tmin, tmax)) {
-                        if (tmin > 0)
-                            mtmin.insert(tmin);
-                        else
-                            mtmin.insert(tmax);
-                        values[tmin] = idx;
-                        GVT_DEBUG(DBG_LOW, "Intersected here " + to_string(idx));
-                    }
-                }
-
-                if (r.type == GVT::Data::ray::PRIMARY) {
-                    for (std::set<float>::iterator i = mtmin.begin(); i != mtmin.end(); i++) {
-                        domlist.push_back(values[*i]);
-                    }
-                } else {
-                    for (std::set<float>::reverse_iterator i = mtmin.rbegin(); i != mtmin.rend(); i++) {
-                        domlist.push_back(values[*i]);
-                    }
-                }
-                return (!domlist.empty());
-            }
-
-            virtual GVT::Domain::Domain* GetDomain(int id) {
-                GVT_ASSERT_BACKTRACE("Not implemented!", 1);
-                return NULL;
-            };
-
-            //    friend ostream& operator<<(ostream&, DomainType const&);
-
+            
         private:
             vector<string> files;
-            vector< vector<int> > sizes;
-            vector< vector<int> > offsets;
-
-            map<int, DomainType> dom_cache; // XXX TODO fix when this made subclass
-            map<int, GVT::Data::box3D > dom_bbox;
-            map<int, GVT::Math::AffineTransformMatrix<float> > dom_model;
+//            map<int, DomainType> dom_cache; // XXX TODO fix when this made subclass
+//            map<int, GVT::Data::box3D > dom_bbox;
+//            map<int, GVT::Math::AffineTransformMatrix<float> > dom_model;
             string conf_filename;
 
-            float min[3];
-            float max[3];
-            int size[3];
+
         };
 
-        template<> bool Dataset<GVT::Domain::VolumeDomain>::Init();
-        template<> GVT::Domain::Domain* Dataset<GVT::Domain::VolumeDomain>::GetDomain(int id);
+        template<> bool Dataset<GVT::Domain::VolumeDomain>::init();
+//        template<> GVT::Domain::Domain* Dataset<GVT::Domain::VolumeDomain>::getDomain(int id);
         
-        template<> bool Dataset<GVT::Domain::GeometryDomain>::Init();
-        template<> GVT::Domain::Domain* Dataset<GVT::Domain::GeometryDomain>::GetDomain(int id);
+        template<> bool Dataset<GVT::Domain::GeometryDomain>::init();
+//        template<> GVT::Domain::Domain* Dataset<GVT::Domain::GeometryDomain>::getDomain(int id);
 
-        template<> bool Dataset<GVT::Domain::MantaDomain>::Init();
-        template<> GVT::Domain::Domain* Dataset<GVT::Domain::MantaDomain>::GetDomain(int id); 
+        template<> bool Dataset<GVT::Domain::MantaDomain>::init();
+//        template<> GVT::Domain::Domain* Dataset<GVT::Domain::MantaDomain>::getDomain(int id);
         
     };
 };

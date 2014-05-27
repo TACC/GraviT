@@ -23,7 +23,14 @@ namespace GVT {
     namespace Dataset {
 
         template<>
-        bool Dataset<GVT::Domain::VolumeDomain>::Init() {
+        bool Dataset<GVT::Domain::VolumeDomain>::init() {
+            float min[3];
+            float max[3];
+            int size[3];
+            vector< vector<int> > sizes;
+            vector< vector<int> > offsets;
+            vector<int> offs;
+            
             if (conf_filename.size() == 0) {
                 GVT_DEBUG(DBG_ALWAYS,"ERROR: Configuration file for dataset not set");
                 return false;
@@ -88,7 +95,7 @@ namespace GVT {
                         dims.push_back(d);
                         GVT_DEBUG(DBG_LOW,d << " ");
                     }
-                    this->sizes.push_back(dims);
+                    sizes.push_back(dims);
                     
 
                     // next three ints are the chunk position offset
@@ -105,9 +112,9 @@ namespace GVT {
                         int d;
                         buf >> d;
                         offs.push_back(d);
-                        if (d < this->min[i]) min[i] = d;
-                        if ((d + dims[i]) > this->max[i]) max[i] = d + dims[i];
-                        if ((d + dims[i]) > this->size[i]) size[i] = d + dims[i];
+                        if (d < min[i]) min[i] = d;
+                        if ((d + dims[i]) > max[i]) max[i] = d + dims[i];
+                        if ((d + dims[i]) > size[i]) size[i] = d + dims[i];
                         GVT_DEBUG(DBG_LOW, d << " ");
                     }
                     // special case for last int on line
@@ -116,13 +123,13 @@ namespace GVT {
                         int d;
                         buf >> d;
                         offs.push_back(d);
-                        if (d < this->min[2]) min[2] = d;
-                        if ((d + dims[2]) > this->max[2]) max[2] = d + dims[2];
-                        if ((d + dims[2]) > this->size[2]) size[2] = d + dims[2];
+                        if (d < min[2]) min[2] = d;
+                        if ((d + dims[2]) > max[2]) max[2] = d + dims[2];
+                        if ((d + dims[2]) > size[2]) size[2] = d + dims[2];
                         GVT_DEBUG(DBG_LOW, d << " ");
                     }
 
-                    this->offsets.push_back(offs);
+                    offsets.push_back(offs);
 
                     GVT::Data::box3D bb(
                             GVT::Math::Point4f((double)offs[0], (double)offs[1], (double)offs[2]),
@@ -132,7 +139,7 @@ namespace GVT {
                     GVT_DEBUG(DBG_SEVERE,"BBox " << bb);
                     GVT_DEBUG(DBG_SEVERE,"low " << offs[0]<< " " << offs[1] << " " << offs[2]);
                     
-                    dom_bbox[domit++] = bb;
+                    //dom_bbox[domit++] = bb;
 
                     //DEBUG(cout << endl);
                 }
@@ -141,35 +148,35 @@ namespace GVT {
             return true;
         }
 
-        template<>
-        GVT::Domain::Domain*
-        Dataset<GVT::Domain::VolumeDomain>::GetDomain(int id) {
-            if (id < 0 || id >= files.size()) {
-                GVT_DEBUG(DBG_LOW,"ERROR: invalid domain id '" << id << "' passed to GetDomain");
-                return NULL;
-            }
-
-            // check domain cache first
-            // XXX TODO remove GVT::Domain::VolumeDomain, make this a subclass
-            map< int, GVT::Domain::VolumeDomain >::iterator it = dom_cache.find(id);
-            if (it != dom_cache.end())
-                return &(it->second);
-
-            // if domain isn't in cache, create it
-            vector<float> min, max;
-            for (int i = 0; i < 3; ++i) {
-                min.push_back((float) offsets[id][i]);
-                max.push_back((float) (offsets[id][i] + sizes[id][i]));
-            }
-            dom_cache[id] = GVT::Domain::VolumeDomain(id, files[id], sizes[id], min, max); // XXX TODO fix when this made a subclass
-
-            //cout << dom_cache[id] << endl;
-
-            return &(dom_cache[id]);
-        }
+//        template<>
+//        GVT::Domain::Domain*
+//        Dataset<GVT::Domain::VolumeDomain>::getDomain(int id) {
+//            if (id < 0 || id >= files.size()) {
+//                GVT_DEBUG(DBG_LOW,"ERROR: invalid domain id '" << id << "' passed to GetDomain");
+//                return NULL;
+//            }
+//
+//            // check domain cache first
+//            // XXX TODO remove GVT::Domain::VolumeDomain, make this a subclass
+//            map< int, GVT::Domain::VolumeDomain >::iterator it = dom_cache.find(id);
+//            if (it != dom_cache.end())
+//                return &(it->second);
+//
+//            // if domain isn't in cache, create it
+//            vector<float> min, max;
+//            for (int i = 0; i < 3; ++i) {
+//                min.push_back((float) offsets[id][i]);
+//                max.push_back((float) (offsets[id][i] + sizes[id][i]));
+//            }
+//            dom_cache[id] = GVT::Domain::VolumeDomain(id, files[id], sizes[id], min, max); // XXX TODO fix when this made a subclass
+//
+//            //cout << dom_cache[id] << endl;
+//
+//            return &(dom_cache[id]);
+//        }
 
         ostream&
-        operator<<(ostream& out, abstract_dataset const& ds) {
+        operator<<(ostream& out, GVTDataset const& ds) {
             //    out << "conf filename: " << ds.conf_filename << "\n";
             //    out << "    " << ds.files.size() << " files\n";
             //    out << "    " << ds.sizes.size() << " sizes\n";

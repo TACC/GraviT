@@ -75,7 +75,7 @@ namespace GVT {
             Manta::RandomNumberGenerator* rng = NULL;
             Manta::CheapRNG::create(rng);
 
-            GVT::Data::lightsource* light = gdom->lights[0];
+            GVT::Data::LightSource* light = gdom->lights[0];
             GVT::Data::Material* mat = gdom->mesh->mat;
 
             Manta::RenderContext* rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
@@ -150,14 +150,11 @@ namespace GVT {
                         localQueue[pindex].t = FLT_MAX;
                     }
                     GVT_DEBUG(DBG_LOW, "Ray domains : " << localQueue[pindex].domains.size());
-                    float t;
-                    if (gdom->getBounds(1).intersectDistance(localQueue[pindex],t)) {
-                        localQueue[pindex].origin = localQueue[pindex].origin + localQueue[pindex].direction * t;
-                    }
+                    gdom->marchOut(localQueue[pindex]);
                     dispatch(param->moved_rays, localQueue[pindex]);
                 }
             }
-            GVT_DEBUG(DBG_LOW, "done forwarding rays");
+            GVT_DEBUG(DBG_ALWAYS, "Done. Forwarding rays : " << param->moved_rays.size());
         }
     };
 };

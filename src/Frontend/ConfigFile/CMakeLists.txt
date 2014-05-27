@@ -1,6 +1,6 @@
 PROJECT(GVTCONFFILE)
 cmake_minimum_required(VERSION 2.8)
-SET(GVT_FE_CONFFILE OFF CACHE BOOL "Build ConfigFile Frontend")
+SET(GVT_FE_CONFFILE ON CACHE BOOL "Build ConfigFile Frontend")
 
 
 IF (GVT_FE_CONFFILE)

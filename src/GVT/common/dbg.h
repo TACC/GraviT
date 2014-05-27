@@ -23,9 +23,6 @@ const char * const DBG_COLOR_YELLOW = "\033[1;33m";
 const char * const DBG_COLOR_BLUE = "\033[1;34m";
 const char * const DBG_COLOR_GRAY = DBG_COLOR_NORMAL;//"\033[1;37m";
 
-
-#ifndef NDEBUG
-
 inline void print_trace() {
     char pid_buf[30];
     sprintf(pid_buf, "%d", getpid());
@@ -41,6 +38,10 @@ inline void print_trace() {
         waitpid(child_pid, NULL, 0);
     }
 }
+
+#ifndef NDEBUG
+
+
 
 enum DEBUG_LEVEL {
     DBG_NONE,
@@ -113,13 +114,22 @@ inline std::string to_string(T value) {
 
 #else
 #define GVT_WARNING(condition, message)
-#define GVT_ASSERT_BACKTRACE(condition, message)
 #define GVT_WARNING_BACKTRACE(condition, message)
 #define GVT_DEBUG(level,message)
 #define GVT_ASSERT(condition, message) \
     do { \
-        if (! (condition)) { \
+        if (! (condition) ) { \
             std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE <<  #condition << DBG_COLOR_RED << ":" <<  DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl; \
+            std::exit(EXIT_FAILURE); \
+        } \
+    } while (false)
+
+#define GVT_ASSERT_BACKTRACE(condition, message) \
+    do { \
+        if (! (condition) ) { \
+            std::cerr << DBG_COLOR_RED << "ERROR: `" << DBG_COLOR_BLUE <<  #condition << DBG_COLOR_RED << " [" << DBG_COLOR_NORMAL  << __FILE_SHORT__ \
+                      << " : " << __LINE__  << DBG_COLOR_RED << "]: " <<  DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl; \
+            print_trace();\
             std::exit(EXIT_FAILURE); \
         } \
     } while (false)

@@ -61,8 +61,8 @@ namespace GVT {
                     if (domTarget >= 0) {
 
                         DEBUG(cout << "Getting domain " << domTarget << endl);
-                        GVT::Domain::Domain* dom = this->rta.dataset->GetDomain(domTarget);
-                        dom->LoadData();
+                        GVT::Domain::Domain* dom = this->rta.dataset->getDomain(domTarget);
+                        dom->load();
                         DEBUG(cout << "dom: " << domTarget << endl);
 
                         // track domain loads
@@ -86,7 +86,7 @@ namespace GVT {
                             
                             moved_rays.pop_back();
                         }
-                        dom->FreeData();
+                        dom->free();
                         this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
                     }
 

@@ -128,7 +128,7 @@ namespace GVT {
                                 double x = x1 / double(buffer_width) - 0.5;
                                 double y = y1 / double(buffer_height) - 0.5;
                                 dir = m * ((look + x * u + y * v)).normalize();
-                                GVT::Data::ray r(eye, dir, idivider2, GVT::Data::ray::PRIMARY, 2);
+                                GVT::Data::ray r(eye, dir, idivider2, GVT::Data::ray::PRIMARY, 0);
                                 r.id = idx;
                                 rays.push_back(r);
                             }

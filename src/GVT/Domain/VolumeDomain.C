@@ -21,7 +21,7 @@ namespace GVT {
         }
 
         bool
-        VolumeDomain::Intersect(GVT::Data::ray& r, vector<int>& cells) {
+        VolumeDomain::intersect(GVT::Data::ray& r, vector<int>& cells) {
             float near, far;
             float p_min[3] = {this->min[0], this->min[1], this->min[2]};
             float p_max[3] = {this->max[0], this->max[1], this->max[2]};
@@ -100,7 +100,7 @@ namespace GVT {
         // XXX TODO: currently assumes only brick of floats
 
         bool
-        VolumeDomain::LoadData() {
+        VolumeDomain::load() {
             // data already loaded
             if (data != NULL) return true;
 
@@ -117,7 +117,7 @@ namespace GVT {
             len = in.tellg();
             in.seekg(0, ios::beg);
 
-            if ((int) len != this->SizeInBytes()) {
+            if ((int) len != this->sizeInBytes()) {
                 cerr << "ERROR: File size mismatch!";
                 cerr << "  Expected " << (dim[0] * dim[1] * dim[2] * sizeof (float));
                 cerr << "  but got " << len << endl;
