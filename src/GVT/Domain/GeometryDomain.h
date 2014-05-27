@@ -16,15 +16,13 @@ namespace GVT {
         public:
 
             GVT::Data::Mesh* mesh;
-            std::vector<GVT::Data::lightsource*> lights;
-            GVT::Data::box3D boundingBox;
+            std::vector<GVT::Data::LightSource*> lights;
             std::string filename;
-            bool domain_loaded;
-
-            GeometryDomain(std::string filename = "", GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true)) : Domain(m), mesh(NULL), filename(filename), domain_loaded(false) {
+           
+            GeometryDomain(std::string filename = "", GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true)) : Domain(m), mesh(NULL), filename(filename) {
                 if (filename != "") {
-                    LoadData();
-                    FreeData();
+                    load();
+                    free();
                 }
             }
 
@@ -37,47 +35,25 @@ namespace GVT {
                 lights = other.lights;
                 boundingBox = other.boundingBox;
                 filename = other.filename;
-                domain_loaded = other.domain_loaded;
             }
 
-            virtual bool Intersect(GVT::Data::ray&, vector<int>&);
+            //virtual bool intersect(GVT::Data::ray&, vector<int>&);
 
             virtual bool hasGeometry() {
-                return domain_loaded;
+                return isLoaded;
             }
 
-            virtual int Size() {
+            virtual int size() {
                 return 0;
             }
 
-            virtual int SizeInBytes() {
+            virtual int sizeInBytes() {
                 return 0;
             }
 
-            virtual bool LoadData() {
-                if (domain_loaded) return true;
-                if (filename == "") return false;
-                mesh = readply(filename);
-                lights.push_back(new GVT::Data::PointLightSource(GVT::Math::Point4f(5.0, 5.0, 5.0, 1.f), GVT::Data::Color(1.f, 1.f, 1.f, 1.f)));
-                mesh->mat = new GVT::Data::Lambert(GVT::Data::Color(1.f, .0f, .0f, 1.f));
-                boundingBox = mesh->boundingBox;
-                domain_loaded = true;
-                return true;
-            }
+            virtual bool load();
 
-            virtual void FreeData();
-
-            GVT::Data::box3D getBounds(int type = 0) {
-                if (type == 0) {
-                    return boundingBox;
-                } else {
-                    GVT::Data::box3D bb; // = boundingBox;
-                    bb.bounds[0] = m * boundingBox.bounds[0];
-                    bb.bounds[1] = m * boundingBox.bounds[1];
-                    return bb;
-                    
-                }
-            }
+            virtual void free();
 
             friend ostream& operator<<(ostream&, GeometryDomain const&);
 

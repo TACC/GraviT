@@ -120,7 +120,7 @@ namespace GVT {
                         SUDO_DEBUG(if (DEBUG_RANK) cerr << this->rank << ": Getting domain " << domTarget << endl);
 
                         if (domTarget != lastDomain)
-                            if (dom != NULL) dom->FreeData();
+                            if (dom != NULL) dom->free();
 
                         // register the dataset so it doesn't get deleted
                         // if we build a lightmap
@@ -134,13 +134,13 @@ namespace GVT {
                                 lastDomain = domTarget;
                             }
                         } else {
-                            dom = this->rta.dataset->GetDomain(domTarget);
+                            dom = this->rta.dataset->getDomain(domTarget);
                             SUDO_DEBUG(if (DEBUG_RANK) cerr << this->rank << ": called GetDomain for dataset: " << dom << endl);
                             // track domain loads
                             if (domTarget != lastDomain) {
                                 ++domain_counter;
                                 lastDomain = domTarget;
-                                dom->LoadData();
+                                dom->load();
                             }
                         }
 
@@ -149,7 +149,7 @@ namespace GVT {
                         while (!moved_rays.empty()) {
                             GVT::Data::ray& mr = moved_rays.back();
                             if(!mr.domains.empty()) {
-                                int target = mr.domains.back();
+                                int target = boost::get<1>(*mr.domains.begin());
                                 this->queue[target].push_back(mr);
                             }
                             if(mr.type != GVT::Data::ray::PRIMARY) {
@@ -335,7 +335,7 @@ namespace GVT {
                         DEBUG(if (DEBUG_RANK) cerr << "    must swap datasets.  Had " << domTarget << " but need to send " << newMap[rank] << endl);
                         // bugger! gotta load the data then send to the rest
                         if (dom != NULL) dom->UnRegister(NULL);
-                        dom = rta.dataset.GetDomain(newMap[rank]);
+                        dom = rta.dataset.getDomain(newMap[rank]);
                         dom_mailbox = dom; // so we don't call GetDomain() again
                         dom->Register(NULL);
                         // track domain loadom
@@ -537,7 +537,8 @@ namespace GVT {
                         for (int c = 0; c < inbound[j]; ++c) {
                             DEBUG(if (DEBUG_RANK) cerr << "    receive ray " << c << endl);
                             GVT::Data::ray r(recv_buf[i] + ptr);
-                            this->queue[r.domains.back()].push_back(r);
+                            int dom = boost::get<1>(*r.domains.begin());
+                            this->queue[dom].push_back(r);
                             ptr += r.packedSize();
                             DEBUG(if (DEBUG_RANK) cerr << "    " << r << endl);
                         }

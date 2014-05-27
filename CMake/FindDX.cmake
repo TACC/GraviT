@@ -1,0 +1,36 @@
+IF (WIN32)
+  FIND_PATH(DX9_INCLUDE_PATH d3d9.h 
+  PATHS
+    "$ENV{DXSDK_DIR}/Include"
+    "$ENV{PROGRAMFILES}/Microsoft DirectX SDK/Include" 
+    DOC "The directory where d3d9.h resides")
+  FIND_PATH(DX10_INCLUDE_PATH D3D10.h 	
+  PATHS 
+    "$ENV{DXSDK_DIR}/Include" 
+    "$ENV{PROGRAMFILES}/Microsoft DirectX SDK/Include" 
+    DOC "The directory where D3D10.h resides") 
+  FIND_PATH(DX11_INCLUDE_PATH D3D11.h 	
+  PATHS
+    "$ENV{DXSDK_DIR}/Include" 
+    "$ENV{PROGRAMFILES}/Microsoft DirectX SDK/Include" 
+    DOC "The directory where D3D11.h resides")		
+ENDIF (WIN32) 
+
+IF (DX9_INCLUDE_PATH)
+  SET( DX9_FOUND 1 ) 
+ELSE (DX9_INCLUDE_PATH) 
+  SET( DX9_FOUND 0 ) 
+ENDIF (DX9_INCLUDE_PATH)
+
+IF (DX10_INCLUDE_PATH)
+  SET( DX10_FOUND 1 )
+ELSE (DX10_INCLUDE_PATH) 
+  SET( DX10_FOUND 0 ) 
+ENDIF (DX10_INCLUDE_PATH)  
+
+IF (DX11_INCLUDE_PATH)
+  SET( DX11_FOUND 1 ) 
+ELSE (DX11_INCLUDE_PATH) 
+  SET( DX11_FOUND 0 ) 
+ENDIF (DX11_INCLUDE_PATH)
+

@@ -16,63 +16,57 @@ namespace GVT {
         class Domain {
         protected:
 
-            Domain(GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true)) : m(m) {
-                minv = m.inverse();
-                normi = m.upper33().inverse().transpose();
-            }
+            Domain() {};
+            Domain(GVT::Math::AffineTransformMatrix<float> m);
 
-            Domain(const Domain &other) {
-                m = other.m;
-                minv = other.minv;
-                normi = other.normi;
-            }
+            Domain(const Domain &other);
+            virtual ~Domain();
             
-            virtual ~Domain() {
-            }
-
         public:
 
+            virtual bool intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter);
+            
+            virtual void marchIn(GVT::Data::ray& r);
+            virtual void marchOut(GVT::Data::ray& r);
+            
+
+            virtual bool load();
+            virtual void free();
+            virtual int size() = 0;
+            virtual int sizeInBytes() = 0;
+
+            virtual GVT::Data::ray toLocal(GVT::Data::ray r);
+
+            virtual GVT::Data::ray toWorld(GVT::Data::ray r);
+
+            virtual GVT::Math::Vector4f toLocal(const GVT::Math::Vector4f& r);
+
+            virtual GVT::Math::Vector4f toWorld(const GVT::Math::Vector4f& r);
+
+            virtual GVT::Math::Vector4f localToWorldNormal(const GVT::Math::Vector4f &v);
+            virtual GVT::Data::box3D getWorldBoundingBox();
+
+            virtual void setBoundingBox(GVT::Data::box3D bb);
+            
+            
+            virtual GVT::Data::box3D getBounds(int type);
+
+            virtual bool domainIsLoaded();
+
+            virtual int getDomainID();
+
+            virtual void setDomainID(int id);
+
+            // Public variables
             GVT::Math::AffineTransformMatrix<float> m;
             GVT::Math::AffineTransformMatrix<float> minv;
             GVT::Math::Matrix3f normi;
+            GVT::Data::box3D boundingBox;
 
-            virtual bool Intersect(GVT::Data::ray&, vector<int>&) = 0;
-            virtual bool LoadData() = 0;
-            virtual void FreeData() = 0;
-            virtual int Size() = 0;
-            virtual int SizeInBytes() = 0;
+            int domainID;
 
-            virtual GVT::Data::ray toLocal(GVT::Data::ray r) {
-                GVT::Data::ray ray(r);
-                ray.origin = minv * ray.origin;
-                ray.direction = minv * ray.direction;
-                return ray;
-            }
+            bool isLoaded;
 
-            virtual GVT::Data::ray toWorld(GVT::Data::ray r) {
-                GVT::Data::ray ray(r);
-                ray.origin = m * ray.origin;
-                ray.direction = m * ray.direction;
-                return ray;
-            }
-            
-            virtual GVT::Math::Vector4f toLocal(const GVT::Math::Vector4f& r) {
-                GVT::Math::Vector4f ret = minv * r;
-                ret.normalize();
-                return ret;
-            }
-
-            virtual GVT::Math::Vector4f toWorld(const GVT::Math::Vector4f& r) {
-                GVT::Math::Vector4f ret = m * r;
-                ret.normalize();
-                return ret;
-            }
-
-            virtual GVT::Math::Vector4f localToWorldNormal(const GVT::Math::Vector4f &v) {
-                GVT::Math::Vector3f ret = normi * (GVT::Math::Vector3f)v;
-                ret.normalize();
-                return ret;
-            }
         };
 
     };

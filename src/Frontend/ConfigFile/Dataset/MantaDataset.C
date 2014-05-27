@@ -45,34 +45,30 @@ namespace GVT {
     namespace Dataset {
 
         template<>
-        bool Dataset<GVT::Domain::MantaDomain>::Init() {
-           
+        bool Dataset<GVT::Domain::MantaDomain>::init() {
+            float min[3];
+            float max[3];
+            int size[3];
+            vector< vector<int> > sizes;
+            vector< vector<int> > offsets;
             std::cout << "Opened file" << std::endl;
-                        
-            if (conf_filename.size() == 0) {
-                cerr << "ERROR: Configuration file for dataset not set" << endl;
-                return false;
-            }
-
+            GVT_ASSERT(conf_filename.size() > 0, "configuration file for dataset not set : " << conf_filename );
+            
             fstream conf;
-
             conf.open(conf_filename.c_str(), fstream::in);
             GVT_ASSERT(conf.is_open(), "ERROR: Could not open file '" << conf_filename << "'");;
             // pull absolute path from conf_filename to prepend to chunk filenames
             size_t ptr = conf_filename.find_last_of("/\\");
             string conf_dir = conf_filename.substr(0, ptr);
 
-            GVT_DEBUG(DBG_ALWAYS, "opened file '" << conf_filename << "' with dir '" << conf_dir << "'");
+            GVT_DEBUG(DBG_LOW, "opened file '" << conf_filename << "' with dir '" << conf_dir << "'");
 
             // read chunk filenames and layout data
             while (conf.good()) {
                 string line;
                 getline(conf, line);
-                
-               
-                
                 if (line.size() > 0 && line.substr(0, 1) != "#") {
-                    GVT_DEBUG(DBG_ALWAYS, "got line: '" << line << "'");
+                    GVT_DEBUG(DBG_LOW, "got line: '" << line << "'");
                     line+=" ";
                     stringstream buf;
                     string file = conf_dir;
@@ -104,35 +100,33 @@ namespace GVT {
 
                     GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>::createTranslation(t[0], t[1], t[2]);
  
-                    GVT::Domain::MantaDomain dom = GVT::Domain::MantaDomain(file, m);
-
-                    dom_model[files.size() - 1] = m;
-                    dom_bbox[files.size() - 1] = dom.getBounds(1);
-                    GVT_DEBUG(DBG_ALWAYS,"Domain bounding box : " << dom_bbox[files.size() - 1]);
+                    GVT::Domain::MantaDomain* dom = new GVT::Domain::MantaDomain(file, m);
+                    GVT_DEBUG(DBG_LOW,"Domain bounding box : " << dom->getWorldBoundingBox());
+                    this->addDomain(dom);
                 } else {
-                    GVT_DEBUG(DBG_ALWAYS,"Ignored line : '" << line << "'");
+                    GVT_DEBUG(DBG_LOW,"Ignored line : '" << line << "'");
                 }
             } 
             return true;
         }
 
-        template<>
-        GVT::Domain::Domain*
-        Dataset<GVT::Domain::MantaDomain>::GetDomain(int id) {
-            if (id < 0 || id >= files.size()) {
-                cerr << "ERROR: invalid domain id '" << id << "' passed to GetDomain" << endl;
-                return NULL;
-            }
-            cout << "Get domain " << files[id] << endl;
-            map< int, GVT::Domain::MantaDomain >::iterator it = dom_cache.find(id);
-            if (it != dom_cache.end()) {
-                cout << "In cache " << files[id] << endl;
-                return &(it->second);
-            }
-            dom_cache[id] = GVT::Domain::MantaDomain(files[id], dom_model[id]);
-            cout << "Loaded domain " << files[id] << endl;
-            return &(dom_cache[id]);
-        }
+//        template<>
+//        GVT::Domain::Domain*
+//        Dataset<GVT::Domain::MantaDomain>::getDomain(int id) {
+//            if (id < 0 || id >= files.size()) {
+//                cerr << "ERROR: invalid domain id '" << id << "' passed to GetDomain" << endl;
+//                return NULL;
+//            }
+//            cout << "Get domain " << files[id] << endl;
+//            map< int, GVT::Domain::MantaDomain >::iterator it = dom_cache.find(id);
+//            if (it != dom_cache.end()) {
+//                cout << "In cache " << files[id] << endl;
+//                return &(it->second);
+//            }
+//            dom_cache[id] = GVT::Domain::MantaDomain(files[id], dom_model[id]);
+//            cout << "Loaded domain " << files[id] << endl;
+//            return &(dom_cache[id]);
+//        }
 
     }
 }

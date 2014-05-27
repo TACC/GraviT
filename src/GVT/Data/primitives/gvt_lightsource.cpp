@@ -10,25 +10,25 @@
 namespace GVT {
     namespace Data {
 
-        lightsource::lightsource(const GVT::Math::Point4f position) : position(position) {
+        LightSource::LightSource(const GVT::Math::Point4f position) : position(position) {
         }
 
-        lightsource::lightsource(const lightsource& orig) : position(orig.position) {
+        LightSource::LightSource(const LightSource& orig) : position(orig.position) {
         }
 
-        lightsource::~lightsource() {
+        LightSource::~LightSource() {
         }
 
-        GVT::Math::Vector4f lightsource::contribution(const GVT::Data::ray& ray) const {
+        GVT::Math::Vector4f LightSource::contribution(const GVT::Data::ray& ray) const {
 
             return GVT::Data::Color();
         }
 
-        PointLightSource::PointLightSource(const GVT::Math::Point4f position, const GVT::Math::Vector4f color) : lightsource(position), color(color) {
+        PointLightSource::PointLightSource(const GVT::Math::Point4f position, const GVT::Math::Vector4f color) : LightSource(position), color(color) {
 
         }
 
-        PointLightSource::PointLightSource(const PointLightSource& orig) : lightsource(orig), color(orig.color) {
+        PointLightSource::PointLightSource(const PointLightSource& orig) : LightSource(orig), color(orig.color) {
 
         }
         PointLightSource::~PointLightSource() {
@@ -42,11 +42,11 @@ namespace GVT {
             return color * (distance + 0.5f);
         }
         
-        AmbientLightSource::AmbientLightSource(const GVT::Math::Vector4f color) : lightsource(), color(color) {
+        AmbientLightSource::AmbientLightSource(const GVT::Math::Vector4f color) : LightSource(), color(color) {
             
         }
 
-        AmbientLightSource::AmbientLightSource(const AmbientLightSource& orig) : lightsource(orig), color(orig.color) {
+        AmbientLightSource::AmbientLightSource(const AmbientLightSource& orig) : LightSource(orig), color(orig.color) {
 
         }
         AmbientLightSource::~AmbientLightSource() {

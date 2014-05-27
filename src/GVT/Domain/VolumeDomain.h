@@ -21,8 +21,7 @@ namespace GVT {
         class VolumeDomain : public Domain {
         public:
 
-            VolumeDomain()
-            : id(-1), filename(""), data(NULL) {
+            VolumeDomain() : id(-1), filename(""), data(NULL) {
             }
 
             VolumeDomain(int id_, string filename_, vector<int>& dim_, vector<float>& min_, vector<float>& max_)
@@ -58,19 +57,19 @@ namespace GVT {
             }
 
             bool MakeCell(int, gvtCell&);
-            virtual bool Intersect(GVT::Data::ray&, vector<int>&);
-            bool LoadData();
+            virtual bool intersect(GVT::Data::ray&, vector<int>&);
+            bool load();
 
-            void FreeData() {
+            void free() {
                 delete[] data;
                 data = NULL;
             }
 
-            int Size() {
+            int size() {
                 return dim[0] * dim[1] * dim[2];
             }
 
-            int SizeInBytes() {
+            int sizeInBytes() {
                 return dim[0] * dim[1] * dim[2] * sizeof (float);
             }
 

@@ -80,7 +80,7 @@ namespace GVT {
                 
                 GVT_DEBUG(DBG_ALWAYS,"Sent load");
                 
-                return dataset->Init();
+                return dataset->init();
             }
 
             ScheduleType GetSchedule() {
@@ -127,7 +127,7 @@ namespace GVT {
             ScheduleType schedule;
             float sample_rate;
             float sample_ratio;
-            GVT::Dataset::abstract_dataset* dataset;
+            GVT::Dataset::GVTDataset* dataset;
             std::string datafile;
             int topology[3];
             unsigned char* transfer_func;

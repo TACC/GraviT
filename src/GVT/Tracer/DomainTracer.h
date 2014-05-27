@@ -38,13 +38,20 @@ namespace GVT {
             virtual void generateRays() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
                     DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
-                    vector< int > len2List;
-                    this->rta.dataset->Intersect(this->rays[rc], len2List);
+                    GVT::Data::isecDomList len2List;
+                    this->rta.dataset->intersect(this->rays[rc], len2List);
                     // only keep rays that are meant for domains on this processor
-                    if (!len2List.empty() && (len2List[0] % this->world_size) == this->rank) {
-                        for (int i = len2List.size() - 1; i >= 0; --i)
-                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
-                        this->queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
+                    int dom = (!len2List.empty()) ? boost::get<1>(*len2List.begin()) : -1;
+                    
+                    if (!len2List.empty() && (dom % this->world_size) == this->rank) {
+                        
+                        this->rays[rc].domains.insert(len2List.begin(),len2List.end());
+                        
+//                        for (int i = len2List.size() - 1; i >= 0; --i)
+//                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
+                        //this->queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
+                        
+                        this->queue[dom].push_back(this->rays[rc]);
                     }
                 }
             }
@@ -93,15 +100,15 @@ namespace GVT {
                         if (domTarget >= 0) {
                             DEBUG(cerr << "Getting domain " << domTarget << endl);
                             if (domTarget != lastDomain)
-                                if (dom != NULL) dom->FreeData();
+                                if (dom != NULL) dom->free();
 
-                            dom = this->rta.dataset->GetDomain(domTarget);
+                            dom = this->rta.dataset->getDomain(domTarget);
 
                             // track domains loaded
                             if (domTarget != lastDomain) {
                                 ++domain_counter;
                                 lastDomain = domTarget;
-                                dom->LoadData();
+                                dom->load();
                             }
 
                             GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
@@ -109,7 +116,7 @@ namespace GVT {
                             while (!moved_rays.empty()) {
                                 GVT::Data::ray& mr = moved_rays.back();
                                 if (!mr.domains.empty()) {
-                                    int target = mr.domains.back();
+                                    int target = boost::get<1>(*mr.domains.begin());
                                     this->queue[target].push_back(mr);
                                 }
                                 if (mr.type != GVT::Data::ray::PRIMARY) {
@@ -391,7 +398,8 @@ namespace GVT {
                         for (int c = 0; c < inbound[2 * (*n)]; ++c) {
                             GVT::Data::ray r(recv_buf[*n] + ptr);
                             DEBUG(if (DEBUG_RANK) cerr << this->rank << ":  " << r << endl);
-                            this->queue[r.domains.back()].push_back(r);
+                            int dom = boost::get<1>(*r.domains.begin());
+                            this->queue[dom].push_back(r);
                             ptr += r.packedSize();
                         }
                     }

@@ -31,7 +31,7 @@ namespace GVT {
             bool inBox(const GVT::Math::Point4f &r) const;
             GVT::Math::Point4f getHitpoint(const GVT::Data::ray &r) const;
             bool intersectDistance(const ray& r, float& t) const;
-            void merge(box3D &other);
+            void merge(const box3D &other);
             void expand(GVT::Math::Point4f& v);
 
             friend std::ostream & operator <<(std::ostream &os, const box3D &bbox) {
@@ -39,7 +39,7 @@ namespace GVT {
                 //TODO: fix this;
                 //os << bbox.bounds[0] << " x ";
                 //os << bbox.bounds[1];
-                return os;
+                return os << bbox.bounds[0] << " : " << bbox.bounds[1];
             }       
             
             template<typename cast>

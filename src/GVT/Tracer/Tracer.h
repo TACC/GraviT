@@ -54,11 +54,14 @@ namespace GVT {
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
             virtual void addRay(GVT::Data::ray& r) {
-                vector<int> len2List;
-                this->rta.dataset->Intersect(r, len2List);
+                GVT::Data::isecDomList len2List;
+                this->rta.dataset->intersect(r, len2List);
                 if (!len2List.empty()) {
-                    r.domains.assign(len2List.begin(),len2List.end());
-                    queue[len2List[0]].push_back(r);
+                    r.domains.insert(len2List.begin(), len2List.end());
+                    int dom = boost::get<1>(*len2List.begin());
+                    this->rta.dataset->getDomain(dom)->marchIn(r);
+                    queue[dom].push_back(r);
+                    //queue[boost::get<1>(*len2List.begin())].push_back(r);
                     return;
                 }
                 for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
@@ -103,12 +106,14 @@ namespace GVT {
             virtual void generateRays() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
                     DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
-                    vector<int> len2List;
-                    this->rta.dataset->Intersect(this->rays[rc], len2List);
+                    GVT::Data::isecDomList len2List;
+                    this->rta.dataset->intersect(this->rays[rc], len2List);
                     if (!len2List.empty()) {
-                        for (int i = len2List.size() - 1; i >= 0; --i)
-                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
-                        queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
+                        this->rays[rc].domains.insert(len2List.begin(), len2List.end());
+                        int dom = boost::get<1>(*len2List.begin());
+                        this->rta.dataset->getDomain(dom)->marchIn(this->rays[rc]);
+                        queue[dom].push_back(this->rays[rc]);
+                        //queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
                 }
             }
