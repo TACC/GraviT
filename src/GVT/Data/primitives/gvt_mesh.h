@@ -40,9 +40,11 @@ namespace GVT {
                 return this;
             }
             
-            virtual GVT::Data::box3D* getBoundingBox() {
-                return this;
+            virtual GVT::Data::box3D getBoundingBox() {
+                return boundingBox;
             }
+            
+            GVT::Data::box3D boundingBox;
             
         };
         
@@ -71,7 +73,7 @@ namespace GVT {
             boost::container::vector<GVT::Math::Vector4f> normals;
             boost::container::vector<GVT::Data::Mesh::face> faces;
 
-            GVT::Data::box3D boundingBox;
+            
 
         };
     }
