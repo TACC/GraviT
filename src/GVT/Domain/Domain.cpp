@@ -31,20 +31,19 @@ namespace GVT {
         void Domain::marchIn(GVT::Data::ray& r) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            //if(wBox.inBox(r)) {
-                GVT::Math::Vector4f cc = wBox.bounds[1] - wBox.bounds[0];
-                //r.origin = r.origin + r.direction * -cc.length();
-                if(wBox.intersectDistance(r, t)) {
-                    r.origin = r.origin + r.direction * (-t - GVT::Data::ray::RAY_EPSILON);
-                }
-            //}
+            if(wBox.inBox(r) && wBox.intersectDistance(r, t)) {
+                r.origin = r.origin + r.direction * -(wBox.bounds[1] - wBox.bounds[0]).length();
+//                if(wBox.intersectDistance(r, t)) {
+//                    r.origin = r.origin + r.direction * (t - GVT::Data::ray::RAY_EPSILON);
+//                }
+            }
         };
         
         void Domain::marchOut(GVT::Data::ray& r) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            while (wBox.intersectDistance(r, t) && t > 0) {
-                r.origin = r.origin + r.direction * (t + GVT::Data::ray::RAY_EPSILON);
+            while(wBox.intersectDistance(r, t) && t > 0) {
+                r.origin = r.origin + r.direction * (t + FLT_EPSILON);
             }
         };
 

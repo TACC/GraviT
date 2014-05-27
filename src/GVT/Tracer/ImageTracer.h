@@ -75,15 +75,9 @@ namespace GVT {
                             GVT::Data::ray& mr = moved_rays.back();
                             
                             if(!mr.domains.empty()) {
-//                                int target = mr.domains.back();
-//                                this->queue[target].push_back(mr);
-//                                mr.domains.pop_back();
-                                
-                                //int target = boost::get<1>(*mr.domains.begin());
-                                int target = *(mr.domains.end()-1);
+                                int target = mr.domains.back();
                                 this->queue[target].push_back(mr);
-                                mr.domains.erase(mr.domains.end()-1);
-                                
+                                mr.domains.pop_back();
                             }
                             
                             if(mr.type != GVT::Data::ray::PRIMARY) {

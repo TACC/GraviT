@@ -16,7 +16,13 @@ namespace GVT {
                 //GVT_DEBUG(DBG_ALWAYS, "Intersects with the world");
                 r.t = FLT_MAX;
                 for (GVT::Domain::Domain* d : domainSet) d->intersect(r, inter);
+                GVT::Data::isecDomList r; r.assign(inter.rbegin(),inter.rend());
+                inter.clear(); inter.assign(r.begin(),r.end());
+
+                return (!inter.empty());
+                
             }
+            return false;
         };
 
         GVT::Domain::Domain* GVTDataset::getDomain(int id) {

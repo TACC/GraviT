@@ -149,10 +149,8 @@ namespace GVT {
                         while (!moved_rays.empty()) {
                             GVT::Data::ray& mr = moved_rays.back();
                             if(!mr.domains.empty()) {
-                                //int target = boost::get<1>(*mr.domains.begin());
-                                int target = *(mr.domains.end() -1);
+                                int target = mr.domains.back();
                                 this->queue[target].push_back(mr);
-                                mr.domains.erase(mr.domains.end()-1);
                             }
                             if(mr.type != GVT::Data::ray::PRIMARY) {
                                 this->addRay(mr);
@@ -337,7 +335,7 @@ namespace GVT {
                         DEBUG(if (DEBUG_RANK) cerr << "    must swap datasets.  Had " << domTarget << " but need to send " << newMap[rank] << endl);
                         // bugger! gotta load the data then send to the rest
                         if (dom != NULL) dom->UnRegister(NULL);
-                        dom = rta.dataset.getDomain(newMap[rank]);
+                        dom = rta.dataset.GetDomain(newMap[rank]);
                         dom_mailbox = dom; // so we don't call GetDomain() again
                         dom->Register(NULL);
                         // track domain loadom
@@ -539,9 +537,7 @@ namespace GVT {
                         for (int c = 0; c < inbound[j]; ++c) {
                             DEBUG(if (DEBUG_RANK) cerr << "    receive ray " << c << endl);
                             GVT::Data::ray r(recv_buf[i] + ptr);
-                            //int dom = boost::get<1>(*r.domains.begin());
-                            int dom = *(r.domains.end()-1);
-                            this->queue[dom].push_back(r);
+                            this->queue[r.domains.back()].push_back(r);
                             ptr += r.packedSize();
                             DEBUG(if (DEBUG_RANK) cerr << "    " << r << endl);
                         }
