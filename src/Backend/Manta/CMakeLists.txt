@@ -1,6 +1,6 @@
 PROJECT(GVTMANTA)
 cmake_minimum_required(VERSION 2.8)
-SET(GVT_BE_MANTA OFF CACHE BOOL "Build Manta Backend")
+SET(GVT_BE_MANTA ON CACHE BOOL "Build Manta Backend")
 
 IF (GVT_BE_MANTA)
     FIND_PACKAGE(Manta)

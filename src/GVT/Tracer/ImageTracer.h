@@ -79,9 +79,10 @@ namespace GVT {
 //                                this->queue[target].push_back(mr);
 //                                mr.domains.pop_back();
                                 
-                                int target = boost::get<1>(*mr.domains.begin());
+                                //int target = boost::get<1>(*mr.domains.begin());
+                                int target = *(mr.domains.end()-1);
                                 this->queue[target].push_back(mr);
-                                mr.domains.erase(mr.domains.begin());
+                                mr.domains.erase(mr.domains.end()-1);
                                 
                             }
                             

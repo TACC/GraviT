@@ -149,8 +149,10 @@ namespace GVT {
                         while (!moved_rays.empty()) {
                             GVT::Data::ray& mr = moved_rays.back();
                             if(!mr.domains.empty()) {
-                                int target = boost::get<1>(*mr.domains.begin());
+                                //int target = boost::get<1>(*mr.domains.begin());
+                                int target = *(mr.domains.end() -1);
                                 this->queue[target].push_back(mr);
+                                mr.domains.erase(mr.domains.end()-1);
                             }
                             if(mr.type != GVT::Data::ray::PRIMARY) {
                                 this->addRay(mr);
@@ -537,7 +539,8 @@ namespace GVT {
                         for (int c = 0; c < inbound[j]; ++c) {
                             DEBUG(if (DEBUG_RANK) cerr << "    receive ray " << c << endl);
                             GVT::Data::ray r(recv_buf[i] + ptr);
-                            int dom = boost::get<1>(*r.domains.begin());
+                            //int dom = boost::get<1>(*r.domains.begin());
+                            int dom = *(r.domains.end()-1);
                             this->queue[dom].push_back(r);
                             ptr += r.packedSize();
                             DEBUG(if (DEBUG_RANK) cerr << "    " << r << endl);

@@ -21,8 +21,8 @@
 namespace GVT {
     namespace Data {
 
-        typedef boost::tuple<float, int> isecDom;
-        typedef boost::container::set<isecDom> isecDomList;
+        typedef int isecDom;
+        typedef boost::container::vector<isecDom> isecDomList;
 
         class ray {
         public:

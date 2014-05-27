@@ -41,11 +41,12 @@ namespace GVT {
                     GVT::Data::isecDomList len2List;
                     this->rta.dataset->intersect(this->rays[rc], len2List);
                     // only keep rays that are meant for domains on this processor
-                    int dom = (!len2List.empty()) ? boost::get<1>(*len2List.begin()) : -1;
+                    //int dom = (!len2List.empty()) ? boost::get<1>(*len2List.begin()) : -1;
+                    int dom = (!len2List.empty()) ? *len2List.end() - 1 : -1;
                     
                     if (!len2List.empty() && (dom % this->world_size) == this->rank) {
                         
-                        this->rays[rc].domains.insert(len2List.begin(),len2List.end());
+                        this->rays[rc].domains.assign(len2List.rbegin(),len2List.rend());
                         
 //                        for (int i = len2List.size() - 1; i >= 0; --i)
 //                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
@@ -116,7 +117,9 @@ namespace GVT {
                             while (!moved_rays.empty()) {
                                 GVT::Data::ray& mr = moved_rays.back();
                                 if (!mr.domains.empty()) {
-                                    int target = boost::get<1>(*mr.domains.begin());
+                                    //int target = boost::get<1>(*mr.domains.begin());
+                                    int target = *(mr.domains.end()-1);
+                                    mr.domains.erase(mr.domains.end()-1);
                                     this->queue[target].push_back(mr);
                                 }
                                 if (mr.type != GVT::Data::ray::PRIMARY) {
@@ -398,7 +401,8 @@ namespace GVT {
                         for (int c = 0; c < inbound[2 * (*n)]; ++c) {
                             GVT::Data::ray r(recv_buf[*n] + ptr);
                             DEBUG(if (DEBUG_RANK) cerr << this->rank << ":  " << r << endl);
-                            int dom = boost::get<1>(*r.domains.begin());
+                            //int dom = boost::get<1>(*r.domains.begin());
+                            int dom = *(r.domains.end() -1);
                             this->queue[dom].push_back(r);
                             ptr += r.packedSize();
                         }

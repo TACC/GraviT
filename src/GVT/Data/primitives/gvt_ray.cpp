@@ -93,7 +93,8 @@ namespace GVT {
             int domain_size = *((int*) buf);
             buf += sizeof (int);
             for (int i = 0; i < domain_size; ++i, buf +=sizeof(isecDom)) {
-                domains.insert(isecDom(*(float*) buf,*(float*) (buf + sizeof (float))));
+                //domains.insert(isecDom(*(float*) buf,*(float*) (buf + sizeof (float))));
+                domains.push_back(isecDom(*(float*) buf));
             }
 
         }
@@ -130,10 +131,13 @@ namespace GVT {
             buf += sizeof (int);
 
             for (isecDom d : domains) {
+//
+//                *(float*) buf = boost::get<0>(d);
+//                buf += sizeof (float);
+//                *(int*) buf = boost::get<1>(d);
+//                buf += sizeof (int);
 
-                *(float*) buf = boost::get<0>(d);
-                buf += sizeof (float);
-                *(int*) buf = boost::get<1>(d);
+                *(int*) buf = d;
                 buf += sizeof (int);
             }
 

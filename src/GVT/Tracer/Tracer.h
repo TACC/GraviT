@@ -57,11 +57,11 @@ namespace GVT {
                 GVT::Data::isecDomList len2List;
                 this->rta.dataset->intersect(r, len2List);
                 if (!len2List.empty()) {
-                    r.domains.insert(len2List.begin(), len2List.end());
-                    int dom = boost::get<1>(*len2List.begin());
+                    r.domains.assign(len2List.rbegin(), len2List.rend());
+                    //int dom = boost::get<1>(*len2List.begin());
+                    int dom = *(len2List.rbegin());
                     this->rta.dataset->getDomain(dom)->marchIn(r);
                     queue[dom].push_back(r);
-                    //queue[boost::get<1>(*len2List.begin())].push_back(r);
                     return;
                 }
                 for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
@@ -109,11 +109,11 @@ namespace GVT {
                     GVT::Data::isecDomList len2List;
                     this->rta.dataset->intersect(this->rays[rc], len2List);
                     if (!len2List.empty()) {
-                        this->rays[rc].domains.insert(len2List.begin(), len2List.end());
-                        int dom = boost::get<1>(*len2List.begin());
+                        this->rays[rc].domains.assign(len2List.rbegin(), len2List.rend());
+                        //int dom = boost::get<1>(*len2List.begin());
+                        int dom = *(len2List.rbegin());
                         this->rta.dataset->getDomain(dom)->marchIn(this->rays[rc]);
                         queue[dom].push_back(this->rays[rc]);
-                        //queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
                 }
             }
