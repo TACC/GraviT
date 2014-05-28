@@ -56,10 +56,10 @@ namespace GVT {
             virtual void addRay(GVT::Data::ray& r) {
                 GVT::Data::isecDomList len2List;
                 this->rta.dataset->intersect(r, len2List);
-                if (!len2List.empty()) {
-                    r.domains.assign(len2List.rbegin(),len2List.rend());
-                    this->rta.dataset->getDomain(*len2List.begin())->marchIn(r);
-                    queue[len2List[0]].push_back(r);
+                if (!r.domains.empty()) {
+                    r.domains.assign(len2List.begin(),len2List.end());
+                    this->rta.dataset->getDomain(len2List.back())->marchIn(r);
+                    queue[len2List.back()].push_back(r);
                     return;
                 }
                 for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
@@ -107,11 +107,9 @@ namespace GVT {
                     GVT::Data::isecDomList len2List;
                     this->rta.dataset->intersect(this->rays[rc], len2List);
                     if (!len2List.empty()) {
-//                        for (int i = len2List.size() - 1; i >= 0; --i)
-//                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
-                        this->rays[rc].domains.assign(len2List.rbegin(),len2List.rbegin());
-                        this->rta.dataset->getDomain(*len2List.begin())->marchIn(this->rays[rc]);
-                        queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
+                        this->rays[rc].domains.assign(len2List.begin(),len2List.begin());
+                        this->rta.dataset->getDomain(len2List.back())->marchIn(this->rays[rc]);
+                        queue[len2List.back()].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
                 }
             }

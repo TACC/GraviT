@@ -148,7 +148,6 @@ namespace GVT {
                         localQueue[pindex].t = FLT_MAX;
                     }
                     GVT_DEBUG(DBG_LOW, "Ray domains : " << localQueue[pindex].domains.size());
-                    gdom->marchOut(localQueue[pindex]);
                     dispatch(param->moved_rays, localQueue[pindex]);
                 }
             }
