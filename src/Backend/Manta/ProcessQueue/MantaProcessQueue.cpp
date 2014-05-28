@@ -97,7 +97,6 @@ namespace GVT {
                 for (int i = 0; i < psize; i++)
                     if (pop(rayList, ray)) {
                         localQueue.push_back(ray);
-                        
                     }
 
                 Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, localQueue.size(), 0, Manta::RayPacket::NormalizedDirections);
@@ -114,10 +113,9 @@ namespace GVT {
                     if (mRays.wasHit(pindex)) {
                         
                         if (localQueue[pindex].type == GVT::Data::ray::SHADOW) continue;
-                        
                         localQueue[pindex].t = mRays.getMinT(pindex);
-                        GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
 
+                        GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
                         for (int lindex = 0; lindex < gdom->lights.size(); lindex++) {
                             GVT::Data::ray ray(localQueue[pindex]);
                             ray.id = localQueue[pindex].id;
@@ -145,10 +143,8 @@ namespace GVT {
                             ray.origin_domain = param->domTarget;
                             push(rayList, ray);
                         }
-                        localQueue[pindex].t = FLT_MAX;
-                        continue;
+                        //continue;
                     }
-                    GVT_DEBUG(DBG_LOW, "Ray domains : " << localQueue[pindex].domains.size());
                     dispatch(param->moved_rays, localQueue[pindex]);
                 }
             }

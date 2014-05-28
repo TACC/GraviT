@@ -53,38 +53,31 @@ namespace GVT {
                     }
 
 
-                    DEBUG(if (DEBUG_RANK) cout << this->rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << endl);
-                    DEBUG(if (DEBUG_RANK) cout << this->rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << endl);
+                    if (DEBUG_RANK) GVT_DEBUG(DBG_ALWAYS, this->rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)");
+                    if (DEBUG_RANK) GVT_DEBUG(DBG_ALWAYS, this->rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains");
 
-
-                    // pnav: use this to ignore domain x:        int domi=0;if (0)
                     if (domTarget >= 0) {
 
-                        DEBUG(cout << "Getting domain " << domTarget << endl);
+                        GVT_DEBUG(DBG_ALWAYS,"Getting domain " << domTarget << endl);
                         GVT::Domain::Domain* dom = this->rta.dataset->getDomain(domTarget);
                         dom->load();
-                        DEBUG(cout << "dom: " << domTarget << endl);
+                        GVT_DEBUG(DBG_ALWAYS,"dom: " << domTarget << endl);
 
                         // track domain loads
                         ++domain_counter;
-
-                        // Carson TODO: create BVH
                         GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
-
                         while (!moved_rays.empty()) {
                             GVT::Data::ray& mr = moved_rays.back();
-                            
+                            moved_rays.pop_back();
+                            dom->marchOut(mr);
                             if(!mr.domains.empty()) {
-                                dom->marchOut(mr);
                                 int target = mr.domains.back();
                                 this->queue[target].push_back(mr);
                                 this->rta.dataset->getDomain(target)->marchIn(mr);
                                 mr.domains.pop_back();
                             } else {
                                 this->addRay(mr);
-                            }
-                            
-                            moved_rays.pop_back();
+                            }   
                         }
                         dom->free();
                         this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue

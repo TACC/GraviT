@@ -58,46 +58,46 @@ namespace GVT {
         }
 
         box3D::box3D(GVT::Math::Point4f vmin, GVT::Math::Point4f vmax) {
-            for(int i=0; i < 4; i++) {
-                bounds[0][i] = std::min(vmin[i],vmax[i]);
-                bounds[1][i] = std::max(vmin[i],vmax[i]);
+            for (int i = 0; i < 4; i++) {
+                bounds[0][i] = std::min(vmin[i], vmax[i]);
+                bounds[1][i] = std::max(vmin[i], vmax[i]);
             }
         }
 
         box3D::box3D(const box3D &other) {
-            for(int i=0; i < 4; i++) {
-                bounds[0][i] = std::min(other.bounds[0][i],other.bounds[1][i]);
-                bounds[1][i] = std::max(other.bounds[0][i],other.bounds[1][i]);
+            for (int i = 0; i < 4; i++) {
+                bounds[0][i] = std::min(other.bounds[0][i], other.bounds[1][i]);
+                bounds[1][i] = std::max(other.bounds[0][i], other.bounds[1][i]);
             }
         }
-        
+
         bool box3D::intersect(const GVT::Data::ray &r) const {
-//            float tmin, tmax, tymin, tymax, tzmin, tzmax;
-//
-//            tmin = (bounds[r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
-//            tmax = (bounds[1 - r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
-//            tymin = (bounds[r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
-//            tymax = (bounds[1 - r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
-//            if ((tmin > tymax) || (tymin > tmax))
-//                return false;
-//            if (tymin > tmin)
-//                tmin = tymin;
-//            if (tymax < tmax)
-//                tmax = tymax;
-//            tzmin = (bounds[r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
-//            tzmax = (bounds[1 - r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
-//            if ((tmin > tzmax) || (tzmin > tmax))
-//                return false;
-//            if (tzmin > tmin)
-//                tmin = tzmin;
-//            if (tzmax < tmax)
-//                tmax = tzmax;
-//            if (tmin > r.tmin) r.tmin = tmin;
-//            if (tmax < r.tmax) r.tmax = tmax;
-//            return (tmax > tmin && tmin > 0);
+            //            float tmin, tmax, tymin, tymax, tzmin, tzmax;
+            //
+            //            tmin = (bounds[r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
+            //            tmax = (bounds[1 - r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
+            //            tymin = (bounds[r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
+            //            tymax = (bounds[1 - r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
+            //            if ((tmin > tymax) || (tymin > tmax))
+            //                return false;
+            //            if (tymin > tmin)
+            //                tmin = tymin;
+            //            if (tymax < tmax)
+            //                tmax = tymax;
+            //            tzmin = (bounds[r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
+            //            tzmax = (bounds[1 - r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
+            //            if ((tmin > tzmax) || (tzmin > tmax))
+            //                return false;
+            //            if (tzmin > tmin)
+            //                tmin = tzmin;
+            //            if (tzmax < tmax)
+            //                tmax = tzmax;
+            //            if (tmin > r.tmin) r.tmin = tmin;
+            //            if (tmax < r.tmax) r.tmax = tmax;
+            //            return (tmax > tmin && tmin > 0);
             float t;
-            return intersectDistance(r,t);
-            
+            return intersectDistance(r, t);
+
         }
 
         bool box3D::intersect(const GVT::Data::ray &r, float& tmin, float& tmax) const {
@@ -160,30 +160,31 @@ namespace GVT {
             bounds[1][1] = max(bounds[1][1], v[1]);
             bounds[1][2] = max(bounds[1][2], v[2]);
         }
+#if 0
 
         bool box3D::intersectDistance(const GVT::Data::ray& r, float& t) const {
-//            GVT::Math::Point4f p = r.origin;
-//            GVT::Math::Vector4f d = r.direction;
+            //            GVT::Math::Point4f p = r.origin;
+            //            GVT::Math::Vector4f d = r.direction;
 
             GVT::Math::Vector4f scale;
-            for(int i=0; i < 4; i++)
-            scale[i] = (bounds[1][i] - bounds[0][i]);
-            
-            GVT::Math::Vector4f translate = (-bounds[0] - scale/2.f);
+            for (int i = 0; i < 4; i++)
+                scale[i] = (bounds[1][i] - bounds[0][i]);
+
+            GVT::Math::Vector4f translate = (-bounds[0] - scale / 2.f);
 
 
             GVT::Math::AffineTransformMatrix<float> mtrans = GVT::Math::AffineTransformMatrix<float>::createTranslation(translate[0], translate[1], translate[2]);
-            GVT::Math::AffineTransformMatrix<float> mscale = GVT::Math::AffineTransformMatrix<float>::createScale(1.f/scale[0],1.f/scale[1],1.f/scale[2]);
+            GVT::Math::AffineTransformMatrix<float> mscale = GVT::Math::AffineTransformMatrix<float>::createScale(1.f / scale[0], 1.f / scale[1], 1.f / scale[2]);
 
 
-            
+
             GVT::Math::AffineTransformMatrix<float> m0 = mscale * mtrans;
             GVT::Math::AffineTransformMatrix<float> mi = m0.inverse();
 
-//            GVT_DEBUG(DBG_ALWAYS,"Ttt = " << scale << " " << translate);
-//            GVT_DEBUG(DBG_ALWAYS,"BB0 = " << (bounds[0]) << " " << (bounds[1]));
-//            GVT_DEBUG(DBG_ALWAYS,"BBM = " << (m0*bounds[0]) << " " << (m0*bounds[1]));
-            
+            //            GVT_DEBUG(DBG_ALWAYS,"Ttt = " << scale << " " << translate);
+            //            GVT_DEBUG(DBG_ALWAYS,"BB0 = " << (bounds[0]) << " " << (bounds[1]));
+            //            GVT_DEBUG(DBG_ALWAYS,"BBM = " << (m0*bounds[0]) << " " << (m0*bounds[1]));
+
             GVT::Math::Point4f p = m0 * r.origin;
             GVT::Math::Vector4f d = m0.upper33() * (GVT::Math::Vector3f)r.direction;
 
@@ -222,17 +223,45 @@ namespace GVT {
             }
 
             if (bestIndex < 0) return false;
-            
+
             //t = bestT;
-            
-           // if (t < 0) return false;
-            
+
+            // if (t < 0) return false;
+
             GVT::Math::Point4f p2 = p + d * t;
-            t = ((mi * p2) - r.origin).length(); 
-           
-            
+            t = ((mi * p2) - r.origin).length();
+
+
             return true;
 
         }
-    }
-}
+
+#endif
+
+        bool box3D::intersectDistance(const GVT::Data::ray& r, float& t) const {
+
+            float t1 = (bounds[0].x - r.origin.x) * r.inverseDirection.x;
+            float t2 = (bounds[1].x - r.origin.x) * r.inverseDirection.x;
+            float t3 = (bounds[0].y - r.origin.y) * r.inverseDirection.y;
+            float t4 = (bounds[1].y - r.origin.y) * r.inverseDirection.y;
+            float t5 = (bounds[0].z - r.origin.z) * r.inverseDirection.z;
+            float t6 = (bounds[1].z - r.origin.z) * r.inverseDirection.z;
+
+            float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
+            float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
+
+            if (tmax < 0) {
+                t = tmax;
+                return false;
+            }
+
+            if (tmin > tmax) {
+                t = tmax;
+                return false;
+            }
+
+            t = tmin;
+            return true;
+        };
+    };
+};

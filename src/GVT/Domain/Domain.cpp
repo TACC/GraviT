@@ -32,23 +32,22 @@ namespace GVT {
         // TODO : This code is broken
 
         void Domain::marchIn(GVT::Data::ray& r) {
-            r.origin -= r.direction * (2.f * GVT::Data::ray::RAY_EPSILON);
+            //r.origin -= r.direction * (2.f * GVT::Data::ray::RAY_EPSILON);
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
             GVT_ASSERT(!wBox.inBox(r.origin), "Inside the domain..." << wBox << r.origin);
             r.setDirection(-r.direction);
             if (wBox.intersectDistance(r, t)) {
-                r.origin += r.direction * t;
+                r.origin += r.direction * (t + GVT::Data::ray::RAY_EPSILON);
             }
             r.setDirection(-r.direction);
 
         };
         // TODO : This code is broken
-
         void Domain::marchOut(GVT::Data::ray& r) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            while (wBox.intersectDistance(r, t)) {
+            if(wBox.intersectDistance(r, t)) {
                 r.origin += r.direction * (t + GVT::Data::ray::RAY_EPSILON);
             }
         };
