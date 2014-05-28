@@ -10,8 +10,6 @@
 #include <GVT/Domain/domains.h>
 #include <GVT/common/debug.h>
 
-#include <omp.h>
-
 #include "MantaProcessQueue.h"
 
 #include <Model/Primitives/Cube.h>

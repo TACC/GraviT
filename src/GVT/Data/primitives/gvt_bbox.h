@@ -39,8 +39,8 @@ namespace GVT {
                 //TODO: fix this;
                 //os << bbox.bounds[0] << " x ";
                 //os << bbox.bounds[1];
-                //return os << bbox.bounds[0] << " : " << bbox.bounds[1];
-                return os;
+                return os << bbox.bounds[0] << " : " << bbox.bounds[1];
+                //return os;
             }       
             
             template<typename cast>

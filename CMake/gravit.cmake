@@ -13,6 +13,21 @@ MACRO(CONFIGURE_GVT)
 		INCLUDE(${PROJECT_BASE_DIR}/CMake/gcc.cmake)
 	ENDIF()
 
+        IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+            SET(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+            INCLUDE(${PROJECT_BASE_DIR}/CMake/clang.cmake)
+        ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+            SET(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+            INCLUDE(${PROJECT_BASE_DIR}/CMake/gcc.cmake)
+        ELSEIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+            SET(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+            INCLUDE(${PROJECT_BASE_DIR}/CMake/icc.cmake)
+        ELSE ()
+            MESSAGE(FATAL_ERROR "Compiler not supported")
+        ENDIF()
+
+
+
 	IF (${GVT_XEON_TARGET} STREQUAL "AVX2")
 		ADD_DEFINITIONS(-DGVT_SPMD_WIDTH=8)
 		ADD_DEFINITIONS(-DGVT_TARGET_AVX2=1)

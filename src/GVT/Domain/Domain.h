@@ -16,8 +16,7 @@ namespace GVT {
         class Domain {
         protected:
 
-            Domain() {};
-            Domain(GVT::Math::AffineTransformMatrix<float> m);
+            Domain(GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true));
 
             Domain(const Domain &other);
             virtual ~Domain();

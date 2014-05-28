@@ -1,7 +1,7 @@
 
 
 #include "Dataset.h"
-
+#include <boost/range/algorithm.hpp>
 namespace GVT {
     namespace Dataset {
 
@@ -11,16 +11,15 @@ namespace GVT {
         };
 
         bool GVTDataset::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
-            //GVT_DEBUG(DBG_ALWAYS, "Try Intersect with the world : " << r << " == " << dataSetBB );
             if (dataSetBB.intersect(r)) {
-                //GVT_DEBUG(DBG_ALWAYS, "Intersects with the world");
                 r.t = FLT_MAX;
                 for (GVT::Domain::Domain* d : domainSet) d->intersect(r, inter);
-                GVT::Data::isecDomList r; r.assign(inter.rbegin(),inter.rend());
-                inter.clear(); inter.assign(r.begin(),r.end());
-
-                return (!inter.empty());
+                boost::unique(boost::sort(inter));
                 
+                
+//                GVT::Data::isecDomList r; r.assign(inter.rbegin(),inter.rend());
+//                inter.clear(); inter.assign(r.begin(),r.end());
+                return (!inter.empty());
             }
             return false;
         };

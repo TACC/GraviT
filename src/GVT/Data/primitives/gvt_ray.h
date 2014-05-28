@@ -21,7 +21,20 @@
 namespace GVT {
     namespace Data {
 
-        typedef int isecDom;
+        typedef struct intersection{
+            
+            int domain;
+            float d;
+            
+            intersection(int dom) : domain(dom),d(FLT_MAX) {}
+            intersection(int dom, float dist) : domain(dom),d(dist) {}
+            
+            operator int(){return domain;}
+            operator float(){return d;}
+            friend inline bool operator == (const intersection& lhs, const intersection& rhs ) { return (lhs.d == rhs.d) && (lhs.d == rhs.d); } 
+            friend inline bool operator < (const intersection& lhs, const intersection& rhs ) { return (lhs.d < rhs.d) || ((lhs.d==rhs.d) && (lhs.domain < rhs.domain)); } 
+            
+        } isecDom;
         typedef boost::container::vector<isecDom> isecDomList;
 
         class ray {

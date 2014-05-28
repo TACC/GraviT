@@ -20,7 +20,7 @@
 #include <Frontend/ConfigFile/Dataset/Dataset.h>
 using namespace std;
 
-const float GVT::Data::ray::RAY_EPSILON = 1.e-6;
+
 
 int main(int argc, char** argv) {
 

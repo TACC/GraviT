@@ -10,6 +10,8 @@
 namespace GVT {
     namespace Data {
 
+        const float ray::RAY_EPSILON = 1.e-6;
+        
         ray::ray(GVT::Math::Point4f origin, GVT::Math::Vector4f direction, float contribution, RayType type, int depth) :
         type(type), w(contribution), depth(depth) {
 
@@ -137,7 +139,7 @@ namespace GVT {
 //                *(int*) buf = boost::get<1>(d);
 //                buf += sizeof (int);
 
-                *(int*) buf = d;
+                *(GVT::Data::isecDom*) buf = d;
                 buf += sizeof (int);
             }
 

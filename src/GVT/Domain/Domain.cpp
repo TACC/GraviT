@@ -5,7 +5,7 @@
 namespace GVT {
     namespace Domain {
 
-        Domain::Domain(GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true)) : m(m), domainID(-1), isLoaded(false) {
+        Domain::Domain(GVT::Math::AffineTransformMatrix<float> m) : m(m), domainID(-1), isLoaded(false) {
             minv = m.inverse();
             normi = m.upper33().inverse().transpose();
         }
@@ -21,30 +21,41 @@ namespace GVT {
 
         bool Domain::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
             float t;
-            if (getWorldBoundingBox().intersectDistance(r, t)) {
-                inter.push_back(GVT::Data::isecDom(domainID));
+            if (getWorldBoundingBox().intersectDistance(r, -t)) {
+                inter.push_back(GVT::Data::isecDom(domainID,t));
                 return true;
             }
             return false;
         };
 
         void Domain::marchIn(GVT::Data::ray& r) {
+            
+            // TODO : This code is broken
+//            if(r.t == FLT_MAX) return;
+//            r.origin -= r.direction * (r.t - GVT::Data::ray::RAY_EPSILON); 
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            if(wBox.inBox(r) && wBox.intersectDistance(r, t)) {
-                r.origin = r.origin + r.direction * -(wBox.bounds[1] - wBox.bounds[0]).length();
+            if(wBox.inBox(r.origin)) {
+                r.origin = r.origin - r.direction; // * (-2.f * GVT::Data::ray::RAY_EPSILON);
 //                if(wBox.intersectDistance(r, t)) {
 //                    r.origin = r.origin + r.direction * (t - GVT::Data::ray::RAY_EPSILON);
 //                }
             }
+            
         };
-        
+
         void Domain::marchOut(GVT::Data::ray& r) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            while(wBox.intersectDistance(r, t) && t > 0) {
-                r.origin = r.origin + r.direction * (t + FLT_EPSILON);
+            
+            // TODO : This code is broken
+            
+            while(wBox.intersectDistance(r, t)) {
+                r.origin = r.origin + r.direction * (t + GVT::Data::ray::RAY_EPSILON);
+                r.t = t;
             }
+            
+            
         };
 
         bool Domain::load() {

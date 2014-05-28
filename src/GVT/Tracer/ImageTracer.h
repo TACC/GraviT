@@ -75,12 +75,12 @@ namespace GVT {
                             GVT::Data::ray& mr = moved_rays.back();
                             
                             if(!mr.domains.empty()) {
+                                dom->marchOut(mr);
                                 int target = mr.domains.back();
                                 this->queue[target].push_back(mr);
+                                this->rta.dataset->getDomain(target)->marchIn(mr);
                                 mr.domains.pop_back();
-                            }
-                            
-                            if(mr.type != GVT::Data::ray::PRIMARY) {
+                            } else {
                                 this->addRay(mr);
                             }
                             

@@ -41,7 +41,7 @@ namespace GVT {
                     GVT::Data::isecDomList len2List;
                     this->rta.dataset->intersect(this->rays[rc], len2List);
                     // only keep rays that are meant for domains on this processor
-                    if (!len2List.empty() && (len2List[0] % this->world_size) == this->rank) {
+                    if (!len2List.empty() && ((int)len2List[0] % this->world_size) == this->rank) {
 //                        for (int i = len2List.size() - 1; i >= 0; --i)
 //                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
                         
