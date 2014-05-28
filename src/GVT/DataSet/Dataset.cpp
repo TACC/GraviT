@@ -11,10 +11,10 @@ namespace GVT {
         };
 
         bool GVTDataset::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
-            if (dataSetBB.intersect(r)) {
+            if (dataSetBB.intersect(r) || dataSetBB.inBox(r)) {
                 r.t = FLT_MAX;
                 for (GVT::Domain::Domain* d : domainSet) d->intersect(r, inter);
-                boost::unique(boost::sort(inter));
+                boost::sort(inter);
                 
                 
 //                GVT::Data::isecDomList r; r.assign(inter.rbegin(),inter.rend());

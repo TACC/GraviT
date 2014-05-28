@@ -114,8 +114,8 @@ namespace GVT {
                         
                         if (localQueue[pindex].type == GVT::Data::ray::SHADOW) continue;
                         localQueue[pindex].t = mRays.getMinT(pindex);
-
                         GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
+                        
                         for (int lindex = 0; lindex < gdom->lights.size(); lindex++) {
                             GVT::Data::ray ray(localQueue[pindex]);
                             ray.id = localQueue[pindex].id;
