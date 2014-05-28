@@ -146,6 +146,7 @@ namespace GVT {
                             push(rayList, ray);
                         }
                         localQueue[pindex].t = FLT_MAX;
+                        continue;
                     }
                     GVT_DEBUG(DBG_LOW, "Ray domains : " << localQueue[pindex].domains.size());
                     dispatch(param->moved_rays, localQueue[pindex]);
