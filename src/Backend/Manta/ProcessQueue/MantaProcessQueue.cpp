@@ -117,7 +117,10 @@ namespace GVT {
                         GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
                         
                         for (int lindex = 0; lindex < gdom->lights.size(); lindex++) {
-                            GVT::Data::ray ray(localQueue[pindex]);
+                            GVT::Data::ray ray;//(localQueue[pindex]);
+                            ray.origin = localQueue[pindex].origin;
+                            ray.setDirection(localQueue[pindex].direction);
+                            ray.t = localQueue[pindex].t;
                             ray.id = localQueue[pindex].id;
                             ray.origin_domain = param->domTarget;
                             ray.type = GVT::Data::ray::SHADOW;
@@ -133,7 +136,10 @@ namespace GVT {
 
                         int ndepth = localQueue[pindex].depth - 1;
                         if (ndepth > 0) {
-                            GVT::Data::ray ray(localQueue[pindex]);
+                            GVT::Data::ray ray;//(localQueue[pindex]);
+                            ray.origin = localQueue[pindex].origin;
+                            ray.setDirection(localQueue[pindex].direction);
+                            ray.t = localQueue[pindex].t;
                             ray.id = localQueue[pindex].id;
                             ray.origin = ray.origin + ray.direction * ray.t;
                             ray.setDirection(mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
