@@ -117,36 +117,25 @@ namespace GVT {
                         GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
                         
                         for (int lindex = 0; lindex < gdom->lights.size(); lindex++) {
-                            GVT::Data::ray ray;//(localQueue[pindex]);
-                            ray.origin = localQueue[pindex].origin;
-                            ray.setDirection(localQueue[pindex].direction);
-                            ray.t = localQueue[pindex].t;
-                            ray.id = localQueue[pindex].id;
-                            ray.origin_domain = param->domTarget;
+                            GVT::Data::ray ray(localQueue[pindex]);
+                            ray.domains.clear();
                             ray.type = GVT::Data::ray::SHADOW;
                             ray.origin = ray.origin + ray.direction * ray.t;
                             ray.setDirection(gdom->lights[lindex]->position - ray.origin);
-                            
                             GVT::Data::Color c = mat->shade(ray, normal, gdom->lights[lindex]);
-                            
                             ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
-                            
                             push(rayList, ray);
                         }
 
                         int ndepth = localQueue[pindex].depth - 1;
                         if (ndepth > 0) {
-                            GVT::Data::ray ray;//(localQueue[pindex]);
-                            ray.origin = localQueue[pindex].origin;
-                            ray.setDirection(localQueue[pindex].direction);
-                            ray.t = localQueue[pindex].t;
-                            ray.id = localQueue[pindex].id;
+                            GVT::Data::ray ray(localQueue[pindex]);
+                            ray.domains.clear();
+                            ray.type = GVT::Data::ray::SECUNDARY;
                             ray.origin = ray.origin + ray.direction * ray.t;
                             ray.setDirection(mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
                             ray.w = ray.w * (ray.direction * normal);
-                            ray.type = GVT::Data::ray::SECUNDARY;
                             ray.depth = ndepth;
-                            ray.origin_domain = param->domTarget;
                             push(rayList, ray);
                         }
                         //continue;
