@@ -22,7 +22,7 @@ namespace GVT {
         bool Domain::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
             float t;
             if (getWorldBoundingBox().intersectDistance(r, t) && t > GVT::Data::ray::RAY_EPSILON) {
-                inter.push_back(GVT::Data::isecDom(domainID, -t));
+                inter.push_back(GVT::Data::isecDom(domainID, t));
                 return true;
             }
             return false;
@@ -32,10 +32,8 @@ namespace GVT {
         // TODO : This code is broken
 
         void Domain::marchIn(GVT::Data::ray& r) {
-            //r.origin -= r.direction * (2.f * GVT::Data::ray::RAY_EPSILON);
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            //GVT_ASSERT(!wBox.inBox(r.origin), "Inside the domain..." << wBox << r.origin);
             r.setDirection(-r.direction);
             while(wBox.inBox(r.origin)) {
                 if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
@@ -46,12 +44,12 @@ namespace GVT {
         };
         // TODO : This code is broken
         void Domain::marchOut(GVT::Data::ray& r) {
-            GVT::Data::box3D wBox = getWorldBoundingBox();
-            float t = FLT_MAX;
-            while(wBox.inBox(r.origin)) {
-                if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
-                r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
-            }
+//            GVT::Data::box3D wBox = getWorldBoundingBox();
+//            float t = FLT_MAX;
+//            while(wBox.inBox(r.origin)) {
+//                if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
+//                r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
+//            }
         };
 
         bool Domain::load() {

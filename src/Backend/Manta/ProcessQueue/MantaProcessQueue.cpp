@@ -113,6 +113,7 @@ namespace GVT {
                     if (mRays.wasHit(pindex)) {
                         
                         if (localQueue[pindex].type == GVT::Data::ray::SHADOW) continue;
+                        
                         localQueue[pindex].t = mRays.getMinT(pindex);
                         GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
                         
@@ -138,7 +139,7 @@ namespace GVT {
                             ray.depth = ndepth;
                             push(rayList, ray);
                         }
-                        //continue;
+                        continue;
                     }
                     dispatch(param->moved_rays, localQueue[pindex]);
                 }

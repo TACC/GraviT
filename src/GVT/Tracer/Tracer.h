@@ -58,7 +58,7 @@ namespace GVT {
                 this->rta.dataset->intersect(r, len2List);
                 if (!r.domains.empty()) {
                     r.domains.assign(len2List.begin(),len2List.end());
-                    this->rta.dataset->getDomain(len2List.back())->marchIn(r);
+                    //this->rta.dataset->getDomain(len2List.back())->marchIn(r);
                     queue[len2List.back()].push_back(r);
                     return;
                 }
@@ -109,7 +109,7 @@ namespace GVT {
                     if (!len2List.empty()) {
                         this->rays[rc].domains.assign(len2List.begin(),len2List.begin());
                         this->rta.dataset->getDomain(len2List.back())->marchIn(this->rays[rc]);
-                        queue[len2List.back()].push_back(this->rays[rc]); // TODO: make this a ref?
+                        queue[*len2List.begin()].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
                 }
             }
