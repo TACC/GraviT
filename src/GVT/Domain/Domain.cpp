@@ -44,12 +44,12 @@ namespace GVT {
         };
         // TODO : This code is broken
         void Domain::marchOut(GVT::Data::ray& r) {
-//            GVT::Data::box3D wBox = getWorldBoundingBox();
-//            float t = FLT_MAX;
-//            while(wBox.inBox(r.origin)) {
-//                if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
-//                r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
-//            }
+            GVT::Data::box3D wBox = getWorldBoundingBox();
+            float t = FLT_MAX;
+            while(wBox.inBox(r.origin)) {
+                if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
+                r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
+            }
         };
 
         bool Domain::load() {

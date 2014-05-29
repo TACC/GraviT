@@ -107,7 +107,7 @@ namespace GVT {
                     GVT::Data::isecDomList len2List;
                     this->rta.dataset->intersect(this->rays[rc], len2List);
                     if (!len2List.empty()) {
-                        this->rays[rc].domains.assign(len2List.begin(),len2List.begin());
+                        this->rays[rc].domains.assign(len2List.begin(),len2List.end());
                         this->rta.dataset->getDomain(len2List.back())->marchIn(this->rays[rc]);
                         queue[*len2List.begin()].push_back(this->rays[rc]); // TODO: make this a ref?
                     }
