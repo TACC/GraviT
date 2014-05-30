@@ -130,12 +130,9 @@ namespace GVT {
 
                         int ndepth = localQueue[pindex].depth - 1;
                         
-                        float p = 1.f - float(rand()) / RAND_MAX;
+                        float p = 1.f - (float(rand()) / RAND_MAX);
                         
-                        if(ray.w > p) continue;
-                         
-                        if (ndepth > 0) {
-                            
+                        if (ndepth > 0 && ray.w > p) {     
                             GVT::Data::ray ray(localQueue[pindex]);
                             ray.domains.clear();
                             ray.type = GVT::Data::ray::SECUNDARY;
@@ -144,22 +141,6 @@ namespace GVT {
                             ray.w = ray.w * (ray.direction * normal);
                             ray.depth = ndepth;
                             push(rayList, ray);
-                            
-                            
-                            for(int i = 0; i < 8; i++) {
-                            GVT::Data::ray ray(localQueue[pindex]);
-                            ray.domains.clear();
-                            ray.type = GVT::Data::ray::SHADOW;
-                            ray.type = GVT::Data::ray::SECUNDARY;
-                            ray.origin = ray.origin + ray.direction * ray.t;
-                            ray.setDirection(mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                            ray.w = ray.w * (ray.direction * normal);
-                            
-                            
-                            
-                            ray.depth = ndepth;
-                            push(rayList, ray);
-                            }
                         }
                         continue;
                     }
