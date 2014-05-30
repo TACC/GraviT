@@ -70,18 +70,23 @@ namespace GVT {
                         ++domain_counter;
                         GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
                         BOOST_FOREACH( GVT::Data::ray& mr,  moved_rays) {
-                            moved_rays.pop_back();
                             dom->marchOut(mr);
-                            if(!mr.domains.empty()) {
-                                int target = *mr.domains.begin();
-                                mr.domains.erase(mr.domains.begin());
-                                this->queue[target].push_back(mr);
-                                this->rta.dataset->getDomain(target)->marchIn(mr);
-                            } else {
-                                this->addRay(mr);
-                            }   
+                            
+                            GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
+                            
+                            
+//                            if(!mr.domains.empty()) {
+//                                int target = *mr.domains.begin();
+//                                mr.domains.erase(mr.domains.begin());
+//                                this->rta.dataset->getDomain(target)->marchIn(mr);
+//                                this->queue[target].push_back(mr);
+//                            } else {
+//                                this->addRay(mr);
+//                            }   
                         }
-                        dom->free();
+                        GVT::Concurrency::asyncExec::instance()->sync();
+                        //dom->free();
+                        moved_rays.clear();
                         this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
                     }
 

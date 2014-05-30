@@ -14,6 +14,9 @@
 #include <GVT/Data/scene/Image.h>
 #include <GVT/common/debug.h>
 
+
+
+#include <GVT/Concurrency/TaskScheduling.h>
 #include <boost/foreach.hpp>
 
 namespace GVT {
@@ -22,6 +25,9 @@ namespace GVT {
 
         /// Tracer base class
 
+        
+        struct processRay;
+        
         class abstract_trace {
         public:
 
@@ -32,9 +38,12 @@ namespace GVT {
             unsigned char *vtf;
             float sample_ratio;
 
+            
+            boost::mutex* queue_mutex;
             map<int, GVT::Data::RayVector> queue; ///< Node rays working queue
 
             // buffer for color accumulation
+            boost::mutex colorBuf_mutex;
             COLOR_ACCUM* colorBuf;
 
             abstract_trace(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : rta(rta), rays(rays), image(image) {
@@ -42,7 +51,7 @@ namespace GVT {
                 this->vtf = this->rta.GetTransferFunction();
                 this->sample_ratio = this->rta.sample_ratio;
                 this->colorBuf = new COLOR_ACCUM[this->rays.size()];
-                //memset(this->colorBuf, 0, sizeof (this->colorBuf) * this->rays.size());
+                this->queue_mutex = new boost::mutex[this->rta.dataset->size()];
             }
 
             virtual ~abstract_trace() {
@@ -54,17 +63,17 @@ namespace GVT {
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
             virtual void addRay(GVT::Data::ray& r) {
-                
                 GVT::Data::isecDomList len2List;
-                this->rta.dataset->intersect(r, len2List);
+                if (len2List.empty()) this->rta.dataset->intersect(r, len2List);
                 if (!len2List.empty()) {
-                    GVT_DEBUG(DBG_ALWAYS, "Checking ray : " << r);
                     r.domains.assign(len2List.begin() + 1, len2List.end());
                     int domTarget = (*len2List.begin());
                     this->rta.dataset->getDomain(domTarget)->marchIn(r);
                     queue[domTarget].push_back(r);
                     return;
                 } else {
+                    
+                    
                     for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
                     colorBuf[r.id].rgba[3] = 1.f;
                     colorBuf[r.id].clamp();
@@ -72,6 +81,37 @@ namespace GVT {
             }
         };
 
+        
+        struct processRay {
+            abstract_trace* tracer;
+            GVT::Data::ray &ray;
+
+            processRay(abstract_trace* tracer, GVT::Data::ray &ray) : tracer(tracer), ray(ray) {
+
+            }
+
+            void operator()() {
+                GVT::Data::isecDomList& len2List =  ray.domains;
+                if (len2List.empty()) tracer->rta.dataset->intersect(ray, len2List);
+                if (!len2List.empty()) {
+                    int domTarget = (*len2List.begin());
+                    len2List.erase(len2List.begin());
+                    tracer->rta.dataset->getDomain(domTarget)->marchIn(ray);
+                    boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
+                    tracer->queue[domTarget].push_back(ray);
+                } else {
+                    boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
+                    for (int i = 0; i < 3; i++) tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
+                    tracer->colorBuf[ray.id].rgba[3] = 1.f;
+                    tracer->colorBuf[ray.id].clamp();
+                }
+
+
+            }
+
+        };
+        
+        
         /*!
          * Defines properties for inheritance  
          * 
@@ -107,9 +147,14 @@ namespace GVT {
 
             virtual void generateRays() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
-                    addRay(this->rays[rc]);
+                    GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,this->rays[rc]));
                 }
+                GVT::Concurrency::asyncExec::instance()->sync();
             }
+            
+            
+
+            //GVT::Concurrency::asyncExec::singleton->syncAll();
 
             /*! Gather buffers from all distributed nodes
              *  
