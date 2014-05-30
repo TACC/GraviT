@@ -25,9 +25,9 @@ namespace GVT {
             virtual ~Material();
 
             virtual GVT::Math::Vector4f shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual boost::container::vector<GVT::Data::ray> shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual boost::container::vector<GVT::Data::ray> ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
             virtual boost::container::vector<GVT::Data::ray> secundary(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
-
+            
             GVT::Math::Vector4f CosWeightedRandomHemisphereDirection2(GVT::Math::Vector4f n) {
                 float Xi1 = (float) rand() / (float) RAND_MAX;
                 float Xi2 = (float) rand() / (float) RAND_MAX;
@@ -67,7 +67,7 @@ namespace GVT {
             virtual ~Lambert();
 
             virtual GVT::Math::Vector4f shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual boost::container::vector<GVT::Data::ray> shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual boost::container::vector<GVT::Data::ray> ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
             virtual boost::container::vector<GVT::Data::ray> secundary(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
 
         protected:
@@ -82,7 +82,7 @@ namespace GVT {
             virtual ~Phong();
 
             virtual GVT::Math::Vector4f shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual boost::container::vector<GVT::Data::ray> shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual boost::container::vector<GVT::Data::ray> ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
             virtual boost::container::vector<GVT::Data::ray> secundary(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
 
         protected:
@@ -100,7 +100,7 @@ namespace GVT {
             virtual ~BlinnPhong();
 
             virtual GVT::Math::Vector4f shade(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual boost::container::vector<GVT::Data::ray> shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual boost::container::vector<GVT::Data::ray> ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
             virtual boost::container::vector<GVT::Data::ray> secundary(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
 
         protected:

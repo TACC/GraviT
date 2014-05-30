@@ -23,7 +23,7 @@ namespace GVT {
             return GVT::Math::Vector4f();
         }
 
-        boost::container::vector<GVT::Data::ray> Material::shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
+        boost::container::vector<GVT::Data::ray> Material::ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
             return boost::container::vector<GVT::Data::ray>();
         }
 
@@ -50,7 +50,7 @@ namespace GVT {
             return diffuse;
         }
 
-        boost::container::vector<GVT::Data::ray> Lambert::shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
+        boost::container::vector<GVT::Data::ray> Lambert::ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
             return boost::container::vector<GVT::Data::ray>();
         }
 
@@ -87,7 +87,7 @@ namespace GVT {
             return finalColor;
         }
 
-        boost::container::vector<GVT::Data::ray> Phong::shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
+        boost::container::vector<GVT::Data::ray> Phong::ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
             return boost::container::vector<GVT::Data::ray>();
         }
 
@@ -125,7 +125,7 @@ namespace GVT {
             return finalColor;
         }
 
-        boost::container::vector<GVT::Data::ray> BlinnPhong::shadow(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
+        boost::container::vector<GVT::Data::ray> BlinnPhong::ao(const GVT::Data::ray& ray, const GVT::Math::Vector4f& sufaceNormal, float samples) {
             return boost::container::vector<GVT::Data::ray>();
         }
 
