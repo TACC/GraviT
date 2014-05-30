@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   vec3.h
  * Author: jbarbosa
  *
@@ -19,12 +19,12 @@ namespace GVT {
         class box3D {
         public:
             GVT::Math::Point4f bounds[2];
-  
+
             box3D();
             box3D(GVT::Math::Point4f vmin,  GVT::Math::Point4f vmax);
-            
+
             box3D(const box3D &other);
-            
+
             bool intersect(const GVT::Data::ray &r) const;
             bool intersect(const GVT::Data::ray &r, float& tmin, float& tmax) const;
             bool inBox(const GVT::Data::ray &r) const;
@@ -35,14 +35,14 @@ namespace GVT {
             void expand(GVT::Math::Point4f& v);
 
             friend std::ostream & operator <<(std::ostream &os, const box3D &bbox) {
-                
+
                 //TODO: fix this;
                 //os << bbox.bounds[0] << " x ";
                 //os << bbox.bounds[1];
-                return os << bbox.bounds[0] << " : " << bbox.bounds[1];
-                //return os;
-            }       
-            
+                //return os << bbox.bounds[0] << " : " << bbox.bounds[1];
+                return os;
+            }
+
             template<typename cast>
             operator cast() {
                 GVT_ASSERT(false,"Cast operator not available from GVT BBox");

@@ -15,6 +15,7 @@
 #include <GVT/Tracer/Tracer.h>
 #include <GVT/Backend/MetaProcessQueue.h>
 #include <GVT/Scheduler/schedulers.h>
+#include <boost/timer/timer.hpp>
 
 namespace GVT {
 
@@ -31,6 +32,7 @@ namespace GVT {
             }
 
             virtual void operator()() {
+              boost::timer::auto_cpu_timer t;
 
                 long ray_counter = 0, domain_counter = 0;
 
@@ -73,7 +75,7 @@ namespace GVT {
 
                         while (!moved_rays.empty()) {
                             GVT::Data::ray& mr = moved_rays.back();
-                            
+
                             if(!mr.domains.empty()) {
                                 dom->marchOut(mr);
                                 int target = mr.domains.back();
@@ -83,7 +85,7 @@ namespace GVT {
                             } else {
                                 this->addRay(mr);
                             }
-                            
+
                             moved_rays.pop_back();
                         }
                         dom->free();

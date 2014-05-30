@@ -25,6 +25,8 @@
 
 #include <Data/gvt_manta.h>
 
+#include <boost/timer/timer.hpp>
+
 namespace GVT {
     namespace Backend {
 
@@ -36,6 +38,7 @@ namespace GVT {
 
             GVT::Domain::GeometryDomain* gdom = dynamic_cast<GVT::Domain::GeometryDomain*> (param->dom);
             if (!gdom) return;
+            boost::timer::auto_cpu_timer t;
             //GVT::Domain::MantaDomain* mdom = dynamic_cast<GVT::Domain::MantaDomain*> (param->dom);
             GVT::Data::RayVector& rayList = param->queue[param->domTarget];
             GVT_DEBUG(DBG_ALWAYS, "processQueue<MantaDomain>: " << rayList.size());
@@ -43,12 +46,10 @@ namespace GVT {
             //Manta::Mesh* mesh = new Manta::Mesh();
             Manta::Mesh* mesh = GVT::Data::transform<GVT::Data::Mesh*, Manta::Mesh*>(param->dom->mesh);
 
-
             Manta::Material *material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
             Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
             //string filename(filename);
             //readPlyFile(gdom->filename, Manta::AffineTransform::createIdentity(), mesh, material, triangleType);
-
 
             Manta::DynBVH* as = new Manta::DynBVH();
             as->setGroup(mesh);
@@ -75,6 +76,7 @@ namespace GVT {
 
             GVT::Data::LightSource* light = gdom->lights[0];
             GVT::Data::Material* mat = gdom->mesh->mat;
+            // GVT::Data::Material* mat = material;
 
             Manta::RenderContext* rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
                     0/*animframestate*/,
@@ -97,7 +99,7 @@ namespace GVT {
                 for (int i = 0; i < psize; i++)
                     if (pop(rayList, ray)) {
                         localQueue.push_back(ray);
-                        
+
                     }
 
                 Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, localQueue.size(), 0, Manta::RayPacket::NormalizedDirections);
@@ -110,11 +112,11 @@ namespace GVT {
                 mRays.computeNormals<false>(renderContext);
 
                 for (int pindex = 0; pindex < localQueue.size(); pindex++) {
-                    
+
                     if (mRays.wasHit(pindex)) {
-                        
+
                         if (localQueue[pindex].type == GVT::Data::ray::SHADOW) continue;
-                        
+
                         localQueue[pindex].t = mRays.getMinT(pindex);
                         GVT::Math::Vector4f normal = GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex));
 
@@ -125,11 +127,11 @@ namespace GVT {
                             ray.type = GVT::Data::ray::SHADOW;
                             ray.origin = ray.origin + ray.direction * ray.t;
                             ray.setDirection(gdom->lights[lindex]->position - ray.origin);
-                            
+
                             GVT::Data::Color c = mat->shade(ray, normal, gdom->lights[lindex]);
-                            
+
                             ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
-                            
+
                             push(rayList, ray);
                         }
 
