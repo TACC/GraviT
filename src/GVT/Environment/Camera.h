@@ -109,7 +109,7 @@ namespace GVT {
             }
 
             void MakeCameraRays() {
-                int trcUpSampling = 4;
+                int trcUpSampling = 1;
                 rays.reserve( (trcUpSampling * trcUpSampling) * vi.width * vi.height );
                 
                 double divider = trcUpSampling;
@@ -128,7 +128,7 @@ namespace GVT {
                                 double x = x1 / double(buffer_width) - 0.5;
                                 double y = y1 / double(buffer_height) - 0.5;
                                 dir = m * ((look + x * u + y * v)).normalize();
-                                GVT::Data::ray r(eye, dir, idivider2, GVT::Data::ray::PRIMARY, 4);
+                                GVT::Data::ray r(eye, dir, idivider2, GVT::Data::ray::PRIMARY, 1);
                                 r.id = idx;
                                 rays.push_back(r);
                             }

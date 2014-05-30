@@ -125,7 +125,9 @@ namespace GVT {
                             ray.setDirection(gdom->lights[lindex]->position - ray.origin);
                             GVT::Data::Color c = mat->shade(ray, normal, gdom->lights[lindex]);
                             ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
+                            
                             push(rayList, ray);
+  
                         }
 
                         int ndepth = localQueue[pindex].depth - 1;
