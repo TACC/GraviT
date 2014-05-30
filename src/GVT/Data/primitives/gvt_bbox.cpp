@@ -160,7 +160,7 @@ namespace GVT {
             bounds[1][1] = max(bounds[1][1], v[1]);
             bounds[1][2] = max(bounds[1][2], v[2]);
         }
-#if 1
+#if 0
 
         bool box3D::intersectDistance(const GVT::Data::ray& r, float& t) const {
             //            GVT::Math::Point4f p = r.origin;
@@ -238,7 +238,7 @@ namespace GVT {
 
 #endif
 
-#if 0
+#if 1
         bool box3D::intersectDistance(const GVT::Data::ray& ray, float& t) const {
             
             float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
@@ -262,6 +262,9 @@ namespace GVT {
             }
 
             t = tmin;
+            
+            if(t < 0) t = tmax;
+            
             return (t > FLT_EPSILON);
              
 //            float tmin, tmax, tymin, tymax, tzmin, tzmax;

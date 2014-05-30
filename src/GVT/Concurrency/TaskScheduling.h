@@ -60,7 +60,12 @@ namespace GVT {
             }
 
             static asyncExec* instance() {
+#ifdef DEBUG
+                if(!_sinstance) _sinstance = new asyncExec(1);
+#else
                 if(!_sinstance) _sinstance = new asyncExec();
+#endif
+                
                 return _sinstance;
             }
 

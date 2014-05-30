@@ -25,9 +25,9 @@ namespace GVT {
 
         /// Tracer base class
 
-        
+
         struct processRay;
-        
+
         class abstract_trace {
         public:
 
@@ -38,7 +38,7 @@ namespace GVT {
             unsigned char *vtf;
             float sample_ratio;
 
-            
+
             boost::mutex* queue_mutex;
             map<int, GVT::Data::RayVector> queue; ///< Node rays working queue
 
@@ -72,8 +72,8 @@ namespace GVT {
                     queue[domTarget].push_back(r);
                     return;
                 } else {
-                    
-                    
+
+
                     for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
                     colorBuf[r.id].rgba[3] = 1.f;
                     colorBuf[r.id].clamp();
@@ -81,7 +81,6 @@ namespace GVT {
             }
         };
 
-        
         struct processRay {
             abstract_trace* tracer;
             GVT::Data::ray &ray;
@@ -91,27 +90,34 @@ namespace GVT {
             }
 
             void operator()() {
-                GVT::Data::isecDomList& len2List =  ray.domains;
+
+                if (ray.type == GVT::Data::ray::SHADOW && ray.domains.size() >= 1)
+                    GVT_DEBUG(DBG_ALWAYS, "RAY[" << ray.id << "] " << ray.domains.size());
+                GVT::Data::isecDomList& len2List = ray.domains;
                 if (len2List.empty()) tracer->rta.dataset->intersect(ray, len2List);
                 if (!len2List.empty()) {
                     int domTarget = (*len2List.begin());
                     len2List.erase(len2List.begin());
                     tracer->rta.dataset->getDomain(domTarget)->marchIn(ray);
                     boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
+
+                    //if (ray.type == GVT::Data::ray::SHADOW ) GVT_DEBUG(DBG_ALWAYS,"RAY["<< ray.id << "] " << domTarget);
+
+
                     tracer->queue[domTarget].push_back(ray);
-                } else {
-                    boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
-                    for (int i = 0; i < 3; i++) tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
-                    tracer->colorBuf[ray.id].rgba[3] = 1.f;
-                    tracer->colorBuf[ray.id].clamp();
+                    return;
                 }
+                boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
+                for (int i = 0; i < 3; i++) tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
+                tracer->colorBuf[ray.id].rgba[3] = 1.f;
+                tracer->colorBuf[ray.id].clamp();
+
 
 
             }
 
         };
-        
-        
+
         /*!
          * Defines properties for inheritance  
          * 
@@ -147,12 +153,12 @@ namespace GVT {
 
             virtual void generateRays() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
-                    GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,this->rays[rc]));
+                    GVT::Concurrency::asyncExec::instance()->run_task(processRay(this, this->rays[rc]));
                 }
                 GVT::Concurrency::asyncExec::instance()->sync();
             }
-            
-            
+
+
 
             //GVT::Concurrency::asyncExec::singleton->syncAll();
 

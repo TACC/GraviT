@@ -43,18 +43,19 @@ namespace GVT {
                 GVT::Data::RayVector moved_rays;
                 int domTarget = -1, domTargetCount = 0;
                 // process domains until all rays are terminated
-                while (!this->queue.empty()) {
+                do {
                     // process domain with most rays queued
                     domTarget = -1;
                     domTargetCount = 0;
 
+                    GVT_DEBUG(DBG_ALWAYS,"Selecting new domain");
                     for (map<int, GVT::Data::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) {
                         if (q->second.size() > domTargetCount) {
                             domTargetCount = q->second.size();
                             domTarget = q->first;
                         }
                     }
-
+                    GVT_DEBUG(DBG_ALWAYS,"Selecting new domain");
 
                     if (DEBUG_RANK) GVT_DEBUG(DBG_ALWAYS, this->rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)");
                     if (DEBUG_RANK) GVT_DEBUG(DBG_ALWAYS, this->rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains");
@@ -68,29 +69,22 @@ namespace GVT {
 
                         // track domain loads
                         ++domain_counter;
+                        GVT_DEBUG(DBG_ALWAYS,"Calling process queue");
                         GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
+                        GVT_DEBUG(DBG_ALWAYS,"Marching rays");
                         BOOST_FOREACH( GVT::Data::ray& mr,  moved_rays) {
                             dom->marchOut(mr);
-                            
                             GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
-                            
-                            
-//                            if(!mr.domains.empty()) {
-//                                int target = *mr.domains.begin();
-//                                mr.domains.erase(mr.domains.begin());
-//                                this->rta.dataset->getDomain(target)->marchIn(mr);
-//                                this->queue[target].push_back(mr);
-//                            } else {
-//                                this->addRay(mr);
-//                            }   
                         }
+                        GVT_DEBUG(DBG_ALWAYS,"Finished queueing");
                         GVT::Concurrency::asyncExec::instance()->sync();
+                        GVT_DEBUG(DBG_ALWAYS,"Finished marching");
                         //dom->free();
                         moved_rays.clear();
-                        this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
+                        //this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
                     }
-
-                }
+                } while (domTarget != -1);
+                GVT_DEBUG(DBG_ALWAYS,"Gathering buffers");
                 this->gatherFramebuffers(this->rays.size());
             }
         };
