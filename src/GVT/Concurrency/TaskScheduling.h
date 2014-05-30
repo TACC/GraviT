@@ -77,7 +77,7 @@ namespace GVT {
 
             void sync() {
                 while (!tasks_.empty() || wcounter > 0) {
-                    //std::cout << "Here" << std::endl;
+                    asm("");
                 }
             }
 
