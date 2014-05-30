@@ -14,7 +14,7 @@
 #include <GVT/Data/scene/Image.h>
 #include <GVT/common/debug.h>
 
-
+#include <boost/foreach.hpp>
 
 namespace GVT {
 
@@ -54,18 +54,21 @@ namespace GVT {
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
             virtual void addRay(GVT::Data::ray& r) {
+                
                 GVT::Data::isecDomList len2List;
                 this->rta.dataset->intersect(r, len2List);
-                if (!r.domains.empty()) {
-                    r.domains.assign(len2List.begin()+1,len2List.end());
-                    int domTarget = *len2List.begin();
+                if (!len2List.empty()) {
+                    GVT_DEBUG(DBG_ALWAYS, "Checking ray : " << r);
+                    r.domains.assign(len2List.begin() + 1, len2List.end());
+                    int domTarget = (*len2List.begin());
                     this->rta.dataset->getDomain(domTarget)->marchIn(r);
                     queue[domTarget].push_back(r);
                     return;
+                } else {
+                    for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
+                    colorBuf[r.id].rgba[3] = 1.f;
+                    colorBuf[r.id].clamp();
                 }
-                for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                colorBuf[r.id].rgba[3] = 1.f;
-                colorBuf[r.id].clamp();
             }
         };
 
@@ -103,22 +106,8 @@ namespace GVT {
              */
 
             virtual void generateRays() {
-                
-                
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
-                    DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
-                    GVT::Data::isecDomList len2List;
-                    this->rta.dataset->intersect(this->rays[rc], len2List);
-                    if (!len2List.empty()) {
-                        this->rays[rc].domains.assign(len2List.begin(),len2List.end());
-                        
-                        int domTarget = *len2List.begin();
-                        
-                        this->rta.dataset->getDomain(*len2List.begin())->marchIn(this->rays[rc]);
-                        
-                        queue[domTarget].push_back(this->rays[rc]); // TODO: make this a ref?
-                        
-                    }
+                    addRay(this->rays[rc]);
                 }
             }
 

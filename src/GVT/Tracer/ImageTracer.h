@@ -15,6 +15,9 @@
 #include <GVT/Tracer/Tracer.h>
 #include <GVT/Backend/MetaProcessQueue.h>
 #include <GVT/Scheduler/schedulers.h>
+#include <GVT/Concurrency/TaskScheduling.h>
+
+#include <boost/foreach.hpp>
 
 namespace GVT {
 
@@ -66,15 +69,14 @@ namespace GVT {
                         // track domain loads
                         ++domain_counter;
                         GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
-                        while (!moved_rays.empty()) {
-                            GVT::Data::ray& mr = moved_rays.back();
+                        BOOST_FOREACH( GVT::Data::ray& mr,  moved_rays) {
                             moved_rays.pop_back();
                             dom->marchOut(mr);
                             if(!mr.domains.empty()) {
-                                int target = mr.domains.back();
+                                int target = *mr.domains.begin();
+                                mr.domains.erase(mr.domains.begin());
                                 this->queue[target].push_back(mr);
                                 this->rta.dataset->getDomain(target)->marchIn(mr);
-                                mr.domains.pop_back();
                             } else {
                                 this->addRay(mr);
                             }   
