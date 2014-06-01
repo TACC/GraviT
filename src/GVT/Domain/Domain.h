@@ -8,6 +8,10 @@
 #include <GVT/Data/primitives.h>
 #include <GVT/Math/GVTMath.h>
 #include <vector>
+
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/mutex.hpp>
+
 using namespace std;
 
 namespace GVT {
@@ -15,7 +19,9 @@ namespace GVT {
 
         class Domain {
         protected:
-
+            boost::shared_mutex _inqueue;
+            boost::mutex _outqueue;
+            
             Domain(GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true));
 
             Domain(const Domain &other);
@@ -27,6 +33,7 @@ namespace GVT {
             
             virtual void marchIn(GVT::Data::ray* r);
             virtual void marchOut(GVT::Data::ray* r);
+            virtual void trace(GVT::Data::RayVector& rayList, GVT::Data::RayVector& moved_rays);
             
 
             virtual bool load();
@@ -48,6 +55,7 @@ namespace GVT {
             virtual void setBoundingBox(GVT::Data::box3D bb);
             
             
+            
             virtual GVT::Data::box3D getBounds(int type);
 
             virtual bool domainIsLoaded();
@@ -56,6 +64,34 @@ namespace GVT {
 
             virtual void setDomainID(int id);
 
+            
+            virtual GVT::Data::ray* get(GVT::Data::RayVector &queue, int idx) {
+                boost::shared_lock<boost::shared_mutex> _lock(_inqueue);
+                return queue[idx];
+            }
+            
+            virtual GVT::Data::ray* pop(GVT::Data::RayVector &queue) {
+                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
+                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+                if(queue.empty()) return NULL;
+                GVT::Data::ray* ray = queue.back();
+                queue.pop_back();
+                return ray;
+                
+            }
+                        
+            virtual void push(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
+                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
+                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+                queue.push_back(r);
+            }
+            
+            virtual void dispatch(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
+                boost::lock_guard<boost::mutex> _lock(_outqueue);
+                queue.push_back(r);
+            }
+            
+            
             // Public variables
             GVT::Math::AffineTransformMatrix<float> m;
             GVT::Math::AffineTransformMatrix<float> minv;

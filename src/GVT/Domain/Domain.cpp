@@ -55,6 +55,10 @@ namespace GVT {
             }
             r->origin += r->direction * GVT::Data::ray::RAY_EPSILON;
         };
+        
+        void Domain::trace(GVT::Data::RayVector& rayList, GVT::Data::RayVector& moved_rays) {
+            GVT_ASSERT(false,"Trace function for this domain was not implemented");
+        }
 
         bool Domain::load() {
             GVT_ASSERT(false, "Calling domain load generic function\n");

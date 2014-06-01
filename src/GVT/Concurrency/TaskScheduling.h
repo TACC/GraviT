@@ -25,7 +25,7 @@ namespace GVT {
         protected:
             std::queue< boost::function< void() > > tasks_;
             boost::thread_group threads_;
-            boost::atomic<std::size_t> pool_size;
+            
             boost::atomic<std::size_t> wcounter;
             boost::mutex mutex_;
             boost::mutex msingleton_;
@@ -36,12 +36,12 @@ namespace GVT {
             //static asyncTaskExecution _singleton;
 
         public:
-
+            std::size_t numThreads;
             static asyncExec* _sinstance;
             
-            asyncExec(std::size_t pool_size = boost::thread::hardware_concurrency())
-            : pool_size(pool_size), running_(true), wcounter(0) {
-                for (std::size_t i = 0; i < pool_size; ++i) {
+            asyncExec(std::size_t numThreads = boost::thread::hardware_concurrency())
+            : numThreads(numThreads), running_(true), wcounter(0) {
+                for (std::size_t i = 0; i < numThreads; ++i) {
                     threads_.create_thread(boost::bind(&asyncExec::pool_main, this));
                 }
             }
@@ -60,12 +60,7 @@ namespace GVT {
             }
 
             static asyncExec* instance() {
-#ifdef DEBUG
-                if(!_sinstance) _sinstance = new asyncExec(1);
-#else
                 if(!_sinstance) _sinstance = new asyncExec();
-#endif
-                
                 return _sinstance;
             }
 

@@ -44,12 +44,12 @@ namespace GVT {
                     GVT::Data::isecDomList len2List;
                     GVT::Env::RayTracerAttributes::rta->dataset->intersect(this->rays[rc], len2List);
                     // only keep rays that are meant for domains on this processor
-                    if (!len2List.empty() && ((int)len2List[0] % this->world_size) == this->rank) {
-                        
-                        this->rays[rc]->domains.assign(len2List.rbegin(),len2List.rend());
+                    if (!len2List.empty() && ((int) len2List[0] % this->world_size) == this->rank) {
+
+                        this->rays[rc]->domains.assign(len2List.rbegin(), len2List.rend());
                         GVT::Env::RayTracerAttributes::rta->dataset->getDomain(len2List[0])->marchIn(this->rays[rc]);
                         this->queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
-                        
+
                     }
                 }
             }
@@ -109,14 +109,16 @@ namespace GVT {
                                 dom->load();
                             }
 
-                            GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
+                            //GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
 
-                        BOOST_FOREACH( GVT::Data::ray* mr,  moved_rays) {
-                            dom->marchOut(mr);
-                            GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
-                        }
+                            dom->trace(this->queue[domTarget], moved_rays);
+
+                            BOOST_FOREACH(GVT::Data::ray* mr, moved_rays) {
+                                dom->marchOut(mr);
+                                GVT::Concurrency::asyncExec::instance()->run_task(processRay(this, mr));
+                            }
                             moved_rays.clear();
-                            //this->queue.erase(domTarget);
+                            this->queue.erase(domTarget);
                         }
                         DEBUG( else if (DEBUG_RANK) cerr << this->rank << ": no assigned domains have rays" << endl);
                     }

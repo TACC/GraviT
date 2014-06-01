@@ -46,7 +46,6 @@ namespace GVT {
             COLOR_ACCUM* colorBuf;
 
             abstract_trace(GVT::Data::RayVector& rays, Image& image) : rays(rays), image(image) {
-                // get transfer function and set opacity map
                 this->vtf = GVT::Env::RayTracerAttributes::rta->GetTransferFunction();
                 this->sample_ratio = GVT::Env::RayTracerAttributes::rta->sample_ratio;
                 this->colorBuf = new COLOR_ACCUM[this->rays.size()];
@@ -71,8 +70,6 @@ namespace GVT {
                     queue[domTarget].push_back(r);
                     return;
                 } else {
-
-
                     for (int i = 0; i < 3; i++) colorBuf[r->id].rgba[i] += r->color.rgba[i];
                     colorBuf[r->id].rgba[3] = 1.f;
                     colorBuf[r->id].clamp();
@@ -97,15 +94,52 @@ namespace GVT {
                     GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
                     boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
                     tracer->queue[domTarget].push_back(ray);
-                    return;
+                } else {
+                    boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
+                    for (int i = 0; i < 3; i++) tracer->colorBuf[ray->id].rgba[i] += ray->color.rgba[i];
+                    tracer->colorBuf[ray->id].rgba[3] = 1.f;
+                    tracer->colorBuf[ray->id].clamp();
+                    delete ray;
                 }
-                boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
-                for (int i = 0; i < 3; i++) tracer->colorBuf[ray->id].rgba[i] += ray->color.rgba[i];
-                tracer->colorBuf[ray->id].rgba[3] = 1.f;
-                tracer->colorBuf[ray->id].clamp();
-                delete ray;
+            }
+        };
+
+        struct processRayVector {
+            abstract_trace* tracer;
+            GVT::Data::RayVector& rays;
+            boost::atomic<int>& current_ray;
+            int last;
+            GVT::Domain::Domain* dom;
+
+            processRayVector(abstract_trace* tracer, GVT::Data::RayVector& rays, boost::atomic<int>& current_ray, int last,  GVT::Domain::Domain* dom =NULL) :
+            tracer(tracer), rays(rays), current_ray(current_ray), last(last), dom(dom) {
+
             }
 
+            void operator()() {
+                int cRay = current_ray++;
+                GVT_DEBUG(DBG_ALWAYS,"Current ray: " << cRay << " last " << last);
+                while (cRay < last) {
+                    GVT::Data::ray* ray = rays[cRay];
+                    if(dom) dom->marchOut(ray);
+                    GVT::Data::isecDomList& len2List = ray->domains;
+                    if (len2List.empty()) GVT::Env::RayTracerAttributes::rta->dataset->intersect(ray, len2List);
+                    if (!len2List.empty()) {
+                        int domTarget = (*len2List.begin());
+                        len2List.erase(len2List.begin());
+                        GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
+                        boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
+                        tracer->queue[domTarget].push_back(ray);
+                    } else {
+                        boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
+                        for (int i = 0; i < 3; i++) tracer->colorBuf[ray->id].rgba[i] += ray->color.rgba[i];
+                        tracer->colorBuf[ray->id].rgba[3] = 1.f;
+                        tracer->colorBuf[ray->id].clamp();
+                        delete ray;
+                    }
+                    cRay = current_ray++;
+                }
+            }
         };
 
         /*!
@@ -142,10 +176,14 @@ namespace GVT {
              */
 
             virtual void generateRays() {
-                for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
-                    GVT::Concurrency::asyncExec::instance()->run_task(processRay(this, this->rays[rc]));
+                boost::atomic<int> current_ray(this->rays_start);
+                for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
+                    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, this->rays,current_ray,this->rays_end));
                 }
                 GVT::Concurrency::asyncExec::instance()->sync();
+                
+                GVT_DEBUG(DBG_ALWAYS,"Current ray: " << (int)current_ray);
+                
             }
 
 
