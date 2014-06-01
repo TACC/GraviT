@@ -13,9 +13,16 @@
 
 
 #ifndef GVT_ALIGNED
-#define GVT_ALIGNED __attribute__((aligned(16)))
+#if defined (__INTEL_COMPILER) 
+#define GVT_ALIGNED \
+  __declspec(align((16)))
+#elif defined (__GNUC__)
+#define GVT_ALIGNED \
+  __attribute__ ((aligned (16)))
+#else
+#define MANTA_ALIGN(size)
 #endif
-
+#endif
 
 namespace GVT {
     namespace Math {
@@ -147,7 +154,7 @@ namespace GVT {
                 struct {
                     T r, g;
                 };
-                T n[2] GVT_ALIGNED;
+                GVT_ALIGNED T n[2];
             };
 
             //---[ Constructors ]------------------------
@@ -277,7 +284,7 @@ namespace GVT {
                 struct {
                     T r, g, b;
                 };
-                T n[3] GVT_ALIGNED;
+                GVT_ALIGNED T n[3];
             };
 
 
@@ -513,7 +520,7 @@ namespace GVT {
                 struct {
                     T r, g, b, a;
                 };
-                T n[4] GVT_ALIGNED;
+                GVT_ALIGNED T n[4];
             };
             //---[ Constructors ]------------------------
 

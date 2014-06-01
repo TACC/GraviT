@@ -19,8 +19,8 @@ namespace GVT {
 
         class Domain {
         protected:
-            boost::shared_mutex _inqueue;
-            boost::mutex _outqueue;
+//            boost::shared_mutex _inqueue;
+//            boost::mutex _outqueue;
             
             Domain(GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true));
 
@@ -29,6 +29,9 @@ namespace GVT {
             
         public:
 
+            boost::shared_mutex _inqueue;
+            boost::mutex _outqueue;
+            
             virtual bool intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter);
             
             virtual void marchIn(GVT::Data::ray* r);
