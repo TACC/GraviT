@@ -23,10 +23,10 @@ namespace GVT {
             
         public:
 
-            virtual bool intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter);
+            virtual bool intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter);
             
-            virtual void marchIn(GVT::Data::ray& r);
-            virtual void marchOut(GVT::Data::ray& r);
+            virtual void marchIn(GVT::Data::ray* r);
+            virtual void marchOut(GVT::Data::ray* r);
             
 
             virtual bool load();
@@ -34,9 +34,9 @@ namespace GVT {
             virtual int size() = 0;
             virtual int sizeInBytes() = 0;
 
-            virtual GVT::Data::ray toLocal(GVT::Data::ray r);
+            virtual GVT::Data::ray toLocal(GVT::Data::ray& r);
 
-            virtual GVT::Data::ray toWorld(GVT::Data::ray r);
+            virtual GVT::Data::ray toWorld(GVT::Data::ray& r);
 
             virtual GVT::Math::Vector4f toLocal(const GVT::Math::Vector4f& r);
 

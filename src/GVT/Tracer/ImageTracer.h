@@ -27,7 +27,7 @@ namespace GVT {
         template<class DomainType, class MPIW> class Tracer<DomainType, MPIW, ImageSchedule> : public Tracer_base<MPIW> {
         public:
 
-            Tracer(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rta, rays, image) {
+            Tracer(GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rays, image) {
                 int ray_portion = this->rays.size() / this->world_size;
                 this->rays_start = this->rank * ray_portion;
                 this->rays_end = (this->rank + 1) == this->world_size ? this->rays.size() : (this->rank + 1) * ray_portion; // tack on any odd rays to last proc
@@ -63,16 +63,16 @@ namespace GVT {
                     if (domTarget >= 0) {
 
                         GVT_DEBUG(DBG_ALWAYS,"Getting domain " << domTarget << endl);
-                        GVT::Domain::Domain* dom = this->rta.dataset->getDomain(domTarget);
+                        GVT::Domain::Domain* dom = GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget);
                         dom->load();
                         GVT_DEBUG(DBG_ALWAYS,"dom: " << domTarget << endl);
 
                         // track domain loads
                         ++domain_counter;
                         GVT_DEBUG(DBG_ALWAYS,"Calling process queue");
-                        GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
+                        GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
                         GVT_DEBUG(DBG_ALWAYS,"Marching rays");
-                        BOOST_FOREACH( GVT::Data::ray& mr,  moved_rays) {
+                        BOOST_FOREACH( GVT::Data::ray* mr,  moved_rays) {
                             dom->marchOut(mr);
                             GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
                         }

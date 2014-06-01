@@ -96,7 +96,7 @@ namespace GVT {
 
         };
 
-        typedef boost::container::vector<GVT::Data::ray> RayVector;
+        typedef boost::container::vector<GVT::Data::ray*> RayVector;
 
 
     };

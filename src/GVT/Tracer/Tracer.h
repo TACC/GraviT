@@ -31,7 +31,6 @@ namespace GVT {
         class abstract_trace {
         public:
 
-            GVT::Env::RayTracerAttributes& rta; ///< Ray tracer attributes
             GVT::Data::RayVector& rays; ///< Rays to trace
             Image& image; ///< Final image buffer
 
@@ -46,12 +45,12 @@ namespace GVT {
             boost::mutex colorBuf_mutex;
             COLOR_ACCUM* colorBuf;
 
-            abstract_trace(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : rta(rta), rays(rays), image(image) {
+            abstract_trace(GVT::Data::RayVector& rays, Image& image) : rays(rays), image(image) {
                 // get transfer function and set opacity map
-                this->vtf = this->rta.GetTransferFunction();
-                this->sample_ratio = this->rta.sample_ratio;
+                this->vtf = GVT::Env::RayTracerAttributes::rta->GetTransferFunction();
+                this->sample_ratio = GVT::Env::RayTracerAttributes::rta->sample_ratio;
                 this->colorBuf = new COLOR_ACCUM[this->rays.size()];
-                this->queue_mutex = new boost::mutex[this->rta.dataset->size()];
+                this->queue_mutex = new boost::mutex[GVT::Env::RayTracerAttributes::rta->dataset->size()];
             }
 
             virtual ~abstract_trace() {
@@ -62,58 +61,49 @@ namespace GVT {
             virtual bool SendRays() = 0;
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
-            virtual void addRay(GVT::Data::ray& r) {
+            virtual void addRay(GVT::Data::ray* r) {
                 GVT::Data::isecDomList len2List;
-                if (len2List.empty()) this->rta.dataset->intersect(r, len2List);
+                if (len2List.empty()) GVT::Env::RayTracerAttributes::rta->dataset->intersect(r, len2List);
                 if (!len2List.empty()) {
-                    r.domains.assign(len2List.begin() + 1, len2List.end());
+                    r->domains.assign(len2List.begin() + 1, len2List.end());
                     int domTarget = (*len2List.begin());
-                    this->rta.dataset->getDomain(domTarget)->marchIn(r);
+                    GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(r);
                     queue[domTarget].push_back(r);
                     return;
                 } else {
 
 
-                    for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                    colorBuf[r.id].rgba[3] = 1.f;
-                    colorBuf[r.id].clamp();
+                    for (int i = 0; i < 3; i++) colorBuf[r->id].rgba[i] += r->color.rgba[i];
+                    colorBuf[r->id].rgba[3] = 1.f;
+                    colorBuf[r->id].clamp();
                 }
             }
         };
 
         struct processRay {
             abstract_trace* tracer;
-            GVT::Data::ray &ray;
+            GVT::Data::ray* ray;
 
-            processRay(abstract_trace* tracer, GVT::Data::ray &ray) : tracer(tracer), ray(ray) {
+            processRay(abstract_trace* tracer, GVT::Data::ray* ray) : tracer(tracer), ray(ray) {
 
             }
 
             void operator()() {
-
-                if (ray.type == GVT::Data::ray::SHADOW && ray.domains.size() >= 1)
-                    GVT_DEBUG(DBG_ALWAYS, "RAY[" << ray.id << "] " << ray.domains.size());
-                GVT::Data::isecDomList& len2List = ray.domains;
-                if (len2List.empty()) tracer->rta.dataset->intersect(ray, len2List);
+                GVT::Data::isecDomList& len2List = ray->domains;
+                if (len2List.empty()) GVT::Env::RayTracerAttributes::rta->dataset->intersect(ray, len2List);
                 if (!len2List.empty()) {
                     int domTarget = (*len2List.begin());
                     len2List.erase(len2List.begin());
-                    tracer->rta.dataset->getDomain(domTarget)->marchIn(ray);
+                    GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
                     boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
-
-                    //if (ray.type == GVT::Data::ray::SHADOW ) GVT_DEBUG(DBG_ALWAYS,"RAY["<< ray.id << "] " << domTarget);
-
-
                     tracer->queue[domTarget].push_back(ray);
                     return;
                 }
                 boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex);
-                for (int i = 0; i < 3; i++) tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
-                tracer->colorBuf[ray.id].rgba[3] = 1.f;
-                tracer->colorBuf[ray.id].clamp();
-
-
-
+                for (int i = 0; i < 3; i++) tracer->colorBuf[ray->id].rgba[i] += ray->color.rgba[i];
+                tracer->colorBuf[ray->id].rgba[3] = 1.f;
+                tracer->colorBuf[ray->id].clamp();
+                delete ray;
             }
 
         };
@@ -127,7 +117,7 @@ namespace GVT {
         class Tracer_base : public MPIW, public abstract_trace {
         public:
 
-            Tracer_base(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : MPIW(rays.size()), abstract_trace(rta, rays, image) {
+            Tracer_base(GVT::Data::RayVector& rays, Image& image) : MPIW(rays.size()), abstract_trace(rays, image) {
             }
 
             virtual ~Tracer_base() {
@@ -172,13 +162,13 @@ namespace GVT {
             virtual void gatherFramebuffers(int rays_traced) {
 
 
-                for (int i = 0; i < rta.view.width * rta.view.height; ++i) {
+                for (int i = 0; i < GVT::Env::RayTracerAttributes::rta->view.width * GVT::Env::RayTracerAttributes::rta->view.height; ++i) {
                     this->image.Add(i, colorBuf[i]);
                 }
 
                 unsigned char* rgb = this->image.GetBuffer();
 
-                int rgb_buf_size = 3 * rta.view.width * rta.view.height;
+                int rgb_buf_size = 3 * GVT::Env::RayTracerAttributes::rta->view.width * GVT::Env::RayTracerAttributes::rta->view.height;
 
                 unsigned char *bufs = (this->rank == 0) ? new unsigned char[this->world_size * rgb_buf_size] : NULL;
 
@@ -236,7 +226,7 @@ namespace GVT {
         class Tracer : public Tracer_base<MPIW> {
         public:
 
-            Tracer(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rta, rays, image) {
+            Tracer(GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rays, image) {
             }
 
             virtual ~Tracer() {
@@ -257,7 +247,7 @@ namespace GVT {
         class Tracer<DomainType, MPIW, BSCHEDULER<ISCHEDULER> > : public Tracer_base<MPIW> {
         public:
 
-            Tracer(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rta, rays, image) {
+            Tracer(GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rays, image) {
             }
 
             virtual ~Tracer() {

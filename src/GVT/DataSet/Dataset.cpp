@@ -10,9 +10,9 @@ namespace GVT {
             return false;
         };
 
-        bool GVTDataset::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
+        bool GVTDataset::intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter) {
             if (dataSetBB.intersect(r) || dataSetBB.inBox(r)) {
-                r.t = FLT_MAX;
+                r->t = FLT_MAX;
                 for (GVT::Domain::Domain* d : domainSet) d->intersect(r, inter);
                 boost::sort(inter);
                 

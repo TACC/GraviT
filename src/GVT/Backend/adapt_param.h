@@ -22,18 +22,18 @@ namespace GVT {
             int domTarget;
 
             T* dom;
-            GVT::Env::RayTracerAttributes& rta;
+            //GVT::Env::RayTracerAttributes& rta;
             ColorAccumulator* colorBuf;
 
             long& ray_counter;
             long& domain_counter;
 
             adapt_param(std::map<int, GVT::Data::RayVector>& queue, GVT::Data::RayVector& moved_rays,
-                    int domTarget, GVT::Domain::Domain* dom, GVT::Env::RayTracerAttributes& rta,
+                    int domTarget, GVT::Domain::Domain* dom,
                     ColorAccumulator* colorBuf, long& ray_counter, long& domain_counter) :
 
             queue(queue), moved_rays(moved_rays), domTarget(domTarget), dom((T*)
-            dom), rta(rta), colorBuf(colorBuf), ray_counter(
+            dom), colorBuf(colorBuf), ray_counter(
             ray_counter), domain_counter(domain_counter) {
 
             }

@@ -5,6 +5,7 @@
 #include <GVT/Math/GVTMath.h>
 #include <GVT/Data/primitives.h>
 #include <GVT/Environment/RayTracerAttributes.h>
+#include <time.h>
 
 namespace GVT {
     namespace Env {
@@ -99,6 +100,7 @@ namespace GVT {
             }
 
             float frand() {
+                srand(time(NULL));
                 return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
             }
 
@@ -109,35 +111,100 @@ namespace GVT {
             }
 
             void MakeCameraRays() {
-                int trcUpSampling = 1;
-                rays.reserve( (trcUpSampling * trcUpSampling) * vi.width * vi.height );
-                
-                double divider = trcUpSampling;
-                double offset = 1.0 / divider;
-                double idivider2 = 1.0 / (divider * divider);
-                double buffer_width = vi.width;
-                double buffer_height = vi.height;
-                GVT::Math::Vector4f dir;
-                for (int j = 0; j < buffer_height; j++) {
-                    for (int i = 0; i < buffer_width; i++) {
-                        int idx = j * vi.width + i;
-                        for (double off_i = 0; off_i < 1.0; off_i += offset) {
-                            for (double off_j = 0; off_j < 1.0; off_j += offset) {
-                                double x1 = double(i) + off_i + (offset / 2.0) * (frand() - 0.5);
-                                double y1 = double(j) + off_j + (offset / 2.0) * (frand() - 0.5);
-                                double x = x1 / double(buffer_width) - 0.5;
-                                double y = y1 / double(buffer_height) - 0.5;
-                                dir = m * ((look + x * u + y * v)).normalize();
-                                GVT::Data::ray r(eye, dir, idivider2, GVT::Data::ray::PRIMARY, 1);
-                                r.id = idx;
-                                rays.push_back(r);
+                trcUpSampling = 1;
+                depth = 1;
+                int total = (trcUpSampling * trcUpSampling) * vi.width * vi.height;
+
+                rays.reserve(total);
+
+//                int offset = ((trcUpSampling * trcUpSampling) * vi.width * vi.height) / 4;
+//                for (int start = 0; start < total;) {
+//                    int end = start + offset;
+//                    end = std::min(end, total);
+//                    std::cout << "sending lot" << start << " to " << end << std::endl;
+//                    cameraGenerateRays(this, start, end)();
+//                    start = end;
+//                }
+                                double divider = trcUpSampling;
+                                double offset = 1.0 / divider;
+                                double idivider2 = 1.0 / (divider * divider);
+                                double buffer_width = vi.width;
+                                double buffer_height = vi.height;
+                                GVT::Math::Vector4f dir;
+                                for (int j = 0; j < buffer_height; j++) {
+                                    for (int i = 0; i < buffer_width; i++) {
+                                        int idx = j * vi.width + i;
+                                        for (double off_i = 0; off_i < 1.0; off_i += offset) {
+                                            for (double off_j = 0; off_j < 1.0; off_j += offset) {
+                                                double x1 = double(i) + off_i + (offset / 2.0) * (frand() - 0.5);
+                                                double y1 = double(j) + off_j + (offset / 2.0) * (frand() - 0.5);
+                                                double x = x1 / double(buffer_width) - 0.5;
+                                                double y = y1 / double(buffer_height) - 0.5;
+                                                dir = m * ((look + x * u + y * v)).normalize();
+                                                GVT::Data::ray* r =  new GVT::Data::ray(eye, dir, idivider2, GVT::Data::ray::PRIMARY, depth);
+                                                r->id = idx;
+                                                rays.push_back(r);
+                                            }
+                                        }
+                                    }
+                                }
+                GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
+
+            }
+
+            struct cameraGenerateRays {
+                Camera* cam;
+                size_t start, end;
+
+                cameraGenerateRays(Camera* cam, size_t start, size_t end) : cam(cam), start(start), end(end) {
+                }
+
+                inline float frand() {
+                    srand(time(NULL));
+                    return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
+                }
+
+                void operator()() {
+                    std::vector<GVT::Data::ray*> lrays;
+
+                    int trcUpSampling = cam->trcUpSampling;
+                    GVT::Math::AffineTransformMatrix<float> m = cam->m; // rotation matrix
+                    int depth = cam->depth;
+
+                    GVT::Math::Vector4f eye = cam->eye;
+                    GVT::Math::Vector4f look = cam->look; // direction to look
+                    GVT::Math::Vector4f u = cam->u, v = cam->v; // u and v in the 
+
+                    lrays.reserve((cam->trcUpSampling * cam->trcUpSampling) * cam->vi.width * (end - start));
+                    double divider = cam->trcUpSampling;
+                    double offset = 1.0 / divider;
+                    double idivider2 = 1.0 / (divider * divider);
+                    double buffer_width = cam->vi.width;
+                    double buffer_height = cam->vi.height;
+                    GVT::Math::Vector4f dir;
+                    for (int j = start; j < end; j++) {
+                        //std::cout << j << std::endl;
+                        for (int i = 0; i < buffer_width; i++) {
+                            int idx = j * buffer_width + i;
+                            for (double off_i = 0; off_i < 1.0; off_i += offset) {
+                                for (double off_j = 0; off_j < 1.0; off_j += offset) {
+                                    double x1 = double(i) + off_i + (offset / 2.0) * (frand() - 0.5);
+                                    double y1 = double(j) + off_j + (offset / 2.0) * (frand() - 0.5);
+                                    double x = x1 / double(buffer_width) - 0.5;
+                                    double y = y1 / double(buffer_height) - 0.5;
+                                    dir = m * ((look + x * u + y * v)).normalize();
+                                    GVT::Data::ray* ray = new GVT::Data::ray(eye, dir, idivider2, GVT::Data::ray::PRIMARY, depth);
+                                    ray->id = idx;
+                                    lrays.push_back(ray);
+                                }
                             }
                         }
                     }
+                    cam->rays.assign(lrays.begin(), lrays.end());
                 }
-                GVT_DEBUG(DBG_ALWAYS,"PREGENERATING : " << rays.size());
-                
-            }
+            };
+
+
 
         private:
             GVT::Math::AffineTransformMatrix<float> m; // rotation matrix
@@ -157,6 +224,9 @@ namespace GVT {
             GVT::Data::RayVector &rays;
             GVT::Env::RayTracerAttributes::View &vi;
             float rate;
+
+            int trcUpSampling;
+            int depth;
         };
 
         template<> Camera<C_ORTHOGRAPHIC>::Camera(GVT::Data::RayVector& rays, GVT::Env::RayTracerAttributes::View& vi, float rate);

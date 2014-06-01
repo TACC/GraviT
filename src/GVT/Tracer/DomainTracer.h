@@ -16,6 +16,9 @@
 #include <GVT/Backend/MetaProcessQueue.h>
 #include <GVT/Scheduler/schedulers.h>
 
+#include <boost/foreach.hpp>
+#include <GVT/Concurrency/TaskScheduling.h>
+
 #define RAY_BUF_SIZE 10485760  // 10 MB per neighbor
 
 
@@ -29,7 +32,7 @@ namespace GVT {
 
             std::set<int> neighbors;
 
-            Tracer(GVT::Env::RayTracerAttributes& rta, GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rta, rays, image) {
+            Tracer(GVT::Data::RayVector& rays, Image& image) : Tracer_base<MPIW>(rays, image) {
             }
 
             virtual ~Tracer() {
@@ -39,15 +42,14 @@ namespace GVT {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
                     DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
                     GVT::Data::isecDomList len2List;
-                    this->rta.dataset->intersect(this->rays[rc], len2List);
+                    GVT::Env::RayTracerAttributes::rta->dataset->intersect(this->rays[rc], len2List);
                     // only keep rays that are meant for domains on this processor
                     if (!len2List.empty() && ((int)len2List[0] % this->world_size) == this->rank) {
-//                        for (int i = len2List.size() - 1; i >= 0; --i)
-//                            this->rays[rc].domains.push_back(len2List[i]); // insert domains in reverse order
                         
-                        this->rays[rc].domains.assign(len2List.rbegin(),len2List.rend());
-                        this->rta.dataset->getDomain(len2List[0])->marchIn(this->rays[rc]);
+                        this->rays[rc]->domains.assign(len2List.rbegin(),len2List.rend());
+                        GVT::Env::RayTracerAttributes::rta->dataset->getDomain(len2List[0])->marchIn(this->rays[rc]);
                         this->queue[len2List[0]].push_back(this->rays[rc]); // TODO: make this a ref?
+                        
                     }
                 }
             }
@@ -98,7 +100,7 @@ namespace GVT {
                             if (domTarget != lastDomain)
                                 if (dom != NULL) dom->free();
 
-                            dom = this->rta.dataset->getDomain(domTarget);
+                            dom = GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget);
 
                             // track domains loaded
                             if (domTarget != lastDomain) {
@@ -107,21 +109,14 @@ namespace GVT {
                                 dom->load();
                             }
 
-                            GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->rta, this->colorBuf, ray_counter, domain_counter))();
+                            GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
 
-                            while (!moved_rays.empty()) {
-                                GVT::Data::ray& mr = moved_rays.back();
-                                if (!mr.domains.empty()) {
-                                    int target = mr.domains.back();
-                                    this->queue[target].push_back(mr);
-                                }
-                                if (mr.type != GVT::Data::ray::PRIMARY) {
-                                    this->addRay(mr);
-                                }
-                                moved_rays.pop_back();
-                            }
-
-                            this->queue.erase(domTarget);
+                        BOOST_FOREACH( GVT::Data::ray* mr,  moved_rays) {
+                            dom->marchOut(mr);
+                            GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
+                        }
+                            moved_rays.clear();
+                            //this->queue.erase(domTarget);
                         }
                         DEBUG( else if (DEBUG_RANK) cerr << this->rank << ": no assigned domains have rays" << endl);
                     }
@@ -165,7 +160,7 @@ namespace GVT {
 
             virtual void FindNeighbors() {
 
-                int total = this->rta.GetTopology()[2], plane = this->rta.GetTopology()[1], row = this->rta.GetTopology()[0]; // XXX TODO: assumes grid layout
+                int total = GVT::Env::RayTracerAttributes::rta->GetTopology()[2], plane = GVT::Env::RayTracerAttributes::rta->GetTopology()[1], row = GVT::Env::RayTracerAttributes::rta->GetTopology()[0]; // XXX TODO: assumes grid layout
                 int offset[3] = {-1, 0, 1};
                 std::set<int> n_doms;
 
@@ -298,7 +293,7 @@ namespace GVT {
                         outbound[n_ptr] += q->second.size();
                         for (int r = 0; r < q->second.size(); ++r) {
                             DEBUG(if (DEBUG_RANK) cerr << this->rank << ":  " << (q->second)[r] << endl);
-                            buf_size += (q->second)[r].packedSize(); // rays can have diff packed sizes
+                            buf_size += (q->second)[r]->packedSize(); // rays can have diff packed sizes
                         }
                         outbound[n_ptr + 1] += buf_size;
                         DEBUG(if (DEBUG_RANK) cerr << " neighbor! Added " << q->second.size() << " rays (" << buf_size << " bytes)" << endl);
@@ -362,9 +357,9 @@ namespace GVT {
                                 << outbound[2 * n + 1] << " bytes) to " << n << endl
                                 );
                         for (int r = 0; r < q->second.size(); ++r) {
-                            GVT::Data::ray& ray = (q->second)[r];
+                            GVT::Data::ray* ray = (q->second)[r];
                             DEBUG(if (DEBUG_RANK) cerr << this->rank << ":  " << ray << endl);
-                            send_buf_ptr[n] += ray.pack(send_buf[n] + send_buf_ptr[n]);
+                            send_buf_ptr[n] += ray->pack(send_buf[n] + send_buf_ptr[n]);
                         }
                         to_del.push_back(q->first);
                     }
@@ -392,10 +387,10 @@ namespace GVT {
                         });
                         int ptr = 0;
                         for (int c = 0; c < inbound[2 * (*n)]; ++c) {
-                            GVT::Data::ray r(recv_buf[*n] + ptr);
+                            GVT::Data::ray* r = new GVT::Data::ray(recv_buf[*n] + ptr);
                             DEBUG(if (DEBUG_RANK) cerr << this->rank << ":  " << r << endl);
-                            this->queue[r.domains.back()].push_back(r);
-                            ptr += r.packedSize();
+                            this->queue[r->domains.back()].push_back(r);
+                            ptr += r->packedSize();
                         }
                     }
                 }

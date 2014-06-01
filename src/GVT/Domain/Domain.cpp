@@ -19,7 +19,7 @@ namespace GVT {
         Domain::~Domain() {
         }
 
-        bool Domain::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
+        bool Domain::intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter) {
             float t;
             if (getWorldBoundingBox().intersectDistance(r, t) && t > GVT::Data::ray::RAY_EPSILON) {
                 inter.push_back(GVT::Data::isecDom(domainID, t));
@@ -31,29 +31,29 @@ namespace GVT {
 
         // TODO : This code is broken
 
-        void Domain::marchIn(GVT::Data::ray& r) {
+        void Domain::marchIn(GVT::Data::ray* r) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            r.setDirection(-r.direction);
-            while(wBox.inBox(r.origin)) {
-                if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
-                r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
+            r->setDirection(-r->direction);
+            while(wBox.inBox(r->origin)) {
+                if(wBox.intersectDistance(r,t)) r->origin += r->direction * t;
+                r->origin += r->direction * GVT::Data::ray::RAY_EPSILON;
             }
-            r.setDirection(-r.direction);
+            r->setDirection(-r->direction);
 
         };
         // TODO : This code is broken
-        void Domain::marchOut(GVT::Data::ray& r) {
+        void Domain::marchOut(GVT::Data::ray* r) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
             //int i =0;
             
-            if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
+            if(wBox.intersectDistance(r,t)) r->origin += r->direction * t;
             while(wBox.inBox(r)) {
-                if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
-                r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
+                if(wBox.intersectDistance(r,t)) r->origin += r->direction * t;
+                r->origin += r->direction * GVT::Data::ray::RAY_EPSILON;
             }
-            r.origin += r.direction * GVT::Data::ray::RAY_EPSILON;
+            r->origin += r->direction * GVT::Data::ray::RAY_EPSILON;
         };
 
         bool Domain::load() {
@@ -66,14 +66,14 @@ namespace GVT {
             return;
         }
 
-        GVT::Data::ray Domain::toLocal(GVT::Data::ray r) {
+        GVT::Data::ray Domain::toLocal(GVT::Data::ray& r) {
             GVT::Data::ray ray(r);
             ray.origin = minv * ray.origin;
             ray.direction = minv * ray.direction;
             return ray;
         }
 
-        GVT::Data::ray Domain::toWorld(GVT::Data::ray r) {
+        GVT::Data::ray Domain::toWorld(GVT::Data::ray& r) {
             GVT::Data::ray ray(r);
             ray.origin = m * ray.origin;
             ray.direction = m * ray.direction;

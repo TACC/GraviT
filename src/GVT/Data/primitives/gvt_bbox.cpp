@@ -51,9 +51,9 @@ namespace GVT {
 
         }
 
-        GVT::Math::Point4f box3D::getHitpoint(const GVT::Data::ray& r) const {
+        GVT::Math::Point4f box3D::getHitpoint(const GVT::Data::ray* r) const {
             GVT::Math::Point4f hit;
-            CheckLineBox(bounds[0], bounds[1], r.origin, (GVT::Math::Point4f)((GVT::Math::Vector4f)r.origin + r.direction * 1.e6f), hit);
+            CheckLineBox(bounds[0], bounds[1], r->origin, (GVT::Math::Point4f)((GVT::Math::Vector4f)r->origin + r->direction * 1.e6f), hit);
             return hit;
         }
 
@@ -71,64 +71,64 @@ namespace GVT {
             }
         }
 
-        bool box3D::intersect(const GVT::Data::ray &r) const {
+        bool box3D::intersect(const GVT::Data::ray *r) const {
             //            float tmin, tmax, tymin, tymax, tzmin, tzmax;
             //
-            //            tmin = (bounds[r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
-            //            tmax = (bounds[1 - r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
-            //            tymin = (bounds[r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
-            //            tymax = (bounds[1 - r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
+            //            tmin = (bounds[r->sign[0]].x - r->origin.x) * r->inverseDirection.x;
+            //            tmax = (bounds[1 - r->sign[0]].x - r->origin.x) * r->inverseDirection.x;
+            //            tymin = (bounds[r->sign[1]].y - r->origin.y) * r->inverseDirection.y;
+            //            tymax = (bounds[1 - r->sign[1]].y - r->origin.y) * r->inverseDirection.y;
             //            if ((tmin > tymax) || (tymin > tmax))
             //                return false;
             //            if (tymin > tmin)
             //                tmin = tymin;
             //            if (tymax < tmax)
             //                tmax = tymax;
-            //            tzmin = (bounds[r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
-            //            tzmax = (bounds[1 - r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
+            //            tzmin = (bounds[r->sign[2]].z - r->origin.z) * r->inverseDirection.z;
+            //            tzmax = (bounds[1 - r->sign[2]].z - r->origin.z) * r->inverseDirection.z;
             //            if ((tmin > tzmax) || (tzmin > tmax))
             //                return false;
             //            if (tzmin > tmin)
             //                tmin = tzmin;
             //            if (tzmax < tmax)
             //                tmax = tzmax;
-            //            if (tmin > r.tmin) r.tmin = tmin;
-            //            if (tmax < r.tmax) r.tmax = tmax;
+            //            if (tmin > r->tmin) r->tmin = tmin;
+            //            if (tmax < r->tmax) r->tmax = tmax;
             //            return (tmax > tmin && tmin > 0);
             float t;
             return intersectDistance(r, t);
 
         }
 
-        bool box3D::intersect(const GVT::Data::ray &r, float& tmin, float& tmax) const {
+        bool box3D::intersect(const GVT::Data::ray *r, float& tmin, float& tmax) const {
             float tymin, tymax, tzmin, tzmax;
 
-            tmin = (bounds[r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
-            tmax = (bounds[1 - r.sign[0]].x - r.origin.x) * r.inverseDirection.x;
-            tymin = (bounds[r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
-            tymax = (bounds[1 - r.sign[1]].y - r.origin.y) * r.inverseDirection.y;
+            tmin = (bounds[r->sign[0]].x - r->origin.x) * r->inverseDirection.x;
+            tmax = (bounds[1 - r->sign[0]].x - r->origin.x) * r->inverseDirection.x;
+            tymin = (bounds[r->sign[1]].y - r->origin.y) * r->inverseDirection.y;
+            tymax = (bounds[1 - r->sign[1]].y - r->origin.y) * r->inverseDirection.y;
             if ((tmin > tymax) || (tymin > tmax))
                 return false;
             if (tymin > tmin)
                 tmin = tymin;
             if (tymax < tmax)
                 tmax = tymax;
-            tzmin = (bounds[r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
-            tzmax = (bounds[1 - r.sign[2]].z - r.origin.z) * r.inverseDirection.z;
+            tzmin = (bounds[r->sign[2]].z - r->origin.z) * r->inverseDirection.z;
+            tzmax = (bounds[1 - r->sign[2]].z - r->origin.z) * r->inverseDirection.z;
             if ((tmin > tzmax) || (tzmin > tmax))
                 return false;
             if (tzmin > tmin)
                 tmin = tzmin;
             if (tzmax < tmax)
                 tmax = tzmax;
-            if (tmin > r.tmin) r.tmin = tmin;
-            if (tmax < r.tmax) r.tmax = tmax;
+            if (tmin > r->tmin) r->tmin = tmin;
+            if (tmax < r->tmax) r->tmax = tmax;
             return (tmax > tmin && tmin > 0);
         }
 
-        bool box3D::inBox(const GVT::Data::ray &r) const {
-            //            return InBox(r.origin,bounds[0],bounds[1],0) && InBox(r.origin,bounds[0],bounds[1],1) && InBox(r.origin,bounds[0],bounds[1],2);
-            return inBox(r.origin);
+        bool box3D::inBox(const GVT::Data::ray *r) const {
+            //            return InBox(r->origin,bounds[0],bounds[1],0) && InBox(r->origin,bounds[0],bounds[1],1) && InBox(r->origin,bounds[0],bounds[1],2);
+            return inBox(r->origin);
 
         }
 
@@ -162,9 +162,9 @@ namespace GVT {
         }
 #if 0
 
-        bool box3D::intersectDistance(const GVT::Data::ray& r, float& t) const {
-            //            GVT::Math::Point4f p = r.origin;
-            //            GVT::Math::Vector4f d = r.direction;
+        bool box3D::intersectDistance(const GVT::Data::ray* r, float& t) const {
+            //            GVT::Math::Point4f p = r->origin;
+            //            GVT::Math::Vector4f d = r->direction;
 
             GVT::Math::Vector4f scale;
             for (int i = 0; i < 4; i++)
@@ -185,8 +185,8 @@ namespace GVT {
             //            GVT_DEBUG(DBG_ALWAYS,"BB0 = " << (bounds[0]) << " " << (bounds[1]));
             //            GVT_DEBUG(DBG_ALWAYS,"BBM = " << (m0*bounds[0]) << " " << (m0*bounds[1]));
 
-            GVT::Math::Point4f p = m0 * r.origin;
-            GVT::Math::Vector4f d = m0.upper33() * (GVT::Math::Vector3f)r.direction;
+            GVT::Math::Point4f p = m0 * r->origin;
+            GVT::Math::Vector4f d = m0.upper33() * (GVT::Math::Vector3f)r->direction;
 
             int it;
             float x, y, bestT;
@@ -229,7 +229,7 @@ namespace GVT {
             // if (t < 0) return false;
 
             GVT::Math::Point4f p2 = p + d * bestT;
-            t = ((mi * p2) - r.origin).length();
+            t = ((mi * p2) - r->origin).length();
 
 
             return (t > GVT::Data::ray::RAY_EPSILON);
@@ -239,14 +239,14 @@ namespace GVT {
 #endif
 
 #if 1
-        bool box3D::intersectDistance(const GVT::Data::ray& ray, float& t) const {
+        bool box3D::intersectDistance(const GVT::Data::ray* ray, float& t) const {
             
-            float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
-            float t2 = (bounds[1].x - ray.origin.x) * ray.inverseDirection.x;
-            float t3 = (bounds[0].y - ray.origin.y) * ray.inverseDirection.y;
-            float t4 = (bounds[1].y - ray.origin.y) * ray.inverseDirection.y;
-            float t5 = (bounds[0].z - ray.origin.z) * ray.inverseDirection.z;
-            float t6 = (bounds[1].z - ray.origin.z) * ray.inverseDirection.z;
+            float t1 = (bounds[0].x - ray->origin.x) * ray->inverseDirection.x;
+            float t2 = (bounds[1].x - ray->origin.x) * ray->inverseDirection.x;
+            float t3 = (bounds[0].y - ray->origin.y) * ray->inverseDirection.y;
+            float t4 = (bounds[1].y - ray->origin.y) * ray->inverseDirection.y;
+            float t5 = (bounds[0].z - ray->origin.z) * ray->inverseDirection.z;
+            float t6 = (bounds[1].z - ray->origin.z) * ray->inverseDirection.z;
 
             float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
             float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
@@ -268,15 +268,15 @@ namespace GVT {
             return (t > FLT_EPSILON);
              
 //            float tmin, tmax, tymin, tymax, tzmin, tzmax;
-//            tmin = (bounds[ray.sign[0]].x - ray.origin.x) * ray.inverseDirection.x;
-//            tmax = (bounds[1 - ray.sign[0]].x - ray.origin.x) * ray.inverseDirection.x;
-//            tymin = (bounds[ray.sign[1]].y - ray.origin.y) * ray.inverseDirection.y;
-//            tymax = (bounds[1 - ray.sign[1]].y - ray.origin.y) * ray.inverseDirection.y;
+//            tmin = (bounds[ray->sign[0]].x - ray->origin.x) * ray->inverseDirection.x;
+//            tmax = (bounds[1 - ray->sign[0]].x - ray->origin.x) * ray->inverseDirection.x;
+//            tymin = (bounds[ray->sign[1]].y - ray->origin.y) * ray->inverseDirection.y;
+//            tymax = (bounds[1 - ray->sign[1]].y - ray->origin.y) * ray->inverseDirection.y;
 //            if ((tmin > tymax) || (tymin > tmax)) {t = FLT_MAX ; return false;};
 //            tmin = min(tmin, tymin);
 //            tmax = max(tmax, tymax);
-//            tzmin = (bounds[ray.sign[2]].z - ray.origin.z) * ray.inverseDirection.z;
-//            tzmax = (bounds[1 - ray.sign[2]].z - ray.origin.z) * ray.inverseDirection.z;
+//            tzmin = (bounds[ray->sign[2]].z - ray->origin.z) * ray->inverseDirection.z;
+//            tzmax = (bounds[1 - ray->sign[2]].z - ray->origin.z) * ray->inverseDirection.z;
 //            if ((tmin > tzmax) || (tzmin > tmax)) {t = FLT_MAX ; return false;};
 //            tmin = min(tmin, tzmin);
 //            //tmax = max(tmay, tzmax);

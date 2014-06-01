@@ -23,6 +23,10 @@
     }                                          \
 
 
+GVT::Env::RayTracerAttributes* GVT::Env::RayTracerAttributes::rta = NULL;
+
+
+
 namespace GVT {
     namespace Env {
 
@@ -40,15 +44,16 @@ namespace GVT {
 
         RayTracerAttributes::RayTracerAttributes(string& datafile_, View& view_, RenderType rt = Volume, ScheduleType st = Image, float rate = 1.f, float ratio = 1.f, float* topo = NULL)
         : view(view_), render_type(rt), schedule(st), sample_rate(rate), sample_ratio(ratio) {
+            if(rta != NULL) {
+                delete rta;
+            }
+            rta = this;
             if (topo != NULL) {
                 topology[0] = topo[0];
                 topology[1] = topo[1];
                 topology[2] = topo[2];
             }
-
-            // XXX TODO: hacked transfer function.  Fix it.
             HACK_TRANSFER_FUNC;
-
             do_lighting = false;
         }
 
@@ -73,7 +78,6 @@ namespace GVT {
             is >> vi.camera[0] >> vi.camera[1] >> vi.camera[2];
             is >> vi.focus[0] >> vi.focus[1] >> vi.focus[2];
             is >> vi.up[0] >> vi.up[1] >> vi.up[2];
-
             return is;
         }
 
@@ -190,22 +194,6 @@ namespace GVT {
 
             
             is >> rta.datafile;
-
-//            switch (rta.render_type) {
-//                case RayTracerAttributes::Volume:
-//                    GVT_DEBUG(DBG_ALWAYS,"Volume dataset");
-//                    rta.dataset = new GVT::Dataset::Dataset<GVT::Domain::VolumeDomain>(datafile);
-//                    break;
-//                //case RayTracerAttributes::Surface:
-//                default:
-//                    GVT_DEBUG(DBG_ALWAYS,"Geometry dataset");
-//                    rta.dataset = new GVT::Dataset::Dataset<GVT::Domain::GeometryDomain>(datafile);
-//                    break;
-////                case RayTracerAttributes::Manta:
-////                    rta.dataset = new GVT::Dataset::Dataset<GVT::Domain::MantaDomain>(datafile);
-////                    break;
-//            }
-
 
             return is;
         }

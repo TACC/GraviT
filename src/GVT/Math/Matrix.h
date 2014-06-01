@@ -12,6 +12,10 @@
 #include <cmath>
 #include <string.h>
 
+#ifndef GVT_ALIGNED
+#define GVT_ALIGNED __attribute__((aligned(16)))
+#endif
+
 namespace GVT {
     namespace Math {
 
