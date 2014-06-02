@@ -115,8 +115,8 @@ namespace GVT {
             }
 
             void MakeCameraRays() {
-                trcUpSampling = 2;
-                depth = 4;
+                trcUpSampling = 1;
+                depth = 0;
                 rays.reserve((trcUpSampling*trcUpSampling) * vi.width * vi.height);
                 int offset = vi.height / GVT::Concurrency::asyncExec::instance()->numThreads;
                 for (int start = 0; start < vi.height;) {
