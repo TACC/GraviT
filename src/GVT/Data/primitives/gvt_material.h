@@ -12,7 +12,7 @@
 #include <GVT/Math/GVTMath.h>
 #include <GVT/Data/primitives/gvt_ray.h>
 #include <GVT/Data/primitives/gvt_lightsource.h>
-
+#include <time.h>
 
 
 namespace GVT {

@@ -19,8 +19,7 @@ namespace GVT {
 
         class Domain {
         protected:
-//            boost::shared_mutex _inqueue;
-//            boost::mutex _outqueue;
+
             
             Domain(GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true));
 
@@ -29,9 +28,6 @@ namespace GVT {
             
         public:
 
-            boost::shared_mutex _inqueue;
-            boost::mutex _outqueue;
-            
             virtual bool intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter);
             
             virtual void marchIn(GVT::Data::ray* r);
@@ -66,16 +62,9 @@ namespace GVT {
             virtual int getDomainID();
 
             virtual void setDomainID(int id);
-
-            
-            virtual GVT::Data::ray* get(GVT::Data::RayVector &queue, int idx) {
-                boost::shared_lock<boost::shared_mutex> _lock(_inqueue);
-                return queue[idx];
-            }
             
             virtual GVT::Data::ray* pop(GVT::Data::RayVector &queue) {
-                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
-                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+                boost::mutex::scoped_lock lock(_inqueue);
                 if(queue.empty()) return NULL;
                 GVT::Data::ray* ray = queue.back();
                 queue.pop_back();
@@ -84,8 +73,7 @@ namespace GVT {
             }
                         
             virtual void push(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
-                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
-                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+                boost::mutex::scoped_lock lock(_inqueue);
                 queue.push_back(r);
             }
             
@@ -93,14 +81,15 @@ namespace GVT {
                 boost::lock_guard<boost::mutex> _lock(_outqueue);
                 queue.push_back(r);
             }
-            
-            
             // Public variables
             GVT::Math::AffineTransformMatrix<float> m;
             GVT::Math::AffineTransformMatrix<float> minv;
             GVT::Math::Matrix3f normi;
             GVT::Data::box3D boundingBox;
 
+            boost::mutex _inqueue;
+            boost::mutex _outqueue;
+            
             int domainID;
 
             bool isLoaded;

@@ -81,8 +81,9 @@ namespace GVT {
                         //                        }
 
                         boost::atomic<int> current_ray(0);
+                        size_t workload = std::max((size_t)1,(size_t)(moved_rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
                         for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
-                            GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(), dom));
+                            GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(),workload, dom));
                         }
                         GVT::Concurrency::asyncExec::instance()->sync();
 

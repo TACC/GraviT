@@ -6,7 +6,7 @@
  */
 
 #include "gvt_ray.h"
-
+#include <boost/foreach.hpp>
 namespace GVT {
     namespace Data {
 
@@ -19,11 +19,11 @@ namespace GVT {
             this->direction = (direction).normalize();
             setDirection(direction);
             t = FLT_MAX;
-            tmin = FLT_MAX;
-            tmax = -FLT_MAX;
+//            tmin = FLT_MAX;
+//            tmax = -FLT_MAX;
             id = -1;
-            tprim = FLT_MAX;
-            origin_domain = -1;
+//            tprim = FLT_MAX;
+//            origin_domain = -1;
         }
 
         ray::ray(ray &ray, GVT::Math::AffineTransformMatrix<float> &m) {
@@ -31,19 +31,19 @@ namespace GVT {
             direction = m * (ray.direction).normalize();
             setDirection(direction);
             t = ray.t;
-            tmin = ray.tmax;
-            tmax = ray.tmax;
+//            tmin = ray.tmax;
+//            tmax = ray.tmax;
             color = ray.color;
             domains = ray.domains;
             id = ray.id;
-            r = ray.r;
-            b = ray.b;
+//            r = ray.r;
+//            b = ray.b;
             type = ray.type;
             w = ray.w;
             depth = ray.depth;
-            tprim = ray.tprim;
-            origin_domain = ray.origin_domain;
-            visited = ray.visited;
+//            tprim = ray.tprim;
+//            origin_domain = ray.origin_domain;
+//            visited = ray.visited;
         }
 
         ray::ray(const ray& ray) {
@@ -52,19 +52,19 @@ namespace GVT {
             inverseDirection = ray.inverseDirection;
             setDirection(direction);
             t = ray.t;
-            tmin = ray.tmin;
-            tmax = ray.tmax;
+//            tmin = ray.tmin;
+//            tmax = ray.tmax;
             color = ray.color;
             domains = ray.domains;
             id = ray.id;
-            r = ray.r;
-            b = ray.b;
+//            r = ray.r;
+//            b = ray.b;
             w = ray.w;
             type = ray.type;
             depth = ray.depth;
-            tprim = ray.tprim;
-            origin_domain = ray.origin_domain;
-            visited = ray.visited;
+//            tprim = ray.tprim;
+//            origin_domain = ray.origin_domain;
+//            visited = ray.visited;
         }
 
         ray::~ray() {
@@ -78,17 +78,17 @@ namespace GVT {
             buf += direction.packedSize();
             id = *((int*) buf);
             buf += sizeof (int);
-            b = *((int*) buf);
+            depth = *((int*) buf);
             buf += sizeof (int);
             type = *((int*) buf);
             buf += sizeof (int);
-            r = *((double*) buf);
-            buf += sizeof (double);
+//            r = *((double*) buf);
+//            buf += sizeof (double);
             w = *((double*) buf);
             buf += sizeof (double);
             t = *((double*) buf);
-            buf += sizeof (double);
-            tmax = *((double*) buf);
+//            buf += sizeof (double);
+//            tmax = *((double*) buf);
             buf += sizeof (double);
             color = COLOR_ACCUM(buf);
             buf += color.packedSize();
@@ -116,23 +116,23 @@ namespace GVT {
             buffer += direction.pack(buf);
             *((int*) buf) = id;
             buf += sizeof (int);
-            *((int*) buf) = b;
+            *((int*) buf) = depth;
             buf += sizeof (int);
             *((int*) buf) = type;
             buf += sizeof (int);
-            *((double*) buf) = r;
-            buf += sizeof (double);
+//            *((double*) buf) = r;
+//            buf += sizeof (double);
             *((double*) buf) = w;
             buf += sizeof (double);
             *((double*) buf) = t;
             buf += sizeof (double);
-            *((double*) buf) = tmax;
-            buf += sizeof (double);
+//            *((double*) buf) = tmax;
+//            buf += sizeof (double);
             buf += color.pack(buf);
             *((int*) buf) = domains.size();
             buf += sizeof (int);
 
-            for (isecDom d : domains) {
+            BOOST_FOREACH(isecDom& d, domains) {
 //
 //                *(float*) buf = boost::get<0>(d);
 //                buf += sizeof (float);
@@ -156,7 +156,6 @@ namespace GVT {
             for (int i = 0; i < 3; i++) {
                 if (direction[i] != 0) inverseDirection[i] = 1.0 / direction[i];
                 else inverseDirection[i] = 0.;
-                sign[i] = (inverseDirection[i] < 0);
             }
         }
 

@@ -2,6 +2,7 @@
 
 #include "Dataset.h"
 #include <boost/range/algorithm.hpp>
+#include <boost/foreach.hpp>
 namespace GVT {
     namespace Dataset {
 
@@ -13,7 +14,7 @@ namespace GVT {
         bool GVTDataset::intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter) {
             if (dataSetBB.intersect(r) || dataSetBB.inBox(r)) {
                 r->t = FLT_MAX;
-                for (GVT::Domain::Domain* d : domainSet) d->intersect(r, inter);
+                BOOST_FOREACH(GVT::Domain::Domain* d, domainSet) d->intersect(r, inter);
                 boost::sort(inter);
                 
                 

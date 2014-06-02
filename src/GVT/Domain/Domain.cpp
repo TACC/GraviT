@@ -71,6 +71,7 @@ namespace GVT {
         }
 
         GVT::Data::ray Domain::toLocal(GVT::Data::ray& r) {
+            GVT_ASSERT((&r),"NULL POINTER");
             GVT::Data::ray ray(r);
             ray.origin = minv * ray.origin;
             ray.direction = minv * ray.direction;
@@ -78,6 +79,7 @@ namespace GVT {
         }
 
         GVT::Data::ray Domain::toWorld(GVT::Data::ray& r) {
+            GVT_ASSERT((&r),"NULL POINTER");
             GVT::Data::ray ray(r);
             ray.origin = m * ray.origin;
             ray.direction = m * ray.direction;

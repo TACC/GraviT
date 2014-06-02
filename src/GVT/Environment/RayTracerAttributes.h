@@ -145,6 +145,8 @@ namespace GVT {
             bool do_lighting;
 
         };
+        
+        typedef RayTracerAttributes RTA;
     };
 };
 #endif // GVT_RAY_TRACER_ATTRIBUTES_H
