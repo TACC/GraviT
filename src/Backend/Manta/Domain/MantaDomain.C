@@ -192,9 +192,8 @@ namespace GVT {
                                 rayPacket[pindex]->t = t;
                                 GVT::Math::Vector4f normal = dom->toWorld(GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex)));
                                 if(rayPacket[pindex]->type == GVT::Data::ray::SECUNDARY) {
-                                    
-                                    float t2 = t*t; t2 = (t2 > 1) ? 1.f/t2 : t2;  
-                                    rayPacket[pindex]->w = rayPacket[pindex]->w * t2;
+                                    t = (t > 1) ? 1.f/t : t;
+                                    rayPacket[pindex]->w = rayPacket[pindex]->w * t;
                                 }
 
                                 for (int lindex = 0; lindex < dom->lights.size(); lindex++) {

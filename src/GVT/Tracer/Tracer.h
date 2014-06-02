@@ -111,7 +111,7 @@ namespace GVT {
             GVT::Data::RayVector& rays;
             boost::atomic<int>& current_ray;
             int last;
-            const int split;
+            const size_t split;
             GVT::Domain::Domain* dom;
 
             processRayVector(abstract_trace* tracer, GVT::Data::RayVector& rays, boost::atomic<int>& current_ray, int last, const int split,  GVT::Domain::Domain* dom =NULL) :
@@ -122,13 +122,12 @@ namespace GVT {
             void operator()() {
                 
                 GVT::Data::RayVector localQueue;
-                while (true) {
+                while (!rays.empty()) {
                     localQueue.clear();
                     boost::unique_lock<boost::mutex> lock(tracer->raymutex);
-                    if ((last - current_ray) <= 0) return;
-                    std::size_t range = std::min(split, (last - current_ray));
-                    localQueue.assign(rays.begin() + current_ray, rays.begin() + current_ray + range);
-                    current_ray += range;
+                    std::size_t range = std::min(split, rays.size());
+                    localQueue.assign(rays.begin(), rays.begin() + range);
+                    rays.erase(rays.begin(), rays.begin() + range);
                     lock.unlock();
 
                     for (int i = 0; i < localQueue.size(); i++) {
@@ -147,7 +146,7 @@ namespace GVT {
                             for (int i = 0; i < 3; i++) tracer->colorBuf[ray->id].rgba[i] += ray->color.rgba[i];
                             tracer->colorBuf[ray->id].rgba[3] = 1.f;
                             tracer->colorBuf[ray->id].clamp();
-                            //delete ray;
+                            delete ray;
                         }
                     }
                 }
