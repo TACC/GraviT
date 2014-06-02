@@ -17,6 +17,9 @@
 #include <boost/container/set.hpp>
 #include <boost/smart_ptr.hpp>
 
+#include <boost/aligned_storage.hpp>
+
+
 namespace GVT {
     namespace Data {
 

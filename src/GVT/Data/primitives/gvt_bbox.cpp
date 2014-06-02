@@ -83,9 +83,16 @@ namespace GVT {
 
         bool box3D::inBox(const GVT::Math::Point4f &origin) const {
             bool TT[3];
+//            
+//            GVT::Math::Vector4f lb = bounds[0] - origin;
+//            GVT::Math::Vector4f ub = bounds[1] - origin;
+//            
             TT[0] = ((bounds[0].x - origin.x) <= FLT_EPSILON && (bounds[1].x - origin.x) >= -FLT_EPSILON);
+            if(!TT[0]) return false;
             TT[1] = ((bounds[0].y - origin.y) <= FLT_EPSILON && (bounds[1].y - origin.y) >= -FLT_EPSILON);
+            if(!TT[0]) return false;
             TT[2] = ((bounds[0].z - origin.z) <= FLT_EPSILON && (bounds[1].z - origin.z) >= -FLT_EPSILON);
+            if(!TT[0]) return false;
             return (TT[0] && TT[1] && TT[2]);
         }
 
@@ -122,19 +129,9 @@ namespace GVT {
             float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
             float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
 
-            if (tmax < 0) {
-                t = tmax;
-                return false;
-            }
-
-            if (tmin > tmax) {
-                t = tmax;
-                return false;
-            }
-
-            t = tmin;
+            if (tmax < 0 || tmin > tmax) return false;
             
-            if(t < 0) t = tmax;
+            t = (tmin > 0) ? t = tmin : tmax;
             
             return (t > FLT_EPSILON);
             

@@ -139,7 +139,6 @@ namespace GVT {
                 }
 
                 inline float frand() {
-                    srand(time(NULL));
                     return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
                 }
 
