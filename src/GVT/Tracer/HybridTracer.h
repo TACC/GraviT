@@ -20,10 +20,10 @@
 namespace GVT {
 
     namespace Trace {
-/// Tracer Hybrid (HybridSchedule) based decomposition implementation
+        /// Tracer Hybrid (HybridSchedule) based decomposition implementation
 
-/*
- */
+                /*
+         */
         template<class DomainType, class MPIW, class SCHEDULER> class Tracer<DomainType, MPIW, HybridSchedule<SCHEDULER> > : public Tracer_base<MPIW> {
         public:
 
@@ -145,25 +145,33 @@ namespace GVT {
                             }
                         }
 
-                        GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
-
-                        
-                        BOOST_FOREACH( GVT::Data::ray& mr,  moved_rays) {
-                            dom->marchOut(mr);
-                            GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
+                        //GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
+                        {
+                            moved_rays.reserve(this->queue[domTarget].size()*10);
+                            boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
+                            dom->trace(this->queue[domTarget], moved_rays);
                         }
-                        GVT::Concurrency::asyncExec::instance()->sync();                        
-//                        while (!moved_rays.empty()) {
-//                            GVT::Data::ray& mr = moved_rays.back();
-//                            if(!mr.domains.empty()) {
-//                                int target = mr.domains.back();
-//                                this->queue[target].push_back(mr);
-//                            }
-//                            if(mr.type != GVT::Data::ray::PRIMARY) {
-//                                this->addRay(mr);
-//                            }
-//                            moved_rays.pop_back();
-//                        }
+
+                        boost::atomic<int> current_ray(0);
+                        size_t workload = std::max((size_t) 1, (size_t) (moved_rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
+                        {
+                            boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
+                            for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
+                                GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(), workload, dom));
+                            }
+                            GVT::Concurrency::asyncExec::instance()->sync();
+                        }
+                        //                        while (!moved_rays.empty()) {
+                        //                            GVT::Data::ray& mr = moved_rays.back();
+                        //                            if(!mr.domains.empty()) {
+                        //                                int target = mr.domains.back();
+                        //                                this->queue[target].push_back(mr);
+                        //                            }
+                        //                            if(mr.type != GVT::Data::ray::PRIMARY) {
+                        //                                this->addRay(mr);
+                        //                            }
+                        //                            moved_rays.pop_back();
+                        //                        }
 
                         this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
                     }

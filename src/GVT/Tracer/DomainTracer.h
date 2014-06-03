@@ -110,14 +110,21 @@ namespace GVT {
                             }
 
                             //GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
-
-                            dom->trace(this->queue[domTarget], moved_rays);
-
-                            BOOST_FOREACH(GVT::Data::ray& mr, moved_rays) {
-                                dom->marchOut(mr);
-                                GVT::Concurrency::asyncExec::instance()->run_task(processRay(this, mr));
+                            {
+                                moved_rays.reserve(this->queue[domTarget].size()*10);
+                                boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
+                                dom->trace(this->queue[domTarget], moved_rays);
                             }
-                            moved_rays.clear();
+                            boost::atomic<int> current_ray(0);
+                            size_t workload = std::max((size_t) 1, (size_t) (moved_rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
+                            {
+                                boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
+                                for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
+                                    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(), workload, dom));
+                                }
+                                GVT::Concurrency::asyncExec::instance()->sync();
+                            }
+
                             this->queue.erase(domTarget);
                         }
                         DEBUG( else if (DEBUG_RANK) cerr << this->rank << ": no assigned domains have rays" << endl);
