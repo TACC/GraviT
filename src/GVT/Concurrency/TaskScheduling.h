@@ -39,7 +39,7 @@ namespace GVT {
             std::size_t numThreads;
             static asyncExec* _sinstance;
             
-            asyncExec(std::size_t numThreads = boost::thread::hardware_concurrency())
+            asyncExec(std::size_t numThreads = boost::thread::hardware_concurrency() / 2 )
             : numThreads(numThreads), running_(true), wcounter(0) {
                 for (std::size_t i = 0; i < numThreads; ++i) {
                     threads_.create_thread(boost::bind(&asyncExec::pool_main, this));

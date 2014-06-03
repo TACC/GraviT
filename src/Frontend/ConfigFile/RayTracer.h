@@ -23,6 +23,8 @@ class RayTracer
     RayTracer() {}
 
     void RenderImage(string);
+    GVT::Data::RayVector rays;
+
 
  protected:
 

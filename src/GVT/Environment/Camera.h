@@ -229,14 +229,6 @@ namespace GVT {
 
         template<> Camera<C_ORTHOGRAPHIC>::Camera(GVT::Data::RayVector& rays, GVT::Env::RayTracerAttributes::View& vi, float rate);
         template<> Camera<C_PERSPECTIVE>::Camera(GVT::Data::RayVector& rays, GVT::Env::RayTracerAttributes::View& vi, float rate);
-        //        template <CAMERA_TYPE CT> void Camera<CT>::rayThrough(double x, double y, GVT::Data::ray &r);
-        //        template <CAMERA_TYPE CT> void Camera<CT>::setEye(const GVT::Math::Vector4f &eye);
-        //        template <CAMERA_TYPE CT> void Camera<CT>::setLook(double, double, double, double);
-        //        template <CAMERA_TYPE CT> void Camera<CT>::setLook(const GVT::Math::Vector4f &viewDir, const GVT::Math::Vector4f &upDir);
-        //        template <CAMERA_TYPE CT> void Camera<CT>::setLook(GVT::Math::Vector4f &eyePos, GVT::Math::Vector4f &lookAt, const GVT::Math::Vector4f &upDir);
-        //
-        //        template <CAMERA_TYPE CT> void Camera<CT>::setFOV(double);
-        //        template <CAMERA_TYPE CT> void Camera<CT>::setAspectRatio(double);
     }
 }
 #endif

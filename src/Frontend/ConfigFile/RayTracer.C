@@ -21,9 +21,11 @@
 #include <GVT/Scheduler/schedulers.h>
 
 void RayTracer::RenderImage(string imagename = "mpitrace") {
+    
+    boost::timer::auto_cpu_timer t("Total render time: %t\n");
+    
     Image image(GVT::Env::RayTracerAttributes::rta->view.width, GVT::Env::RayTracerAttributes::rta->view.height, imagename);
-    GVT::Data::RayVector rays;
-
+   
     GVT::Env::Camera<C_PERSPECTIVE> cam(rays, GVT::Env::RayTracerAttributes::rta->view, GVT::Env::RayTracerAttributes::rta->sample_rate);
     cam.MakeCameraRays();
 
