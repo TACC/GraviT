@@ -24,9 +24,9 @@ namespace GVT {
             Material(const Material& orig);
             virtual ~Material();
 
-            virtual GVT::Math::Vector4f shade(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual GVT::Data::RayVector ao(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
-            virtual GVT::Data::RayVector secundary(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Math::Vector4f shade(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
+            virtual GVT::Data::RayVector ao(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Data::RayVector secundary(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
             
             GVT::Math::Vector4f CosWeightedRandomHemisphereDirection2(GVT::Math::Vector4f n) {
                 float Xi1 = (float) rand() / (float) RAND_MAX;
@@ -66,9 +66,9 @@ namespace GVT {
             Lambert(const Lambert& orig);
             virtual ~Lambert();
 
-            virtual GVT::Math::Vector4f shade(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual GVT::Data::RayVector ao(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
-            virtual GVT::Data::RayVector secundary(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Math::Vector4f shade(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
+            virtual GVT::Data::RayVector ao(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Data::RayVector secundary(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
 
         protected:
 
@@ -81,9 +81,9 @@ namespace GVT {
             Phong(const Phong& orig);
             virtual ~Phong();
 
-            virtual GVT::Math::Vector4f shade(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual GVT::Data::RayVector ao(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
-            virtual GVT::Data::RayVector secundary(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Math::Vector4f shade(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
+            virtual GVT::Data::RayVector ao(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Data::RayVector secundary(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
 
         protected:
 
@@ -99,9 +99,9 @@ namespace GVT {
             BlinnPhong(const BlinnPhong& orig);
             virtual ~BlinnPhong();
 
-            virtual GVT::Math::Vector4f shade(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
-            virtual GVT::Data::RayVector ao(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
-            virtual GVT::Data::RayVector secundary(const GVT::Data::ray* ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Math::Vector4f shade(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, const GVT::Data::LightSource* lightSource);
+            virtual GVT::Data::RayVector ao(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
+            virtual GVT::Data::RayVector secundary(const GVT::Data::ray&  ray, const GVT::Math::Vector4f& sufaceNormal, float samples);
 
         protected:
 

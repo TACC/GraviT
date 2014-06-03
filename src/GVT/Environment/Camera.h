@@ -127,7 +127,7 @@ namespace GVT {
                 {
                     boost::timer::auto_cpu_timer t("Allocate camera rays %t\n");
                     for(int i = 0; i< nrays; i++) {
-                        rays.push_back(new GVT::Data::ray());
+                        rays.push_back(GVT::Data::ray());
                     }
                 }
                 
@@ -155,7 +155,6 @@ namespace GVT {
                 }
 
                 inline float frand() {
-                    srand(time(NULL));
                     return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
                 }
 
@@ -187,28 +186,17 @@ namespace GVT {
                                     float x = x1 / float(buffer_width) - 0.5;
                                     float y = y1 / float(buffer_height) - 0.5;
                                     dir = m * ((look + x * u + y * v)).normalize();
-                                    
-//                                    GVT::Data::ray& ray = *rays[idx];
-//                                    
-//                                    ray.id = idx;;
-//                                    ray.origin = eye;
-//                                    ray.w = w;
-//                                    ray.depth =  depth;
-//                                    ray.setDirection(dir);
-//                                    ray.type = GVT::Data::ray::PRIMARY;
-//                                    
-                                    
-//                                    
-//                                    
-//                                    GVT::Data::ray* ray = new GVT::Data::ray(eye, dir, idivider2, GVT::Data::ray::PRIMARY, depth);
-//                                    ray->id = idx;
-//                                    lrays.push_back(ray);
+                                    GVT::Data::ray& ray = rays[idx];
+                                    ray.id = idx;;
+                                    ray.origin = eye;
+                                    ray.w = w;
+                                    ray.depth =  depth;
+                                    ray.setDirection(dir);
+                                    ray.type = GVT::Data::ray::PRIMARY;
                                 }
                             }
                         }
                     }
-//                    boost::mutex::scoped_lock lock(cam->rmutex);
-//                    rays.insert(rays.end(), lrays.begin(), lrays.end());
                 }
             };
 

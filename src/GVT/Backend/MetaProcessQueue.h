@@ -46,31 +46,31 @@ namespace GVT {
                 delete param;
             }
 
-            virtual GVT::Data::ray* get(GVT::Data::RayVector &queue, int idx) {
-                boost::shared_lock<boost::shared_mutex> _lock(_inqueue);
-                return queue[idx];
-            }
-            
-            virtual GVT::Data::ray* pop(GVT::Data::RayVector &queue) {
-                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
-                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-                if(queue.empty()) return NULL;
-                GVT::Data::ray* ray = queue.back();
-                queue.pop_back();
-                return ray;
-                
-            }
-                        
-            virtual void push(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
-                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
-                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
-                queue.push_back(r);
-            }
-            
-            virtual void dispatch(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
-                boost::lock_guard<boost::mutex> _lock(_outqueue);
-                queue.push_back(r);
-            }
+//            virtual GVT::Data::ray& get(GVT::Data::RayVector &queue, int idx) {
+//                boost::shared_lock<boost::shared_mutex> _lock(_inqueue);
+//                return queue[idx];
+//            }
+//            
+//            virtual GVT::Data::ray& pop(GVT::Data::RayVector &queue) {
+//                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
+//                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+//                if(queue.empty()) return NULL;
+//                GVT::Data::ray& ray = queue.back();
+//                queue.pop_back();
+//                return ray;
+//                
+//            }
+//                        
+//            virtual void push(GVT::Data::RayVector &queue, GVT::Data::ray& r) {
+//                boost::upgrade_lock<boost::shared_mutex> lock(_inqueue);
+//                boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+//                queue.push_back(r);
+//            }
+//            
+//            virtual void dispatch(GVT::Data::RayVector &queue, GVT::Data::ray& r) {
+//                boost::lock_guard<boost::mutex> _lock(_outqueue);
+//                queue.push_back(r);
+//            }
 
             void operator()() {
                 //		/DEBUG("Not implemented");
@@ -78,13 +78,13 @@ namespace GVT {
             }
         protected:
 
-            void IntersectDomain(GVT::Data::ray* ray, GVT::Data::RayVector& newRays) {
+            void IntersectDomain(GVT::Data::ray& ray, GVT::Data::RayVector& newRays) {
                 //DBG_BACKTRACE("Not implemented");
                 //std::cout << "Not implemented" << std::endl;
                 GVT_ASSERT_BACKTRACE(false,"Not implemented");
             }
 
-            void TraverseDomain(GVT::Data::ray* ray, GVT::Data::RayVector& newRays) {
+            void TraverseDomain(GVT::Data::ray& ray, GVT::Data::RayVector& newRays) {
                 //		/DBG_BACKTRACE("Not implemented");
                 //		std::cout << "Not implemented" << std::endl;
                 GVT_ASSERT_BACKTRACE(false,"Not implemented");

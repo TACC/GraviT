@@ -151,7 +151,6 @@ namespace GVT {
 
 
                 while (!rayList.empty()) {
-                    GVT::Data::ray* ray = NULL;
                     boost::unique_lock<boost::mutex> queue(dom->_inqueue);
                     std::size_t range = std::min(workSize, rayList.size());
                     localQueue.assign(rayList.begin(), rayList.begin() + range);
@@ -171,7 +170,7 @@ namespace GVT {
 
                         Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, rayPacket.size(), 0, Manta::RayPacket::NormalizedDirections);
                         for (int i = 0; i < rayPacket.size(); i++) {
-                            mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(dom->toLocal(*rayPacket[i])));
+                            mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
                         }
 
                         mRays.resetHits();
@@ -182,47 +181,45 @@ namespace GVT {
 
                             if (mRays.wasHit(pindex)) {
 
-                                if (rayPacket[pindex]->type == GVT::Data::ray::SHADOW) {
-                                    delete rayPacket[pindex];
+                                if (rayPacket[pindex].type == GVT::Data::ray::SHADOW) {
                                     counter++;
                                     continue;
                                 }
 
                                 float t = mRays.getMinT(pindex);
-                                rayPacket[pindex]->t = t;
+                                rayPacket[pindex].t = t;
                                 GVT::Math::Vector4f normal = dom->toWorld(GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex)));
-                                if(rayPacket[pindex]->type == GVT::Data::ray::SECUNDARY) {
+                                if(rayPacket[pindex].type == GVT::Data::ray::SECUNDARY) {
                                     t = (t > 1) ? 1.f/t : t;
-                                    rayPacket[pindex]->w = rayPacket[pindex]->w * t;
+                                    rayPacket[pindex].w = rayPacket[pindex].w * t;
                                 }
 
                                 for (int lindex = 0; lindex < dom->lights.size(); lindex++) {
-                                    GVT::Data::ray* ray = new GVT::Data::ray(*rayPacket[pindex]);
-                                    ray->domains.clear();
-                                    ray->type = GVT::Data::ray::SHADOW;
-                                    ray->origin = ray->origin + ray->direction * ray->t;
-                                    ray->setDirection(dom->lights[lindex]->position - ray->origin);
+                                    GVT::Data::ray ray(rayPacket[pindex]);
+                                    ray.domains.clear();
+                                    ray.type = GVT::Data::ray::SHADOW;
+                                    ray.origin = ray.origin + ray.direction * ray.t;
+                                    ray.setDirection(dom->lights[lindex]->position - ray.origin);
                                     GVT::Data::Color c = dom->mesh->mat->shade(ray, normal, dom->lights[lindex]);
-                                    ray->color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
+                                    ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
                                     localQueue.push_back(ray);
                                 }
                                 
-                                int ndepth = rayPacket[pindex]->depth - 1;
+                                int ndepth = rayPacket[pindex].depth - 1;
 
                                 float p = 1.f - (float(rand()) / RAND_MAX);
                                 
-                                if (ndepth > 0 && rayPacket[pindex]->w > p) {
-                                        GVT::Data::ray* ray = new GVT::Data::ray(*rayPacket[pindex]);
-                                        ray->domains.clear();
-                                        ray->type = GVT::Data::ray::SECUNDARY;
-                                        ray->origin = ray->origin + ray->direction * ray->t;
-                                        ray->setDirection(dom->mesh->mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                                        ray->w = ray->w * (ray->direction * normal);
-                                        ray->depth = ndepth;
+                                if (ndepth > 0 && rayPacket[pindex].w > p) {
+                                        GVT::Data::ray ray(rayPacket[pindex]);
+                                        ray.domains.clear();
+                                        ray.type = GVT::Data::ray::SECUNDARY;
+                                        ray.origin = ray.origin + ray.direction * ray.t;
+                                        ray.setDirection(dom->mesh->mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                                        ray.w = ray.w * (ray.direction * normal);
+                                        ray.depth = ndepth;
                                         localQueue.push_back(ray);
                                 }
                                 counter++;
-                                delete rayPacket[pindex];
                                 continue;
                             }
                             counter++;

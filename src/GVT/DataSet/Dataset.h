@@ -32,7 +32,7 @@ namespace GVT {
 
             virtual bool init();
             virtual int size();
-            virtual bool intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter);
+            virtual bool intersect(GVT::Data::ray&  r, GVT::Data::isecDomList& inter);
             virtual GVT::Domain::Domain* getDomain(int id);
             virtual GVT::Data::LightSource* getLightSource(int id);
             virtual int addDomain(GVT::Domain::Domain* dom);

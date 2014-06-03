@@ -28,10 +28,10 @@ namespace GVT {
             
         public:
 
-            virtual bool intersect(GVT::Data::ray* r, GVT::Data::isecDomList& inter);
+            virtual bool intersect(GVT::Data::ray&  r, GVT::Data::isecDomList& inter);
             
-            virtual void marchIn(GVT::Data::ray* r);
-            virtual void marchOut(GVT::Data::ray* r);
+            virtual void marchIn(GVT::Data::ray&  r);
+            virtual void marchOut(GVT::Data::ray&  r);
             virtual void trace(GVT::Data::RayVector& rayList, GVT::Data::RayVector& moved_rays);
             
 
@@ -63,24 +63,24 @@ namespace GVT {
 
             virtual void setDomainID(int id);
             
-            virtual GVT::Data::ray* pop(GVT::Data::RayVector &queue) {
-                boost::mutex::scoped_lock lock(_inqueue);
-                if(queue.empty()) return NULL;
-                GVT::Data::ray* ray = queue.back();
-                queue.pop_back();
-                return ray;
-                
-            }
-                        
-            virtual void push(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
-                boost::mutex::scoped_lock lock(_inqueue);
-                queue.push_back(r);
-            }
-            
-            virtual void dispatch(GVT::Data::RayVector &queue, GVT::Data::ray* r) {
-                boost::lock_guard<boost::mutex> _lock(_outqueue);
-                queue.push_back(r);
-            }
+//            virtual pop(GVT::Data::RayVector &queue, GVT::Data::ray& ray) {
+//                boost::mutex::scoped_lock lock(_inqueue);
+//                if(queue.empty()) return false;
+//                ray = queue.back();
+//                queue.pop_back();
+//                return true;
+//                
+//            }
+//                        
+//            virtual void push(GVT::Data::RayVector &queue, GVT::Data::ray&  r) {
+//                boost::mutex::scoped_lock lock(_inqueue);
+//                queue.push_back(r);
+//            }
+//            
+//            virtual void dispatch(GVT::Data::RayVector &queue, GVT::Data::ray&  r) {
+//                boost::lock_guard<boost::mutex> _lock(_outqueue);
+//                queue.push_back(r);
+//            }
             // Public variables
             GVT::Math::AffineTransformMatrix<float> m;
             GVT::Math::AffineTransformMatrix<float> minv;

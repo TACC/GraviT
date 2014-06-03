@@ -1,5 +1,5 @@
 PROJECT(GVTGLURAY)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 SET(GVT_FE_GLURAY OFF CACHE BOOL "Build ConfigFile Frontend")
 IF (GVT_FE_GLURAY)
 	

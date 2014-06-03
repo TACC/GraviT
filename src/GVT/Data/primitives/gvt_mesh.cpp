@@ -62,7 +62,7 @@ namespace GVT {
             faces.push_back(face(v0,v1,v2));
         }
  
-        GVT::Data::Color Mesh::shade(GVT::Data::ray* r, GVT::Math::Vector4f normal, GVT::Data::LightSource* lsource) {
+        GVT::Data::Color Mesh::shade(GVT::Data::ray&  r, GVT::Math::Vector4f normal, GVT::Data::LightSource* lsource) {
             return mat->shade(r,normal,lsource);
         }
         
