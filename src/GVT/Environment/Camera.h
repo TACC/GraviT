@@ -10,7 +10,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/aligned_storage.hpp>
-
+#include <boost/timer/timer.hpp>
 namespace GVT {
     namespace Env {
 #define PI 3.14159265359
@@ -115,9 +115,13 @@ namespace GVT {
             }
 
             void MakeCameraRays() {
-                trcUpSampling = 2;
-                depth = 4;
+                trcUpSampling = 1;
+                depth = 0;
                 rays.reserve((trcUpSampling*trcUpSampling) * vi.width * vi.height);
+                {
+                                            
+                boost::timer::auto_cpu_timer t("Generating camera rays %t\n");
+
                 int offset = vi.height / GVT::Concurrency::asyncExec::instance()->numThreads;
                 for (int start = 0; start < vi.height;) {
                     int end = start + offset;
@@ -126,6 +130,7 @@ namespace GVT {
                     start = end;
                 }
                 GVT::Concurrency::asyncExec::instance()->sync();
+                }
                 GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << (trcUpSampling*trcUpSampling) * vi.width * vi.height);
                 GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
 
