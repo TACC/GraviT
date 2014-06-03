@@ -35,12 +35,12 @@ namespace GVT {
         
         
         
-        template<> void ProcessQueue<GVT::Domain::MantaDomain>::IntersectDomain(GVT::Data::ray* ray, GVT::Data::RayVector& newRays) {
+        template<> void ProcessQueue<GVT::Domain::MantaDomain>::IntersectDomain(GVT::Data::ray& ray, GVT::Data::RayVector& newRays) {
 
         }
 
         template<> void ProcessQueue<GVT::Domain::MantaDomain>::operator()() {
-
+#if 0
             GVT::Domain::MantaDomain* gdom = dynamic_cast<GVT::Domain::MantaDomain*> (param->dom);
             if (!gdom) return;
             GVT::Data::RayVector& rayList = param->queue[param->domTarget];
@@ -123,6 +123,7 @@ namespace GVT {
                 }
             }
             GVT_DEBUG(DBG_ALWAYS, "Done. Forwarding rays : " << param->moved_rays.size());
+#endif
         }
     };
 };

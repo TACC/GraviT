@@ -22,7 +22,7 @@ namespace GVT {
             LightSource(const LightSource& orig);
             virtual ~LightSource();
             
-            virtual GVT::Math::Vector4f contribution(const GVT::Data::ray* ray)  const;
+            virtual GVT::Math::Vector4f contribution(const GVT::Data::ray& ray)  const;
        
             GVT::Math::Point4f position;
             
@@ -42,7 +42,7 @@ namespace GVT {
             AmbientLightSource(const AmbientLightSource& orig);
             virtual ~AmbientLightSource();
             
-            virtual GVT::Math::Vector4f contribution(const GVT::Data::ray* ray) const;
+            virtual GVT::Math::Vector4f contribution(const GVT::Data::ray& ray) const;
             
             GVT::Math::Vector4f color;
             
@@ -60,7 +60,7 @@ namespace GVT {
             PointLightSource(const PointLightSource& orig);
             virtual ~PointLightSource();
             
-            virtual GVT::Math::Vector4f contribution(const GVT::Data::ray* ray) const;
+            virtual GVT::Math::Vector4f contribution(const GVT::Data::ray& ray) const;
             
             GVT::Math::Vector4f color;
             

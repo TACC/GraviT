@@ -18,7 +18,6 @@
 #include <GVT/Concurrency/TaskScheduling.h>
 
 #include <boost/foreach.hpp>
-#include <boost/timer/timer.hpp>
 
 namespace GVT {
 
@@ -72,8 +71,8 @@ namespace GVT {
                         ++domain_counter;
                         GVT_DEBUG(DBG_ALWAYS, "Calling process queue");
                         //GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
-
                         {
+                            moved_rays.reserve(this->queue[domTarget].size()*10);
                             boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
                             dom->trace(this->queue[domTarget], moved_rays);
                         }
@@ -83,7 +82,6 @@ namespace GVT {
                         //                            GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
                         //                        }
 
-                        
                         boost::atomic<int> current_ray(0);
                         size_t workload = std::max((size_t)1,(size_t)(moved_rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
                         {

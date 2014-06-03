@@ -18,6 +18,7 @@
 #include <boost/smart_ptr.hpp>
 
 #include <boost/aligned_storage.hpp>
+#include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 namespace GVT {
     namespace Data {
@@ -116,9 +117,9 @@ namespace GVT {
         };
 
       
-        
-        typedef std::vector< GVT::Data::ray*,  boost::fast_pool_allocator<GVT::Data::ray*> >  RayVector;
-        
+        struct RayPointerTag {};
+        typedef std::vector< GVT::Data::ray, boost::pool_allocator<GVT::Data::ray> > RayVector;
+
 
     };
 };

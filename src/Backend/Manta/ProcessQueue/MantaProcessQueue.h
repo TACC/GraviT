@@ -13,7 +13,7 @@
 
 namespace GVT {
     namespace Backend {
-        template<> void ProcessQueue<GVT::Domain::MantaDomain>::IntersectDomain(GVT::Data::ray* ray, GVT::Data::RayVector& newRays);
+        template<> void ProcessQueue<GVT::Domain::MantaDomain>::IntersectDomain(GVT::Data::ray& ray, GVT::Data::RayVector& newRays);
         template<> void ProcessQueue<GVT::Domain::MantaDomain>::operator()();
     };
 };

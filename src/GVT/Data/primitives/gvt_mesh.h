@@ -63,7 +63,7 @@ namespace GVT {
             virtual void setMaterial(GVT::Data::Material* mat);
             virtual void addFace(int v0, int v1, int v2);
             
-            virtual GVT::Data::Color shade(GVT::Data::ray* r, GVT::Math::Vector4f normal, GVT::Data::LightSource* lsource);
+            virtual GVT::Data::Color shade(GVT::Data::ray&  r, GVT::Math::Vector4f normal, GVT::Data::LightSource* lsource);
             GVT::Data::Material* mat;
 
             boost::container::vector<GVT::Math::Vector4f> vertices;

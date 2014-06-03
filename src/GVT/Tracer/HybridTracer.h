@@ -148,11 +148,11 @@ namespace GVT {
                         GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
 
                         
-                        BOOST_FOREACH( GVT::Data::ray* mr,  moved_rays) {
+                        BOOST_FOREACH( GVT::Data::ray& mr,  moved_rays) {
                             dom->marchOut(mr);
                             GVT::Concurrency::asyncExec::instance()->run_task(processRay(this,mr));
                         }
-                                                
+                        GVT::Concurrency::asyncExec::instance()->sync();                        
 //                        while (!moved_rays.empty()) {
 //                            GVT::Data::ray& mr = moved_rays.back();
 //                            if(!mr.domains.empty()) {
@@ -455,7 +455,7 @@ namespace GVT {
                     int buf_size = 0;
                     DEBUG(if (DEBUG_RANK) cerr << this->rank << ": ray sizes in domain " << dos->first << endl);
                     for (int r = ray_count; r < (ray_count + ray_seg); ++r) {
-                        buf_size += this->queue[dos->first][r]->packedSize(); // rays can have diff packed sizes
+                        buf_size += this->queue[dos->first][r].packedSize(); // rays can have diff packed sizes
                         DEBUG(if (DEBUG_RANK) cerr << "    " << this->queue[dos->first][r]->packedSize() << " (" << buf_size << ")" << endl);
                     }
                     outbound[i + 1] += buf_size;
@@ -514,9 +514,9 @@ namespace GVT {
                             << outbound[i + 1] << " bytes) to " << dos->second << endl;
                             );
                     for (int r = ray_count; r < (ray_count + ray_seg); ++r) {
-                        GVT::Data::ray* ray = this->queue[dos->first][r];
+                        GVT::Data::ray& ray = this->queue[dos->first][r];
                         DEBUG(if (DEBUG_RANK) cerr << "    @" << ptr_buf[dos->second] << ": " << ray << endl);
-                        ptr_buf[dos->second] += ray->pack(send_buf[dos->second] + ptr_buf[dos->second]);
+                        ptr_buf[dos->second] += ray.pack(send_buf[dos->second] + ptr_buf[dos->second]);
                     }
                     ray_count += ray_seg;
 
@@ -543,9 +543,9 @@ namespace GVT {
                         int ptr = 0;
                         for (int c = 0; c < inbound[j]; ++c) {
                             DEBUG(if (DEBUG_RANK) cerr << "    receive ray " << c << endl);
-                            GVT::Data::ray* r = new GVT::Data::ray(recv_buf[i] + ptr);
-                            this->queue[r->domains.back()].push_back(r);
-                            ptr += r->packedSize();
+                            GVT::Data::ray r(recv_buf[i] + ptr);
+                            this->queue[r.domains.back()].push_back(r);
+                            ptr += r.packedSize();
                             DEBUG(if (DEBUG_RANK) cerr << "    " << r << endl);
                         }
                     }

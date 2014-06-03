@@ -51,9 +51,9 @@ namespace GVT {
 
         }
 
-        GVT::Math::Point4f box3D::getHitpoint(const GVT::Data::ray* r) const {
+        GVT::Math::Point4f box3D::getHitpoint(const GVT::Data::ray& ray) const {
             GVT::Math::Point4f hit;
-            CheckLineBox(bounds[0], bounds[1], r->origin, (GVT::Math::Point4f)((GVT::Math::Vector4f)r->origin + r->direction * 1.e6f), hit);
+            CheckLineBox(bounds[0], bounds[1], ray.origin, (GVT::Math::Point4f)((GVT::Math::Vector4f)ray.origin + ray.direction * 1.e6f), hit);
             return hit;
         }
 
@@ -71,14 +71,14 @@ namespace GVT {
             }
         }
 
-        bool box3D::intersect(const GVT::Data::ray *r) const {
+        bool box3D::intersect(const GVT::Data::ray& r) const {
             float t;
             return intersectDistance(r, t);
 
         }
 
-        bool box3D::inBox(const GVT::Data::ray *r) const {
-            return inBox(r->origin);
+        bool box3D::inBox(const GVT::Data::ray& r) const {
+            return inBox(r.origin);
         }
 
         bool box3D::inBox(const GVT::Math::Point4f &origin) const {
@@ -117,14 +117,14 @@ namespace GVT {
             bounds[1][2] = max(bounds[1][2], v[2]);
         }
 
-        bool box3D::intersectDistance(const GVT::Data::ray* ray, float& t) const {
+        bool box3D::intersectDistance(const GVT::Data::ray& ray, float& t) const {
             
-            float t1 = (bounds[0].x - ray->origin.x) * ray->inverseDirection.x;
-            float t2 = (bounds[1].x - ray->origin.x) * ray->inverseDirection.x;
-            float t3 = (bounds[0].y - ray->origin.y) * ray->inverseDirection.y;
-            float t4 = (bounds[1].y - ray->origin.y) * ray->inverseDirection.y;
-            float t5 = (bounds[0].z - ray->origin.z) * ray->inverseDirection.z;
-            float t6 = (bounds[1].z - ray->origin.z) * ray->inverseDirection.z;
+            float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
+            float t2 = (bounds[1].x - ray.origin.x) * ray.inverseDirection.x;
+            float t3 = (bounds[0].y - ray.origin.y) * ray.inverseDirection.y;
+            float t4 = (bounds[1].y - ray.origin.y) * ray.inverseDirection.y;
+            float t5 = (bounds[0].z - ray.origin.z) * ray.inverseDirection.z;
+            float t6 = (bounds[1].z - ray.origin.z) * ray.inverseDirection.z;
 
             float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
             float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));

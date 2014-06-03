@@ -10,7 +10,10 @@
 
 #include <boost/foreach.hpp>
 #include <boost/aligned_storage.hpp>
+
 #include <boost/timer/timer.hpp>
+
+
 namespace GVT {
     namespace Env {
 #define PI 3.14159265359
@@ -117,21 +120,29 @@ namespace GVT {
             void MakeCameraRays() {
                 trcUpSampling = 1;
                 depth = 0;
-                rays.reserve((trcUpSampling*trcUpSampling) * vi.width * vi.height);
-                {
-                                            
-                boost::timer::auto_cpu_timer t("Generating camera rays %t\n");
-
+                size_t nrays = (trcUpSampling * trcUpSampling) * vi.width * vi.height;
+                rays.reserve(nrays);
                 int offset = vi.height / GVT::Concurrency::asyncExec::instance()->numThreads;
-                for (int start = 0; start < vi.height;) {
-                    int end = start + offset;
-                    end = std::min(end, vi.height);
-                    GVT::Concurrency::asyncExec::instance()->run_task(cameraGenerateRays(this, start, end));
-                    start = end;
+
+                {
+                    boost::timer::auto_cpu_timer t("Allocate camera rays %t\n");
+                    for(int i = 0; i< nrays; i++) {
+                        rays.push_back(GVT::Data::ray());
+                    }
                 }
-                GVT::Concurrency::asyncExec::instance()->sync();
+                
+                {
+                    boost::timer::auto_cpu_timer t("Generating camera rays %t\n");
+                    for (int start = 0; start < vi.height;) {
+                        int end = start + offset;
+                        end = std::min(end, vi.height);
+                        GVT::Concurrency::asyncExec::instance()->run_task(cameraGenerateRays(this, start, end));
+                        start = end;
+                    }
+                    GVT::Concurrency::asyncExec::instance()->sync();
                 }
-                GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << (trcUpSampling*trcUpSampling) * vi.width * vi.height);
+
+                GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << (trcUpSampling * trcUpSampling) * vi.width * vi.height);
                 GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
 
             }
@@ -155,13 +166,13 @@ namespace GVT {
                     GVT::Math::Vector4f look = cam->look; // direction to look
                     GVT::Math::Vector4f u = cam->u, v = cam->v; // u and v in the 
                     int samples = (cam->trcUpSampling * cam->trcUpSampling);
-                    
+
                     GVT::Data::RayVector lrays;
-                    
+
                     const float divider = cam->trcUpSampling;
                     const float offset = 1.0 / divider;
                     const float offset2 = offset / 2.f;
-                    const float idivider2 = 1.0 / (divider * divider);
+                    const float w = 1.0 / (divider * divider);
                     const float buffer_width = cam->vi.width;
                     const float buffer_height = cam->vi.height;
                     GVT::Math::Vector4f dir;
@@ -175,20 +186,22 @@ namespace GVT {
                                     float x = x1 / float(buffer_width) - 0.5;
                                     float y = y1 / float(buffer_height) - 0.5;
                                     dir = m * ((look + x * u + y * v)).normalize();
-                                    GVT::Data::ray* ray = new GVT::Data::ray(eye, dir, idivider2, GVT::Data::ray::PRIMARY, depth);
-                                    ray->id = idx;
-                                    lrays.push_back(ray);
+                                    GVT::Data::ray& ray = rays[idx];
+                                    ray.id = idx;;
+                                    ray.origin = eye;
+                                    ray.w = w;
+                                    ray.depth =  depth;
+                                    ray.setDirection(dir);
+                                    ray.type = GVT::Data::ray::PRIMARY;
                                 }
                             }
                         }
                     }
-                    boost::mutex::scoped_lock lock(cam->rmutex);
-                    rays.insert(rays.end(), lrays.begin(), lrays.end());
                 }
             };
 
             boost::mutex rmutex;
-            
+
         private:
             GVT::Math::AffineTransformMatrix<float> m; // rotation matrix
             double normalizedHeight; // dimensions of image place at unit dist from eye
@@ -210,8 +223,8 @@ namespace GVT {
 
             int trcUpSampling;
             int depth;
-            
-            
+
+
         };
 
         template<> Camera<C_ORTHOGRAPHIC>::Camera(GVT::Data::RayVector& rays, GVT::Env::RayTracerAttributes::View& vi, float rate);

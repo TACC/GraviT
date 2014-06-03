@@ -19,7 +19,7 @@ namespace GVT {
         LightSource::~LightSource() {
         }
 
-        GVT::Math::Vector4f LightSource::contribution(const GVT::Data::ray* ray) const {
+        GVT::Math::Vector4f LightSource::contribution(const GVT::Data::ray& ray) const {
 
             return GVT::Data::Color();
         }
@@ -35,8 +35,8 @@ namespace GVT {
             
         }
 
-        GVT::Math::Vector4f PointLightSource::contribution(const GVT::Data::ray* ray) const {
-            float distance = 1.f / ((GVT::Math::Vector4f)position-ray->origin).length();
+        GVT::Math::Vector4f PointLightSource::contribution(const GVT::Data::ray& ray) const {
+            float distance = 1.f / ((GVT::Math::Vector4f)position-ray.origin).length();
             distance =  (distance > 1.f) ? 
                 1.f : distance;
             return color * (distance + 0.5f);
@@ -52,7 +52,7 @@ namespace GVT {
         AmbientLightSource::~AmbientLightSource() {
         }
 
-        GVT::Math::Vector4f AmbientLightSource::contribution(const GVT::Data::ray* ray) const {
+        GVT::Math::Vector4f AmbientLightSource::contribution(const GVT::Data::ray& ray) const {
             return color;
         }
     }
