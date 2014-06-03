@@ -1,5 +1,5 @@
 PROJECT(GVTMANTA)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 SET(GVT_BE_MANTA ON CACHE BOOL "Build Manta Backend")
 
 IF (GVT_BE_MANTA)

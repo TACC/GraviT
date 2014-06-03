@@ -1,5 +1,5 @@
 PROJECT(GVTEMBREE)
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.6)
 SET(GVT_BE_EMBREE OFF CACHE BOOL "Build Embree Backend")
 IF (GVT_BE_EMBREE)
 

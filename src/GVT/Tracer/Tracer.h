@@ -93,7 +93,7 @@ namespace GVT {
                 if (!len2List.empty()) {
                     int domTarget = (*len2List.begin());
                     len2List.erase(len2List.begin());
-                    GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
+                    //GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
                     boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
                     tracer->queue[domTarget].push_back(ray);
                 } else {
@@ -132,13 +132,13 @@ namespace GVT {
 
                     for (int i = 0; i < localQueue.size(); i++) {
                         GVT::Data::ray* ray = localQueue[i];
-                        if (dom) dom->marchOut(ray);
                         GVT::Data::isecDomList& len2List = ray->domains;
+                        if (len2List.empty() && dom) dom->marchOut(ray);
                         if (len2List.empty()) GVT::Env::RayTracerAttributes::rta->dataset->intersect(ray, len2List);
                         if (!len2List.empty()) {
                             int domTarget = (*len2List.begin());
                             len2List.erase(len2List.begin());
-                            GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
+                            //GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
                             boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
                             tracer->queue[domTarget].push_back(ray);
                         } else {

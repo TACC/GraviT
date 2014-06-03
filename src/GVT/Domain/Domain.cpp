@@ -49,8 +49,8 @@ namespace GVT {
             //int i =0;
             
             if(wBox.intersectDistance(r,t)) r->origin += r->direction * t;
-            while(wBox.inBox(r)) {
-                if(wBox.intersectDistance(r,t)) r->origin += r->direction * t;
+            while(wBox.intersectDistance(r,t)) {
+                r->origin += r->direction * t;
                 r->origin += r->direction * GVT::Data::ray::RAY_EPSILON;
             }
             r->origin += r->direction * GVT::Data::ray::RAY_EPSILON;
