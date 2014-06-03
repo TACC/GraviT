@@ -13,12 +13,7 @@
 namespace GVT {
     namespace Data {
 
-        const float ray::RAY_EPSILON = 1.e-6;
-        
-        struct RayTag {};
-        
-        typedef boost::singleton_pool<RayTag, sizeof(GVT::Data::ray)> ray_memory_pool;
-        
+        const float ray::RAY_EPSILON = 1.e-6;   
 
         ray::ray(GVT::Math::Point4f origin, GVT::Math::Vector4f direction, float contribution, RayType type, int depth) :
         type(type), w(contribution), depth(depth) {
@@ -173,20 +168,6 @@ namespace GVT {
 
         void ray::setDirection(float *dir) {
             setDirection(GVT::Math::Vector4f(dir[0], dir[1], dir[2], dir[3]));
-        }
-
-        void* ray::operator new(size_t size) {
-            return GVT::Data::ray_memory_pool::malloc();
-        }
-        void* ray::operator new[](size_t size) {
-            return GVT::Data::ray_memory_pool::malloc();
-        }
-
-        void ray::operator delete(void* ptr) {
-            GVT::Data::ray_memory_pool::free(ptr);
-        }
-        void ray::operator delete[](void* ptr) {
-            GVT::Data::ray_memory_pool::free(ptr);
         }
     }
 }

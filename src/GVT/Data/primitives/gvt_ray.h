@@ -94,21 +94,7 @@ namespace GVT {
             int type;
 
             const static float RAY_EPSILON;
-            
-            
-            void* operator new(size_t size);
-            void* operator new[](size_t size);
-            
-            void operator delete(void* ptr);
-            void operator delete[](void* ptr);
 
-
-            //typedef boost::singleton_pool<GVT::Data::ray, sizeof(GVT::Data::ray)> ray_memory_pool;
-            
-            //            void* operator new(size_t size) {
-//                return boost::
-//            }
-            
             
         protected:
             
@@ -116,8 +102,6 @@ namespace GVT {
 
         };
 
-      
-        struct RayPointerTag {};
         typedef std::vector< GVT::Data::ray, boost::pool_allocator<GVT::Data::ray> > RayVector;
 
 
