@@ -8,6 +8,8 @@
 #ifndef RAY_H
 #define	RAY_H
 
+#include <vector>
+
 #include <GVT/common/debug.h>
 #include <GVT/Data/scene/Color.h>
 #include <GVT/Math/GVTMath.h>
