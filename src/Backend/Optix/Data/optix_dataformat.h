@@ -13,7 +13,7 @@
 
 namespace GVT {
 
-namespace Domain {
+namespace Data {
 
 struct OptixRayFormat {
   float origin[3];

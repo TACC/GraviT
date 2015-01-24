@@ -8,6 +8,7 @@
 
 #include <GVT/Data/primitives.h>
 #include <GVT/Domain/domains.h>
+#include <GVT/Environment/Camera.h>
 
 #include <cfloat>
 #include <map>
@@ -41,8 +42,10 @@ namespace GVT {
             
             friend ostream& operator<<(ostream&, GVTDataset const&);
 
-        protected:
+//        protected:
+        public:
             GVT::Data::box3D dataSetBB;
+            GVT::Env::Camera camera;
             std::vector<GVT::Domain::Domain*> domainSet;
             std::vector<GVT::Data::LightSource*> lightSet; 
         };

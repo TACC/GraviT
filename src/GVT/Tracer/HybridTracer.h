@@ -49,7 +49,7 @@ namespace GVT {
 
                 DEBUG(cerr << "generating camera rays" << endl);
 
-                this->generateRays();
+                this->FilterRaysLocally();
 
                 DEBUG(cerr << "tracing rays" << endl);
 

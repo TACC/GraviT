@@ -58,7 +58,7 @@ namespace GVT {
                 delete[] colorBuf;
             };
             virtual void operator()(void) = 0;
-            virtual void generateRays(void) = 0;
+            virtual void FilterRaysLocally(void) = 0;
             virtual bool SendRays() = 0;
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
@@ -157,16 +157,21 @@ namespace GVT {
              * 
              */
 
-            virtual void generateRays() {
+            virtual void FilterRaysLocally() {
                 boost::atomic<int> current_ray(this->rays_start);
-                size_t workload = std::max((size_t)1,(size_t)(this->rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
-                for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
-                    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, this->rays,current_ray,this->rays_end,workload));
-                }
-                GVT::Concurrency::asyncExec::instance()->sync();
-                
-                GVT_DEBUG(DBG_ALWAYS,"Current ray: " << (int)current_ray);
-                
+//                
+                GVT_DEBUG(DBG_ALWAYS,"Generate rays filtering : " << this->rays.size());
+//                
+                size_t workload = this->rays.size(); //std::max((size_t)1,(size_t)(this->rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
+//                //for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
+//                //    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, this->rays,current_ray,this->rays_end,workload));
+//                //}
+//                // GVT::Concurrency::asyncExec::instance()->sync();
+//                
+//                //GVT_DEBUG(DBG_ALWAYS,"Current ray: " << (int)current_ray);
+                processRayVector(this, this->rays,current_ray,this->rays_end,workload)();  
+                GVT_DEBUG(DBG_ALWAYS,"Filtered rays : " << this->rays.size());
+//                
             }
 
 

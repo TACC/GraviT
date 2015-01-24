@@ -9,7 +9,6 @@
 #define	GVTOPTIX_H
 
 #include <Backend/Optix/Data/gvt_optix.h>
-#include <Backend/Optix/Dataset/OptixDataset.h>
 #include <Backend/Optix/Domain/OptixDomain.h>
 
 #endif	/* GVTOPTIX_H */

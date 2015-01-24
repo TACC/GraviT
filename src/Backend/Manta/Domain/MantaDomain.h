@@ -36,6 +36,8 @@ namespace GVT {
 
     class MantaDomain : public GeometryDomain {
     public:
+        
+        MantaDomain(GVT::Domain::GeometryDomain* domain);
         MantaDomain(string filename ="",GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true));
         MantaDomain(const MantaDomain& other);
         virtual ~MantaDomain();
@@ -47,6 +49,7 @@ namespace GVT {
         
         Manta::RenderContext* rContext;
         Manta::DynBVH* as;
+        Manta::Mesh* meshManta;
     protected:
 
         //std::vector<Manta::BBox> TraverseBVH(int nodeId, int depth, int maxDepth);

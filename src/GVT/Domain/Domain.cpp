@@ -116,11 +116,11 @@ namespace GVT {
             if (type == 0) {
                 return boundingBox;
             } else {
+                
                 GVT::Data::box3D bb; // = boundingBox;
                 bb.bounds[0] = m * boundingBox.bounds[0];
                 bb.bounds[1] = m * boundingBox.bounds[1];
                 return bb;
-
             }
         }
 

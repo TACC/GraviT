@@ -10,8 +10,6 @@
 
 #include <Backend/Manta/Data/gvt_manta.h>
 #include <Backend/Manta/Domain/MantaDomain.h>
-#include <Backend/Manta/ProcessQueue/MantaProcessQueue.h>
-
 #include <GVT/DataSet/Dataset.h>
 
 

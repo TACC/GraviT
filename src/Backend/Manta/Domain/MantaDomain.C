@@ -20,6 +20,8 @@
 #include <GVT/Concurrency/TaskScheduling.h>
 
 #include "Environment/RayTracerAttributes.h"
+#include <boost/foreach.hpp>
+
 
 static boost::atomic<size_t> counter(0);
 
@@ -27,43 +29,59 @@ static boost::atomic<size_t> counter(0);
 namespace GVT {
     namespace Domain {
 
+        MantaDomain::MantaDomain(GVT::Domain::GeometryDomain* domain) : GeometryDomain(*domain) {
+            GVT_DEBUG(DBG_ALWAYS, "Converting domain");
+
+            // Transform mesh
+            meshManta = GVT::Data::transform<GVT::Data::Mesh*, Manta::Mesh*>(this->mesh);
+            Manta::Material *material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
+            Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
+
+            // Create BVH 
+            as = new Manta::DynBVH();
+            as->setGroup(meshManta);
+
+
+            //Create Manta
+            static Manta::MantaInterface* rtrt = Manta::createManta();
+
+            //Create light set
+            Manta::LightSet* lights = new Manta::LightSet();
+            lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
+
+            // Create ambient light
+            Manta::AmbientLight* ambient;
+            ambient = new Manta::AmbientOcclusionBackground(Manta::Color::white()*0.5, 1, 36);
+
+            //Create context
+            Manta::PreprocessContext context(rtrt, 0, 1, lights);
+            std::cout << "context.global_lights : " << context.globalLights << std::endl;
+            material->preprocess(context);
+            as->preprocess(context);
+
+
+            //Select algorithm
+            Manta::ShadowAlgorithm* shadows;
+            shadows = new Manta::HardShadows();
+            Manta::Scene* scene = new Manta::Scene();
+
+
+            scene->setLights(lights);
+            scene->setObject(as);
+            Manta::RandomNumberGenerator* rng = NULL;
+            Manta::CheapRNG::create(rng);
+
+            rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
+                    0/*animframestate*/,
+                    0/*loadbalancer*/, 0/*pixelsampler*/, 0/*renderer*/, shadows/*shadowAlgorithm*/, 0/*camera*/, scene/*scene*/, 0/*thread_storage*/, rng/*rngs*/, 0/*samplegenerator*/);
+
+
+
+
+
+        }
+
         MantaDomain::MantaDomain(string filename, GVT::Math::AffineTransformMatrix<float> m) : GVT::Domain::GeometryDomain(filename, m) {
-
-            if (domainIsLoaded()) {
-                Manta::Mesh* mesh = GVT::Data::transform<GVT::Data::Mesh*, Manta::Mesh*>(this->mesh);
-
-
-                Manta::Material *material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
-                Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
-                as = new Manta::DynBVH();
-                as->setGroup(mesh);
-
-                static Manta::MantaInterface* rtrt = Manta::createManta();
-                Manta::LightSet* lights = new Manta::LightSet();
-                lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
-                Manta::AmbientLight* ambient;
-                ambient = new Manta::AmbientOcclusionBackground(Manta::Color::white()*0.5, 1, 36);
-                Manta::Vector lightPosition(-10, 6, -30);
-                Manta::PreprocessContext context(rtrt, 0, 1, lights);
-                std::cout << "context.global_lights : " << context.globalLights << std::endl;
-                material->preprocess(context);
-                as->preprocess(context);
-                Manta::ShadowAlgorithm* shadows;
-                shadows = new Manta::HardShadows();
-                Manta::Scene* scene = new Manta::Scene();
-
-
-                scene->setLights(lights);
-                scene->setObject(as);
-                Manta::RandomNumberGenerator* rng = NULL;
-                Manta::CheapRNG::create(rng);
-
-                rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
-                        0/*animframestate*/,
-                        0/*loadbalancer*/, 0/*pixelsampler*/, 0/*renderer*/, shadows/*shadowAlgorithm*/, 0/*camera*/, scene/*scene*/, 0/*thread_storage*/, rng/*rngs*/, 0/*samplegenerator*/);
-
-            }
-
 
         }
 
@@ -76,6 +94,7 @@ namespace GVT {
         }
 
         bool MantaDomain::load() {
+#if 0
             if (domainIsLoaded()) return true;
 
             GVT::Domain::GeometryDomain::load();
@@ -92,7 +111,6 @@ namespace GVT {
             lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
             Manta::AmbientLight* ambient;
             ambient = new Manta::AmbientOcclusionBackground(Manta::Color::white()*0.5, 1, 36);
-            Manta::Vector lightPosition(-10, 6, -30);
             Manta::PreprocessContext context(rtrt, 0, 1, lights);
             std::cout << "context.global_lights : " << context.globalLights << std::endl;
             material->preprocess(context);
@@ -110,6 +128,8 @@ namespace GVT {
             rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
                     0/*animframestate*/,
                     0/*loadbalancer*/, 0/*pixelsampler*/, 0/*renderer*/, shadows/*shadowAlgorithm*/, 0/*camera*/, scene/*scene*/, 0/*thread_storage*/, rng/*rngs*/, 0/*samplegenerator*/);
+
+#endif
             return true;
         }
 
@@ -122,7 +142,7 @@ namespace GVT {
             GVT::Data::RayVector& rayList;
             GVT::Data::RayVector& moved_rays;
             const size_t workSize;
-            
+
             boost::atomic<size_t>& counter;
 
             parallelTrace(
@@ -150,6 +170,13 @@ namespace GVT {
                 localDispatch.reserve(rayList.size() * 2);
 
 
+//                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertices.size());
+//                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertex_indices.size());
+//
+//                BOOST_FOREACH(int i, dom->meshManta->vertex_indices) {
+//                    GVT_DEBUG(DBG_ALWAYS, i);
+//                }
+
                 while (!rayList.empty()) {
                     boost::unique_lock<boost::mutex> queue(dom->_inqueue);
                     std::size_t range = std::min(workSize, rayList.size());
@@ -170,27 +197,38 @@ namespace GVT {
 
                         Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, rayPacket.size(), 0, Manta::RayPacket::NormalizedDirections);
                         for (int i = 0; i < rayPacket.size(); i++) {
-                            mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
+                            //mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
+                            mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(rayPacket[i]));
                         }
 
                         mRays.resetHits();
                         dom->as->intersect(renderContext, mRays);
                         mRays.computeNormals<false>(renderContext);
 
+                        //                        GVT_DEBUG(DBG_ALWAYS,"Process packet");
+
                         for (int pindex = 0; pindex < rayPacket.size(); pindex++) {
 
-                            if (mRays.wasHit(pindex)) {
 
+                            if (mRays.wasHit(pindex)) {
+                                //                                GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
                                 if (rayPacket[pindex].type == GVT::Data::ray::SHADOW) {
-                                    counter++;
+                                    //                                    GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
+                                    
                                     continue;
                                 }
+                                
 
-                                float t = mRays.getMinT(pindex);
+                                float t = mRays.getMinT(pindex);                              
                                 rayPacket[pindex].t = t;
+                                
+                                
+
+                                
                                 GVT::Math::Vector4f normal = dom->toWorld(GVT::Data::transform<Manta::Vector, GVT::Math::Vector4f>(mRays.getNormal(pindex)));
-                                if(rayPacket[pindex].type == GVT::Data::ray::SECUNDARY) {
-                                    t = (t > 1) ? 1.f/t : t;
+                                
+                                if (rayPacket[pindex].type == GVT::Data::ray::SECUNDARY) {
+                                    t = (t > 1) ? 1.f / t : t;
                                     rayPacket[pindex].w = rayPacket[pindex].w * t;
                                 }
 
@@ -201,32 +239,37 @@ namespace GVT {
                                     ray.origin = ray.origin + ray.direction * ray.t;
                                     ray.setDirection(dom->lights[lindex]->position - ray.origin);
                                     GVT::Data::Color c = dom->mesh->mat->shade(ray, normal, dom->lights[lindex]);
-                                    ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
+                                    //ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
+                                    ray.color = COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
                                     localQueue.push_back(ray);
                                 }
-                                
+
                                 int ndepth = rayPacket[pindex].depth - 1;
 
                                 float p = 1.f - (float(rand()) / RAND_MAX);
-                                
+
                                 if (ndepth > 0 && rayPacket[pindex].w > p) {
-                                        GVT::Data::ray ray(rayPacket[pindex]);
-                                        ray.domains.clear();
-                                        ray.type = GVT::Data::ray::SECUNDARY;
-                                        ray.origin = ray.origin + ray.direction * ray.t;
-                                        ray.setDirection(dom->mesh->mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                                        ray.w = ray.w * (ray.direction * normal);
-                                        ray.depth = ndepth;
-                                        localQueue.push_back(ray);
+                                    GVT::Data::ray ray(rayPacket[pindex]);
+                                    ray.domains.clear();
+                                    ray.type = GVT::Data::ray::SECUNDARY;
+                                    ray.origin = ray.origin + ray.direction * ray.t;
+                                    ray.setDirection(dom->mesh->mat->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                                    ray.w = ray.w * (ray.direction * normal);
+                                    ray.depth = ndepth;
+                                    localQueue.push_back(ray);
                                 }
-                                counter++;
+                                //counter++;
                                 continue;
                             }
-                            counter++;
+                            //counter++;
+                            //GVT_DEBUG(DBG_ALWAYS,"Add to local dispatch");
                             localDispatch.push_back(rayPacket[pindex]);
                         }
                     }
                 }
+
+
+                GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
 
                 boost::unique_lock<boost::mutex> moved(dom->_outqueue);
                 moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
@@ -235,15 +278,15 @@ namespace GVT {
         };
 
         void MantaDomain::trace(GVT::Data::RayVector& rayList, GVT::Data::RayVector& moved_rays) {
-            GVT_DEBUG(DBG_ALWAYS, "processQueue<MantaDomain>: " << rayList.size());
+            GVT_DEBUG(DBG_ALWAYS, "trace<MantaDomain>: " << rayList.size());
             GVT_DEBUG(DBG_ALWAYS, "tracing geometry of domain " << domainID);
-
             size_t workload = std::max((size_t) 1, (size_t) (rayList.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 4)));
-            
+
             for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
-                GVT::Concurrency::asyncExec::instance()->run_task(parallelTrace(this, rayList, moved_rays, workload,counter));
+                GVT::Concurrency::asyncExec::instance()->run_task(parallelTrace(this, rayList, moved_rays, workload, counter));
             }
             GVT::Concurrency::asyncExec::instance()->sync();
+            //            parallelTrace(this, rayList, moved_rays, rayList.size(),counter)();
 
 #ifdef NDEBUG            
             std::cout << "Proccessed rays : " << counter << std::endl;

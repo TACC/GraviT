@@ -25,7 +25,15 @@ namespace GVT {
                     //free();
                 }
             }
-
+            
+            GeometryDomain(GVT::Data::Mesh* mesh, GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true)) : Domain(m), mesh(NULL), filename("") {
+                if(mesh != NULL) {
+                    this->mesh = mesh;
+                    this->boundingBox = mesh->boundingBox;
+                }
+            }
+            
+            
             virtual ~GeometryDomain() {
 
             }

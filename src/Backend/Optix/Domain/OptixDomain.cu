@@ -9,11 +9,11 @@
 #include <optix_prime/optix_primepp.h>
 #include <Backend/Optix/Data/optix_dataformat.h>
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/generate.h>
-#include <thrust/sort.h>
-#include <thrust/copy.h>
+//#include <thrust/host_vector.h>
+//#include <thrust/device_vector.h>
+//#include <thrust/generate.h>
+//#include <thrust/sort.h>
+//#include <thrust/copy.h>
 
 
 using GVT::Data::Color;
@@ -33,26 +33,7 @@ namespace GVT {
 
 namespace Domain {
 
-//struct OptixRayFormat {
-//  float origin_x;
-//  float origin_y;
-//  float origin_z;
-//  float t_min;
-//  float direction_x;
-//  float direction_y;
-//  float direction_z;
-//  float t_max;
-//};
-//
-//struct OptixHitFormat {
-//  float t;
-//  int triangle_id;
-//  float u;
-//  float v;
-//};
-
-static void gravityRayToOptixRay(const ray& gvt_ray, OptixRayFormat& optix_ray) {
-#if 0
+static void gravityRayToOptixRay(const ray& gvt_ray, GVT::Data::OptixRayFormat& optix_ray) {
   optix_ray.origin[0] = gvt_ray.origin[0];
   optix_ray.origin[1] = gvt_ray.origin[1];
   optix_ray.origin[2] = gvt_ray.origin[2];
@@ -61,7 +42,6 @@ static void gravityRayToOptixRay(const ray& gvt_ray, OptixRayFormat& optix_ray) 
   optix_ray.direction[2] = gvt_ray.direction[2];
   optix_ray.t_min = gvt_ray.t_min;
   optix_ray.t_max = gvt_ray.t_max;
-#endif
 }
 
 OptixDomain::OptixDomain() : GeometryDomain("") {}
@@ -77,14 +57,12 @@ OptixDomain::OptixDomain(const OptixDomain& domain)
 
 OptixDomain::~OptixDomain() {}
 
-OptixDomain::OptixDomain(const std::string& filename,
-                         GVT::Math::AffineTransformMatrix<float> m)
-    : GVT::Domain::GeometryDomain(filename, m), loaded_(false) {
+OptixDomain::OptixDomain(const std::string& filename, GVT::Math::AffineTransformMatrix<float> m) : GVT::Domain::GeometryDomain(filename, m), loaded_(false) {
   this->load();
 }
 
 bool OptixDomain::load() {
-#if 0
+
   if (loaded_) return true;
 
   // Make sure we load the GVT mesh.
@@ -139,14 +117,12 @@ bool OptixDomain::load() {
   if (!optix_model_.isValid()) return false;
 
   loaded_ = true;
-#endif
   return true;
 }
 
 void OptixDomain::trace(RayVector& ray_list, RayVector& moved_rays) {
   // Create our query.
   boost::timer::auto_cpu_timer optix_time("Optix domain trace: %w\n");
-#if 0    
   try {
     this->load();
     
@@ -196,11 +172,9 @@ void OptixDomain::trace(RayVector& ray_list, RayVector& moved_rays) {
   catch (const optix::prime::Exception& e) {
     GVT_ASSERT(false, e.getErrorString());
   }
-#endif
 }
 
 void OptixDomain::traceChunk(RayVector& chunk, RayVector& next_list, RayVector& moved_rays) {
-#if 0
     // Create our query.
   Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
   if (!query.isValid()) return;
@@ -273,6 +247,7 @@ Vector4f OptixDomain::computeNormal(uint32_t triangle_id, float u, float v) cons
   normal.normalize();
   return normal;
 #endif
+  return Vector4f();
 }
 
 void OptixDomain::generateSecondaryRays(const ray& ray_in,

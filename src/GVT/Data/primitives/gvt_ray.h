@@ -91,6 +91,8 @@ namespace GVT {
 //            float r; ///<! sample rate
             float w; ///<! weight of image contribution
             mutable float t;
+            mutable float t_min;
+            mutable float t_max;
             COLOR_ACCUM color;
             isecDomList domains;
             int type;
