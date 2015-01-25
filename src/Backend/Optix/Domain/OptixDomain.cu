@@ -175,6 +175,7 @@ void OptixDomain::trace(RayVector& ray_list, RayVector& moved_rays) {
 }
 
 void OptixDomain::traceChunk(RayVector& chunk, RayVector& next_list, RayVector& moved_rays) {
+#if 0
     // Create our query.
   Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
   if (!query.isValid()) return;

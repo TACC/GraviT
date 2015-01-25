@@ -51,12 +51,13 @@ namespace GVT {
                     //scene.camera.setAspectRatio(double(std::atoi(elems[1].c_str()))/double(std::atoi(elems[2].c_str())));
                 } else if (elems[0] == "C") {
                     GVT::Math::Vector4f pos,look,up;
-                    float fov = std::atof(elems[9].c_str());
+                    float fov = std::atof(elems[10].c_str()) * M_PI / 180.0;
                     pos[0] = std::atof(elems[1].c_str());pos[1] = std::atof(elems[2].c_str());pos[2] = std::atof(elems[3].c_str());pos[3]=1.f;
                     look[0] = std::atof(elems[4].c_str());look[1] = std::atof(elems[5].c_str());look[2] = std::atof(elems[6].c_str());look[3]=0.f;
                     up[0] = std::atof(elems[7].c_str());up[1] = std::atof(elems[8].c_str());up[2] = std::atof(elems[9].c_str());up[3]=0.f;
+                    scene.camera.setFOV(fov);             
                     scene.camera.setLook(pos,look,up);
-                    scene.camera.setFOV(fov);                   
+                          
                 } else if (elems[0] == "G") {
                     GVT_DEBUG(DBG_ALWAYS, "Geometry file" << elems[1]);
                     if(elems[1].find(".obj")< elems[1].size()) {

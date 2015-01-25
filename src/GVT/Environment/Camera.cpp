@@ -36,13 +36,13 @@ namespace GVT {
                     GVT::Data::RayVector& rays = cam->rays;
                     GVT::Math::Vector4f eye = cam->eye;
                     GVT::Math::Vector4f look = GVT::Math::Vector4f(0,0,-1,0);//cam->look; // direction to look
-//                    GVT::Math::Vector4f u = cam->u, v = cam->v; // u and v in the 
+                    GVT::Math::Vector4f u = cam->u, v = cam->v; // u and v in the 
 //                    int samples = (cam->trcUpSampling * cam->trcUpSampling);
 //
 //                    GVT::Data::RayVector lrays;
 
-                    const GVT::Math::Vector4f u = GVT::Math::Vector4f(1, 0, 0, 0);
-                    const GVT::Math::Vector4f v = GVT::Math::Vector4f(0, 1, 0, 0);
+//                    const GVT::Math::Vector4f u = GVT::Math::Vector4f(1, 0, 0, 0);
+//                    const GVT::Math::Vector4f v = GVT::Math::Vector4f(0, 1, 0, 0);
 
                     const float divider = cam->trcUpSampling;
                     const float offset = 1.0 / divider;
