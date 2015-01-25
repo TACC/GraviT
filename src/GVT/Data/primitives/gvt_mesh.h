@@ -21,37 +21,39 @@
 namespace GVT {
     namespace Data {
 
-        
         class AbstractMesh {
-            
         public:
+
             AbstractMesh() {
-                
+
             }
+
             AbstractMesh(const AbstractMesh&) {
-                
+
             }
+
             ~AbstractMesh() {
-                
+
             }
-            
-            
+
             virtual AbstractMesh* getMesh() {
                 return this;
             }
-            
+
             virtual GVT::Data::box3D* getBoundingBox() {
                 return NULL;
             }
-            
+
         };
-        
+
         class Mesh : public AbstractMesh {
         public:
 
             typedef boost::tuple<int, int, int> face;
+            typedef boost::tuple<int, int, int> face_to_normals;
 
-            Mesh(GVT::Data::Material* mat=NULL);
+
+            Mesh(GVT::Data::Material* mat = NULL);
             Mesh(const Mesh& orig);
 
 
@@ -62,17 +64,28 @@ namespace GVT {
             virtual void pushTexUV(int which, GVT::Math::Point4f texUV = GVT::Math::Point4f());
             virtual void setMaterial(GVT::Data::Material* mat);
             virtual void addFace(int v0, int v1, int v2);
-            
-            virtual GVT::Data::Color shade(GVT::Data::ray&  r, GVT::Math::Vector4f normal, GVT::Data::LightSource* lsource);
+            virtual GVT::Data::box3D computeBoundingBox();
+
+            virtual void generateNormals();
+
+            virtual GVT::Data::Color shade(GVT::Data::ray& r, GVT::Math::Vector4f normal,
+                    GVT::Data::LightSource* lsource);
+            virtual GVT::Data::Color shadeFace(int face_id, GVT::Data::ray& r,
+                    GVT::Math::Vector4f normal,
+                    GVT::Data::LightSource* lsource);
+
             GVT::Data::Material* mat;
 
             boost::container::vector<GVT::Math::Vector4f> vertices;
             boost::container::vector<GVT::Math::Vector4f> mapuv;
             boost::container::vector<GVT::Math::Vector4f> normals;
             boost::container::vector<GVT::Data::Mesh::face> faces;
+            boost::container::vector<GVT::Data::Mesh::face_to_normals> faces_to_normals;
+            boost::container::vector<GVT::Math::Vector4f> face_normals;
+            boost::container::vector<const GVT::Data::Material*> faces_to_materials;
 
             GVT::Data::box3D boundingBox;
-
+            bool haveNormals;
         };
     }
 }

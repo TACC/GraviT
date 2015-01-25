@@ -94,14 +94,14 @@ namespace GVT {
             int type;
 
             const static float RAY_EPSILON;
-
+            
+            
             
         protected:
-            
-            //boost
 
         };
 
+      
         typedef std::vector< GVT::Data::ray, boost::pool_allocator<GVT::Data::ray> > RayVector;
 
 

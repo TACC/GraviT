@@ -37,10 +37,11 @@ namespace GVT {
             friend std::ostream & operator <<(std::ostream &os, const box3D &bbox) {
                 
                 //TODO: fix this;
-                //os << bbox.bounds[0] << " x ";
-                //os << bbox.bounds[1];
-                return os << bbox.bounds[0] << " : " << bbox.bounds[1];
+                os << bbox.bounds[0] << " x ";
+                os << bbox.bounds[1];
+                // return os << bbox.bounds[0] << " : " << bbox.bounds[1];
                 //return os;
+                return os;
             }       
             
             template<typename cast>
