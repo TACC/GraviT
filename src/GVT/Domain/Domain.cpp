@@ -103,6 +103,33 @@ namespace GVT {
             ret.normalize();
             return ret;
         }
+        
+        void Domain::translate(GVT::Math::Vector4f t) {
+            
+            m = m * GVT::Math::AffineTransformMatrix<float>::createTranslation(t[0],t[1],t[2]);
+            
+            GVT_DEBUG(DBG_ALWAYS,"M : \n" << m);
+            
+            minv = m.inverse();
+            normi = m.upper33().inverse().transpose();
+        }
+        
+        
+        void Domain::rotate(GVT::Math::Vector4f t) {
+            m = m 
+                    * GVT::Math::AffineTransformMatrix<float>::createRotation(t[0],1.0,0.0,0.0) 
+                    * GVT::Math::AffineTransformMatrix<float>::createRotation(t[1],0.0,1.0,0.0) 
+                    * GVT::Math::AffineTransformMatrix<float>::createRotation(t[2],0.0,0.0,1.0);
+            minv = m.inverse();
+            normi = m.upper33().inverse().transpose();
+        }
+        
+        void Domain::scale(GVT::Math::Vector4f t) {
+            m = m * GVT::Math::AffineTransformMatrix<float>::createScale(t[0],t[1],t[2]);
+            minv = m.inverse();
+            normi = m.upper33().inverse().transpose();
+        }
+        
 
         GVT::Data::box3D Domain::getWorldBoundingBox() {
             return getBounds(1);

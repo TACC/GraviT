@@ -55,15 +55,51 @@ namespace GVT {
                     pos[0] = std::atof(elems[1].c_str());pos[1] = std::atof(elems[2].c_str());pos[2] = std::atof(elems[3].c_str());pos[3]=1.f;
                     look[0] = std::atof(elems[4].c_str());look[1] = std::atof(elems[5].c_str());look[2] = std::atof(elems[6].c_str());look[3]=0.f;
                     up[0] = std::atof(elems[7].c_str());up[1] = std::atof(elems[8].c_str());up[2] = std::atof(elems[9].c_str());up[3]=0.f;
-                    scene.camera.setFOV(fov);             
+                                 
                     scene.camera.setLook(pos,look,up);
-                          
+                    scene.camera.setFOV(fov);
+                    scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
+                    
                 } else if (elems[0] == "G") {
                     GVT_DEBUG(DBG_ALWAYS, "Geometry file" << elems[1]);
+                    
+                    
+                    GVT::Domain::GeometryDomain* domain = NULL;
+                    
                     if(elems[1].find(".obj")< elems[1].size()) {
                         GVT_DEBUG(DBG_ALWAYS, "Found obj file : " << elems[1].find(".obj"));
                         ObjReader objReader(elems[1]);
-                        scene.domainSet.push_back(new GVT::Domain::GeometryDomain(objReader.objMesh));
+                        
+                        scene.domainSet.push_back(domain = new GVT::Domain::GeometryDomain(objReader.objMesh));
+                        
+                        GVT::Math::Vector4f t;
+                        t[0] = std::atof(elems[2].c_str());
+                        t[1] = std::atof(elems[3].c_str());
+                        t[2] = std::atof(elems[4].c_str());
+                        
+                        GVT_DEBUG(DBG_ALWAYS,"Translate vector : \n" << t);
+                        
+                        if(t.length() > 0.0) domain->translate(t);
+                        
+                        t[0] = std::atof(elems[5].c_str());
+                        t[1] = std::atof(elems[6].c_str());
+                        t[2] = std::atof(elems[7].c_str());
+                        
+                        if(t.length() > 0.0) domain->rotate(t);
+                        
+                        t[0] = std::atof(elems[8].c_str());
+                        t[1] = std::atof(elems[9].c_str());
+                        t[2] = std::atof(elems[10].c_str());
+                        
+                        GVT_DEBUG(DBG_ALWAYS,"Scale vector : \n" << t);
+                        
+                        if(t.length() > 0.0) domain->scale(t);
+                        
+                        GVT_DEBUG(DBG_ALWAYS,"Aff. m : \n" << domain->m);
+                        GVT_DEBUG(DBG_ALWAYS,"Aff. minv : \n" << domain->minv);
+                        GVT_DEBUG(DBG_ALWAYS,"BB : \n" << domain->getWorldBoundingBox());
+                        GVT_DEBUG(DBG_ALWAYS,"BB : \n" << domain->boundingBox);
+                        
                     }
                     if(elems[1].find(".ply") < elems[1].size()) {
                         GVT_DEBUG(DBG_ALWAYS, "Found ply file : " << elems[1].find(".ply"));

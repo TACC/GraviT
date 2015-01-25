@@ -53,8 +53,6 @@ namespace GVT {
 
             virtual void setBoundingBox(GVT::Data::box3D bb);
             
-            
-            
             virtual GVT::Data::box3D getBounds(int type);
 
             virtual bool domainIsLoaded();
@@ -62,6 +60,11 @@ namespace GVT {
             virtual int getDomainID();
 
             virtual void setDomainID(int id);
+            
+            virtual void translate(GVT::Math::Vector4f t);
+            virtual void rotate(GVT::Math::Vector4f t);
+            virtual void scale(GVT::Math::Vector4f t);
+            
             
 //            virtual pop(GVT::Data::RayVector &queue, GVT::Data::ray& ray) {
 //                boost::mutex::scoped_lock lock(_inqueue);

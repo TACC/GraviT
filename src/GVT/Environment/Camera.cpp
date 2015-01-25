@@ -11,12 +11,10 @@ namespace GVT {
 
         using namespace std;
 
-        void Camera::SetCamera(GVT::Data::RayVector &rays, float rate) {
-            
+        void Camera::SetCamera(GVT::Data::RayVector &rays, float rate) {           
             this->rays = rays;
             this->rate = rate;
             this->trcUpSampling = 1;
-            
         }     
         
         struct cameraGenerateRays {

@@ -197,8 +197,8 @@ namespace GVT {
 
                         Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, rayPacket.size(), 0, Manta::RayPacket::NormalizedDirections);
                         for (int i = 0; i < rayPacket.size(); i++) {
-                            //mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
-                            mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(rayPacket[i]));
+                            mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
+                            //mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(rayPacket[i]));
                         }
 
                         mRays.resetHits();

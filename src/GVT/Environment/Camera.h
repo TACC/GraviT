@@ -95,7 +95,7 @@ namespace GVT {
             }
 
             void setFOV(double fov) {
-                normalizedHeight = 2 * tan(fov / 2);
+                normalizedHeight = tan(fov / 2.0);
                 update();
             }
 
@@ -151,7 +151,7 @@ namespace GVT {
             void update() { // using the above three values calculate look,u,v
                 u = m * GVT::Math::Vector3f(1, 0, 0) * normalizedHeight*aspectRatio;
                 v = m * GVT::Math::Vector3f(0, 1, 0) * normalizedHeight;
-//                look = GVT::Math::Vector3f(0, 0, -1);
+                look = GVT::Math::Vector3f(0, 0, -1);
             }
 
             GVT::Math::Vector4f eye;
