@@ -20,6 +20,9 @@
 #include <boost/aligned_storage.hpp>
 #include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
+
+#include <vector>
+
 namespace GVT {
     namespace Data {
 
