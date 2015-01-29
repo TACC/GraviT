@@ -22,30 +22,10 @@ class RayTracer
  public:
     RayTracer() {}
 
-    void RenderImage(GVT::Env::RayTracerAttributes&, string);
+    void RenderImage(string);
 
  protected:
-//    void                     MakeCameraRays(GVT::Data::RayVector&, GVT::Env::RayTracerAttributes::View&, float);
 
-//    void                     TraverseDomain(Ray&, GVT::Data::RayVector&, GVT::Env::RayTracerAttributes&,
-//                                            VolumeDomain*, float, const unsigned char*);
-//    void                     TraverseQueue(std::map<int,GVT::Data::RayVector>&, GVT::Data::RayVector&, int, float,
-//                                           const unsigned char*, GVT::Env::RayTracerAttributes&,
-//                                           VolumeDomain*, ColorAccumulator*, long&, long&);
-//    void                     IntersectDomain(Ray&, GVT::Data::RayVector&,
-//                                             /* Carson TODO */ GeometryDomain*,
-//                                             GVT::Env::RayTracerAttributes& );
-//    void                     IntersectQueue(std::map<int,GVT::Data::RayVector>&, GVT::Data::RayVector&, int,
-//                                            /* Carson TODO */ GeometryDomain*,
-//                                            GVT::Env::RayTracerAttributes&, ColorAccumulator*,
-//                                            long&, long&);
-
-//    void                     ImageTrace( GVT::Env::RayTracerAttributes&, GVT::Data::RayVector&, Image& );
-//    void                     DomainTrace( GVT::Env::RayTracerAttributes&, GVT::Data::RayVector&, Image& );
-//    void                     HybridTrace( GVT::Env::RayTracerAttributes&, GVT::Data::RayVector&, Image& );
-
-
-    //simple braindead load balancer
     struct LoadBalancer
     {
       LoadBalancer(size_t size_, int granularity_=16)

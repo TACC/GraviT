@@ -47,8 +47,10 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    GVT::Env::RayTracerAttributes rta;
+    GVT::Env::RayTracerAttributes& rta = *(GVT::Env::RayTracerAttributes::instance());
+    
     file >> rta;
+    
     file.close();
 
     switch (rta.render_type) {
@@ -68,10 +70,11 @@ int main(int argc, char** argv) {
 
     GVT_ASSERT(rta.LoadDataset(), "Unable to load dataset");
 
+    std::cout << rta << std::endl;
 
     RayTracer rt;
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(rta, imagename);
+    rt.RenderImage(imagename);
 
     if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 

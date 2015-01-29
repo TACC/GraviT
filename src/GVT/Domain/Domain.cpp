@@ -19,9 +19,9 @@ namespace GVT {
         Domain::~Domain() {
         }
 
-        bool Domain::intersect(GVT::Data::ray& r, GVT::Data::isecDomList& inter) {
+        bool Domain::intersect(GVT::Data::ray&  r, GVT::Data::isecDomList& inter) {
             float t;
-            if (getWorldBoundingBox().intersectDistance(r, t)) {
+            if (getWorldBoundingBox().intersectDistance(r, t) && t > GVT::Data::ray::RAY_EPSILON) {
                 inter.push_back(GVT::Data::isecDom(domainID, t));
                 return true;
             }
@@ -31,27 +31,34 @@ namespace GVT {
 
         // TODO : This code is broken
 
-        void Domain::marchIn(GVT::Data::ray& r) {
-            r.origin -= r.direction * (2.f * GVT::Data::ray::RAY_EPSILON);
+        void Domain::marchIn(GVT::Data::ray&  ray) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            GVT_ASSERT(!wBox.inBox(r.origin), "Inside the domain..." << wBox << r.origin);
-            r.setDirection(-r.direction);
-            if (wBox.intersectDistance(r, t)) {
-                r.origin += r.direction * t;
+            ray.setDirection(-ray.direction);
+            while(wBox.inBox(ray.origin)) {
+                if(wBox.intersectDistance(ray,t)) ray.origin += ray.direction * t;
+                ray.origin += ray.direction * GVT::Data::ray::RAY_EPSILON;
             }
-            r.setDirection(-r.direction);
+            ray.setDirection(-ray.direction);
 
         };
         // TODO : This code is broken
-
-        void Domain::marchOut(GVT::Data::ray& r) {
+        void Domain::marchOut(GVT::Data::ray&  ray) {
             GVT::Data::box3D wBox = getWorldBoundingBox();
             float t = FLT_MAX;
-            while (wBox.intersectDistance(r, t)) {
-                r.origin += r.direction * (t + GVT::Data::ray::RAY_EPSILON);
+            //int i =0;
+            
+            if(wBox.intersectDistance(ray,t)) ray.origin += ray.direction * t;
+            while(wBox.intersectDistance(ray,t)) {
+                ray.origin += ray.direction * t;
+                ray.origin += ray.direction * GVT::Data::ray::RAY_EPSILON;
             }
+            ray.origin += ray.direction * GVT::Data::ray::RAY_EPSILON;
         };
+        
+        void Domain::trace(GVT::Data::RayVector& rayList, GVT::Data::RayVector& moved_rays) {
+            GVT_ASSERT(false,"Trace function for this domain was not implemented");
+        }
 
         bool Domain::load() {
             GVT_ASSERT(false, "Calling domain load generic function\n");
@@ -63,14 +70,16 @@ namespace GVT {
             return;
         }
 
-        GVT::Data::ray Domain::toLocal(GVT::Data::ray r) {
+        GVT::Data::ray Domain::toLocal(GVT::Data::ray& r) {
+            GVT_ASSERT((&r),"NULL POINTER");
             GVT::Data::ray ray(r);
             ray.origin = minv * ray.origin;
             ray.direction = minv * ray.direction;
             return ray;
         }
 
-        GVT::Data::ray Domain::toWorld(GVT::Data::ray r) {
+        GVT::Data::ray Domain::toWorld(GVT::Data::ray& r) {
+            GVT_ASSERT((&r),"NULL POINTER");
             GVT::Data::ray ray(r);
             ray.origin = m * ray.origin;
             ray.direction = m * ray.direction;

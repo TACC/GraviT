@@ -25,7 +25,7 @@ struct scheduler_adapter : public scheduler_base_adapter {
             int &domTarget,
             RayVector &moved_rays,
             long &ray_counter,
-            RayTracerAttributes& rta,
+//            RayTracerAttributes& rta,
             ColorAccumulator* colorBuf,
             long &domain_counter) : scheduler_base_adapter(),
     queue(queue), domTarget(domTarget), moved_rays(moved_rays),

@@ -40,10 +40,21 @@ namespace GVT {
         MantaDomain(const MantaDomain& other);
         virtual ~MantaDomain();
 
+        virtual bool load();
+        virtual void free();
+        
+        void trace(GVT::Data::RayVector& rayList, GVT::Data::RayVector& moved_rays);
+        
+        Manta::RenderContext* rContext;
+        Manta::DynBVH* as;
     protected:
 
         //std::vector<Manta::BBox> TraverseBVH(int nodeId, int depth, int maxDepth);
-
+        
+        
+        
+        
+        
     };
 
 };

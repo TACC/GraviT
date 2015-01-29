@@ -18,6 +18,9 @@ namespace GVT {
         class RayTracerAttributes {
         public:
 
+            static RayTracerAttributes* rta;
+            
+            
             class View {
             public:
 
@@ -76,6 +79,13 @@ namespace GVT {
             RayTracerAttributes(string&, View&, RenderType, ScheduleType, float, float, float*);
             ~RayTracerAttributes();
 
+            
+            static RayTracerAttributes* instance() {
+                if(!rta) rta = new RayTracerAttributes();
+                return rta;
+            }
+            
+            
             bool LoadDataset() {
                 
                 GVT_DEBUG(DBG_ALWAYS,"Sent load");
@@ -135,6 +145,8 @@ namespace GVT {
             bool do_lighting;
 
         };
+        
+        typedef RayTracerAttributes RTA;
     };
 };
 #endif // GVT_RAY_TRACER_ATTRIBUTES_H

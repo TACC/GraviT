@@ -32,7 +32,11 @@ inline void print_trace() {
     if (!child_pid) {
         dup2(2, 1); // redirect output to stderr
         std::cerr << "stack trace for " << name_buf << " pid= " << pid_buf << std::endl;
+#ifndef __APPLE__
         execlp("gdb", "gdb", "--batch", "-n", "-ex", "thread", "-ex", "bt", name_buf, pid_buf, NULL);
+#else
+        execlp("gdb-apple", "gdb-apple", "--batch", "-n", "-ex", "thread", "-ex", "bt", name_buf, pid_buf, NULL);
+#endif
         abort(); /* If gdb failed to start */
     } else {
         waitpid(child_pid, NULL, 0);

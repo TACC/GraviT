@@ -22,7 +22,7 @@ namespace GVT {
             GeometryDomain(std::string filename = "", GVT::Math::AffineTransformMatrix<float> m = GVT::Math::AffineTransformMatrix<float>(true)) : Domain(m), mesh(NULL), filename(filename) {
                 if (filename != "") {
                     load();
-                    free();
+                    //free();
                 }
             }
 

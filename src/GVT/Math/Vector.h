@@ -11,6 +11,19 @@
 #include <iostream>
 #include <cmath>
 
+
+#ifndef GVT_ALIGNED
+#if defined (__INTEL_COMPILER) 
+#define GVT_ALIGNED \
+  __declspec(align((16)))
+#elif defined (__GNUC__)
+#define GVT_ALIGNED \
+  __attribute__ ((aligned (16)))
+#else
+#define MANTA_ALIGN(size)
+#endif
+#endif
+
 namespace GVT {
     namespace Math {
         //==========[ Forward References ]=========================
@@ -135,13 +148,13 @@ namespace GVT {
             union {
 
                 struct {
-                    T x, y, z, w;
+                    T x, y;
                 };
 
                 struct {
-                    T r, g, b, a;
+                    T r, g;
                 };
-                T n[4];
+                GVT_ALIGNED T n[2];
             };
 
             //---[ Constructors ]------------------------
@@ -265,13 +278,13 @@ namespace GVT {
             union {
 
                 struct {
-                    T x, y, z, w;
+                    T x, y, z;
                 };
 
                 struct {
-                    T r, g, b, a;
+                    T r, g, b;
                 };
-                T n[3];
+                GVT_ALIGNED T n[3];
             };
 
 
@@ -507,7 +520,7 @@ namespace GVT {
                 struct {
                     T r, g, b, a;
                 };
-                T n[4];
+                GVT_ALIGNED T n[4];
             };
             //---[ Constructors ]------------------------
 

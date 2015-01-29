@@ -12,6 +12,18 @@
 #include <cmath>
 #include <string.h>
 
+#ifndef GVT_ALIGNED
+#if defined (__INTEL_COMPILER) 
+#define GVT_ALIGNED \
+  __declspec(align((16)))
+#elif defined (__GNUC__)
+#define GVT_ALIGNED \
+  __attribute__ ((aligned (16)))
+#else
+#define MANTA_ALIGN(size)
+#endif
+#endif
+
 namespace GVT {
     namespace Math {
 
