@@ -36,12 +36,14 @@ namespace GVT {
             friend std::ostream & operator <<(std::ostream &os, const box3D &bbox) {
 
                 //TODO: fix this;
-                //os << bbox.bounds[0] << " x ";
-                //os << bbox.bounds[1];
-                //return os << bbox.bounds[0] << " : " << bbox.bounds[1];
-                return os;
-            }
 
+                os << bbox.bounds[0] << " x ";
+                os << bbox.bounds[1];
+                // return os << bbox.bounds[0] << " : " << bbox.bounds[1];
+                //return os;
+                return os;
+            }       
+            
             template<typename cast>
             operator cast() {
                 GVT_ASSERT(false,"Cast operator not available from GVT BBox");

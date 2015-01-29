@@ -7,7 +7,6 @@
 
 #include <GVT/DataSet/Dataset.h>
 #include <GVT/Data/primitives.h>
-
 #include <GVT/Math/GVTMath.h>
 
 #include <iostream>

@@ -1,0 +1,5 @@
+declare -x MANTA_BUILD_PREFIX="/Users/jbarbosa/TACC/Manta/build/"
+declare -x MANTA_SOURCE_DIR="/Users/jbarbosa/TACC/Manta/"
+declare -x OBJREADER_INCLUDE_DIR="/Users/jbarbosa/TACC/objreader/src/include/"
+declare -x OBJREADER_LIBRARY="/Users/jbarbosa/TACC/objreader/build/libobjreader/libobjreader.a"
+declare -x OBJREADER_ROOT_DIR="/Users/jbarbosa/TACC/objreader/"

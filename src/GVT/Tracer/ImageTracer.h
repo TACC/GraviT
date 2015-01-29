@@ -37,7 +37,7 @@ namespace GVT {
 
                 long ray_counter = 0, domain_counter = 0;
 
-                this->generateRays();
+                this->FilterRaysLocally();
 
                 // buffer for color accumulation
                 GVT::Data::RayVector moved_rays;
@@ -56,7 +56,7 @@ namespace GVT {
                         }
                     }
                     GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
-                    if (domTarget != -1) std::cout << "Domain " << domTarget << " size " << this->queue[domTarget].size() << std::endl;
+                    //if (domTarget != -1) std::cout << "Domain " << domTarget << " size " << this->queue[domTarget].size() << std::endl;
                     if (DEBUG_RANK) GVT_DEBUG(DBG_ALWAYS, this->rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)");
                     if (DEBUG_RANK) GVT_DEBUG(DBG_ALWAYS, this->rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains");
 

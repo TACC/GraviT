@@ -107,6 +107,22 @@ namespace GVT {
 
             }
         };
+        
+        
+        template<>
+        struct transform_impl<Manta::PointLight*, GVT::Data::PointLightSource* > {
+
+            static inline Manta::PointLight* transform(const GVT::Data::PointLightSource* ls) {
+                // lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
+
+                return new Manta::PointLight(
+                        Manta::Vector(ls->position[0],ls->position[1],ls->position[2]),
+                        Manta::Color(Manta::RGBColor(ls->color[0],ls->color[1],ls->color[2]))
+                        );
+                //return GVT::Math::Point4f(r[0], r[1], r[2], 0.f);
+                //return Manta::Vector(r[0], r[1], r[2]);
+            }
+        };
 
 //        template<size_t LENGTH>
 //        struct transform_impl<GVT::Data::RayVector, std::vector<Manta::RayPacket*>, LENGTH> {
@@ -174,9 +190,7 @@ namespace GVT {
                     m->vertex_indices.push_back(boost::get<2>(f));
                     m->face_material.push_back(0);
                     m->addTriangle(new Manta::KenslerShirleyTriangle());
-                    
                 }
-                
                 return m;
             }
         };

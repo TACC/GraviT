@@ -48,7 +48,7 @@ namespace GVT {
             abstract_trace(GVT::Data::RayVector& rays, Image& image) : rays(rays), image(image) {
                 this->vtf = GVT::Env::RayTracerAttributes::rta->GetTransferFunction();
                 this->sample_ratio = GVT::Env::RayTracerAttributes::rta->sample_ratio;
-                this->colorBuf = new COLOR_ACCUM[this->rays.size()];
+                this->colorBuf = new COLOR_ACCUM[GVT::Env::RTA::instance()->view.width * GVT::Env::RTA::instance()->view.height];
                 this->queue_mutex = new boost::mutex[GVT::Env::RayTracerAttributes::rta->dataset->size()];
                 this->colorBuf_mutex = new boost::mutex[GVT::Env::RTA::instance()->view.width];
                 
@@ -58,7 +58,7 @@ namespace GVT {
                 delete[] colorBuf;
             };
             virtual void operator()(void) = 0;
-            virtual void generateRays(void) = 0;
+            virtual void FilterRaysLocally(void) = 0;
             virtual bool SendRays() = 0;
             virtual void gatherFramebuffers(int rays_traced) = 0;
 
@@ -75,33 +75,6 @@ namespace GVT {
                     for (int i = 0; i < 3; i++) colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
                     colorBuf[ray.id].rgba[3] = 1.f;
                     colorBuf[ray.id].clamp();
-                }
-            }
-        };
-
-        struct processRay {
-            abstract_trace* tracer;
-            GVT::Data::ray& ray;
-
-            processRay(abstract_trace* tracer, GVT::Data::ray& ray) : tracer(tracer), ray(ray) {
-
-            }
-
-            void operator()() {
-                GVT::Data::isecDomList& len2List = ray.domains;
-                if (len2List.empty()) GVT::Env::RayTracerAttributes::rta->dataset->intersect(ray, len2List);
-                if (!len2List.empty()) {
-                    int domTarget = (*len2List.begin());
-                    len2List.erase(len2List.begin());
-                    //GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
-                    boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
-                    tracer->queue[domTarget].push_back(ray);
-                } else {
-                    boost::mutex::scoped_lock fbloc(tracer->colorBuf_mutex[ray.id % GVT::Env::RTA::instance()->view.width] );
-                    for (int i = 0; i < 3; i++) tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
-                    tracer->colorBuf[ray.id].rgba[3] = 1.f;
-                    tracer->colorBuf[ray.id].clamp();
-                    //delete ray;
                 }
             }
         };
@@ -138,7 +111,6 @@ namespace GVT {
                         if (!len2List.empty()) {
                             int domTarget = (*len2List.begin());
                             len2List.erase(len2List.begin());
-                            //GVT::Env::RayTracerAttributes::rta->dataset->getDomain(domTarget)->marchIn(ray);
                             boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
                             tracer->queue[domTarget].push_back(ray);
                         } else {
@@ -146,7 +118,6 @@ namespace GVT {
                             for (int i = 0; i < 3; i++) tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
                             tracer->colorBuf[ray.id].rgba[3] = 1.f;
                             tracer->colorBuf[ray.id].clamp();
-                            //delete ray;
                         }
                     }
                 }
@@ -186,16 +157,21 @@ namespace GVT {
              * 
              */
 
-            virtual void generateRays() {
+            virtual void FilterRaysLocally() {
                 boost::atomic<int> current_ray(this->rays_start);
-                size_t workload = std::max((size_t)1,(size_t)(this->rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
-                for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
-                    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, this->rays,current_ray,this->rays_end,workload));
-                }
-                GVT::Concurrency::asyncExec::instance()->sync();
-                
-                GVT_DEBUG(DBG_ALWAYS,"Current ray: " << (int)current_ray);
-                
+//                
+                GVT_DEBUG(DBG_ALWAYS,"Generate rays filtering : " << this->rays.size());
+//                
+                size_t workload = this->rays.size(); //std::max((size_t)1,(size_t)(this->rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
+//                //for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
+//                //    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, this->rays,current_ray,this->rays_end,workload));
+//                //}
+//                // GVT::Concurrency::asyncExec::instance()->sync();
+//                
+//                //GVT_DEBUG(DBG_ALWAYS,"Current ray: " << (int)current_ray);
+                processRayVector(this, this->rays,current_ray,this->rays_end,workload)();  
+                GVT_DEBUG(DBG_ALWAYS,"Filtered rays : " << this->rays.size());
+//                
             }
 
 

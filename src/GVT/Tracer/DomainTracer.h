@@ -38,7 +38,7 @@ namespace GVT {
             virtual ~Tracer() {
             };
 
-            virtual void generateRays() {
+            virtual void FilterRaysLocally() {
                 for (int rc = this->rays_start; rc < this->rays_end; ++rc) {
                     DEBUG(cerr << endl << "Seeding ray " << rc << ": " << this->rays[rc] << endl);
                     GVT::Data::isecDomList len2List;
@@ -62,7 +62,7 @@ namespace GVT {
 
                 DEBUG(cerr << "generating camera rays" << endl);
 
-                this->generateRays();
+                this->FilterRaysLocally();
 
 
                 DEBUG(cerr << "tracing rays" << endl);

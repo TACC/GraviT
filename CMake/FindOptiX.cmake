@@ -57,6 +57,7 @@ endmacro()
 
 OPTIX_find_api_library(optix 1)
 OPTIX_find_api_library(optixu 1)
+OPTIX_find_api_library(optix_prime 1)
 
 # Include
 find_path(OptiX_INCLUDE
@@ -69,21 +70,24 @@ find_path(OptiX_INCLUDE
   )
 
 # Check to make sure we found what we were looking for
-function(OptiX_report_error error_message)
-  if(OptiX_FIND_REQUIRED)
+function(OptiX_report_error error_message required)
+  if(OptiX_FIND_REQUIRED AND required)
     message(FATAL_ERROR "${error_message}")
-  else(OptiX_FIND_REQUIRED)
+  else()
     if(NOT OptiX_FIND_QUIETLY)
       message(STATUS "${error_message}")
     endif(NOT OptiX_FIND_QUIETLY)
-  endif(OptiX_FIND_REQUIRED)
+  endif()
 endfunction()
 
 if(NOT optix_LIBRARY)
-  OptiX_report_error("optix library not found.  Please locate before proceeding.")
+  OptiX_report_error("optix library not found.  Please locate before proceeding." TRUE)
 endif()
 if(NOT OptiX_INCLUDE)
-  OptiX_report_error("OptiX headers (optix.h and friends) not found.  Please locate before proceeding.")
+  OptiX_report_error("OptiX headers (optix.h and friends) not found.  Please locate before proceeding." TRUE)
+endif()
+if(NOT optix_prime_LIBRARY)
+  OptiX_report_error("optix Prime library not found.  Please locate before proceeding." FALSE)
 endif()
 
 # Macro for setting up dummy targets
@@ -123,8 +127,23 @@ function(OptiX_add_imported_library name lib_location dll_lib dependent_libs)
 endfunction()
 
 # Sets up a dummy target
-OptiX_add_imported_library(optix "${optix_LIBRARY}" "${optix_DLL}" "${CUDA_CUDART_LIBRARY};${OPENGL_LIBRARIES}")
+OptiX_add_imported_library(optix "${optix_LIBRARY}" "${optix_DLL}" "${OPENGL_LIBRARIES}")
 OptiX_add_imported_library(optixu   "${optixu_LIBRARY}"   "${optixu_DLL}"   "")
+OptiX_add_imported_library(optix_prime "${optix_prime_LIBRARY}"  "${optix_prime_DLL}"  "")
+
+macro(OptiX_check_same_path libA libB)
+  if(_optix_path_to_${libA})
+    if(NOT _optix_path_to_${libA} STREQUAL _optix_path_to_${libB})
+      # ${libA} and ${libB} are in different paths.  Make sure there isn't a ${libA} next
+      # to the ${libB}.
+      get_filename_component(_optix_name_of_${libA} "${${libA}_LIBRARY}" NAME)
+      if(EXISTS "${_optix_path_to_${libB}}/${_optix_name_of_${libA}}")
+        message(WARNING " ${libA} library found next to ${libB} library that is not being used.  Due to the way we are using rpath, the copy of ${libA} next to ${libB} will be used during loading instead of the one you intended.  Consider putting the libraries in the same directory or moving ${_optix_path_to_${libB}}/${_optix_name_of_${libA} out of the way.")
+      endif()
+    endif()
+    set( _${libA}_rpath "-Wl,-rpath,${_optix_path_to_${libA}}" )
+  endif()
+endmacro()
 
 # Since liboptix.1.dylib is built with an install name of @rpath, we need to
 # compile our samples with the rpath set to where optix exists.
@@ -134,18 +153,12 @@ if(APPLE)
     set( _optix_rpath "-Wl,-rpath,${_optix_path_to_optix}" )
   endif()
   get_filename_component(_optix_path_to_optixu "${optixu_LIBRARY}" PATH)
-  if(_optixu_path_to_optix)
-    if(NOT _optixu_path_to_optix STREQUAL _optix_path_to_optixu)
-      # optixu and optix are in different paths.  Make sure there isn't an optixu next to
-      # the optix library.
-      get_filename_component(_optix_name_of_optixu "${optixu_LIBRARY}" NAME)
-      if(EXISTS "${_optix_path_to_optix}/${_optix_name_of_optixu}")
-        message(WARNING " optixu library found next to optix library that is not being used.  Due to the way we are usin
-g rpath, the copy of optixu next to optix will be used during loading instead of the one you intended.  Consider putting the libraries in the same directory or moving ${optixu_LIBRARY} out of the way.")
-      endif()       
-    endif()         
-    set( _optixu_rpath "-Wl,-rpath,${_optixu_path_to_optix}" )
-  endif()           
-  set( optix_rpath ${_optixu_rpath} ${_optix_rpath} )
-endif()             
+  OptiX_check_same_path(optixu optix)
+  get_filename_component(_optix_path_to_optix_prime "${optix_prime_LIBRARY}" PATH)
+  OptiX_check_same_path(optix_prime optix)
+  OptiX_check_same_path(optix_prime optixu)
+
+  set( optix_rpath ${_optix_rpath} ${_optixu_rpath} ${_optix_prime_rpath} )
+  list(REMOVE_DUPLICATES optix_rpath)
+endif()
 
