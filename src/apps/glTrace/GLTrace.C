@@ -26,6 +26,7 @@ GLubyte *imagebuffer;
 static GLint width, height;
 static GLint Height;
 
+
 // Opengl functions
 
 void dispfunc(void) {
@@ -67,16 +68,11 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-//	fstream file;
-//	file.open(filename.c_str());
-//	GVT::Env::RayTracerAttributes& rta = 
-//		*(GVT::Env::RayTracerAttributes::instance());
-//	file >> rta;
-//	file.close();
 	GVT::Frontend::ConfigFileLoader cl(filename);
-	
 //
 // 	Do Ray Tracing without the explict use of the RayTracer class.
+// 	Because RayTracer.RenderImage() writes a file and I dont want to
+// 	change that class. 
 //
 	GVT::Dataset::GVTDataset *scene(&cl.scene);
 	GVT::Data::RayVector rays;
@@ -108,7 +104,6 @@ int main(int argc, char* argv[]) {
 	Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(),"spoot");
 	rays = scene->camera.MakeCameraRays();
 	GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, image)();
-//	image.Write();
 	
 //
 // Opengl display stuff goes here
