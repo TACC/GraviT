@@ -19,17 +19,32 @@
 #include <Backend/Manta/gvtmanta.h>
 
 #include <GL/freeglut.h>
+#define ESCAPE 27
 
 using namespace std;
 
 GLubyte *imagebuffer;
 static GLint width, height;
 static GLint Height;
+Image *imageptr;
+GVT::Data::RayVector rays;
+GVT::Dataset::GVTDataset *sceneptr;
+int master;
 
+
+//	ray tracing functions
+
+void Render() {
+	rays = sceneptr->camera.MakeCameraRays();
+	GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
+}
 
 // Opengl functions
 
 void dispfunc(void) {
+	unsigned char key = 'r';
+	MPI_Bcast(&key,1,MPI_UNSIGNED_CHAR,master,MPI_COMM_WORLD);
+	Render();
 	glClear(GL_COLOR_BUFFER_BIT);
 	glRasterPos2i(0,0);
         glDrawPixels(width,height,GL_RGB,GL_UNSIGNED_BYTE,imagebuffer);
@@ -46,15 +61,45 @@ void reshape(int w, int h) {
         glLoadIdentity();
 }
 
+void specialkey(int key, int x, int y) {
+	GLfloat C[16];
+	switch(key) {
+	case GLUT_KEY_LEFT:
+		printf("turn left\n");
+		break;
+	case GLUT_KEY_RIGHT:
+		printf("turn right\n");
+		break;
+	default:
+		break;
+	}
+}
 
+void keyboard(unsigned char key, int x, int y) {
+	switch(key) {
+	case ESCAPE:
+		MPI_Bcast(&key,1,MPI_UNSIGNED_CHAR,master,MPI_COMM_WORLD);
+		if(MPI::COMM_WORLD.Get_size() > 1 ) MPI_Finalize();
+		exit(0);
+	case 'q':
+		MPI_Bcast(&key,1,MPI_UNSIGNED_CHAR,master,MPI_COMM_WORLD);
+		if(MPI::COMM_WORLD.Get_size() > 1 ) MPI_Finalize();
+		exit(0);
+	default:
+		// dont do anything
+		break;
+	}
+}
 int main(int argc, char* argv[]) {
 
+	unsigned char action;
 // mpi initialization
 
 	int rank = -1;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Barrier(MPI_COMM_WORLD);
+	master = MPI::COMM_WORLD.Get_size() - 1;  
 
 // input 
 
@@ -75,7 +120,8 @@ int main(int argc, char* argv[]) {
 // 	change that class. 
 //
 	GVT::Dataset::GVTDataset *scene(&cl.scene);
-	GVT::Data::RayVector rays;
+	//GVT::Data::RayVector rays;
+	sceneptr = scene;
 	scene->camera.SetCamera(rays,1.0);
 	GVT::Env::RayTracerAttributes& rta = *(GVT::Env::RayTracerAttributes::instance());
 	rta.dataset = new GVT::Dataset::GVTDataset();
@@ -100,19 +146,20 @@ int main(int argc, char* argv[]) {
     	rta.render_type = GVT::Env::RayTracerAttributes::Manta;
 
     	rta.datafile = "";
-	MPI_Barrier(MPI_COMM_WORLD);
+	//MPI_Barrier(MPI_COMM_WORLD);
 	Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(),"spoot");
-	rays = scene->camera.MakeCameraRays();
-	GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, image)();
+	imageptr = &image;
+	imagebuffer = image.GetBuffer();
+	width = rta.view.width;
+	height = rta.view.height;
+	//rays = scene->camera.MakeCameraRays();
+	//GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
 	
 //
 // Opengl display stuff goes here
 //
 
-	if(rank == 0) { // rank 1 process draws stuff
-		width = rta.view.width;
-		height = rta.view.height;
-		imagebuffer = image.GetBuffer();
+	if(rank == master ) { // max rank process does display
 		glutInit(&argc, argv);
 		glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 		glutInitWindowSize(width,height);
@@ -122,11 +169,31 @@ int main(int argc, char* argv[]) {
 		glShadeModel(GL_FLAT);
 		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 		glutDisplayFunc(dispfunc);
+		glutSpecialFunc(specialkey);
+		glutKeyboardFunc(keyboard);
 		glutReshapeFunc(reshape);
 		glutMainLoop();
-	}		
-
-	if(MPI::COMM_WORLD.Get_size() > 1 ) MPI_Finalize();
+	} else { // loop and wait for further instructions
+		//Render(); // initial render
+		while(1) {
+			MPI_Bcast(&action,1,MPI_CHAR,master,MPI_COMM_WORLD);
+			switch(action) {
+			case ESCAPE:
+				MPI_Finalize();
+				break;
+			case 'q':
+				MPI_Finalize();
+				break;
+			case 'r':
+				Render();
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	printf("my rank is: %d\n",rank);
+//	if(MPI::COMM_WORLD.Get_size() > 1 ) MPI_Finalize();
 	return 0;
 
 }
