@@ -1,6 +1,12 @@
 /*
- * GLTrace GraviT rendering with render window display. 
+ * GLTrace - GraviT rendering with render window display. 
  * Modeled after MPITrace example program. Added glut window calls.
+ *
+ *  vglrun -n 4 -o 0 ./GLtrace ../data/bunny.conf
+ *
+ * left arrow key shifts camera left right arrow shifts camera right.
+ * hit 'q' or esc to exit. 
+ *
  */
 
 #include <mpi.h>
@@ -23,6 +29,8 @@
 
 using namespace std;
 
+// global variables used by glut callbacks.
+//
 GLubyte *imagebuffer;
 static GLint width, height;
 static GLint Height;
@@ -30,21 +38,25 @@ Image *imageptr;
 GVT::Data::RayVector rays;
 GVT::Dataset::GVTDataset *sceneptr;
 int master;
+bool update = false;
 
 
-//	ray tracing functions
+// ************************* ray tracing functions **********************************************
 
 void Render() {
 	rays = sceneptr->camera.MakeCameraRays();
 	GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
 }
 
-// Opengl functions
+// ************************* Glut callback  functions ********************************************
 
 void dispfunc(void) {
 	unsigned char key = 'r';
-	MPI_Bcast(&key,1,MPI_UNSIGNED_CHAR,master,MPI_COMM_WORLD);
-	Render();
+	if(update) {
+		MPI_Bcast(&key,1,MPI_UNSIGNED_CHAR,master,MPI_COMM_WORLD);
+		Render();
+		update = false;
+	}
 	glClear(GL_COLOR_BUFFER_BIT);
 	glRasterPos2i(0,0);
         glDrawPixels(width,height,GL_RGB,GL_UNSIGNED_BYTE,imagebuffer);
@@ -62,17 +74,22 @@ void reshape(int w, int h) {
 }
 
 void specialkey(int key, int x, int y) {
-	GLfloat C[16];
+	GVT::Math::Vector4f eye1;
+	eye1 = sceneptr->camera.getEye();
 	switch(key) {
-	case GLUT_KEY_LEFT:
-		printf("turn left\n");
+	case GLUT_KEY_LEFT: // translate camera left
+		eye1[0] = eye1[0] - 0.05;
+		update = true;
 		break;
-	case GLUT_KEY_RIGHT:
-		printf("turn right\n");
+	case GLUT_KEY_RIGHT: // translate camera right
+		eye1[0] = eye1[0] + 0.05;
+		update = true;
 		break;
 	default:
 		break;
 	}
+	sceneptr->camera.setEye(eye1);
+	glutPostRedisplay();
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -90,6 +107,8 @@ void keyboard(unsigned char key, int x, int y) {
 		break;
 	}
 }
+
+// ******************************* main ****************************************************
 int main(int argc, char* argv[]) {
 
 	unsigned char action;
@@ -120,40 +139,32 @@ int main(int argc, char* argv[]) {
 // 	change that class. 
 //
 	GVT::Dataset::GVTDataset *scene(&cl.scene);
-	//GVT::Data::RayVector rays;
 	sceneptr = scene;
 	scene->camera.SetCamera(rays,1.0);
 	GVT::Env::RayTracerAttributes& rta = *(GVT::Env::RayTracerAttributes::instance());
 	rta.dataset = new GVT::Dataset::GVTDataset();
+
 	BOOST_FOREACH(GVT::Domain::Domain* dom, scene->domainSet) {
         	GVT::Domain::GeometryDomain* d = (GVT::Domain::GeometryDomain*)dom;
         	d->lights = scene->lightSet;
         	rta.dataset->addDomain(new GVT::Domain::MantaDomain((GVT::Domain::GeometryDomain*)dom));
     	}	
 
-
     	rta.view.width = scene->camera.getFilmSizeWidth();
     	rta.view.height = scene->camera.getFilmSizeHeight();
     	rta.view.camera = scene->camera.getEye();
     	rta.view.focus = scene->camera.getLook();
     	rta.view.up = scene->camera.up;
-
-    	rta.sample_rate = 1.0f;
-    	rta.sample_ratio = 1.0f;
-
     	rta.do_lighting = true;
-    	rta.schedule = GVT::Env::RayTracerAttributes::Image;
+   	rta.schedule = GVT::Env::RayTracerAttributes::Image;
     	rta.render_type = GVT::Env::RayTracerAttributes::Manta;
 
-    	rta.datafile = "";
-	//MPI_Barrier(MPI_COMM_WORLD);
 	Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(),"spoot");
 	imageptr = &image;
 	imagebuffer = image.GetBuffer();
 	width = rta.view.width;
 	height = rta.view.height;
-	//rays = scene->camera.MakeCameraRays();
-	//GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
+	Render();
 	
 //
 // Opengl display stuff goes here
@@ -174,7 +185,6 @@ int main(int argc, char* argv[]) {
 		glutReshapeFunc(reshape);
 		glutMainLoop();
 	} else { // loop and wait for further instructions
-		//Render(); // initial render
 		while(1) {
 			MPI_Bcast(&action,1,MPI_CHAR,master,MPI_COMM_WORLD);
 			switch(action) {
@@ -192,8 +202,6 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-	printf("my rank is: %d\n",rank);
-//	if(MPI::COMM_WORLD.Get_size() > 1 ) MPI_Finalize();
 	return 0;
 
 }
