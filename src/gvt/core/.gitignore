@@ -1,0 +1,4 @@
+# ignore object files
+*.o
+driver
+
