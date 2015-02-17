@@ -119,7 +119,7 @@ DBNodeH DBNodeH::deRef()
     }
     else
     {
-        DEBUG_CERR("fail");
+        GVT_DEBUG(DBG_SEVERE,"DBNodeH deRef failed for uuid " << uuid_toString(_uuid));
         return DBNodeH();
     }
 }
@@ -225,13 +225,13 @@ void DBNodeH::propagateUpdate()
 
 void DBNodeH::connectValueChanged(const void * receiver, const char* method)
 {
-    DEBUG_CERR("gvt::core::DBNodeH::connectValueChanged not implemented");
+    GVT_DEBUG(DBG_ALWAYS,"gvt::core::DBNodeH::connectValueChanged not implemented");
     //receiver->connect(&getNode(),SIGNAL(valueChanged()), method);
 }
 
 void DBNodeH::connectChildChanged(const void * receiver,  const char* method)
 {
-    DEBUG_CERR("gvt::core::DBNodeH::connectChildChanged not implemented");
+    GVT_DEBUG(DBG_ALWAYS,"gvt::core::DBNodeH::connectChildChanged not implemented");
     //receiver->connect(&getNode(),SIGNAL(connectChildChanged()), method);
 }
 

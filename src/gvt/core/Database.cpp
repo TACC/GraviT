@@ -57,41 +57,37 @@ void Database::removeItem(Uuid uuid)
     if(__nodes[uuid] != NULL) {
         DatabaseNode* cnode = getItem(uuid);
 
-        DEBUG_CERR("Removing item:");
-        DEBUG(print(uuid, 0, std::cerr));
+        GVT_DEBUG(DBG_LOW,"Removing item:");
+        GVT_DEBUG_CODE(DBG_LOW,print(uuid, 0, std::cerr));
 
         ChildList* children = &__tree[uuid];
         ChildList::iterator it;
 
-        DEBUG_CERR("removing children:");
-        DEBUG(
+        GVT_DEBUG(DBG_LOW,"removing children:");
+        GVT_DEBUG_CODE(DBG_LOW,
             for(it = children->begin(); it != children->end(); it++)
-            {
-                print((*it)->UUID(),0,std::cerr);
-            }
-            );
-        DEBUG_CERR("");
+                print((*it)->UUID(),0,std::cerr); );
+        GVT_DEBUG(DBG_LOW,"");
 
         int numChildren = children->size();
         for(int i=0;i<numChildren;i++) {
            removeItem((children->at(0))->UUID());
         }
         children = &__tree[cnode->parentUUID()];
-        DEBUG(
+        GVT_DEBUG_CODE(DBG_LOW,
         for(it = children->begin(); it != children->end(); it++)
-            std::cerr << "tree item: " << uuid_toString((*it)->UUID()) << std::endl;
-        );
+            std::cerr << "tree item: " << uuid_toString((*it)->UUID()) << std::endl; );
         for(it = children->begin(); it != children->end(); ++it) {
             if ((*it)->UUID() == uuid) break;
         }
         Uuid puid = cnode->parentUUID();
-        DEBUG_CERR( String("found tree item to remove from parent: ") + (*it)->name() + String(" ") + uuid_toString((*it)->UUID()) );
+        GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " " << uuid_toString((*it)->UUID()) );
         if(it!= children->end()) children->erase(it);
         __nodes.erase(uuid);
         delete cnode;
     }
     else
-    { DEBUG_CERR(String("ERROR: Could not find item to remove from database : ") + uuid_toString(uuid)); }
+    { GVT_DEBUG(DBG_MODERATE,"ERROR: Could not find item to remove from database : " << uuid_toString(uuid)); }
 }
 
 
@@ -109,7 +105,7 @@ void Database::print(const Uuid& parent, const int depth, std::ostream& os)
 
     DatabaseNode* pnode = this->getItem(parent);
     if(!pnode) {
-        DEBUG_CERR(String("Database::print - node not found: ") + uuid_toString(parent));
+        GVT_DEBUG(DBG_MODERATE, "Database::print - node not found: " << uuid_toString(parent));
         return;
     }
     std::string offset = "";
@@ -127,7 +123,7 @@ void Database::printTree(const Uuid& parent, const int depth, std::ostream& os)
 {
     DatabaseNode* pnode = this->getItem(parent);
     if(!pnode) {
-        DEBUG_CERR(String("Database::printTree - node not found: ") + uuid_toString(parent));
+        GVT_DEBUG(DBG_MODERATE, "Database::printTree - node not found: " << uuid_toString(parent));
         return;
     }
     std::string offset = "";

@@ -35,7 +35,7 @@ DBNodeH Context::createNode(String name, Variant val, Uuid parent)
 {
     DatabaseNode* np = new DatabaseNode(name, val, make_uuid(), parent);
     __database->setItem(np);
-    DEBUG_CERR(String("createNode: ") + name + String(" ") + uuid_toString(np->UUID()));
+    GVT_DEBUG(DBG_LOW,"createNode: " << name << " " << uuid_toString(np->UUID()));
     return DBNodeH(np->UUID());
 }
 

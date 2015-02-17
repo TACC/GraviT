@@ -4,8 +4,8 @@ GVT_SRC = /Users/pnav/dev/gravit/src
 BOOST_INC = /opt/local/include
 BOOST_LIB = /opt/local/lib
 
-DEFINES = -DGVT_DEBUG
-CFLAGS = -g -std=c++11 -Wno-deprecated-register
+DEFINES = -DGVT_USE_DEBUG
+CFLAGS = -g -std=c++11 
 LFLAGS = 
 
 SOURCES = Context.cpp Database.cpp DatabaseNode.cpp
