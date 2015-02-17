@@ -8,6 +8,14 @@ Database::Database()
 {
 }
 
+Database::~Database()
+{
+    for (Map<Uuid,DatabaseNode*>::iterator it = __nodes.begin(); it != __nodes.end(); ++it)
+    {
+        delete it->second;
+    }
+}
+
 DatabaseNode* Database::getItem(Uuid uuid) 
 {
     return __nodes[uuid];
@@ -17,6 +25,11 @@ void Database::setItem(DatabaseNode* node)
 {
     __nodes[node->UUID()] = node;
     addChild(node->parentUUID(),node);
+}
+
+void Database::setRoot(DatabaseNode* root)
+{
+    __nodes[root->UUID()] = root;
 }
 
 bool Database::hasNode(Uuid uuid) 
@@ -75,7 +88,6 @@ void Database::removeItem(Uuid uuid)
         DEBUG_CERR( String("found tree item to remove from parent: ") + (*it)->name() + String(" ") + uuid_toString((*it)->UUID()) );
         if(it!= children->end()) children->erase(it);
         __nodes.erase(uuid);
-//        nodes[uuid] = NULL;
         delete cnode;
     }
     else
@@ -111,11 +123,11 @@ void Database::print(const Uuid& parent, const int depth, std::ostream& os)
     }
 }
 
-void Database::printtree(const Uuid& parent, const int depth, std::ostream& os) 
+void Database::printTree(const Uuid& parent, const int depth, std::ostream& os) 
 {
     DatabaseNode* pnode = this->getItem(parent);
     if(!pnode) {
-        DEBUG_CERR(String("Database::printtree - node not found: ") + uuid_toString(parent));
+        DEBUG_CERR(String("Database::printTree - node not found: ") + uuid_toString(parent));
         return;
     }
     std::string offset = "";
@@ -125,7 +137,7 @@ void Database::printtree(const Uuid& parent, const int depth, std::ostream& os)
     ChildList children = __tree[parent];
     for(ChildList::iterator it = children.begin(); it != children.end(); ++it) {
         DatabaseNode* node = (*it);
-        printtree(node->UUID(),depth+1,os);
+        printTree(node->UUID(),depth+1,os);
     }
 }
 

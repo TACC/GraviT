@@ -15,12 +15,14 @@ namespace gvt {
         {
         public:
             Database();
+            ~Database();
 
             bool hasNode(Uuid);
             bool hasNode(DatabaseNode*);
 
             DatabaseNode* getItem(Uuid);
             void setItem(DatabaseNode*);
+            void setRoot(DatabaseNode*);
             void removeItem(Uuid);
 
             void addChild(Uuid, DatabaseNode*);
@@ -33,7 +35,7 @@ namespace gvt {
             void setValue(Uuid, Variant);
 
             void print(const Uuid& parent, const int depth =0, std::ostream& os=std::cout);
-            void printtree(const Uuid& parent, const int depth=0, std::ostream& os=std::cout);
+            void printTree(const Uuid& parent, const int depth=0, std::ostream& os=std::cout);
 
         private:
             Map<Uuid,DatabaseNode*>     __nodes;

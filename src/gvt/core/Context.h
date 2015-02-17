@@ -17,10 +17,12 @@ namespace gvt {
 			Database* database() { return __database; }
 
 			DBNodeH getRootNode() { return __rootNode; }
-			DBNodeH getNode(Uuid node);
+			DBNodeH getNode(Uuid);
 
-			DBNodeH createNodeFromType(String type);
-			DBNodeH createNode(String name, Variant val = Variant(String("")));
+			DBNodeH createNodeFromType(String);
+			DBNodeH createNodeFromType(String, Uuid);
+			DBNodeH createNodeFromType(String type, String name, Uuid parent = nil_uuid());
+			DBNodeH createNode(String name, Variant val = Variant(String("")), Uuid parent = nil_uuid());
 
 		private:
 			static Context* 	__singleton;

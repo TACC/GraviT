@@ -6,76 +6,13 @@ using namespace gvt::core;
 
 DatabaseNode* DatabaseNode::errNode = new DatabaseNode(String("error"), String("error"), Uuid(nil_uuid()), Uuid(nil_uuid()));
 
-DatabaseNode::DatabaseNode()
-{
-}
-
 DatabaseNode::DatabaseNode(String name, Variant value, Uuid uuid, Uuid parentUUID)
 : p_uuid(uuid), p_name(name), p_value(value), p_parent(parentUUID)
 {
-
 }
-
-//DatabaseNode& DatabaseNode::deRef()
-//{
-//    Context* ctx = Context::singleton();
-//    Database& db = *(ctx->database());
-////    DEBUG(value().toUuid().toString().toStdString());
-//    DatabaseNode* ref = db.getItem(value().toUuid());
-//    if (ref && (value().toUuid() != Uuid(0)))
-//    {
-////        DEBUG("success");
-//        return *ref;
-//    }
-//    else
-//    {
-////        DEBUG("fail");
-//        return *errNode;
-//    }
-//}
-
-//DatabaseNode& DatabaseNode::operator[](const String& key)
-//{
-
-//    Context* ctx = Context::singleton();
-//    Database& db = *(ctx->database());
-//    DatabaseNode* child = db.getChildByName(UUID(), key);
-//    if (!child)
-////    else
-//    {
-//         child = &(ctx->createNode(key).getNode());
-//         db.__tree[UUID()].push_back(child);
-////         return *child;
-////        std::cerr << "Key not found: " << key.toStdString() << std::endl;
-////        return *errNode;
-//    }
-//    return *child;
-//}
-
-//DatabaseNode& DatabaseNode::operator+=(DatabaseNode& child)
-//{
-//    Context* ctx = Context::singleton();
-//    Database& db = *(ctx->database());
-//    child.setParentUUID(UUID());
-////    db.addChild(UUID(), &child);
-//            db.__tree[UUID()].push_back(&child);
-//    child.propagateUpdate();
-//    return *this;
-//}
-
-//DatabaseNode& DatabaseNode::operator=(const Variant val)
-//{
-////    DEBUG(p_name.toStdString());
-//    setValue(val);
-//    return *this;
-//}
 
 DatabaseNode::operator bool() const
 {
-//    if (this == errNode)
-//        DEBUG("is errNode");
-//    DEBUG("bool:");
-//    DEBUG(p_uuid.toString().toStdString());
     return (p_uuid != Uuid(nil_uuid())) && (p_parent != Uuid(nil_uuid()));
 }
 
@@ -193,13 +130,8 @@ DBNodeH DBNodeH::operator[](const String& key)
     Database& db = *(ctx->database());
     DatabaseNode* child = db.getChildByName(_uuid, key);
     if (!child)
-//    else
     {
        child = &(ctx->createNode(key).getNode());
-       db.getChildren(UUID()).push_back(child);
-//         return *child;
-//        std::cerr << "Key not found: " << key.toStdString() << std::endl;
-//        return *errNode;
    }
    return DBNodeH(child->UUID());
 }
@@ -209,8 +141,7 @@ DBNodeH& DBNodeH::operator+=(DBNodeH child)
     Context* ctx = Context::singleton();
     Database& db = *(ctx->database());
     child.setParentUUID(UUID());
-//    db.addChild(UUID(), &child);
-    db.getChildren(UUID()).push_back(&child.getNode());
+    db.addChild(UUID(), &(child.getNode()));
     child.propagateUpdate();
     return *this;
 }

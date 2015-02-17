@@ -7,12 +7,15 @@ Context* Context::__singleton = NULL;
 
 Context::Context()
 {
-
+    __database = new Database();
+    DatabaseNode* root = new DatabaseNode(String("GraviT"),String("GVT ROOT"),make_uuid(),nil_uuid());
+    __database->setRoot(root);
+    __rootNode = DBNodeH(root->UUID());
 }
 
 Context::~Context()
 {
-
+    delete __database;
 }
 
 Context* Context::singleton()
@@ -28,25 +31,27 @@ DBNodeH Context::getNode(Uuid node)
 	else return DBNodeH();
 }
 
-DBNodeH Context::createNode(String name, Variant val)
+DBNodeH Context::createNode(String name, Variant val, Uuid parent)
 {
-    Database& db = *database();
-    DatabaseNode* np = new DatabaseNode();
-    DatabaseNode& n = *np;
-    np->setUUID(make_uuid());
-    np->setName(name);
-    np->setValue(val);
+    DatabaseNode* np = new DatabaseNode(name, val, make_uuid(), parent);
+    __database->setItem(np);
     DEBUG_CERR(String("createNode: ") + name + String(" ") + uuid_toString(np->UUID()));
-    db.addChild(np->UUID(), np);
-
     return DBNodeH(np->UUID());
+}
+
+DBNodeH Context::createNodeFromType(String type, Uuid parent)
+{
+    return createNodeFromType(type, type, parent);
 }
 
 DBNodeH Context::createNodeFromType(String type)
 {
-    Database& db = *database();
-    DBNodeH n = createNode(type);
-    n.setName(type);
+    return createNodeFromType(type, type);
+}
+
+DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)
+{
+    DBNodeH n = createNode(type, name, parent);
 
     // TODO - make these for GraviT
     if (type == String("Session"))

@@ -20,13 +20,17 @@ namespace gvt {
             Variant     p_value;
 
         public:
-            DatabaseNode();
-            DatabaseNode(const String name, const Variant value, const Uuid uuid, const Uuid parentUUID);
+            DatabaseNode(String name, Variant value, Uuid uuid, Uuid parentUUID);
 
             Uuid       UUID();
             String     name();
             Uuid       parentUUID();
             Variant    value();
+
+            void setUUID(Uuid uuid);
+            void setName(String name);
+            void setParentUUID(Uuid parentUUID);
+            void setValue(Variant value);
 
             Vector<DatabaseNode*> getChildren();
 
@@ -45,10 +49,6 @@ namespace gvt {
 
             public slots:
 #endif
-            void setUUID(Uuid uuid);
-            void setName(String name);
-            void setParentUUID(Uuid parentUUID);
-            void setValue(Variant value);
         };
 
         class DBNodeH
