@@ -107,6 +107,7 @@ namespace gvt {
                         localQueue.clear();
                         boost::unique_lock<boost::mutex> lock(tracer->raymutex);
                         std::size_t range = std::min(split, rays.size());
+			std::cout << "processRayVector: current_ray " << current_ray << " last ray " << last << " split " << split << " rays.size()" << rays.size() <<std::endl;;
                         localQueue.assign(rays.begin(), rays.begin() + range);
                         rays.erase(rays.begin(), rays.begin() + range);
                         lock.unlock();
@@ -178,6 +179,7 @@ namespace gvt {
                     boost::atomic<int> current_ray(this->rays_start);
                     GVT_DEBUG(DBG_ALWAYS,"Generate rays filtering : " << this->rays.size());
                     size_t workload = this->rays.size(); 
+                    //size_t workload = this->rays_end - this->rays_start;
                     //std::max((size_t)1,(size_t)(this->rays.size() / (GVT::Concurrency::asyncExec::instance()->numThreads * 2)));
     //                //for (int rc = 0; rc < GVT::Concurrency::asyncExec::instance()->numThreads; ++rc) {
     //                //    GVT::Concurrency::asyncExec::instance()->run_task(processRayVector(this, this->rays,current_ray,this->rays_end,workload));

@@ -13,7 +13,7 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    cmake_policy(SET CMP0042 NEW)
+    #cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
@@ -63,6 +63,8 @@ endif(APPLE)
 
 # compiler options
 set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
+# the compiler is ususally set through environment vars outside the cmake file
+# so this is redundant. CMake detects the compiler. 
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
 set(GVT_VECTOR_TARGET "AVX" CACHE STRING "Target Vector ISA on host (SSE,AVX,AVX2)")
 mark_as_advanced(GVT_USE_ICC)
@@ -80,6 +82,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
