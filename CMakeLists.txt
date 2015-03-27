@@ -36,6 +36,7 @@ if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
 	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
+	option(GVT_GLRENDER_APP			"Build the interactive X application" ON )
 endif(GVT_RENDER) 
 
 
@@ -302,6 +303,40 @@ if (GVT_RENDER)
 		)
 endif(GVT_RENDER)
 
+if (GVT_GLRENDER_APP)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS}  ${MPI_LIBRARIES})
+
+	find_library(GLUTLIB glut)
+	if(GLUTLIB)
+        	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${GLUTLIB})
+	endif(GLUTLIB)
+	find_library(GLULIB GLU)
+	if(GLULIB)
+        	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${GLULIB})
+	endif(GLULIB)
+
+	set(GVTGLAPP_RENDER_HDRS ${GVTGLAPP_RENDER_HDRS}
+		src/apps/render/ConfigFileLoader.h
+		)
+
+	set(GVTGLAPP_RENDER_SRCS ${GVTGLAPP_RENDER_SRCS}
+		src/apps/render/ConfigFileLoader.cpp
+		src/apps/render/GLTrace.cpp
+		)
+
+	add_executable(glTracer
+		${GVTGLAPP_RENDER_HDRS}
+		${GVTGLAPP_RENDER_SRCS}
+		)
+
+	target_link_libraries(glTracer ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
+
+	install(TARGETS glTracer
+		RUNTIME DESTINATION bin
+		)
+endif(GVT_GLRENDER_APP)
 
 if (GVT_RENDER_APP)
     find_package(MPI REQUIRED)
