@@ -279,6 +279,9 @@ if (GVT_RENDER)
     		-gencode arch=compute_35,code=sm_35
     		)
     	cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+    	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+    		${GVT_RENDER_CUDA_OBJS}
+    		)
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	add_library(gvtRender 
@@ -287,10 +290,6 @@ if (GVT_RENDER)
 		${GVT_RENDER_HDRS}
 		${GVT_RENDER_SRCS}
 		)
-
-	if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
-		add_library(gvtRender ${GVT_RENDER_CUDA_OBJS})
-	endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
 
