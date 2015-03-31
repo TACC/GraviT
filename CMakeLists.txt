@@ -34,9 +34,9 @@ option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
-	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
+	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" ON)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
-	option(GVT_GLRENDER_APP			"Build the interactive X application" ON )
+	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF )
 endif(GVT_RENDER) 
 
 
