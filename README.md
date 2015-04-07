@@ -12,6 +12,7 @@ GraviT is divided into “core” infrastructure and domain-specific library.  T
 <li>GVT-Volume, for volume rendering</li>
 <li>GVT-Advect, for particle advection</li>
 <li>GVT-Photo, for modeling photon interactions</li>
+</ul>
 
 <h2>Engines</h2>
 
