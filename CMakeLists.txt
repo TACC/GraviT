@@ -34,7 +34,7 @@ option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
-	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" ON)
+	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF )
 endif(GVT_RENDER) 
@@ -83,7 +83,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+  #set(CMAKE_CXX_FLAGS "-std=c++11 -Wall  -Wno-reorder -Wno-unused-variable")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -252,6 +252,9 @@ if (GVT_CORE)
 		)
 
 	target_link_libraries(gvtCore ${GVT_CORE_LIBS})
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+		set_target_properties(gvtCore PROPERTIES COMPILE_FLAGS '-std=c++11')
+	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtCore
 		LIBRARY DESTINATION lib
@@ -272,7 +275,7 @@ if (GVT_RENDER)
 	
     if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
     	find_package(CUDA REQUIRED)
-    	find_package(Optix REQUIRED)
+    	find_package(OptiX REQUIRED)
 
     	include_directories(${CUDA_INCLUDE_DIRS})
     	include_directories(${Optix_INCLUDE})
@@ -296,6 +299,9 @@ if (GVT_RENDER)
 		)
 
 	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+		set_target_properties(gvtRender PROPERTIES COMPILE_FLAGS '-std=c++11')
+	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtRender
 		LIBRARY DESTINATION lib
@@ -332,6 +338,9 @@ if (GVT_GLRENDER_APP)
 		)
 
 	target_link_libraries(glTracer ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+		set_target_properties(glTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
+	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS glTracer
 		RUNTIME DESTINATION bin
@@ -364,6 +373,9 @@ if (GVT_RENDER_APP)
 		)
 
 	target_link_libraries(gvtTracer ${GVTAPP_RENDER_LIBS} gvtCore gvtRender)
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+		set_target_properties(gvtTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
+	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtTracer
 		RUNTIME DESTINATION bin

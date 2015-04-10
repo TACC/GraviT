@@ -25,11 +25,11 @@ namespace gvt {
 
                     GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
-					std::vector<OptixRayFormat> convertRaysToOptix(const RayVector& rays);
+					std::vector<OptixRay> convertRaysToOptix(const gvt::render::actor::RayVector& rays);
     
 					template<>
-					struct transform_impl<RayVector, std::vector<OptixRayFormat> > {
-					    inline static std::vector<OptixRayFormat> transform(const RayVector& rays) {
+					struct transform_impl<gvt::render::actor::RayVector, std::vector<OptixRay> > {
+					    inline static std::vector<OptixRay> transform(const gvt::render::actor::RayVector& rays) {
 					        return convertRaysToOptix(rays);
 					    }
 					};
