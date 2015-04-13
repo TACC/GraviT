@@ -5,6 +5,7 @@
 
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/Domains.h>
+#include <gvt/core/Context.h>
 #include <gvt/core/Math.h>
 #include <optix_prime/optix_primepp.h>
 
@@ -15,7 +16,7 @@ namespace gvt {
         namespace data {
           namespace domain {
 
-            class OptixDomain : public GeometryDomain 
+            class OptixDomain : public gvt::render::data::domain::GeometryDomain 
             {
              public:
               OptixDomain();
