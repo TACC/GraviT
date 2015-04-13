@@ -13,7 +13,7 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    cmake_policy(SET CMP0042 NEW)
+    #cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
@@ -36,6 +36,7 @@ if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
 	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
+	option(GVT_GLRENDER_APP			"Build the interactive X application" ON )
 endif(GVT_RENDER) 
 
 
@@ -63,6 +64,8 @@ endif(APPLE)
 
 # compiler options
 set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
+# the compiler is ususally set through environment vars outside the cmake file
+# so this is redundant. CMake detects the compiler. 
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
 set(GVT_VECTOR_TARGET "AVX" CACHE STRING "Target Vector ISA on host (SSE,AVX,AVX2)")
 mark_as_advanced(GVT_USE_ICC)
@@ -80,6 +83,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -299,6 +303,40 @@ if (GVT_RENDER)
 		)
 endif(GVT_RENDER)
 
+if (GVT_GLRENDER_APP)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS}  ${MPI_LIBRARIES})
+
+	find_library(GLUTLIB glut)
+	if(GLUTLIB)
+        	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${GLUTLIB})
+	endif(GLUTLIB)
+	find_library(GLULIB GLU)
+	if(GLULIB)
+        	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${GLULIB})
+	endif(GLULIB)
+
+	set(GVTGLAPP_RENDER_HDRS ${GVTGLAPP_RENDER_HDRS}
+		src/apps/render/ConfigFileLoader.h
+		)
+
+	set(GVTGLAPP_RENDER_SRCS ${GVTGLAPP_RENDER_SRCS}
+		src/apps/render/ConfigFileLoader.cpp
+		src/apps/render/GLTrace.cpp
+		)
+
+	add_executable(glTracer
+		${GVTGLAPP_RENDER_HDRS}
+		${GVTGLAPP_RENDER_SRCS}
+		)
+
+	target_link_libraries(glTracer ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
+
+	install(TARGETS glTracer
+		RUNTIME DESTINATION bin
+		)
+endif(GVT_GLRENDER_APP)
 
 if (GVT_RENDER_APP)
     find_package(MPI REQUIRED)
