@@ -14,7 +14,6 @@
 #include <iostream>
 
 #ifndef GVT_ALIGNED
-#ifndef __CUDACC__
 #if defined (__INTEL_COMPILER) 
 #define GVT_ALIGNED \
  __declspec(align((16)))
@@ -23,9 +22,6 @@
  __attribute__ ((aligned (16)))
 #else
 #define MANTA_ALIGN(size)
-#endif
-#else
-#define GVT_ALIGNED
 #endif
 #endif
 
