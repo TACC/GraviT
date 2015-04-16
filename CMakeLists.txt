@@ -317,12 +317,13 @@ endif(GVT_RENDER)
 
 if (GVT_GLRENDER_APP)
 	find_package(MPI REQUIRED)
+	find_package(OpenGL REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH})
 	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS}  ${MPI_LIBRARIES})
 
 	find_library(GLUTLIB glut)
 	if(GLUTLIB)
-        	set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${GLUTLIB})
+          set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${OpenGL_LIBRARIES} ${GLUTLIB})
 	endif(GLUTLIB)
 	find_library(GLULIB GLU)
 	if(GLULIB)
@@ -343,7 +344,7 @@ if (GVT_GLRENDER_APP)
 		${GVTGLAPP_RENDER_SRCS}
 		)
 
-	target_link_libraries(glTracer ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
+              target_link_libraries(glTracer ${OPENGL_gl_LIBRARY} ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 		set_target_properties(glTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
 	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
