@@ -7,11 +7,11 @@
 
 #ifndef GVT_RENDER_ACTOR_RAY_H
 #define	GVT_RENDER_ACTOR_RAY_H
-
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 
+#include <limits>
 #include <boost/aligned_storage.hpp>
 #include <boost/container/set.hpp>
 #include <boost/container/vector.hpp>
@@ -63,7 +63,8 @@
                     gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), 
                     float contribution = 1.f, 
                     RayType type = PRIMARY, 
-                    int depth = 10);
+                    int depth = 10
+		    );
                 Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
                 Ray(const Ray& orig);
                 Ray(const unsigned char* buf);

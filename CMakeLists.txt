@@ -34,7 +34,7 @@ option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
-	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" ON)
+	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF )
 endif(GVT_RENDER) 
@@ -220,15 +220,19 @@ endif(GVT_RENDER_ADAPTER_MANTA)
 
 if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
 		src/gvt/render/adapter/optix/data/Formats.h
 		src/gvt/render/adapter/optix/data/Transforms.h
 		src/gvt/render/adapter/optix/Wrapper.h
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.cu
 		src/gvt/render/adapter/optix/data/Transforms.cu
+		)
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
+		src/gvt/render/adapter/optix/data/domain/OptixDomain.C
+		)
+	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
 		)
 endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
@@ -279,6 +283,7 @@ if (GVT_RENDER)
 
     	include_directories(${CUDA_INCLUDE_DIRS})
     	include_directories(${OptiX_INCLUDE})
+	set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
     	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
     	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
     		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
@@ -291,7 +296,8 @@ if (GVT_RENDER)
     		)
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
-	add_library(gvtRender 
+    	include_directories(${OptiX_INCLUDE})
+	add_library(gvtRender STATIC 
 		${GVT_CORE_HDRS} 
 		${GVT_CORE_SRCS}
 		${GVT_RENDER_HDRS}
@@ -356,16 +362,29 @@ if (GVT_RENDER_APP)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${Boost_LIBRARIES})
 
-	set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-		src/apps/render/ConfigFileLoader.h
-		src/apps/render/MantaRayTracer.h
-		)
+	if(GVT_RENDER_ADAPTER_OPTIX_PRIME) 
+		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
+			src/apps/render/ConfigFileLoader.h
+			src/apps/render/OptixRayTracer.h
+			)
 
-	set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-		src/apps/render/ConfigFileLoader.cpp
-		src/apps/render/GVTTrace.cpp
-		src/apps/render/MantaRayTracer.cpp
-		)
+		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
+			src/apps/render/ConfigFileLoader.cpp
+			src/apps/render/GVTTrace.cpp
+			src/apps/render/OptixRayTracer.cpp
+			)
+	elseif(GVT_RENDER_ADAPTER_MANTA)
+		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
+			src/apps/render/ConfigFileLoader.h
+			src/apps/render/MantaRayTracer.h
+			)
+
+		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
+			src/apps/render/ConfigFileLoader.cpp
+			src/apps/render/GVTTrace.cpp
+			src/apps/render/MantaRayTracer.cpp
+			)
+	endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	add_executable(gvtTracer
 		${GVTAPP_RENDER_HDRS}
