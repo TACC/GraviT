@@ -229,7 +229,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/Transforms.cu
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.C
+		src/gvt/render/adapter/optix/data/domain/OptixDomain.cu
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
