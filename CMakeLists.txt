@@ -89,7 +89,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
-
 # modules
 include(CMake/gravit.cmake)
 include(CMake/mpi.cmake)

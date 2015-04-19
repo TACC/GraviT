@@ -11,7 +11,7 @@ namespace gvt {
 		{
 		public:
 			Context();
-			~Context(); 
+			virtual ~Context(); 
 
 			static Context* singleton();
 			Database* database() { return __database; }
@@ -19,12 +19,12 @@ namespace gvt {
 			DBNodeH getRootNode() { return __rootNode; }
 			DBNodeH getNode(Uuid);
 
-			DBNodeH createNodeFromType(String);
-			DBNodeH createNodeFromType(String, Uuid);
-			DBNodeH createNodeFromType(String type, String name, Uuid parent = nil_uuid());
 			DBNodeH createNode(String name, Variant val = Variant(String("")), Uuid parent = nil_uuid());
+			DBNodeH createNodeFromType(String);
+		 	DBNodeH createNodeFromType(String, Uuid);
+			virtual DBNodeH createNodeFromType(String type, String name, Uuid parent = nil_uuid());
 
-		private:
+		protected:
 			static Context* 	__singleton;
 			Database*			__database;
 			DBNodeH 			__rootNode;

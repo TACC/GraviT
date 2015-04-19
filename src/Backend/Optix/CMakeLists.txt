@@ -1,6 +1,6 @@
 PROJECT(GVTOPTIX)
 cmake_minimum_required(VERSION 2.6)
-SET(GVT_BE_OPTIX OFF CACHE BOOL "Build Optix Backend")
+SET(GVT_BE_OPTIX ON CACHE BOOL "Build Optix Backend")
 
 IF (GVT_BE_OPTIX)
     FIND_PACKAGE(CUDA REQUIRED)
