@@ -4,10 +4,13 @@
 
 
 #include "ConfigFileLoader.h"
-#include "MantaRayTracer.h"
+//#include "MantaRayTracer.h"
+#include "OptixRayTracer.h"
 
 #include <gvt/core/Math.h>
-#include <gvt/render/adapter/manta/Wrapper.h>
+//#include <gvt/render/adapter/manta/Wrapper.h>
+//#include <gvt/render/data/Primitives.h>
+#include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/data/Primitives.h>
 
 #include <mpi.h>
@@ -72,7 +75,8 @@ int main(int argc, char** argv) {
 //
 //    std::cout << rta << std::endl;
 //
-    MantaRayTracer rt(&cl.scene);
+    //MantaRayTracer rt(&cl.scene);
+    OptixRayTracer rt(&cl.scene);
     MPI_Barrier(MPI_COMM_WORLD);
     rt.RenderImage(imagename);
 

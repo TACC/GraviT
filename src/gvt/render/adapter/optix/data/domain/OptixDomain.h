@@ -3,8 +3,18 @@
 
 #include <string>
 
+
+#include <gvt/core/Debug.h>
+#include <gvt/core/Math.h>
+#include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/actor/Ray.h>
+#include <gvt/render/adapter/optix/data/Transforms.h>
+#include <gvt/render/Attributes.h>
 #include <gvt/render/data/Domains.h>
+#include <gvt/render/data/scene/ColorAccumulator.h>
+#include <gvt/render/data/scene/Light.h>
+
+
 //#include <gvt/core/Context.h>
 #include <gvt/core/Math.h>
 #include <optix_prime/optix_primepp.h>

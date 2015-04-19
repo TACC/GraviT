@@ -97,6 +97,8 @@
 //            float r; ///<! sample rate
                 float w; ///<! weight of image contribution
                 mutable float t;
+                mutable float t_min;
+                mutable float t_max;
                 GVT_COLOR_ACCUM color;
                 isecDomList domains;
                 int type;

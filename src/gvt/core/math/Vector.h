@@ -1116,9 +1116,9 @@
             {
                 return Vector3<T>(v[0], v[1], v[2]);
             }
+        #include "VectorOperators.inl"
         }
     }
 }
-#include "VectorOperators.inl"
 
 #endif // GVT_CORE_MATH_VECTOR_H

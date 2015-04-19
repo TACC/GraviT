@@ -23,9 +23,10 @@
 #include <gvt/render/Attributes.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/Camera.h>
-#include <Interface/LightSet.h>
+//#include <Interface/LightSet.h>
 #include <gvt/render/algorithm/Tracers.h>
-#include <gvt/render/adapter/manta/Wrapper.h>
+//#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/optix/Wrapper.h>
 
 #include <GL/freeglut.h>
 #define ESCAPE 27
