@@ -3,8 +3,8 @@
 //
 
 
-#ifndef GVTAPPS_RENDER_MANTA_RAY_TRACER_H
-#define GVTAPPS_RENDER_MANTA_RAY_TRACER_H
+#ifndef GVTAPPS_RENDER_OPTIX_RAY_TRACER_H
+#define GVTAPPS_RENDER_OPTIX_RAY_TRACER_H
 
 #include <gvt/render/Attributes.h>
 #include <gvt/render/data/Domains.h>
@@ -63,5 +63,5 @@ namespace gvtapps {
     }
 }
 
-#endif // GVTAPPS_RENDER_MANTA_RAY_TRACER_H
+#endif // GVTAPPS_RENDER_OPTIX_RAY_TRACER_H
 

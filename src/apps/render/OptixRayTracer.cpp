@@ -45,7 +45,6 @@ OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
         GeometryDomain* d = (GeometryDomain*)dom;
         d->setLights(scene->lightSet);
         rta.dataset->addDomain(new OptixDomain(d));
-        //rta.dataset->addDomain(new OptixDomain());
     }
     
     

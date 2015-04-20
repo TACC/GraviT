@@ -37,6 +37,7 @@ namespace gvt {
                         if(mesh != NULL) {
                             this->mesh = mesh;
                             this->boundingBox = *(mesh->getBoundingBox());
+                            isLoaded =true;
                         }
                     }
                     
@@ -49,6 +50,7 @@ namespace gvt {
                         lights = other.lights;
                         boundingBox = other.boundingBox;
                         filename = other.filename;
+                        isLoaded = true;
                     }
 
                     //virtual bool intersect(GVT::Data::ray&, vector<int>&);

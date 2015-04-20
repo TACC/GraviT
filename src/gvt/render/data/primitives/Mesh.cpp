@@ -136,10 +136,12 @@ Color Mesh::shadeFace(int face_id, Ray& r, Vector4f normal, Light* lsource)
 {
   // XXX TODO: shadeFace returns constant color, fix?
   Color c(0.5f, 0.5f, 0.5f, 0.0f);
-  const Material* m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
-  // if (m) {
-  // c = m->shade(r, normal, lsource);
-  // }
+  
+
+  // const Material* m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
+  if (mat) {
+   c = mat->shade(r, normal, lsource);
+  }
   return c;
 }
 

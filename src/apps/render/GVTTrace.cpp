@@ -4,12 +4,11 @@
 
 
 #include "ConfigFileLoader.h"
-//#include "MantaRayTracer.h"
+#include "MantaRayTracer.h"
 #include "OptixRayTracer.h"
 
 #include <gvt/core/Math.h>
-//#include <gvt/render/adapter/manta/Wrapper.h>
-//#include <gvt/render/data/Primitives.h>
+#include <gvt/render/adapter/manta/Wrapper.h>
 #include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/data/Primitives.h>
 
