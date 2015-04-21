@@ -5,6 +5,7 @@
 #include "ConfigFileLoader.h"
 #include "MantaRayTracer.h"
 #include "OptixRayTracer.h"
+#include "EmbreeRayTracer.h"
 
 #include <gvt/core/Math.h>
 #ifdef GVT_RENDER_ADAPTER_MANTA
@@ -14,7 +15,7 @@
 #include <gvt/render/adapter/optix/Wrapper.h>
 #endif
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/embree/Wrapper.h>
 #endif
 #include <gvt/render/data/Primitives.h>
 
@@ -105,7 +106,7 @@ int main(int argc, char** argv) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   if (cl.domain_type == 2) {
     domain_choosen = true;
-    OptixRayTracer rt(&cl.scene);
+    EmbreeRayTracer rt(&cl.scene);
     MPI_Barrier(MPI_COMM_WORLD);
     rt.RenderImage(imagename);
   }
