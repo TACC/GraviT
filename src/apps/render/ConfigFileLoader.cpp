@@ -141,6 +141,16 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
         {
             GVT_DEBUG(DBG_ALWAYS, "Light area not implemented");
         } 
+        else if (elems[0] == "DT") 
+        {
+          if(elems[1] == "OPTIX") domain_type = 1;
+          if(elems[1] == "EMBREE") domain_type = 2;
+        }
+        else if (elems[0] == "ST") 
+        {
+          if(elems[1] == "DOMAIN") scheduler_type = 1;
+          if(elems[1] == "HYBRID") scheduler_type = 2;
+        }
         else 
         {
             GVT_DEBUG(DBG_LOW, "Invalid option");

@@ -16,6 +16,8 @@
 #include <gvt/render/data/Primitives.h>
 
 //#include <GVT/common/utils.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <optix_prime/optix_primepp.h>
 
 //#include <thrust/host_vector.h>
@@ -102,10 +104,34 @@ bool OptixDomain::load() {
 
   // Create an Optix context to use.
   optix_context_ = Context::create(RTP_CONTEXT_TYPE_CUDA);
-
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
   if (!optix_context_.isValid())
     return false;
+
+ 
+  std::vector<unsigned> activeDevices;
+  int devCount = 0; cudaDeviceProp prop;
+  cudaGetDeviceCount(&devCount);
+
+  GVT_ASSERT(devCount,"You choose optix render, but no cuda capable devices are present");
+
+  for(int i = 0; i < devCount; i++) {
+    cudaGetDeviceProperties(&prop,i);
+    if(prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
+  }
+#if 0
+  for(auto dev : activeDevices) {
+    std::cout << "Added device " << dev << std::endl;
+  }
+#endif 
+
+  if(!activeDevices.size()) {
+    activeDevices.push_back(0);
+  }
+
+  optix_context_->setCudaDeviceNumbers(activeDevices);
+
+
 
   // Setup the buffer to hold our vertices.
   //

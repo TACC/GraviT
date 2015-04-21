@@ -204,6 +204,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 
 
 if (GVT_RENDER_ADAPTER_MANTA)
+  add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.h
 		src/gvt/render/adapter/manta/data/Transforms.h
@@ -219,6 +220,7 @@ endif(GVT_RENDER_ADAPTER_MANTA)
 
 
 if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
+  add_definitions(-DGVT_RENDER_ADAPTER_OPTIX)
 	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
 		src/gvt/render/adapter/optix/data/Formats.h
 		src/gvt/render/adapter/optix/data/Transforms.h
@@ -239,6 +241,7 @@ endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
 if (GVT_RENDER_ADAPTER_EMBREE)
+  add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
 	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/embree/data/Transforms.h
 		src/gvt/render/adapter/embree/Wrapper.h
@@ -375,7 +378,8 @@ if (GVT_RENDER_APP)
 			src/apps/render/GVTTrace.cpp
 			src/apps/render/OptixRayTracer.cpp
 			)
-	elseif(GVT_RENDER_ADAPTER_MANTA)
+	endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
+	if(GVT_RENDER_ADAPTER_MANTA)
 		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
 			src/apps/render/ConfigFileLoader.h
 			src/apps/render/MantaRayTracer.h

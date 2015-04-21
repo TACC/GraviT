@@ -26,6 +26,10 @@ namespace gvtapps {
 
             gvt::render::data::Dataset scene;
             //GVT::Env::RayTracerAttributes rta;
+            
+            unsigned domain_type = 0 ; /* default Manta domain */
+            unsigned scheduler_type = 0 ; /* default Image scheduler */
+
 
         };
 
