@@ -390,7 +390,7 @@ if (GVT_RENDER_APP)
 			src/apps/render/GVTTrace.cpp
 			src/apps/render/MantaRayTracer.cpp
 			)
-	endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
+        endif(GVT_RENDER_ADAPTER_MANTA)
 
 	add_executable(gvtTracer
 		${GVTAPP_RENDER_HDRS}
