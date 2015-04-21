@@ -34,6 +34,9 @@ static boost::atomic<size_t> counter(0);
 
 bool EmbreeDomain::init = false;
 
+struct embVertex { float x, y, z, a; };
+struct embTriangle { int v0, v1, v2; };
+
 EmbreeDomain::EmbreeDomain(GeometryDomain* domain) : GeometryDomain(*domain)
 {
     GVT_DEBUG(DBG_ALWAYS, "Converting domain");
@@ -57,70 +60,24 @@ EmbreeDomain::EmbreeDomain(GeometryDomain* domain) : GeometryDomain(*domain)
 
     geomId = rtcNewTriangleMesh(scene, RTC_GEOMETRY_STATIC, numTris, numVerts);
 
-    Vector4f *vertices = (Vector4f*) rtcMapBuffer(scene, geomId, RTC_VERTEX_BUFFER);
+    embVertex *vertices = (embVertex*) rtcMapBuffer(scene, geomId, RTC_VERTEX_BUFFER);
     for(int i=0; i<numVerts; i++) {
-        vertices[i] = mesh->vertices[i];
+        vertices[i].x = mesh->vertices[i][0];
+        vertices[i].y = mesh->vertices[i][1];
+        vertices[i].z = mesh->vertices[i][2];
     }
     rtcUnmapBuffer(scene, geomId, RTC_VERTEX_BUFFER);
 
-    Vector3i *triangles = (Vector3i*) rtcMapBuffer(scene, geomId, RTC_INDEX_BUFFER);
+    embTriangle *triangles = (embTriangle*) rtcMapBuffer(scene, geomId, RTC_INDEX_BUFFER);
     for(int i=0; i<numTris; i++) {
         gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
-        triangles[i][0] = boost::get<0>(f);
-        triangles[i][1] = boost::get<1>(f);
-        triangles[i][2] = boost::get<2>(f);
+        triangles[i].v0 = f.get<0>();
+        triangles[i].v1 = f.get<1>();
+        triangles[i].v2 = f.get<2>();
     }
     rtcUnmapBuffer(scene, geomId, RTC_INDEX_BUFFER);
 
     rtcCommit(scene);
-
-    std::cout << "domain conversion finished" << std::endl;
-
-#if 0
-    // Transform mesh
-    meshManta = transform<Mesh*, Manta::Mesh*>(this->mesh);
-    Manta::Material *material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
-    Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
-
-    // Create BVH
-    as = new Manta::DynBVH();
-    as->setGroup(meshManta);
-
-
-    //Create Manta
-    static Manta::MantaInterface* rtrt = Manta::createManta();
-
-    //Create light set
-    Manta::LightSet* lights = new Manta::LightSet();
-    lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
-
-    // Create ambient light
-    Manta::AmbientLight* ambient;
-    ambient = new Manta::AmbientOcclusionBackground(Manta::Color::white()*0.5, 1, 36);
-
-    //Create context
-    Manta::PreprocessContext context(rtrt, 0, 1, lights);
-    std::cout << "context.global_lights : " << context.globalLights << std::endl;
-    material->preprocess(context);
-    as->preprocess(context);
-
-
-    //Select algorithm
-    Manta::ShadowAlgorithm* shadows;
-    shadows = new Manta::HardShadows();
-    Manta::Scene* scene = new Manta::Scene();
-
-
-    scene->setLights(lights);
-    scene->setObject(as);
-    Manta::RandomNumberGenerator* rng = NULL;
-    Manta::CheapRNG::create(rng);
-
-    rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
-            0/*animframestate*/,
-            0/*loadbalancer*/, 0/*pixelsampler*/, 0/*renderer*/, shadows/*shadowAlgorithm*/, 0/*camera*/, scene/*scene*/, 0/*thread_storage*/, rng/*rngs*/, 0/*samplegenerator*/);
-
-#endif
 }
 
 EmbreeDomain::EmbreeDomain(std::string filename, gvt::core::math::AffineTransformMatrix<float> m)
@@ -164,14 +121,10 @@ struct parallelTraceE
             boost::atomic<size_t>& counter) :
     dom(dom), rayList(rayList), moved_rays(moved_rays), workSize(workSize), counter(counter)
     {
-        std::cout << __func__ << ":" << __LINE__ << ": created with workSize: " << workSize << ", raylist size: " << rayList.size() << ", moved rays: " << moved_rays.size() << std::endl;
     }
 
     void operator()()
     {
-        std::cout << "thread starting" << std::endl;
-        const size_t maxPacketSize = 64;
-
         RTCScene scene = dom->getScene();
 
         gvt::render::actor::RayVector rayPacket;
@@ -180,16 +133,6 @@ struct parallelTraceE
 
         localQueue.reserve(workSize * 2);
         localDispatch.reserve(rayList.size() * 2);
-
-
-//                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertices.size());
-//                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertex_indices.size());
-//
-//                BOOST_FOREACH(int i, dom->meshManta->vertex_indices) {
-//                    GVT_DEBUG(DBG_ALWAYS, i);
-//                }
-
-        std::cout << "total rays: " << rayList.size() << std::endl;
 
         while (!rayList.empty())
         {
@@ -200,7 +143,7 @@ struct parallelTraceE
             queue.unlock();
 
 
-            GVT_DEBUG(DBG_ALWAYS, "Got " << localQueue.size() << " rays");
+            // GVT_DEBUG(DBG_ALWAYS, "Got " << localQueue.size() << " rays");
             while (!localQueue.empty())
             {
                 rayPacket.clear();
@@ -215,41 +158,51 @@ struct parallelTraceE
                 // TODO: assuming packet size == 4
 
                 RTCRay4 ray4 = {};
+                RTCORE_ALIGN(16) int valid[4] = {0};
                 for (size_t i = 0; i < rayPacket.size(); i++)
                 {
                     Ray r = dom->toLocal(rayPacket[i]);
                     ray4.orgx[i] = r.origin[0];
                     ray4.orgy[i] = r.origin[1];
                     ray4.orgz[i] = r.origin[2];
-
                     ray4.dirx[i] = r.direction[0];
                     ray4.diry[i] = r.direction[1];
                     ray4.dirz[i] = r.direction[2];
+                    ray4.tnear[i] = 0;
+                    ray4.tfar[i] = FLT_MAX;
+                    ray4.geomID[i] = RTC_INVALID_GEOMETRY_ID;
+                    ray4.primID[i] = RTC_INVALID_GEOMETRY_ID;
+                    ray4.instID[i] = RTC_INVALID_GEOMETRY_ID;
+                    ray4.mask[i] = -1;
+                    ray4.time[i] = 0;
+                    valid[i] = -1;
                 }
 
-                RTCORE_ALIGN(16) int valid[4] = { -1, -1, -1, -1 };
                 rtcIntersect4(valid, scene, ray4);
 
-                //                        GVT_DEBUG(DBG_ALWAYS,"Process packet");
+                // GVT_DEBUG(DBG_ALWAYS,"Process packet");
 
                 for (size_t pindex = 0; pindex < rayPacket.size(); pindex++)
                 {
-                    if (valid[pindex])
+                    if (ray4.geomID[pindex] != (int)RTC_INVALID_GEOMETRY_ID)
                     {
-                        //                                GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
+                        // GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
                         if (rayPacket[pindex].type == gvt::render::actor::Ray::SHADOW)
                         {
-                            //                                    GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
-
+                            // GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
                             continue;
                         }
-
 
                         float t = ray4.tnear[pindex];
                         rayPacket[pindex].t = t;
 
                         Vector4f embreeNormal = Vector4f(ray4.Ngx[pindex], ray4.Ngy[pindex], ray4.Ngz[pindex], 0.0);
-                        Vector4f normal = dom->toWorld(embreeNormal);
+                        embreeNormal.normalize();
+                        //Vector4f normal = dom->toWorld(embreeNormal);
+                        Vector4f normal = dom->localToWorldNormal(embreeNormal);
+                        normal.normalize();
+
+                        // note: the following is basically a copy of the manta parallelTrace logic
 
                         if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY)
                         {
@@ -257,30 +210,61 @@ struct parallelTraceE
                             rayPacket[pindex].w = rayPacket[pindex].w * t;
                         }
 
+                        // generate shadow rays
                         std::vector<gvt::render::data::scene::Light*> lights = dom->getLights();
                         for (size_t lindex = 0; lindex < lights.size(); lindex++)
                         {
+
+#if 0
                             gvt::render::actor::Ray ray(rayPacket[pindex]);
                             ray.domains.clear();
                             ray.type = gvt::render::actor::Ray::SHADOW;
-                            ray.origin = ray.origin + ray.direction * ray.t;
+                            float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
+                            float t_shadow = multiplier * ray.t;
+                            ray.origin = ray.origin + ray.direction * t_shadow;
                             ray.setDirection(lights[lindex]->position - ray.origin);
                             gvt::render::data::Color c = dom->getMesh()->shade(ray, normal, lights[lindex]);
-                            //ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
+                            //gvt::render::data::Color c = dom->getMesh()->shadeFace(ray4.geomID[pindex], ray, normal, lights[lindex]);
                             ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
                             localQueue.push_back(ray);
+#else
+                            Ray shadow_ray(rayPacket[pindex]);
+                            shadow_ray.domains.clear();
+                            shadow_ray.type = Ray::SHADOW;
+                            // Try to ensure that the shadow ray is on the correct side of the triangle.
+                            // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
+                            // Using about 8 * ULP(t).
+                            float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
+                            float t_shadow = multiplier * shadow_ray.t;
+                            shadow_ray.origin = shadow_ray.origin + shadow_ray.direction * t_shadow;
+                            Vector4f light_position(lights[lindex]->position);
+                            Vector4f dir = light_position - shadow_ray.origin;
+                            shadow_ray.t_max = dir.length();
+                            dir.normalize();
+                            shadow_ray.setDirection(dir);
+                            gvt::render::data::Color c = dom->getMesh()->shadeFace(ray4.geomID[pindex], shadow_ray, normal,
+                                    lights[lindex]);
+                            // Color c = this->mesh->mat->shade(shadow_ray, normal,
+                            // this->lights[lindex]);
+                            shadow_ray.color = GVT_COLOR_ACCUM(1.0f, 1.0, c[1], c[2], 1.0f);
+                            localQueue.push_back(shadow_ray);
+                            //GVT_DEBUG(DBG_ALWAYS, "SHADE_FACE");
+#endif
                         }
 
                         int ndepth = rayPacket[pindex].depth - 1;
 
                         float p = 1.f - (float(rand()) / RAND_MAX);
 
+                        // generate secondary ray
                         if (ndepth > 0 && rayPacket[pindex].w > p)
                         {
                             gvt::render::actor::Ray ray(rayPacket[pindex]);
                             ray.domains.clear();
                             ray.type = gvt::render::actor::Ray::SECONDARY;
-                            ray.origin = ray.origin + ray.direction * ray.t;
+                            float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
+                            float t_secondary = multiplier * ray.t;
+                            ray.origin = ray.origin + ray.direction * t_secondary;
                             ray.setDirection(dom->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
                             ray.w = ray.w * (ray.direction * normal);
                             ray.depth = ndepth;
@@ -311,15 +295,11 @@ void EmbreeDomain::trace(gvt::render::actor::RayVector& rayList, gvt::render::ac
     GVT_DEBUG(DBG_ALWAYS, "tracing geometry of domain " << domainID);
     size_t workload = std::max((size_t) 1, (size_t) (rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
-    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << ": tracing geometry of domain: " << domainID << ", workload: " << workload << std::endl;
-
     for (size_t rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc)
     {
-        std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << ": creating thread " << rc << std::endl;
         gvt::core::schedule::asyncExec::instance()->run_task(parallelTraceE(this, rayList, moved_rays, workload, counter));
     }
 
-    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << ": " << gvt::core::schedule::asyncExec::instance()->numThreads << " threads created, blocking until finished" << std::endl;
     gvt::core::schedule::asyncExec::instance()->sync();
     //            parallelTrace(this, rayList, moved_rays, rayList.size(),counter)();
 
