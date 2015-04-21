@@ -132,18 +132,22 @@ void Mesh::generateNormals()
     haveNormals = true;
 }
 
-Color Mesh::shadeFace(int face_id, Ray& r, Vector4f normal, Light* lsource) 
+Color Mesh::shadeFace(const int face_id, const Ray& r, const Vector4f& normal, const Light* lsource) 
 {
   // XXX TODO: shadeFace returns constant color, fix?
+  
+  if(!faces_to_materials.size()) return shade(r,normal,lsource);
+
+
   Color c(0.5f, 0.5f, 0.5f, 0.0f);
-  const Material* m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
-  // if (m) {
-  // c = m->shade(r, normal, lsource);
-  // }
+  Material* m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
+  if (m) {
+   c = m->shade(r, normal, lsource);
+  }
   return c;
 }
 
-Color Mesh::shade(Ray& r, Vector4f normal, Light* lsource) 
+Color Mesh::shade(const Ray& r,const Vector4f& normal,const Light* lsource) 
 {
   return mat->shade(r, normal, lsource);
 }

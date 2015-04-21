@@ -2,11 +2,22 @@
 #include <string>
 #include <boost/timer/timer.hpp>
 
+#include <gvt/core/Debug.h>
+#include <gvt/core/Math.h>
+#include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/render/actor/Ray.h>
+#include <gvt/render/adapter/manta/data/Transforms.h>
+#include <gvt/render/Attributes.h>
+#include <gvt/render/data/scene/ColorAccumulator.h>
+#include <gvt/render/data/scene/Light.h>
 
 #include <gvt/render/adapter/optix/data/domain/OptixDomain.h>
 #include <gvt/render/adapter/optix/data/Formats.h>
 #include <gvt/render/data/Primitives.h>
+
 //#include <GVT/common/utils.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <optix_prime/optix_primepp.h>
 
 //#include <thrust/host_vector.h>
@@ -14,7 +25,6 @@
 //#include <thrust/generate.h>
 //#include <thrust/sort.h>
 //#include <thrust/copy.h>
-
 
 using gvt::core::math::Vector3f;
 using gvt::core::math::Vector4f;
@@ -24,200 +34,240 @@ using gvt::render::actor::RayVector;
 using gvt::render::adapter::optix::data::OptixHit;
 using gvt::render::adapter::optix::data::OptixRay;
 using gvt::render::data::domain::GeometryDomain;
-using gvt::render::data::primitives::Light;
+using gvt::render::data::scene::Light;
 using gvt::render::data::primitives::Mesh;
-using gvt::render::data::scene::Color;
+using gvt::render::data::Color;
+
+using namespace gvt::render::actor;
+using namespace gvt::render::adapter::optix::data;
+using namespace gvt::render::adapter::optix::data::domain;
+using namespace gvt::render::data::domain;
+using namespace gvt::render::data::primitives;
+
 using optix::prime::BufferDesc;
+using optix::prime::Exception;
 using optix::prime::Context;
 using optix::prime::Model;
 using optix::prime::Query;
 
-
-static void gvtRayToOptixRay(const Ray& gvt_ray, OptixRay& optix_ray) {
+static void gvtRayToOptixRay(const Ray &gvt_ray, OptixRay &optix_ray) {
   optix_ray.origin[0] = gvt_ray.origin[0];
   optix_ray.origin[1] = gvt_ray.origin[1];
   optix_ray.origin[2] = gvt_ray.origin[2];
   optix_ray.direction[0] = gvt_ray.direction[0];
   optix_ray.direction[1] = gvt_ray.direction[1];
   optix_ray.direction[2] = gvt_ray.direction[2];
-  optix_ray.t_min = gvt_ray.t_min;
-  optix_ray.t_max = gvt_ray.t_max;
+  // optix_ray.t_min = FLT_MAX;  // gvt_ray.t_min;
+  // optix_ray.t_max = -FLT_MAX; // gvt_ray.t_max;
 }
 
-OptixDomain::OptixDomain() : GeometryDomain("") 
-{}
+OptixDomain::OptixDomain() : GeometryDomain("") {}
 
-OptixDomain::OptixDomain(const std::string& filename)
-    : GeometryDomain(filename), loaded_(false) 
-    {}
+OptixDomain::OptixDomain(const std::string &filename)
+    : GeometryDomain(filename), loaded_(false) {}
 
-OptixDomain::OptixDomain(const OptixDomain& domain)
-    : GeometryDomain(domain),
-      optix_context_(domain.optix_context_),
-      optix_model_(domain.optix_model_),
-      loaded_(false) 
-      {}
+OptixDomain::OptixDomain(const OptixDomain &domain)
+    : GeometryDomain(domain), optix_context_(domain.optix_context_),
+      optix_model_(domain.optix_model_), loaded_(false) {}
 
-OptixDomain::~OptixDomain() {}
-
-OptixDomain::OptixDomain(const std::string& filename, AffineTransformMatrix<float> m) 
-: GeometryDomain(filename, m), loaded_(false) 
-{
+OptixDomain::OptixDomain(GeometryDomain *domain)
+    : GeometryDomain(*domain), loaded_(false) {
   this->load();
 }
 
-bool OptixDomain::load() 
-{
+OptixDomain::~OptixDomain() {}
 
-  if (loaded_) return true;
+OptixDomain::OptixDomain(const std::string &filename,
+                         AffineTransformMatrix<float> m)
+    : GeometryDomain(filename, m), loaded_(false) {
+  this->load();
+}
+
+bool OptixDomain::load() {
+
+  if (loaded_)
+    return true;
 
   // Make sure we load the GVT mesh.
   GVT_ASSERT(GeometryDomain::load(), "Geometry not loaded");
-  if (!GeometryDomain::load()) return false;
+  if (!GeometryDomain::load())
+    return false;
+
+  GVT_ASSERT(this->mesh->vertices.size() > 0, "Invalid vertices");
+  GVT_ASSERT(this->mesh->faces.size() > 0, "Invalid faces");
 
   // Make sure normals exist.
+
   if (this->mesh->normals.size() < this->mesh->vertices.size() ||
       this->mesh->face_normals.size() < this->mesh->faces.size())
     this->mesh->generateNormals();
 
   // Create an Optix context to use.
   optix_context_ = Context::create(RTP_CONTEXT_TYPE_CUDA);
-
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-  if (!optix_context_.isValid()) return false;
+  if (!optix_context_.isValid())
+    return false;
+
+ 
+  std::vector<unsigned> activeDevices;
+  int devCount = 0; cudaDeviceProp prop;
+  cudaGetDeviceCount(&devCount);
+
+  GVT_ASSERT(devCount,"You choose optix render, but no cuda capable devices are present");
+
+  for(int i = 0; i < devCount; i++) {
+    cudaGetDeviceProperties(&prop,i);
+    if(prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
+  }
+#if 0
+  for(auto dev : activeDevices) {
+    std::cout << "Added device " << dev << std::endl;
+  }
+#endif 
+
+  if(!activeDevices.size()) {
+    activeDevices.push_back(0);
+  }
+
+  optix_context_->setCudaDeviceNumbers(activeDevices);
+
+
 
   // Setup the buffer to hold our vertices.
+  //
+  std::vector<float> vertices;
+  std::vector<int> faces;
+
+  for (auto v : this->mesh->vertices) {
+    vertices.push_back(v[0]);
+    vertices.push_back(v[1]);
+    vertices.push_back(v[2]);
+  }
+  for (auto f : this->mesh->faces) {
+    faces.push_back(f.get<0>());
+    faces.push_back(f.get<1>());
+    faces.push_back(f.get<2>());
+  }
   BufferDesc vertices_desc;
   vertices_desc = optix_context_->createBufferDesc(
-      RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST,
-      &this->mesh->vertices[0]);
+      RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
 
   GVT_ASSERT(vertices_desc.isValid(), "Vertices are not valid");
-  if (!vertices_desc.isValid()) return false;
+  if (!vertices_desc.isValid())
+    return false;
 
-  vertices_desc->setRange(0, this->mesh->vertices.size());
-  vertices_desc->setStride(sizeof(Vector3f));
+  vertices_desc->setRange(0, vertices.size());
+  vertices_desc->setStride(sizeof(float)*3);
 
   // Setup the triangle indices buffer.
   BufferDesc indices_desc;
-  indices_desc = optix_context_->createBufferDesc(
-      RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST,
-      &this->mesh->faces[0]);
+  indices_desc = optix_context_->createBufferDesc(RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST, &faces[0]);
 
   GVT_ASSERT(indices_desc.isValid(), "Indices are not valid");
-  if (!indices_desc.isValid()) return false;
+  if (!indices_desc.isValid())
+    return false;
 
-  indices_desc->setRange(0, this->mesh->faces.size());
-  indices_desc->setStride(sizeof(Mesh::face));
+  indices_desc->setRange(0, faces.size());
+  indices_desc->setStride(sizeof(int)*3);
 
   // Create an Optix model.
   optix_model_ = optix_context_->createModel();
 
   GVT_ASSERT(optix_model_.isValid(), "Model is not valid");
-  if (!optix_model_.isValid()) return false;
+  if (!optix_model_.isValid())
+    return false;
 
   optix_model_->setTriangles(indices_desc, vertices_desc);
-  optix_model_->update(RTP_MODEL_HINT_NONE);
+  optix_model_->update(RTP_MODEL_HINT_ASYNC);
   optix_model_->finish();
 
-  if (!optix_model_.isValid()) return false;
+  if (!optix_model_.isValid())
+    return false;
 
   loaded_ = true;
   return true;
 }
 
-void OptixDomain::trace(RayVector& ray_list, RayVector& moved_rays) 
-{
+void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
   // Create our query.
   boost::timer::auto_cpu_timer optix_time("Optix domain trace: %w\n");
   try {
     this->load();
-    
-    
+
     if (!this->mesh->haveNormals || this->mesh->normals.size() == 0)
       this->mesh->generateNormals();
 
     GVT_ASSERT(optix_model_.isValid(), "trace:Model is not valid");
-    if (!optix_model_.isValid()) return;
+    if (!optix_model_.isValid())
+      return;
 
-    
     // Converting the list why???
     RayVector next_list;
-    while (!ray_list.empty()) 
-    {
+    while (!ray_list.empty()) {
       next_list.push_back(ray_list.back());
       ray_list.pop_back();
     }
-    
-    
-    
-    RayVector chunk;  
+
+    RayVector chunk;
     const uint32_t kMaxChunkSize = 65536;
-    
+
     chunk.reserve(kMaxChunkSize);
-    
-    while (!next_list.empty()) 
-    {
-                
+
+    while (!next_list.empty()) {
       ray_list.swap(next_list);
-      
-      while (!ray_list.empty()) 
-      {
+      while (!ray_list.empty()) {
         chunk.push_back(ray_list.back());
         ray_list.pop_back();
-      
-        if (chunk.size() == kMaxChunkSize || ray_list.empty()) 
-        {
+
+        if (chunk.size() == kMaxChunkSize || ray_list.empty()) {
           traceChunk(chunk, next_list, moved_rays);
           chunk.clear();
         }
-    
       }
-    
-      //std::cout << "Next rays : " <<  next_list.size() << std::endl;
-    
     }
-    
-    
-  }
-  catch (const optix::prime::Exception& e) 
-  {
+  } catch (const Exception &e) {
     GVT_ASSERT(false, e.getErrorString());
   }
 }
 
-void OptixDomain::traceChunk(RayVector& chunk, RayVector& next_list, RayVector& moved_rays) 
-{
-#if 0
-    // Create our query.
+void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
+                             RayVector &moved_rays) {
+  // Create our query.
   Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
-  if (!query.isValid()) return;
+  if (!query.isValid())
+    return;
 
   // Format GVT rays for Optix and give Optix an array of rays.
-  std::vector<OptixRayFormat> optix_rays(chunk.size());
-  
-  
-  
-  for (int i = 0; i < chunk.size(); ++i)
-    gravityRayToOptixRay(this->toLocal(chunk[i]), optix_rays[i]);
+  std::vector<OptixRay> optix_rays; //(chunk.size());
+
+  for (int i = 0; i < chunk.size(); ++i) {
+    OptixRay optix_ray;
+    Ray gvt_ray = toLocal(chunk[i]);
+    optix_ray.origin[0] = gvt_ray.origin[0];
+    optix_ray.origin[1] = gvt_ray.origin[1];
+    optix_ray.origin[2] = gvt_ray.origin[2];
+    optix_ray.direction[0] = gvt_ray.direction[0];
+    optix_ray.direction[1] = gvt_ray.direction[1];
+    optix_ray.direction[2] = gvt_ray.direction[2];
+    optix_rays.push_back(optix_ray);
+  }
 
   // Hand the rays to Optix.
-  query->setRays(optix_rays.size(),
-                 RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
+  query->setRays(optix_rays.size(), RTP_BUFFER_FORMAT_RAY_ORIGIN_DIRECTION,
                  RTP_BUFFER_TYPE_HOST, &optix_rays[0]);
 
   // Create and pass hit results in an Optix friendly format.
-  std::vector<OptixHitFormat> hits(chunk.size());
+  std::vector<OptixHit> hits(chunk.size());
   query->setHits(hits.size(), RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V,
                  RTP_BUFFER_TYPE_HOST, &hits[0]);
 
   // Execute our query and wait for it to finish.
-  query->execute(RTP_QUERY_HINT_NONE);
+  query->execute(RTP_QUERY_HINT_ASYNC);
   query->finish();
+  GVT_ASSERT(query.isValid(), "Something went wrong.");
 
   // Move missed rays.
   for (int i = hits.size() - 1; i >= 0; --i) {
-    // std::cout << "triangle_id = " << hits[i].triangle_id << "\n";
     if (hits[i].triangle_id < 0) {
       moved_rays.push_back(chunk[i]);
       std::swap(hits[i], hits.back());
@@ -227,56 +277,49 @@ void OptixDomain::traceChunk(RayVector& chunk, RayVector& next_list, RayVector& 
     }
   }
 
-  //std::cout << "num hits = " << hits.size() << "\n";
+  // std::cout << "num hits = " << hits.size() << "\n";
   // Trace each ray: shade, fire shadow rays, fire secondary rays.
   for (int i = 0; i < chunk.size(); ++i)
-    this->traceRay(hits[i].triangle_id, hits[i].t, hits[i].u, hits[i].v, chunk[i], next_list);
-#endif
+    this->traceRay(hits[i].triangle_id, hits[i].t, hits[i].u, hits[i].v,
+                   chunk[i], next_list);
 }
 
-void OptixDomain::traceRay(uint32_t triangle_id, float t, float u, float v, ray& ray, RayVector& rays) 
-{
-#if 0
-    if (ray.type == ray::SHADOW) return;
-  if (ray.type == ray::SECONDARY) {
+void OptixDomain::traceRay(uint32_t triangle_id, float t, float u, float v,
+                           Ray &ray, RayVector &rays) {
+  if (ray.type == Ray::SHADOW)
+    return;
+  if (ray.type == Ray::SECONDARY) {
     float s = ((t > 1.0f) ? 1.0f / t : t);
     ray.w = ray.w * s;
-    //std::cout << "w = " << ray.w << "\n";
   }
   ray.t = t;
   Vector4f normal = this->localToWorldNormal(computeNormal(triangle_id, u, v));
   normal.normalize();
   generateShadowRays(triangle_id, ray, normal, rays);
   generateSecondaryRays(ray, normal, rays);
-#endif 
 }
 
-Vector4f OptixDomain::computeNormal(uint32_t triangle_id, float u, float v) const 
-{
-#if 0
-  const Mesh::face_to_normals& normals =
+Vector4f OptixDomain::computeNormal(uint32_t triangle_id, float u,
+                                    float v) const {
+  const Mesh::FaceToNormals &normals =
       this->mesh->faces_to_normals[triangle_id];
-  const Vector4f& a = this->mesh->normals[normals.get<0>()];
-  const Vector4f& b = this->mesh->normals[normals.get<1>()];
-  const Vector4f& c = this->mesh->normals[normals.get<2>()];
+  const Vector4f &a = this->mesh->normals[normals.get<0>()];
+  const Vector4f &b = this->mesh->normals[normals.get<1>()];
+  const Vector4f &c = this->mesh->normals[normals.get<2>()];
   Vector4f normal = a * u + b * v + c * (1.0f - u - v);
   normal.normalize();
   return normal;
-#endif
-  return Vector4f();
 }
 
-void OptixDomain::generateSecondaryRays(const ray& ray_in,
-                                        const Vector4f& normal,
-                                        RayVector& rays) 
-{
-#if 0
+void OptixDomain::generateSecondaryRays(const Ray &ray_in,
+                                        const Vector4f &normal,
+                                        RayVector &rays) {
   int depth = ray_in.depth - 1;
   float p = 1.0f - (float(rand()) / RAND_MAX);
   if (depth > 0 && ray_in.w > p) {
-    ray secondary_ray(ray_in);
+    Ray secondary_ray(ray_in);
     secondary_ray.domains.clear();
-    secondary_ray.type = ray::SECONDARY;
+    secondary_ray.type = Ray::SECONDARY;
     // Try to ensure that the shadow ray is on the correct side of the triangle.
     // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
     // Using about 8 * ULP(t).
@@ -291,17 +334,14 @@ void OptixDomain::generateSecondaryRays(const ray& ray_in,
     secondary_ray.depth = depth;
     rays.push_back(secondary_ray);
   }
-#endif
 }
 
-void OptixDomain::generateShadowRays(int triangle_id, const ray& ray_in,
-                                     const Vector4f& normal, RayVector& rays) 
-{
-#if 0
+void OptixDomain::generateShadowRays(int triangle_id, const Ray &ray_in,
+                                     const Vector4f &normal, RayVector &rays) {
   for (int lindex = 0; lindex < this->lights.size(); ++lindex) {
-    ray shadow_ray(ray_in);
+    Ray shadow_ray(ray_in);
     shadow_ray.domains.clear();
-    shadow_ray.type = ray::SHADOW;
+    shadow_ray.type = Ray::SHADOW;
     // Try to ensure that the shadow ray is on the correct side of the triangle.
     // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
     // Using about 8 * ULP(t).
@@ -314,10 +354,11 @@ void OptixDomain::generateShadowRays(int triangle_id, const ray& ray_in,
     dir.normalize();
     shadow_ray.setDirection(dir);
     Color c = this->mesh->shadeFace(triangle_id, shadow_ray, normal,
-                                this->lights[lindex]);
-    //Color c = this->mesh->mat->shade(shadow_ray, normal, this->lights[lindex]);
-    shadow_ray.color = COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
+                                    this->lights[lindex]);
+    // Color c = this->mesh->mat->shade(shadow_ray, normal,
+    // this->lights[lindex]);
+    shadow_ray.color = GVT_COLOR_ACCUM(1.0f, 1.0, c[1], c[2], 1.0f);
     rays.push_back(shadow_ray);
+    GVT_DEBUG(DBG_ALWAYS, "SHADE_FACE");
   }
-#endif
 }

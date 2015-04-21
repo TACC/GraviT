@@ -18,26 +18,27 @@
 #include <vector>
 
 namespace gvt {
-	namespace render {
-		namespace adapter {
-			namespace optix {
-				namespace data {
+namespace render {
+namespace adapter {
+namespace optix {
+namespace data {
 
-                    GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
+GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
-					std::vector<OptixRayFormat> convertRaysToOptix(const RayVector& rays);
-    
-					template<>
-					struct transform_impl<RayVector, std::vector<OptixRayFormat> > {
-					    inline static std::vector<OptixRayFormat> transform(const RayVector& rays) {
-					        return convertRaysToOptix(rays);
-					    }
-					};
-				}
-			}
-		}
-	}
+    std::vector<OptixRay>
+    convertRaysToOptix(const gvt::render::actor::RayVector &rays);
+
+template <>
+struct transform_impl<gvt::render::actor::RayVector, std::vector<OptixRay> > {
+  inline static std::vector<OptixRay>
+  transform(const gvt::render::actor::RayVector &rays) {
+    return convertRaysToOptix(rays);
+  }
+};
+}
+}
+}
+}
 }
 
 #endif /* GVT_RENDER_ADAPTER_OPTIX_DATA_TRANSFORMS_H */
-
