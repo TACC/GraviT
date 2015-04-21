@@ -1,0 +1,6 @@
+#ifndef GVT_CORE_ADAPTER_H
+#define GVT_CORE_ADAPTER_H
+
+
+#endif // GVT_CORE_ADAPTER_H
+
