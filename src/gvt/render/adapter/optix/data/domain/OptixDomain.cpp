@@ -112,25 +112,16 @@ bool OptixDomain::load() {
   std::vector<float> vertices;
   std::vector<int> faces;
 
-  int count = 0;
   for (auto v : this->mesh->vertices) {
     vertices.push_back(v[0]);
     vertices.push_back(v[1]);
     vertices.push_back(v[2]);
-    count++;
   }
-  std::cout << "Added " << count << " vertices (" << this->mesh->vertices.size()
-            << ")" << std::endl;
-  count = 0;
   for (auto f : this->mesh->faces) {
     faces.push_back(f.get<0>());
     faces.push_back(f.get<1>());
     faces.push_back(f.get<2>());
-    count++;
   }
-  std::cout << "Added " << count << " faces (" << this->mesh->faces.size()
-            << ")" << std::endl;
-
   BufferDesc vertices_desc;
   vertices_desc = optix_context_->createBufferDesc(
       RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
@@ -167,10 +158,6 @@ bool OptixDomain::load() {
   if (!optix_model_.isValid())
     return false;
 
-  std::cout << "M : \n" << this->m << std::endl;
-  std::cout << "iM : \n" << this->minv << std::endl;
-  std::cout << "M : \n" << this->minv << std::endl;
-
   loaded_ = true;
   return true;
 }
@@ -201,10 +188,7 @@ void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
     chunk.reserve(kMaxChunkSize);
 
     while (!next_list.empty()) {
-
-      std::cout << "In rays : " << next_list.size() << std::endl;
       ray_list.swap(next_list);
-
       while (!ray_list.empty()) {
         chunk.push_back(ray_list.back());
         ray_list.pop_back();
@@ -214,8 +198,6 @@ void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
           chunk.clear();
         }
       }
-
-      std::cout << "Out rays : " << next_list.size() << std::endl;
     }
   } catch (const Exception &e) {
     GVT_ASSERT(false, e.getErrorString());
@@ -232,12 +214,9 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   // Format GVT rays for Optix and give Optix an array of rays.
   std::vector<OptixRay> optix_rays; //(chunk.size());
 
-  std::cout << "gvtR : " << chunk[0] << std::endl;
-
   for (int i = 0; i < chunk.size(); ++i) {
     OptixRay optix_ray;
     Ray gvt_ray = toLocal(chunk[i]);
-
     optix_ray.origin[0] = gvt_ray.origin[0];
     optix_ray.origin[1] = gvt_ray.origin[1];
     optix_ray.origin[2] = gvt_ray.origin[2];
@@ -246,8 +225,6 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
     optix_ray.direction[2] = gvt_ray.direction[2];
     optix_rays.push_back(optix_ray);
   }
-
-  std::cout << "oR : " << optix_rays[0] << std::endl;
 
   // Hand the rays to Optix.
   query->setRays(optix_rays.size(), RTP_BUFFER_FORMAT_RAY_ORIGIN_DIRECTION,

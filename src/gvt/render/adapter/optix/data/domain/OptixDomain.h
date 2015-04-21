@@ -61,6 +61,12 @@ namespace gvt {
               Context optix_context_;
               //optix::prime::Model optix_model_;
               Model optix_model_;
+
+/*              thrust::device_vector<float> _vertices;
+              thrust::device_vector<int> _faces;
+              thrust::device_vector<float> _normals;
+*/
+
               bool loaded_;
             };
           }

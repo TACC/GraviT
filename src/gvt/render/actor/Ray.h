@@ -85,7 +85,6 @@
                     return stream;
                 }
 
-
                 mutable gvt::core::math::Point4f    origin;
                 mutable gvt::core::math::Vector4f   direction;
                 mutable gvt::core::math::Vector4f   inverseDirection;

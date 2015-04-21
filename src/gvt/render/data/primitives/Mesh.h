@@ -76,13 +76,14 @@ public:
 
   virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
   virtual gvt::render::data::Color
-  shade(gvt::render::actor::Ray &r, gvt::core::math::Vector4f normal,
-        gvt::render::data::scene::Light *lsource);
+  shade(const gvt::render::actor::Ray &r,
+        const gvt::core::math::Vector4f &normal,
+        const gvt::render::data::scene::Light *lsource);
 
   virtual gvt::render::data::Color
-  shadeFace(int face_id, gvt::render::actor::Ray &r,
-            gvt::core::math::Vector4f normal,
-            gvt::render::data::scene::Light *lsource);
+  shadeFace(const int face_id, const gvt::render::actor::Ray &r,
+            const gvt::core::math::Vector4f &normal,
+            const gvt::render::data::scene::Light *lsource);
 
 public:
   gvt::render::data::primitives::Material *mat;
@@ -92,7 +93,7 @@ public:
   boost::container::vector<Face> faces;
   boost::container::vector<FaceToNormals> faces_to_normals;
   boost::container::vector<gvt::core::math::Vector4f> face_normals;
-  boost::container::vector<const Material *> faces_to_materials;
+  boost::container::vector<Material *> faces_to_materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;
 };

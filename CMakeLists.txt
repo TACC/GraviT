@@ -227,6 +227,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
 		src/gvt/render/adapter/optix/data/Transforms.cu
+                src/gvt/render/adapter/optix/data/domain/CudaHelpers.cu
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.cpp

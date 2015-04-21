@@ -49,12 +49,12 @@
             template <class T>
             class Vector 
             {
+            public:
                 // array of elements
                 T* n;
                 // vector size
                 int numElements;
 
-            public:
 
                 //---[ Constructors/Destructor ]-------------
 
