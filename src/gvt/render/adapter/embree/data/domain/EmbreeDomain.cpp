@@ -209,9 +209,9 @@ struct parallelTraceE
                             const float v = ray4.v[pindex];
                             const Mesh::FaceToNormals &normals =
                                 dom->getMesh()->faces_to_normals[triangle_id];
-                            const Vector4f &a = dom->getMesh()->normals[normals.get<0>()];
-                            const Vector4f &b = dom->getMesh()->normals[normals.get<1>()];
-                            const Vector4f &c = dom->getMesh()->normals[normals.get<2>()];
+                            const Vector4f &a = dom->getMesh()->normals[normals.get<1>()];
+                            const Vector4f &b = dom->getMesh()->normals[normals.get<2>()];
+                            const Vector4f &c = dom->getMesh()->normals[normals.get<0>()];
                             manualNormal = a * u + b * v + c * (1.0f - u - v);
                             manualNormal = dom->localToWorldNormal(manualNormal);
                             manualNormal.normalize();
