@@ -21,6 +21,7 @@
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
 
+// TODO: add logic for other packet sizes
 #define GVT_PACKET_SIZE 4
 
 using namespace gvt::render::actor;
@@ -45,6 +46,8 @@ EmbreeDomain::EmbreeDomain(GeometryDomain* domain) : GeometryDomain(*domain)
         rtcInit(0);
         EmbreeDomain::init = true;
     }
+
+    this->mesh->generateNormals();
 
     switch(GVT_PACKET_SIZE) {
         case 4: packetSize = RTC_INTERSECT4; break;
@@ -184,7 +187,7 @@ struct parallelTraceE
 
                 for (size_t pindex = 0; pindex < rayPacket.size(); pindex++)
                 {
-                    if (ray4.geomID[pindex] != (int)RTC_INVALID_GEOMETRY_ID)
+                    if (valid[pindex] && ray4.geomID[pindex] != (int)RTC_INVALID_GEOMETRY_ID)
                     {
                         // GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
                         if (rayPacket[pindex].type == gvt::render::actor::Ray::SHADOW)
@@ -193,16 +196,28 @@ struct parallelTraceE
                             continue;
                         }
 
-                        float t = ray4.tnear[pindex];
+                        float t = ray4.tfar[pindex];
                         rayPacket[pindex].t = t;
 
-                        Vector4f embreeNormal = Vector4f(ray4.Ngx[pindex], ray4.Ngy[pindex], ray4.Ngz[pindex], 0.0);
-                        embreeNormal.normalize();
-                        //Vector4f normal = dom->toWorld(embreeNormal);
-                        Vector4f normal = dom->localToWorldNormal(embreeNormal);
-                        normal.normalize();
+                        // for some reason the embree normals aren't working, so just going to manually calculate the triangle normal
+                        //Vector4f embreeNormal = Vector4f(ray4.Ngx[pindex], ray4.Ngy[pindex], ray4.Ngz[pindex], 0.0);
 
-                        // note: the following is basically a copy of the manta parallelTrace logic
+                        Vector4f manualNormal;
+                        {
+                            const int triangle_id = ray4.primID[pindex];
+                            const float u = ray4.u[pindex];
+                            const float v = ray4.v[pindex];
+                            const Mesh::FaceToNormals &normals =
+                                dom->getMesh()->faces_to_normals[triangle_id];
+                            const Vector4f &a = dom->getMesh()->normals[normals.get<0>()];
+                            const Vector4f &b = dom->getMesh()->normals[normals.get<1>()];
+                            const Vector4f &c = dom->getMesh()->normals[normals.get<2>()];
+                            manualNormal = a * u + b * v + c * (1.0f - u - v);
+                            manualNormal = dom->localToWorldNormal(manualNormal);
+                            manualNormal.normalize();
+                        }
+
+                        const Vector4f &normal = manualNormal;
 
                         if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY)
                         {
@@ -214,20 +229,6 @@ struct parallelTraceE
                         std::vector<gvt::render::data::scene::Light*> lights = dom->getLights();
                         for (size_t lindex = 0; lindex < lights.size(); lindex++)
                         {
-
-#if 0
-                            gvt::render::actor::Ray ray(rayPacket[pindex]);
-                            ray.domains.clear();
-                            ray.type = gvt::render::actor::Ray::SHADOW;
-                            float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
-                            float t_shadow = multiplier * ray.t;
-                            ray.origin = ray.origin + ray.direction * t_shadow;
-                            ray.setDirection(lights[lindex]->position - ray.origin);
-                            gvt::render::data::Color c = dom->getMesh()->shade(ray, normal, lights[lindex]);
-                            //gvt::render::data::Color c = dom->getMesh()->shadeFace(ray4.geomID[pindex], ray, normal, lights[lindex]);
-                            ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
-                            localQueue.push_back(ray);
-#else
                             Ray shadow_ray(rayPacket[pindex]);
                             shadow_ray.domains.clear();
                             shadow_ray.type = Ray::SHADOW;
@@ -242,14 +243,11 @@ struct parallelTraceE
                             shadow_ray.t_max = dir.length();
                             dir.normalize();
                             shadow_ray.setDirection(dir);
-                            gvt::render::data::Color c = dom->getMesh()->shadeFace(ray4.geomID[pindex], shadow_ray, normal,
-                                    lights[lindex]);
-                            // Color c = this->mesh->mat->shade(shadow_ray, normal,
-                            // this->lights[lindex]);
-                            shadow_ray.color = GVT_COLOR_ACCUM(1.0f, 1.0, c[1], c[2], 1.0f);
+                            gvt::render::data::Color c = dom->getMesh()->shadeFace(ray4.primID[pindex], shadow_ray, normal, lights[lindex]);
+                            //gvt::render::data::Color c = dom->getMesh()->mat->shade(shadow_ray, normal, lights[lindex]);
+                            shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
                             localQueue.push_back(shadow_ray);
                             //GVT_DEBUG(DBG_ALWAYS, "SHADE_FACE");
-#endif
                         }
 
                         int ndepth = rayPacket[pindex].depth - 1;
