@@ -16,9 +16,9 @@ namespace data {
 
 struct OptixRay {
   float origin[3];
-  //float t_min;
+  float t_min;
   float direction[3];
-  //float t_max;
+  float t_max;
   friend std::ostream &operator<<(std::ostream &os, const OptixRay &r) {
     return (os << "ray  o: " << r.origin[0] << ", " << r.origin[1] << ", "
                << r.origin[2] << " d: " << r.direction[0] << ", "

@@ -243,8 +243,12 @@ endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 if (GVT_RENDER_ADAPTER_EMBREE)
   add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
 	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.h
 		src/gvt/render/adapter/embree/data/Transforms.h
 		src/gvt/render/adapter/embree/Wrapper.h
+		)
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.cpp
 		)
 endif(GVT_RENDER_ADAPTER_EMBREE)
 
@@ -300,8 +304,14 @@ if (GVT_RENDER)
     		)
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
-    	include_directories(${OptiX_INCLUDE})
-	add_library(gvtRender STATIC 
+	include_directories(${OptiX_INCLUDE})
+
+	if (GVT_RENDER_ADAPTER_EMBREE)
+		find_package(Embree REQUIRED)
+		set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
+	endif(GVT_RENDER_ADAPTER_EMBREE)
+
+	add_library(gvtRender STATIC
 		${GVT_CORE_HDRS} 
 		${GVT_CORE_SRCS}
 		${GVT_RENDER_HDRS}
@@ -390,7 +400,20 @@ if (GVT_RENDER_APP)
 			src/apps/render/GVTTrace.cpp
 			src/apps/render/MantaRayTracer.cpp
 			)
-	endif(GVT_RENDER_ADAPTER_MANTA)
+        endif(GVT_RENDER_ADAPTER_MANTA)
+
+	if(GVT_RENDER_ADAPTER_EMBREE)
+		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
+			src/apps/render/ConfigFileLoader.h
+			src/apps/render/EmbreeRayTracer.h
+			)
+
+		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
+			src/apps/render/ConfigFileLoader.cpp
+			src/apps/render/GVTTrace.cpp
+			src/apps/render/EmbreeRayTracer.cpp
+			)
+        endif(GVT_RENDER_ADAPTER_EMBREE)
 
 	add_executable(gvtTracer
 		${GVTAPP_RENDER_HDRS}
