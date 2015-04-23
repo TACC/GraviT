@@ -32,11 +32,10 @@ bool AbstractDomain::intersect(gvt::render::actor::Ray&  r, gvt::render::actor::
 }
 
 
-// TODO : This code is broken
+// TODO : This code assumes non-overlapping domains
 
 void AbstractDomain::marchIn(gvt::render::actor::Ray&  ray) 
 {
-    GVT_ASSERT(false,"TODO: This code is broken");
     gvt::render::data::primitives::Box3D wBox = getWorldBoundingBox();
     float t = FLT_MAX;
     ray.setDirection(-ray.direction);
@@ -48,10 +47,9 @@ void AbstractDomain::marchIn(gvt::render::actor::Ray&  ray)
     ray.setDirection(-ray.direction);
 
 }
-// TODO : This code is broken
+// TODO : This code assumes non-overlapping domains
 void AbstractDomain::marchOut(gvt::render::actor::Ray&  ray) 
 {
-    GVT_ASSERT(false,"TODO: This code is broken");
     gvt::render::data::primitives::Box3D wBox = getWorldBoundingBox();
     float t = FLT_MAX;
     //int i =0;
