@@ -148,7 +148,7 @@ bool OptixDomain::load() {
   GVT_ASSERT(vertices_desc.isValid(), "Vertices are not valid");
   if (!vertices_desc.isValid()) return false;
 
-  vertices_desc->setRange(0, vertices.size());
+  vertices_desc->setRange(0, vertices.size()/3);
   vertices_desc->setStride(sizeof(float) * 3);
 
   // Setup the triangle indices buffer.
@@ -159,7 +159,7 @@ bool OptixDomain::load() {
   GVT_ASSERT(indices_desc.isValid(), "Indices are not valid");
   if (!indices_desc.isValid()) return false;
 
-  indices_desc->setRange(0, faces.size());
+  indices_desc->setRange(0, faces.size()/3);
   indices_desc->setStride(sizeof(int) * 3);
 
   // Create an Optix model.
