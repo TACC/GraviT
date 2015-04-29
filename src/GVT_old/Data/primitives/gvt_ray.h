@@ -40,7 +40,8 @@ namespace GVT {
             friend inline bool operator < (const intersection& lhs, const intersection& rhs ) { return (lhs.d < rhs.d) || ((lhs.d==rhs.d) && (lhs.domain < rhs.domain)); } 
             
         } isecDom;
-        typedef boost::container::vector<isecDom> isecDomList;
+        //typedef boost::container::vector<isecDom> isecDomList;
+        typedef std::vector<isecDom> isecDomList;
 
         
         class ray {

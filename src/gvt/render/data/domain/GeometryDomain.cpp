@@ -33,8 +33,7 @@ void GeometryDomain::free()
 bool GeometryDomain::load() 
 {
     if (isLoaded) return true;
-    if (filename == "") return false;
-
+    GVT_ASSERT(filename == "", "No filename");
     {
       GVT_DEBUG(DBG_LOW,"GeometryDomain::load() loading ply file");
       boost::timer::auto_cpu_timer t;
