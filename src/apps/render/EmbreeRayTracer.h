@@ -3,8 +3,8 @@
 //
 
 
-#ifndef GVTAPPS_RENDER_OPTIX_RAY_TRACER_H
-#define GVTAPPS_RENDER_OPTIX_RAY_TRACER_H
+#ifndef GVTAPPS_RENDER_EMBREE_RAY_TRACER_H
+#define GVTAPPS_RENDER_EMBREE_RAY_TRACER_H
 
 #include <gvt/render/Attributes.h>
 #include <gvt/render/data/Domains.h>
@@ -20,10 +20,10 @@
 namespace gvtapps {
     namespace render {
 
-        class OptixRayTracer
+        class EmbreeRayTracer
         {
         public:
-            OptixRayTracer(gvt::render::data::Dataset* scene);
+            EmbreeRayTracer(gvt::render::data::Dataset* scene);
 
             void RenderImage(std::string);
             gvt::render::actor::RayVector rays;
@@ -63,5 +63,5 @@ namespace gvtapps {
     }
 }
 
-#endif // GVTAPPS_RENDER_OPTIX_RAY_TRACER_H
+#endif // GVTAPPS_RENDER_EMBREE_RAY_TRACER_H
 

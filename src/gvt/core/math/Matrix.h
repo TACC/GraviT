@@ -196,7 +196,7 @@ namespace gvt {
                         i1 = j; // Row with largest pivot candidate
                         for (i = j + 1; i < 3; i++)
                         {
-                            if (abs(a[i][j]) > abs(a[i1][j]))
+                            if (std::abs(a[i][j]) > std::abs(a[i1][j]))
                                 i1 = i;
 
                             // Swap rows i1 and j in a and b to put pivot on diagonal
@@ -520,7 +520,7 @@ namespace gvt {
                         i1 = j; // Row with largest pivot candidate
                         for (i = j + 1; i < 4; i++)
                         {
-                            if (abs(a[i][j]) > abs(a[i1][j])) i1 = i;
+                            if (std::abs(a[i][j]) > std::abs(a[i1][j])) i1 = i;
                         }
 
                         // Swap rows i1 and j in a and b to put pivot on diagonal

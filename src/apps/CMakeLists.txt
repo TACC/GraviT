@@ -1,4 +1,3 @@
 PROJECT(APPS)
 
-
 ADD_SUBDIRECTORY(render)
