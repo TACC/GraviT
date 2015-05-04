@@ -15,30 +15,19 @@
 #include <string>
 #include <vector>
 
-#include "ConfigFileLoader.h"
-#include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
-#include <gvt/render/Schedulers.h>
-#include <gvt/render/data/Primitives.h>
-#include <gvt/render/Attributes.h>
-#include <gvt/render/data/scene/Image.h>
-#include <gvt/render/data/scene/Camera.h>
-//#include <Interface/LightSet.h>
-#include <gvt/render/algorithm/Tracers.h>
-//#include <gvt/render/adapter/manta/Wrapper.h>
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <Frontend/ConfigFile/ConfigFileLoader.h>
+#include <GVT/Data/primitives.h>
+#include <GVT/Environment/RayTracerAttributes.h>
+#include <GVT/Data/scene/Image.h>
+#include <GVT/Environment/Camera.h>
+#include <Interface/LightSet.h>
+#include <GVT/Tracer/tracers.h>
+#include <Backend/Manta/gvtmanta.h>
 
 #include <GL/freeglut.h>
 #define ESCAPE 27
 
 using namespace std;
-using namespace gvtapps::render;
-using namespace gvt::render::adapter::manta::data::domain;
-using namespace gvt::render::data::domain;
-using namespace gvt::render::data::scene;
-using namespace gvt::render::schedule;
-using namespace gvt::core::mpi;
-using namespace gvt::core::math;
 
 // global variables used by glut callbacks.
 //
@@ -46,8 +35,8 @@ GLubyte *imagebuffer;
 static GLint width, height;
 static GLint Height;
 Image *imageptr;
-gvt::render::actor::RayVector rays;
-gvt::render::data::Dataset *sceneptr;
+GVT::Data::RayVector rays;
+GVT::Dataset::GVTDataset *sceneptr;
 int master;
 bool update = false;
 
@@ -56,8 +45,7 @@ bool update = false;
 
 void Render() {
 	rays = sceneptr->camera.MakeCameraRays();
-	gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, (*imageptr))();
-	//GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
+	GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
 }
 
 // ************************* Glut callback  functions ********************************************
@@ -86,7 +74,7 @@ void reshape(int w, int h) {
 }
 
 void specialkey(int key, int x, int y) {
-	Vector4f eye1;
+	GVT::Math::Vector4f eye1;
 	eye1 = sceneptr->camera.getEye();
 	switch(key) {
 	case GLUT_KEY_LEFT: // translate camera left
@@ -144,24 +132,22 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	gvtapps::render::ConfigFileLoader cl(filename);
-//	GVT::Frontend::ConfigFileLoader cl(filename);
+	GVT::Frontend::ConfigFileLoader cl(filename);
 //
 // 	Do Ray Tracing without the explict use of the RayTracer class.
 // 	Because RayTracer.RenderImage() writes a file and I dont want to
 // 	change that class. 
 //
-	gvt::render::data::Dataset* scene(&cl.scene);
+	GVT::Dataset::GVTDataset *scene(&cl.scene);
 	sceneptr = scene;
 	scene->camera.SetCamera(rays,1.0);
-	gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
-	//GVT::Env::RayTracerAttributes& rta = *(GVT::Env::RayTracerAttributes::instance());
-	rta.dataset = new gvt::render::data::Dataset();
+	GVT::Env::RayTracerAttributes& rta = *(GVT::Env::RayTracerAttributes::instance());
+	rta.dataset = new GVT::Dataset::GVTDataset();
 
-	BOOST_FOREACH(AbstractDomain* dom, scene->domainSet) {
-        	GeometryDomain* d = (GeometryDomain*)dom;
-        	d->setLights(scene->lightSet);
-        	rta.dataset->addDomain(new MantaDomain(d));
+	BOOST_FOREACH(GVT::Domain::Domain* dom, scene->domainSet) {
+        	GVT::Domain::GeometryDomain* d = (GVT::Domain::GeometryDomain*)dom;
+        	d->lights = scene->lightSet;
+        	rta.dataset->addDomain(new GVT::Domain::MantaDomain((GVT::Domain::GeometryDomain*)dom));
     	}	
 
     	rta.view.width = scene->camera.getFilmSizeWidth();
@@ -170,10 +156,8 @@ int main(int argc, char* argv[]) {
     	rta.view.focus = scene->camera.getLook();
     	rta.view.up = scene->camera.up;
     	rta.do_lighting = true;
-   	rta.schedule = gvt::render::Attributes::Image;
-    	rta.render_type = gvt::render::Attributes::Manta;
-   	//rta.schedule = GVT::Env::RayTracerAttributes::Image;
-    	//rta.render_type = GVT::Env::RayTracerAttributes::Manta;
+   	rta.schedule = GVT::Env::RayTracerAttributes::Image;
+    	rta.render_type = GVT::Env::RayTracerAttributes::Manta;
 
 	Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(),"spoot");
 	imageptr = &image;

@@ -1,5 +1,5 @@
 PROJECT(MPItrace)
-SET(GVT_APP_MPITRACE OFF CACHE BOOL "Build ConfigFile Backend")
+SET(GVT_APP_MPITRACE ON CACHE BOOL "Build ConfigFile Backend")
 
 IF (GVT_APP_MPITRACE)
 

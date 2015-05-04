@@ -107,7 +107,9 @@ namespace gvt {
                         localQueue.clear();
                         boost::unique_lock<boost::mutex> lock(tracer->raymutex);
                         std::size_t range = std::min(split, rays.size());
-			std::cout << "processRayVector: current_ray " << current_ray << " last ray " << last << " split " << split << " rays.size()" << rays.size() <<std::endl;;
+			
+                        GVT_DEBUG(DBG_ALWAYS,"processRayVector: current_ray " << current_ray << " last ray " << last << " split " << split << " rays.size()" << rays.size());
+
                         localQueue.assign(rays.begin(), rays.begin() + range);
                         rays.erase(rays.begin(), rays.begin() + range);
                         lock.unlock();

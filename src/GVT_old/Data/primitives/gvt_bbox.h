@@ -37,8 +37,10 @@ namespace GVT {
 
                 //TODO: fix this;
 
-                os << bbox.bounds[0] << " x ";
-                os << bbox.bounds[1];
+		// BDS commented 2 lines out because it does not compile. Someone else
+		// will have to fix it. 
+             //   os << bbox.bounds[0] << " x ";
+             //   os << bbox.bounds[1];
                 // return os << bbox.bounds[0] << " : " << bbox.bounds[1];
                 //return os;
                 return os;
