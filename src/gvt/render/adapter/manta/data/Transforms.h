@@ -21,6 +21,7 @@
 #include <Core/Exceptions/InternalError.h>
 #include <Core/Geometry/BBox.h>
 #include <Core/Geometry/Ray.h>
+#include <Core/Geometry/vecdefs.h>
 #include <Interface/Context.h>
 #include <Interface/LightSet.h>
 #include <Interface/MantaInterface.h>

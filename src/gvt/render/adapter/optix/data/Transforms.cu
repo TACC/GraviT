@@ -1,6 +1,6 @@
 #include <cuda.h>
 #include <vector>
-#include <gvt/render/adapter/optix/data/Transforms.h>
+//#include <gvt/render/adapter/optix/data/Transforms.h>
 
 #include <iostream> 
 
