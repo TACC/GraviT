@@ -34,7 +34,8 @@ struct cameraGenerateRays
         int depth = cam->depth;
         RayVector& rays = cam->rays;
         Vector4f eye = cam->eye;
-        Vector4f look = Vector4f(0,0,-1,0);//cam->look; // direction to look
+        //Vector4f look = Vector4f(0,0,-1,0);//cam->look; // direction to look
+        Vector4f look = cam->look; // direction to look
         Vector4f u = cam->u, v = cam->v; // u and v in the 
 //                    int samples = (cam->trcUpSampling * cam->trcUpSampling);
 //
@@ -49,6 +50,7 @@ struct cameraGenerateRays
         const float w = 1.0 / (divider * divider);
         const float buffer_width = cam->getFilmSizeWidth();
         const float buffer_height = cam->getFilmSizeHeight();
+	//std::cerr << " rays : " << u << " : " << v << " : " << look << std::endl;
         Vector4f dir;
         for (int j = start; j < end; j++) 
         {

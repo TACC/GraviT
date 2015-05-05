@@ -30,6 +30,7 @@ namespace gvt {
                         u = gvt::core::math::Vector4f(1, 0, 0, 0);
                         v = gvt::core::math::Vector4f(0, 1, 0, 0);
                         look = gvt::core::math::Vector4f(0, 0, -1, 1);
+			focus = gvt::core::math::Vector4f(0, 0, -1, 1);
                     }
                     
                     void SetCamera(gvt::render::actor::RayVector &rays, float rate);
@@ -86,7 +87,7 @@ namespace gvt {
 
                     void setLook(gvt::core::math::Vector4f &eyePos, gvt::core::math::Vector4f &lookAt, const gvt::core::math::Vector4f &upDir) 
                     {
-                        eye = eyePos; look=lookAt; up = upDir;              
+                        eye = eyePos; look=lookAt; up = upDir; focus=lookAt;              
                         gvt::core::math::Vector3f z = -(lookAt - eyePos).normalize(); // this is where the z axis should end up
                         const gvt::core::math::Vector3f y = upDir; // where the y axis should end up
                         gvt::core::math::Vector3f x = (y ^ z).normalize(); // lah,
@@ -117,6 +118,10 @@ namespace gvt {
                         return eye;
                     }
 
+		    const gvt::core::math::Vector4f& getFocus() const
+		    {
+			return focus;
+		    }
                     const gvt::core::math::Vector4f& getLook() const 
                     {
                         return look;
@@ -131,6 +136,11 @@ namespace gvt {
                     {
                         return v;
                     }
+
+		    const gvt::core::math::Vector4f& getUp() const
+		    {
+		    	return up;
+		    }
 
                     const gvt::core::math::AffineTransformMatrix<float> getMatrix() 
                     {
@@ -251,6 +261,7 @@ namespace gvt {
 
                     gvt::core::math::Vector4f eye;
                     gvt::core::math::Vector4f look; // direction to look
+                    gvt::core::math::Vector4f focus; // focal point
                     gvt::core::math::Vector4f up; // direction to look
                     gvt::core::math::Vector4f u, v; // u and v in the 
 
