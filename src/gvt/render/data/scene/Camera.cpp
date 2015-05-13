@@ -25,7 +25,7 @@ struct cameraGenerateRays
 
     inline float frand() 
     {
-        return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
+        return (((float) rand() / RAND_MAX) - 0.5f) * 2.0f;
     }
 
     void operator()() 
@@ -66,6 +66,7 @@ struct cameraGenerateRays
                         float x = x1 / float(buffer_width) - 0.5;
                         float y = y1 / float(buffer_height) - 0.5;
 
+		//	std::cerr << x1 << " " << y1 << x << " " << y << std::endl;
                         dir = m * ((look + x * u + y * v)).normalize();
 
                         Ray& ray = rays[idx];
