@@ -17,7 +17,7 @@
 #include <gvt/core/Math.h>
 #include <optix_prime/optix_primepp.h>
 
-using namespace optix::prime;
+//using namespace optix::prime;
 namespace gvt {
 namespace render {
 namespace adapter {
@@ -38,9 +38,9 @@ class OptixDomain : public gvt::render::data::domain::GeometryDomain {
   void trace(gvt::render::actor::RayVector& rayList,
              gvt::render::actor::RayVector& moved_rays);
   // optix::prime::Context& optix_context() { return optix_context_; }
-  Context& optix_context() { return optix_context_; }
+  ::optix::prime::Context& optix_context() { return optix_context_; }
   // optix::prime::Model& optix_model() { return optix_model_; }
-  Model& optix_model() { return optix_model_; }
+  ::optix::prime::Model& optix_model() { return optix_model_; }
 
  private:
   gvt::core::math::Vector4f computeNormal(const uint32_t& triangle_id,
@@ -59,9 +59,9 @@ class OptixDomain : public gvt::render::data::domain::GeometryDomain {
                   gvt::render::actor::RayVector& next_list,
                   gvt::render::actor::RayVector& moved_rays);
   // optix::prime::Context optix_context_;
-  Context optix_context_;
+  ::optix::prime::Context optix_context_;
   // optix::prime::Model optix_model_;
-  Model optix_model_;
+  ::optix::prime::Model optix_model_;
   float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); 
   /*              thrust::device_vector<float> _vertices;
                 thrust::device_vector<int> _faces;

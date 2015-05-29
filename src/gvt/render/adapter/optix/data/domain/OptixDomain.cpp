@@ -44,11 +44,11 @@ using namespace gvt::render::adapter::optix::data::domain;
 using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
 
-using optix::prime::BufferDesc;
-using optix::prime::Exception;
-using optix::prime::Context;
-using optix::prime::Model;
-using optix::prime::Query;
+// using optix::prime::BufferDesc;
+// using optix::prime::Exception;
+// using optix::prime::Context;
+// using optix::prime::Model;
+// using optix::prime::Query;
 
 static void gvtRayToOptixRay(const Ray &gvt_ray, OptixRay &optix_ray) {
   optix_ray.origin[0] = gvt_ray.origin[0];
@@ -102,7 +102,7 @@ bool OptixDomain::load() {
     this->mesh->generateNormals();
 
   // Create an Optix context to use.
-  optix_context_ = Context::create(RTP_CONTEXT_TYPE_CUDA);
+  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
   if (!optix_context_.isValid()) return false;
 
@@ -141,7 +141,7 @@ bool OptixDomain::load() {
     faces.push_back(f.get<1>());
     faces.push_back(f.get<2>());
   }
-  BufferDesc vertices_desc;
+  ::optix::prime::BufferDesc vertices_desc;
   vertices_desc = optix_context_->createBufferDesc(
       RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
 
@@ -152,7 +152,7 @@ bool OptixDomain::load() {
   vertices_desc->setStride(sizeof(float) * 3);
 
   // Setup the triangle indices buffer.
-  BufferDesc indices_desc;
+  ::optix::prime::BufferDesc indices_desc;
   indices_desc = optix_context_->createBufferDesc(
       RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST, &faces[0]);
 
@@ -195,15 +195,15 @@ void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
       chunk.swap(ray_list);
       traceChunk(chunk, ray_list, moved_rays);
     }
-  } catch (const Exception &e) {
-    GVT_ASSERT(false, e.getErrorString());
+  } catch (const std::exception &e) {
+    GVT_ASSERT(false, e.what());
   }
 }
 
 void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
                              RayVector &moved_rays) {
   // Create our query.
-  Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
+  ::optix::prime::Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
   if (!query.isValid()) return;
 
   // Format GVT rays for Optix and give Optix an array of rays.
