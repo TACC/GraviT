@@ -17,7 +17,7 @@ namespace gvtapps {
     namespace render {
 
 /// GVT configuration file loader
-/** Load geometric data from a gvt configuration file. The configuration file contains "scene" information such as camera descriptions, lights, 
+/** Load scene data from a gvt configuration file. The configuration file contains "scene" information such as camera descriptions, lights, 
  * and descriptions of geometric objects in the scene. The components are loaded into a render dataset object. The config file that is read 
  * by this class also contains information on which renderer to use. Back end renderers such as Optix and Manta do the actual ray-geometry 
  * intersections. The configuration file loader also adapts to object types and uses the appropriate reader class to parse the geometric
