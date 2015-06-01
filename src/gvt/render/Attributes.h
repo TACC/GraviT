@@ -5,9 +5,11 @@
 #ifndef GVT_RENDER_ATTRIBUTES_H
 #define GVT_RENDER_ATTRIBUTES_H
 
+#include <gvt/core/Math.h>
+#include <gvt/core/Types.h>
+#include <gvt/render/Context.h>
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Primitives.h>
-#include <gvt/core/Math.h>
 
 #include <iostream>
 
@@ -59,7 +61,7 @@ namespace gvt {
                 Volume,
                 Surface,
                 Manta,
-		Optix
+		        Optix
             };
 
             enum ScheduleType 

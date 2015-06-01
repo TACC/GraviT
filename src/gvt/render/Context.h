@@ -13,7 +13,10 @@ namespace gvt {
 
 			static Context* singleton();
 
-			virtual DBNodeH createNodeFromType(String type, String name, Uuid parent = nil_uuid());
+			virtual gvt::core::DBNodeH createNodeFromType(gvt::core::String type, 
+														  gvt::core::String name, 
+														  gvt::core::Uuid parent = gvt::core::nil_uuid()
+														  );
 		};
 	}
 }
