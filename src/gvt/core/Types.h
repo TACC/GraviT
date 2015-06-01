@@ -16,7 +16,7 @@ namespace gvt {
 	namespace core {
 		typedef std::string String;
                 typedef boost::uuids::uuid Uuid;
-                typedef boost::variant<int,long,float,double,bool,String,Uuid,gvt::core::math::Vector4d> Variant;
+                typedef boost::variant<int,long,float,double,bool,String,Uuid,gvt::core::math::Vector4f,gvt::core::math::Point4f> Variant;
                 template <class T> using Vector = boost::container::vector<T>;
                 template <class K, class V> using Map = boost::container::map<K, V>;
 
@@ -31,7 +31,8 @@ namespace gvt {
                 inline bool variant_toBoolean(Variant v) { return boost::get<bool>(v); }
                 inline String variant_toString(Variant v) { return boost::get<String>(v); }
                 inline Uuid variant_toUuid(Variant v) { return boost::get<Uuid>(v); }
-                inline gvt::core::math::Vector4d variant_toVector4d(Variant v) { return boost::get<gvt::core::math::Vector4d>(v); }
+                inline gvt::core::math::Vector4f variant_toVector4f(Variant v) { return boost::get<gvt::core::math::Vector4f>(v); }
+                inline gvt::core::math::Point4f variant_toPoint4f(Variant v) { return boost::get<gvt::core::math::Point4f>(v); }
 	}
 }
 
