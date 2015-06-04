@@ -1,0 +1,1 @@
+/usr/bin/c++   -g    CMakeFiles/test_loader.dir/test.cc.o  -o test_loader -rdynamic libtinyobjloader.a 

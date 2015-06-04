@@ -34,6 +34,8 @@ using namespace gvt::render::schedule;
 MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene) 
 {
     scene->camera.SetCamera(rays,1.0);
+	// uncomment this line to use gvtcamera
+	//scene->GVTCamera.SetCamera(rays,1.0);
     
     gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
     
@@ -48,20 +50,27 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
     }
     
     
+	// uncomment the following 2 lines to use gvtcamera 
+    //rta.view.width = scene->GVTCamera.getFilmSizeWidth();
+    //rta.view.height = scene->GVTCamera.getFilmSizeHeight();
+    //
+    // older camera setup. Comment out next two lines if using gvtcamera
     rta.view.width = scene->camera.getFilmSizeWidth();
     rta.view.height = scene->camera.getFilmSizeHeight();
-    rta.view.camera = scene->camera.getEye();
-    rta.view.focus = scene->camera.getLook();
-    rta.view.up = scene->camera.up;
+    // 
+    // the following rta variables never seem to be used commenting out
+    //rta.view.camera = scene->camera.getEye();
+    //rta.view.focus = scene->camera.getLook();
+    //rta.view.up = scene->camera.up;
     
-    rta.sample_rate = 1.0f;
-    rta.sample_ratio = 1.0f;
+    //rta.sample_rate = 1.0f;
+    //rta.sample_ratio = 1.0f;
     
-    rta.do_lighting = true;
-    rta.schedule = gvt::render::Attributes::Image;
-    rta.render_type = gvt::render::Attributes::Manta;
+    //rta.do_lighting = true;
+    //rta.schedule = gvt::render::Attributes::Image;
+    //rta.render_type = gvt::render::Attributes::Manta;
     
-    rta.datafile = "";
+    //rta.datafile = "";
 }
 
 void MantaRayTracer::RenderImage(std::string imagename = "mpitrace") 
@@ -69,9 +78,16 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
     
     boost::timer::auto_cpu_timer t("Total render time: %t\n");
     
+	// comment out the following 3 lines to use gvt camera
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
     gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();  
+    //
+    // uncomment the following 4 lines to use gvt camera. comment out to use original camera
+//	Image image(scene->GVTCamera.getFilmSizeWidth(),scene->GVTCamera.getFilmSizeHeight(), imagename);
+//	scene->GVTCamera.AllocateCameraRays();
+//	scene->GVTCamera.generateRays();
+//	gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(scene->GVTCamera.rays, image)();
     image.Write();
     
     //Example code. Too complex.

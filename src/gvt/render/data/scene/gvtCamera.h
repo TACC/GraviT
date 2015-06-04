@@ -17,7 +17,10 @@ namespace gvt {
 			/// gvtCameraBase - A base class for GraviT cameras.
 			/** The base class contains all the methods and variables common
 			 *  to all cameras in GraviT. The camera class maintains all the camera state. It
-			 *  also contains the vector of primary rays. */
+			 *  also contains the vector of primary rays. An affine transformation matrix is
+			 *  maintained that transforms from camera to world and from world to camera coordinate
+			 *  systems. Left handed coordinate systems are assumed for both. */
+
 			class gvtCameraBase
 			{
 			public:
@@ -76,7 +79,9 @@ namespace gvt {
 
 			/// gvtPerspectiveCamera - a camera that produces a perspective view
 			/** This camera produces a perspective view of the world. The field of view is the 
-			 *  angle subtended by the film plane width from the eye point. 
+			 *  angle subtended by the film plane width from the eye point. This class has methods
+			 *  to allocate rays and to initialize or generate the primary ray set based on the 
+			 *  camera state. 
 			 */
 			class gvtPerspectiveCamera: public gvtCameraBase
 			{
