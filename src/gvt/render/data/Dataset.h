@@ -10,6 +10,7 @@
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Camera.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/data/scene/Light.h>
 
 #include <algorithm>
@@ -41,6 +42,7 @@ namespace gvt {
             public:
                 gvt::render::data::primitives::Box3D                        dataSetBB;
                 gvt::render::data::scene::Camera                            camera;
+                gvt::render::data::scene::gvtPerspectiveCamera              GVTCamera;
                 std::vector<gvt::render::data::domain::AbstractDomain*>     domainSet;
                 std::vector<gvt::render::data::scene::Light*>               lightSet; 
             };

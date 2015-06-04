@@ -25,7 +25,7 @@ struct cameraGenerateRays
 
     inline float frand() 
     {
-        return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
+        return (((float) rand() / RAND_MAX) - 0.5f) * 2.0f;
     }
 
     void operator()() 
@@ -34,7 +34,8 @@ struct cameraGenerateRays
         int depth = cam->depth;
         RayVector& rays = cam->rays;
         Vector4f eye = cam->eye;
-        Vector4f look = Vector4f(0,0,-1,0);//cam->look; // direction to look
+        //Vector4f look = Vector4f(0,0,-1,0);//cam->look; // direction to look
+        Vector4f look = cam->look; // direction to look
         Vector4f u = cam->u, v = cam->v; // u and v in the 
 //                    int samples = (cam->trcUpSampling * cam->trcUpSampling);
 //
@@ -49,6 +50,7 @@ struct cameraGenerateRays
         const float w = 1.0 / (divider * divider);
         const float buffer_width = cam->getFilmSizeWidth();
         const float buffer_height = cam->getFilmSizeHeight();
+	//std::cerr << " rays : " << u << " : " << v << " : " << look << std::endl;
         Vector4f dir;
         for (int j = start; j < end; j++) 
         {
@@ -64,6 +66,7 @@ struct cameraGenerateRays
                         float x = x1 / float(buffer_width) - 0.5;
                         float y = y1 / float(buffer_height) - 0.5;
 
+		//	std::cerr << x1 << " " << y1 << x << " " << y << std::endl;
                         dir = m * ((look + x * u + y * v)).normalize();
 
                         Ray& ray = rays[idx];

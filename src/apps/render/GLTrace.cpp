@@ -25,8 +25,8 @@
 #include <gvt/render/data/scene/Camera.h>
 //#include <Interface/LightSet.h>
 #include <gvt/render/algorithm/Tracers.h>
-//#include <gvt/render/adapter/manta/Wrapper.h>
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/manta/Wrapper.h>
+//#include <gvt/render/adapter/optix/Wrapper.h>
 
 #include <GL/freeglut.h>
 #define ESCAPE 27
@@ -86,21 +86,36 @@ void reshape(int w, int h) {
 }
 
 void specialkey(int key, int x, int y) {
-	Vector4f eye1;
+	Vector4f eye1,focus,up1;
 	eye1 = sceneptr->camera.getEye();
+	//focus = sceneptr->camera.getFocus();
+	up1   = sceneptr->camera.getUp();
 	switch(key) {
 	case GLUT_KEY_LEFT: // translate camera left
-		eye1[0] = eye1[0] - 0.05;
+		eye1[0]  = eye1[0]  - 0.05;
+		//focus[0] = focus[0] - 0.05;
 		update = true;
 		break;
 	case GLUT_KEY_RIGHT: // translate camera right
-		eye1[0] = eye1[0] + 0.05;
+		eye1[0]  = eye1[0]  + 0.05;
+		//focus[0] = focus[0] + 0.05;
+		update = true;
+		break;
+	case GLUT_KEY_UP: // translate camera right
+		eye1[1]  = eye1[1]  + 0.05;
+		//focus[0] = focus[0] + 0.05;
+		update = true;
+		break;
+	case GLUT_KEY_DOWN: // translate camera right
+		eye1[1]  = eye1[1]  - 0.05;
+		//focus[0] = focus[0] + 0.05;
 		update = true;
 		break;
 	default:
 		break;
 	}
 	sceneptr->camera.setEye(eye1);
+	//sceneptr->camera.setLook(eye1,focus,up1);
 	glutPostRedisplay();
 }
 

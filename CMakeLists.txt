@@ -34,9 +34,9 @@ option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
-	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
+	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" ON)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
-	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF )
+	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
 endif(GVT_RENDER) 
 
 
@@ -77,6 +77,12 @@ find_package(GLM REQUIRED)
 if (GLM_FOUND)
     include_directories(${GLM_INCLUDE_DIRS})
 endif(GLM_FOUND)
+
+set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
+find_path(TINYOBJPATH "tiny_obj_loader.h" ${GVT_THIRDPARTY_TOBJ})
+if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
+	MESSAGE(SEND_ERRORS "tiny obj reader not found")
+endif (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -164,6 +170,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/primitives/Material.h
 	src/gvt/render/data/primitives/Mesh.h
 	src/gvt/render/data/scene/Camera.h
+	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
 	src/gvt/render/data/scene/Image.h
@@ -199,6 +206,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
 	src/gvt/render/data/scene/Camera.cpp
+	src/gvt/render/data/scene/gvtCamera.cpp
 	src/gvt/render/data/scene/ColorAccumulator.cpp
 	src/gvt/render/data/scene/Image.cpp
 	src/gvt/render/data/scene/Light.cpp
@@ -372,11 +380,13 @@ endif(GVT_GLRENDER_APP)
 
 if (GVT_RENDER_APP)
     find_package(MPI REQUIRED)
-    include_directories(${MPI_INCLUDE_PATH})
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES})
+    include_directories(${MPI_INCLUDE_PATH} ${TINYOBJPATH})
+    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES}
+${TINYOBJPATH}/libtinyobjloader.a)
 
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
+
     set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${Boost_LIBRARIES})
 
 	if(GVT_RENDER_ADAPTER_OPTIX_PRIME) 
