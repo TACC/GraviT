@@ -25,7 +25,7 @@
 #endif
 
 #ifdef USE_TAU
-#include <tau.h>
+#include <TAU.h>
 #endif
 
 using namespace gvtapps::render;

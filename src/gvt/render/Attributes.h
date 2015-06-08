@@ -14,7 +14,7 @@
 #include <iostream>
 
 #ifdef USE_TAU
-#include <tau.h>
+#include <TAU.h>
 #endif
 
 namespace gvt {

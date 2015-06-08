@@ -6,7 +6,7 @@
 #include <gvt/render/Attributes.h>
 
 #ifdef USE_TAU
-#include <tau.h>
+#include <TAU.h>
 #endif
 
 using namespace gvt::render;
