@@ -164,9 +164,9 @@ void gvtPerspectiveCamera::generateRays() {
 			ray.w      = 1.0; // ray weight 1 for no subsamples. mod later
 			ray.origin = eye_point;
 			ray.type   = Ray::PRIMARY;
-			// calculate scale factors
-			x = float(i)/float(buffer_width - 1) - 0.5; 
-			y = float(j)/float(buffer_height - 1) - 0.5; 
+			// calculate scale factors -1.0 < x,y < 1.0
+			x = 2.0*float(i)/float(buffer_width - 1) - 1.0; 
+			y = 2.0*float(j)/float(buffer_height - 1) - 1.0; 
 			// calculate ray direction in camera space;
 			camera_space_ray_direction = camera_normal_basis_vector + x*camera_horiz_basis_vector + y*camera_vert_basis_vector;
 			// transform ray to world coordinate space;

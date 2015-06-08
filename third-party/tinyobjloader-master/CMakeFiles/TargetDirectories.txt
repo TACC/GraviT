@@ -1,0 +1,3 @@
+/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/CMakeFiles/obj_sticher.dir
+/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/CMakeFiles/test_loader.dir
+/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/CMakeFiles/tinyobjloader.dir
