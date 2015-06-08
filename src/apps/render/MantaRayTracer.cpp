@@ -38,7 +38,7 @@ using namespace gvt::render::schedule;
 MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
 #ifdef USE_TAU
-  tau_start("MantaRayTracer::MantaRayTracer");
+  TAU_START("MantaRayTracer::MantaRayTracer");
 #endif
     scene->camera.SetCamera(rays,1.0);
 	// uncomment this line to use gvtcamera
@@ -79,7 +79,7 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 
     //rta.datafile = "";
 #ifdef USE_TAU
-  tau_stop("MantaRayTracer::MantaRayTracer");
+  TAU_STOP("MantaRayTracer::MantaRayTracer");
 #endif
 
 }
@@ -87,7 +87,7 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
 #ifdef USE_TAU
-  tau_start("MantaRayTracer::RenderImage");
+  TAU_START("MantaRayTracer::RenderImage");
 #endif
 
     boost::timer::auto_cpu_timer t("Total render time: %t\n");
@@ -189,7 +189,7 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 //        image.Write();
 //    }
 #ifdef USE_TAU
-  tau_stop("MantaRayTracer::RenderImage");
+  TAU_STOP("MantaRayTracer::RenderImage");
 #endif
 };
 

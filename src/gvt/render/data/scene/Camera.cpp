@@ -15,14 +15,14 @@ using namespace std;
 void Camera::SetCamera(RayVector &rays, float rate)
 {
 #ifdef USE_TAU
-  tau_start("render:data:scene:Camera::SetCamera");
+  TAU_START("render:data:scene:Camera::SetCamera");
 #endif
 
     this->rays = rays;
     this->rate = rate;
     this->trcUpSampling = 1;
 #ifdef USE_TAU
-  tau_stop("render:data:scene:Camera::SetCamera");
+  TAU_STOP("render:data:scene:Camera::SetCamera");
 #endif
 
 
@@ -31,7 +31,7 @@ void Camera::SetCamera(RayVector &rays, float rate)
 struct cameraGenerateRays
 {
 #ifdef USE_TAU
-  tau_start("render:data:scene:cameraGenerateRays");
+  TAU_START("render:data:scene:cameraGenerateRays");
 #endif
     Camera* cam;
     size_t start, end;
@@ -104,7 +104,7 @@ struct cameraGenerateRays
 RayVector& Camera::MakeCameraRays()
 {
 #ifdef USE_TAU
-  tau_start("render:data:scene:Camera::MakeCameraRays");
+  TAU_START("render:data:scene:Camera::MakeCameraRays");
 #endif
     trcUpSampling = 1;
     depth = 0;
@@ -135,7 +135,7 @@ RayVector& Camera::MakeCameraRays()
     GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
     return rays;
 #ifdef USE_TAU
-  tau_stop("render:data:scene:Camera::MakeCameraRays");
+  TAU_STOP("render:data:scene:Camera::MakeCameraRays");
 #endif
 
 }
