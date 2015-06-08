@@ -13,20 +13,24 @@
 
 #include <iostream>
 
+#ifdef USE_TAU
+#include <tau.h>
+#endif
+
 namespace gvt {
     namespace render {
 
         class Attributes {
         public:
 
-            static Attributes* rta;            
-            
+            static Attributes* rta;
+
             class View {
             public:
 
                 View() {}
 
-                View(const View& v) 
+                View(const View& v)
                 {
                     width = v.width;
                     height = v.height;
@@ -56,7 +60,7 @@ namespace gvt {
                 float farPlane;
             };
 
-            enum RenderType 
+            enum RenderType
             {
                 Volume,
                 Surface,
@@ -64,7 +68,7 @@ namespace gvt {
 		        Optix
             };
 
-            enum ScheduleType 
+            enum ScheduleType
             {
                 Image,
                 Domain,
@@ -82,58 +86,58 @@ namespace gvt {
             Attributes(std::string&, View&, RenderType, ScheduleType, float, float, float*);
             ~Attributes();
 
-            
-            static Attributes* instance() 
+
+            static Attributes* instance()
             {
                 if(!rta) rta = new Attributes();
                 return rta;
             }
-            
-            
-            bool LoadDataset() 
-            {            
+
+
+            bool LoadDataset()
+            {
                 GVT_DEBUG(DBG_ALWAYS,"Sent load");
                 return dataset->init();
             }
 
-            ScheduleType GetSchedule() 
+            ScheduleType GetSchedule()
             {
                 return schedule;
             }
 
-            unsigned char* GetTransferFunction() 
+            unsigned char* GetTransferFunction()
             {
                 return transfer_func;
             }
 
-            int* GetTopology() 
+            int* GetTopology()
             {
                 return topology;
             }
 
-            void GetVarExtents(float& vmin, float& vmax) 
+            void GetVarExtents(float& vmin, float& vmax)
             {
                 vmin = 1.09554;
                 vmax = 5.88965;
             } // XXX TODO: hacked for noise.conf
 
-            void GetOpacityExtents(float& omin, float& omax) 
+            void GetOpacityExtents(float& omin, float& omax)
             {
                 omin = 1.09554;
                 omax = 5.88965;
             } // XXX TODO: hacked for noise.conf
 
-            void SetLightingFlag(bool doit) 
+            void SetLightingFlag(bool doit)
             {
                 do_lighting = doit;
             }
 
-            bool GetLightingFlag() 
+            bool GetLightingFlag()
             {
                 return do_lighting;
             }
 
-            float GetReflectivityThreshold() 
+            float GetReflectivityThreshold()
             {
                 return 1.;
             }
@@ -156,7 +160,7 @@ namespace gvt {
             bool do_lighting;
 
         };
-        
+
         typedef Attributes RTA;
     }
 }

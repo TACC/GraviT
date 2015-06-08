@@ -5,6 +5,10 @@
 
 #include <gvt/render/Attributes.h>
 
+#ifdef USE_TAU
+#include <tau.h>
+#endif
+
 using namespace gvt::render;
 
 #define HACK_TRANSFER_FUNC                     \
@@ -27,7 +31,7 @@ using namespace gvt::render;
 
 Attributes* Attributes::rta = NULL;
 
-Attributes::Attributes() 
+Attributes::Attributes()
 {
     // topology should be defined in config file
     topology[0] = -1;
@@ -40,16 +44,16 @@ Attributes::Attributes()
     do_lighting = false;
 }
 
-Attributes::Attributes(std::string& datafile_, View& view_, RenderType rt = Volume, ScheduleType st = Image, 
+Attributes::Attributes(std::string& datafile_, View& view_, RenderType rt = Volume, ScheduleType st = Image,
     float rate = 1.f, float ratio = 1.f, float* topo = NULL)
-    : view(view_), render_type(rt), schedule(st), sample_rate(rate), sample_ratio(ratio) 
+    : view(view_), render_type(rt), schedule(st), sample_rate(rate), sample_ratio(ratio)
 {
-    if(rta != NULL) 
+    if(rta != NULL)
     {
         delete rta;
     }
     rta = this;
-    if (topo != NULL) 
+    if (topo != NULL)
     {
         topology[0] = topo[0];
         topology[1] = topo[1];
@@ -59,13 +63,13 @@ Attributes::Attributes(std::string& datafile_, View& view_, RenderType rt = Volu
     do_lighting = false;
 }
 
-Attributes::~Attributes() 
+Attributes::~Attributes()
 {
     delete[] transfer_func;
 }
 
 namespace gvt { namespace render {
-std::ostream& operator<<(std::ostream& os, Attributes::View const& vi) 
+std::ostream& operator<<(std::ostream& os, Attributes::View const& vi)
 {
     os << vi.width << " x " << vi.height << ", " << vi.view_angle << " angle\n";
     os << "camera: " << vi.camera[0] << " " << vi.camera[1] << " " << vi.camera[2] << "\n";
@@ -75,7 +79,7 @@ std::ostream& operator<<(std::ostream& os, Attributes::View const& vi)
     return os;
 }
 
-std::istream& operator>>(std::istream& is, Attributes::View& vi) 
+std::istream& operator>>(std::istream& is, Attributes::View& vi)
 {
     is >> vi.width >> vi.height;
     is >> vi.view_angle;
@@ -85,7 +89,7 @@ std::istream& operator>>(std::istream& is, Attributes::View& vi)
     return is;
 }
 
-std::ostream& operator<<(std::ostream& os, Attributes const& rta) 
+std::ostream& operator<<(std::ostream& os, Attributes const& rta)
 {
     os << rta.view;
     os << "render type: ";
@@ -148,22 +152,22 @@ std::ostream& operator<<(std::ostream& os, Attributes const& rta)
     return os;
 }
 
-std::istream& operator>>(std::istream& is, Attributes& rta) 
+std::istream& operator>>(std::istream& is, Attributes& rta)
 {
     is >> rta.view;
 
     std::string rt;
     is >> rt;
-    if (rt.find("Volume") != std::string::npos) 
+    if (rt.find("Volume") != std::string::npos)
     {
         rta.render_type = Attributes::Volume;
-    } else if (rt.find("Surface") != std::string::npos) 
+    } else if (rt.find("Surface") != std::string::npos)
     {
         rta.render_type = Attributes::Surface;
-    } else if (rt.find("Manta") != std::string::npos) 
+    } else if (rt.find("Manta") != std::string::npos)
     {
         rta.render_type = Attributes::Manta;
-    } else 
+    } else
     {
         GVT_DEBUG(DBG_ALWAYS,"Unknown render type '" << rt << "', defaulting to Volume");
         rta.render_type = Attributes::Volume;
@@ -191,7 +195,7 @@ std::istream& operator>>(std::istream& is, Attributes& rta)
         rta.schedule = Attributes::LoadAnother;
     else if (sch.find("LoadMany") != std::string::npos)
         rta.schedule = Attributes::LoadMany;
-    else 
+    else
     {
         GVT_DEBUG(DBG_ALWAYS,"Unknown schedule '" << sch << "', defaulting to Image");
         rta.schedule = Attributes::Image;
@@ -201,7 +205,7 @@ std::istream& operator>>(std::istream& is, Attributes& rta)
 
     is >> rta.topology[0] >> rta.topology[1] >> rta.topology[2];
 
-    
+
     is >> rta.datafile;
 
     return is;

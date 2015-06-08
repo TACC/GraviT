@@ -17,6 +17,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef USE_TAU
+#include <tau.h>
+#endif
+
 using namespace gvtapps::render;
 using namespace gvt::core::mpi;
 using namespace gvt::render::adapter::embree::data::domain;
@@ -26,6 +30,9 @@ using namespace gvt::render::schedule;
 
 EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
+#ifdef USE_TAU
+  tau_start("EmbreeRayTracer::EmbreeRayTracer");
+#endif
     std::cout << "constructing embree ray tracer" << std::endl;
     scene->camera.SetCamera(rays,1.0);
 
@@ -58,12 +65,21 @@ EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scen
     rta.render_type = gvt::render::Attributes::Manta;
 
     rta.datafile = "";
-    
+
     std::cout << "finished constructing EmbreeRayTracer" << std::endl;
+#ifdef USE_TAU
+  tau_stop("EmbreeRayTracer::EmbreeRayTracer");
+#endif
+
 }
 
 void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
+#ifdef USE_TAU
+  tau_start("EmbreeRayTracer::RenderImage");
+#endif
+
+
     std::cout << "rendering image: " << imagename << std::endl;
 
     boost::timer::auto_cpu_timer t("Total render time: %t\n");
@@ -80,6 +96,9 @@ void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 
     std::cout << "writing image to disk" << std::endl;
     image.Write();
+#ifdef USE_TAU
+  tau_start("EmbreeRayTracer::RenderImage");
+#endif
 
 };
 
