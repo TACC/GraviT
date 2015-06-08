@@ -3,7 +3,7 @@
 #include <gvt/core/Math.h>
 
 #ifdef USE_TAU
-#include <tau.h>
+#include <TAU.h>
 #endif
 
 
