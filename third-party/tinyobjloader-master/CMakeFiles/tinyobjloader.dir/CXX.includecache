@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/tiny_obj_loader.cc
+/home/jbarbosa/TACC/gravit/third-party/tinyobjloader-master/tiny_obj_loader.cc
 cstdlib
 -
 cstring
@@ -26,9 +26,9 @@ fstream
 sstream
 -
 tiny_obj_loader.h
-/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/tiny_obj_loader.h
+/home/jbarbosa/TACC/gravit/third-party/tinyobjloader-master/tiny_obj_loader.h
 
-/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/tiny_obj_loader.h
+/home/jbarbosa/TACC/gravit/third-party/tinyobjloader-master/tiny_obj_loader.h
 string
 -
 vector

@@ -81,7 +81,7 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 	// comment out the following 3 lines to use gvt camera
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
-    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();  
+    gvt::render::algorithm::Tracer<ImageScheduler>(rays, image)();  
     //
     // uncomment the following 4 lines to use gvt camera. comment out to use original camera
 //	Image image(scene->GVTCamera.getFilmSizeWidth(),scene->GVTCamera.getFilmSizeHeight(), imagename);

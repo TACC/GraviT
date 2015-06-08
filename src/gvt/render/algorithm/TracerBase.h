@@ -42,6 +42,7 @@ struct GVT_COMM {
         world_size(MPI::COMM_WORLD.Get_size()) {}
 
   operator bool() { return (world_size > 1); }
+  bool root() { return rank == 0; }
 };
 
 struct processRay;
@@ -59,8 +60,8 @@ class AbstractTrace {
 
   boost::mutex raymutex;
   boost::mutex* queue_mutex;
-  std::map<int, gvt::render::actor::RayVector>
-      queue;  ///< Node rays working queue
+  std::map<int, gvt::render::actor::RayVector> queue;  ///< Node rays working
+  /// queue
   // std::map<int, std::mutex> queue;
   // buffer for color accumulation
   boost::mutex* colorBuf_mutex;
@@ -83,12 +84,14 @@ class AbstractTrace {
     }
   }
 
-  virtual ~AbstractTrace(){
+  virtual ~AbstractTrace() {
       // delete queue_mutex;
       // delete colorBuf;
       // delete colorBuf_mutex;
   };
-  virtual void operator()(void) { GVT_ASSERT_BACKTRACE(0, "Not supported"); };
+  virtual void operator()(void) {
+    GVT_ASSERT_BACKTRACE(0, "Not supported");
+  };
 
   virtual void FilterRaysLocally(void) {
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
@@ -98,15 +101,17 @@ class AbstractTrace {
   /***
   *   Given a queue of rays:
   *     - Moves the ray to the next domain on the list
-  *     - 
+  *     -
   *
   */
 
-  virtual void shuffleRays(gvt::render::actor::RayVector& rays, gvt::render::data::domain::AbstractDomain* dom = NULL) {
+  virtual void shuffleRays(
+      gvt::render::actor::RayVector& rays,
+      gvt::render::data::domain::AbstractDomain* dom = NULL) {
 
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
 
-    int nchunks = 1; //std::thread::hardware_concurrency();
+    int nchunks = 1;  // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
     std::vector<std::pair<int, int>> chunks;
     std::vector<std::future<void>> futures;
@@ -117,7 +122,7 @@ class AbstractTrace {
     int ii = nchunks - 1;
     chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
     for (auto limit : chunks) {
-      GVT_DEBUG(DBG_ALWAYS,"Limits : " << limit.first << ", " << limit.second);
+      GVT_DEBUG(DBG_ALWAYS, "Limits : " << limit.first << ", " << limit.second);
       futures.push_back(std::async(std::launch::deferred, [&]() {
         int chunk = limit.second - limit.first;
         std::map<int, gvt::render::actor::RayVector> local_queue;
@@ -125,20 +130,22 @@ class AbstractTrace {
         local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
         for (gvt::render::actor::Ray& r : local) {
           gvt::render::actor::isecDomList& len2List = r.domains;
-          
+
           if (len2List.empty() && dom) dom->marchOut(r);
 
           if (len2List.empty()) {
             gvt::render::Attributes::rta->dataset->intersect(r, len2List);
           }
-          
+
           if (!len2List.empty()) {
             int firstDomainOnList = (*len2List.begin());
             len2List.erase(len2List.begin());
             local_queue[firstDomainOnList].push_back(r);
 
-          } else if(dom) {
-            boost::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % gvt::render::Attributes::instance()->view.width]);
+          } else if (dom) {
+            boost::mutex::scoped_lock fbloc(
+                colorBuf_mutex
+                    [r.id % gvt::render::Attributes::instance()->view.width]);
             for (int i = 0; i < 3; i++)
               colorBuf[r.id].rgba[i] += r.color.rgba[i];
             colorBuf[r.id].rgba[3] = 1.f;
@@ -150,10 +157,10 @@ class AbstractTrace {
           GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
                                        << q.first << " width size "
                                        << queue[q.first].size());
-          queue[q.first].insert(queue[q.first].end(), q.second.begin(),
-                                q.second.end());
+          queue[q.first]
+              .insert(queue[q.first].end(), q.second.begin(), q.second.end());
         }
-     }));
+      }));
     }
     rays.clear();
     for (auto& f : futures) f.wait();
@@ -165,11 +172,7 @@ class AbstractTrace {
     const size_t size = gvt::render::Attributes::rta->view.width *
                         gvt::render::Attributes::rta->view.height;
 
-
-    for (int i = 0; i < size; i++)
-          image.Add(i, colorBuf[i]);
-
-
+    for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
 
     // int nchunks = std::thread::hardware_concurrency() * 2;
     // int chunk_size = size / nchunks;
@@ -181,9 +184,10 @@ class AbstractTrace {
     // }
     // int ii = nchunks - 1;
     // chunks.push_back(std::make_pair(ii * chunk_size, size));
-    
+
     // for (auto limit : chunks) {
-    //   GVT_DEBUG(DBG_ALWAYS,"Limits : " << limit.first << ", " << limit.second);
+    //   GVT_DEBUG(DBG_ALWAYS,"Limits : " << limit.first << ", " <<
+    // limit.second);
     //   futures.push_back(std::async(std::launch::deferred, [&]() {
     //     for (int i = limit.first; i < limit.second; i++)
     //       image.Add(i, colorBuf[i]);
@@ -196,50 +200,100 @@ class AbstractTrace {
   }
 
   virtual void gatherFramebuffers(int rays_traced) {
-    localComposite();
+
+    // localComposite();
+
+    // unsigned char* rgb = this->image.GetBuffer();
+
+    // int rgb_buf_size = 3 * gvt::render::Attributes::rta->view.width *
+    //                    gvt::render::Attributes::rta->view.height;
+
+    // unsigned char* bufs = (mpi.rank == 0)
+    //                           ? new unsigned char[mpi.world_size *
+    // rgb_buf_size]
+    //                           : NULL;
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size,
+    //            MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+
+    // // XXX TODO: find a better way to merge the color buffers
+    // if (mpi.rank == 0) {
+    //   // merge into root proc rgb
+
+    //   GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");
+    //   for (int i = 1; i < mpi.world_size; ++i) {
+    //     for (int j = 0; j < rgb_buf_size; j += 3) {
+    //       int p = i * rgb_buf_size + j;
+    //       // assumes black background, so adding is fine (r==g==b== 0)
+    //       rgb[j + 0] += bufs[p + 0];
+    //       rgb[j + 1] += bufs[p + 1];
+    //       rgb[j + 2] += bufs[p + 2];
+    //       // GVT_DEBUG(DBG_ALWAYS,"r:" << rgb[j + 0]  << " g:"<< rgb[j + 1]
+    // << "
+    //       // b:" << rgb[j + 2]  );
+    //     }
+    //   }
+
+    //   // clean up
+    // }
+
+    // DEBUG(if (DEBUG_RANK) cerr << mpi.rank << ": rgb buffer merge done"
+    //                            << endl);
+
+    // delete[] bufs;
+
+    for (int i = 0; i < gvt::render::Attributes::rta->view.width *
+                        gvt::render::Attributes::rta->view.height; ++i) {
+      image.Add(i, colorBuf[i]);
+    }
     if (!mpi) return;
 
     size_t size = gvt::render::Attributes::rta->view.width *
                   gvt::render::Attributes::rta->view.height;
+
     unsigned char* rgb = image.GetBuffer();
 
     int rgb_buf_size = 3 * size;
 
-    unsigned char* bufs = (mpi.rank == 0)
-                              ? new unsigned char[mpi.world_size * rgb_buf_size]
-                              : NULL;
+    unsigned char* bufs =
+        (mpi.root()) ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
 
+    // MPI_Barrier(MPI_COMM_WORLD);
     MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size,
                MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
-    if (mpi.rank) return;
+    if (mpi.root()) {
+      // std::thread::hardware_concurrency() * 2;
+      // int chunk_size = size / nchunks;
+      // std::vector<std::pair<int, int>> chunks(nchunks);
+      // std::vector<std::future<void>> futures;
+      // for (int ii = 0; ii < nchunks - 1; ii++) {
+      //   chunks.push_back(
+      //       std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
+      // }
+      // int ii = nchunks - 1;
+      // chunks.push_back(std::make_pair(ii * chunk_size, size));
 
-    int nchunks = std::thread::hardware_concurrency() * 2;
-    int chunk_size = size / nchunks;
-    std::vector<std::pair<int, int>> chunks(nchunks);
-    std::vector<std::future<void>> futures;
-    for (int ii = 0; ii < nchunks - 1; ii++) {
-      chunks.push_back(
-          std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-    }
-    int ii = nchunks - 1;
-    chunks.push_back(std::make_pair(ii * chunk_size, size));
-
-    for (auto& limit : chunks) {
-      futures.push_back(std::async(std::launch::async, [&]() {
-        for (int i = 1; i < mpi.world_size; i++) {
-          for (int id = limit.first; id < limit.second; i++) {
-            int src = i * rgb_buf_size + id;
-            rgb[id + 0] = bufs[src + 0];
-            rgb[id + 1] = bufs[src + 1];
-            rgb[id + 2] = bufs[src + 2];
-          }
+      // for (auto& limit : chunks) {
+      //   futures.push_back(std::async(std::launch::async, [&]() {
+      for (int i = 1; i < mpi.world_size; ++i) {
+        for (int j = 0; j < rgb_buf_size; j += 3) {
+          int p = i * rgb_buf_size + j;
+          // assumes black background, so adding is fine (r==g==b== 0)
+          rgb[j + 0] += bufs[p + 0];
+          rgb[j + 1] += bufs[p + 1];
+          rgb[j + 2] += bufs[p + 2];
         }
-      }));
+      }
+
+      //   }));
+      // }
+      // for (std::future<void>& f : futures) {
+      //   f.wait();
+      // }
     }
-    for (std::future<void>& f : futures) {
-      f.wait();
-    }
+
+    delete[] bufs;
   }
 };
 
@@ -302,76 +356,6 @@ struct processRayVector {
   }
 };
 
-/*!
- * Defines properties for inheritance
- *
- * \tparam MPIW MPI communication world (SINGLE NODE, MPI_Comm)
- */
-template <class MPIW>
-class TracerBase : public MPIW, public AbstractTrace {
- public:
-  TracerBase(gvt::render::actor::RayVector& rays,
-             gvt::render::data::scene::Image& image)
-      : MPIW(rays.size()), AbstractTrace(rays, image) {}
-
-  virtual ~TracerBase() {}
-
-  /*! Trace operation
-   *
-   * Implements the code for the tracer
-   *
-   *
-   */
-
-  virtual void operator()(void) { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
-
-  /*! Generate rays
-   *
-   * Used inside the operator to generate the tree of rays.
-   *
-   *
-   */
-
-  // virtual void FilterRaysLocally() {
-  //   boost::atomic<int> current_ray(this->rays_start);
-  //   GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << this->rays.size());
-  //   size_t workload = this->rays.size();
-  //   processRayVector(this, this->rays, current_ray, this->rays_end,
-  //   workload)();
-  //   GVT_DEBUG(DBG_ALWAYS, "Filtered rays : " << this->rays.size());
-  //   //
-  // }
-
-  // GVT::Concurrency::asyncExec::singleton->syncAll();
-
-  /*! Gather buffers from all distributed nodes
-   *
-   * \param colorBuf Local color buffer
-   * \param rays_traced number of rays traced
-   *
-   * \note Should be called at the end of the operator
-   */
-  // virtual void gatherFramebuffers(int rays_traced) {
-  //   for (int i = 0; i < gvt::render::Attributes::rta->view.width *
-  //                           gvt::render::Attributes::rta->view.height;
-  //        ++i) {
-  //     this->image.Add(i, colorBuf[i]);
-  //   }
-  // }
-
-  /*! Communication with other nodes
-   *
-   * Implements the communication and scheduling strategy among nodes.
-   *
-   * \note Called from the operator
-   *
-   */
-  // virtual bool SendRays() {
-  //   GVT_ASSERT_BACKTRACE(false, "Not supported");
-  //   return false;
-  // }
-};
-
 /// Generic Tracer interface for a base scheduling strategy with static inner
 /// scheduling policy
 
@@ -384,12 +368,12 @@ class TracerBase : public MPIW, public AbstractTrace {
  *
  */
 
-template <class DomainType, class MPIW, class BSCHEDULER>
-class Tracer : public TracerBase<MPIW> {
+template <class BSCHEDULER>
+class Tracer : public AbstractTrace {
  public:
   Tracer(gvt::render::actor::RayVector& rays,
          gvt::render::data::scene::Image& image)
-      : TracerBase<MPIW>(rays, image) {}
+      : AbstractTrace(rays, image) {}
 
   virtual ~Tracer() {}
 };
@@ -406,14 +390,12 @@ class Tracer : public TracerBase<MPIW> {
  * \tparam ISCHEDUDER Inner scheduler for base scheduler (Greedy, Spread, ...)
  *
  */
-template <class DomainType, class MPIW, template <typename> class BSCHEDULER,
-          class ISCHEDULER>
-class Tracer<DomainType, MPIW, BSCHEDULER<ISCHEDULER>>
-    : public TracerBase<MPIW> {
+template <template <typename> class BSCHEDULER, class ISCHEDULER>
+class Tracer<BSCHEDULER<ISCHEDULER>> : public AbstractTrace {
  public:
   Tracer(gvt::render::actor::RayVector& rays,
          gvt::render::data::scene::Image& image)
-      : TracerBase<MPIW>(rays, image) {}
+      : AbstractTrace(rays, image) {}
 
   virtual ~Tracer() {}
 };

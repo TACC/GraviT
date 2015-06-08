@@ -23,16 +23,29 @@ namespace gvt {
         namespace algorithm {
             /// Tracer Image (ImageSchedule) based decomposition implementation
 
-            template<class DomainType, class MPIW> class Tracer<DomainType, MPIW, gvt::render::schedule::ImageScheduler> : public TracerBase<MPIW> 
+            template<> class Tracer<gvt::render::schedule::ImageScheduler> : public AbstractTrace
             {
             public:
 
+                size_t rays_start, rays_end ;
+
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image) 
-                : TracerBase<MPIW>(rays, image) 
+                : AbstractTrace(rays, image) 
                 {
-                    int ray_portion = this->rays.size() / this->world_size;
-                    this->rays_start = this->rank * ray_portion;
-                    this->rays_end = (this->rank + 1) == this->world_size ? this->rays.size() : (this->rank + 1) * ray_portion; // tack on any odd rays to last proc
+                    int ray_portion = rays.size() / mpi.world_size;
+                    rays_start = mpi.rank * ray_portion;
+                    rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size() : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+                }
+
+                virtual void FilterRaysLocally() {
+                    if(mpi) {
+                        gvt::render::actor::RayVector lrays;
+                        lrays.assign(rays.begin()+rays_start,rays.begin()+rays_end);
+                        rays.clear();
+                        shuffleRays(lrays);        
+                    } else {
+                        shuffleRays(rays);    
+                    }
                 }
 
                 virtual void operator()() 
@@ -41,7 +54,10 @@ namespace gvt {
 
                     long ray_counter = 0, domain_counter = 0;
 
-                    this->FilterRaysLocally();
+                    // gvt::render::actor::RayVector local;
+                    // local.assign(rays.begin()+rays_start, rays.begin()+ray_end);
+
+                    FilterRaysLocally();
 
                     // buffer for color accumulation
                     gvt::render::actor::RayVector moved_rays;
@@ -64,8 +80,8 @@ namespace gvt {
                         }
                         GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
                         //if (domTarget != -1) std::cout << "Domain " << domTarget << " size " << this->queue[domTarget].size() << std::endl;
-                        GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << this->rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
-                        GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << this->rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << std::endl);
+                        GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
+                        GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << std::endl);
 
                         if (domTarget >= 0) 
                         {

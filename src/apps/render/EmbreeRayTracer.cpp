@@ -76,7 +76,7 @@ void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
     std::cout << "finished making camera rays" << std::endl;
 
     std::cout << "calling EmbreeDomain trace/render function" << std::endl;
-    gvt::render::algorithm::Tracer<EmbreeDomain, MPICOMM, ImageScheduler>(rays, image)();
+    gvt::render::algorithm::Tracer<ImageScheduler>(rays, image)();
 
     std::cout << "writing image to disk" << std::endl;
     image.Write();
