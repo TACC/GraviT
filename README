@@ -2,4 +2,10 @@ This was branched from pnav.
 
 Purpose:  Intrumenation with TAU.
 
+6/7/15:  Starting with hand insturmented files using USE-TAU ifdef and TAU_OPTION="-optLinkOnly"
+
+build-ssTau_6_7_15: This will have 2 run directories with embree and manta activated.  Optix will happen down the road"
+
+
+
 
