@@ -24,6 +24,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef USE_TAU
+#include <tau.h>
+#endif
+
 using namespace gvtapps::render;
 using namespace gvt::core::mpi;
 using namespace gvt::render::adapter::manta::data::domain;
@@ -31,57 +35,67 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene) 
+MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
+#ifdef USE_TAU
+  tau_start("MantaRayTracer::MantaRayTracer");
+#endif
     scene->camera.SetCamera(rays,1.0);
 	// uncomment this line to use gvtcamera
 	//scene->GVTCamera.SetCamera(rays,1.0);
-    
+
     gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
-    
+
     rta.dataset = new gvt::render::data::Dataset();
-    
-    
-    BOOST_FOREACH(AbstractDomain* dom, scene->domainSet) 
+
+
+    BOOST_FOREACH(AbstractDomain* dom, scene->domainSet)
     {
         GeometryDomain* d = (GeometryDomain*)dom;
         d->setLights(scene->lightSet);
         rta.dataset->addDomain(new MantaDomain(d));
     }
-    
-    
-	// uncomment the following 2 lines to use gvtcamera 
+
+
+	// uncomment the following 2 lines to use gvtcamera
     //rta.view.width = scene->GVTCamera.getFilmSizeWidth();
     //rta.view.height = scene->GVTCamera.getFilmSizeHeight();
     //
     // older camera setup. Comment out next two lines if using gvtcamera
     rta.view.width = scene->camera.getFilmSizeWidth();
     rta.view.height = scene->camera.getFilmSizeHeight();
-    // 
+    //
     // the following rta variables never seem to be used commenting out
     //rta.view.camera = scene->camera.getEye();
     //rta.view.focus = scene->camera.getLook();
     //rta.view.up = scene->camera.up;
-    
+
     //rta.sample_rate = 1.0f;
     //rta.sample_ratio = 1.0f;
-    
+
     //rta.do_lighting = true;
     //rta.schedule = gvt::render::Attributes::Image;
     //rta.render_type = gvt::render::Attributes::Manta;
-    
+
     //rta.datafile = "";
+#ifdef USE_TAU
+  tau_stop("MantaRayTracer::MantaRayTracer");
+#endif
+
 }
 
-void MantaRayTracer::RenderImage(std::string imagename = "mpitrace") 
+void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
-    
+#ifdef USE_TAU
+  tau_start("MantaRayTracer::RenderImage");
+#endif
+
     boost::timer::auto_cpu_timer t("Total render time: %t\n");
-    
+
 	// comment out the following 3 lines to use gvt camera
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
-    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();  
+    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();
     //
     // uncomment the following 4 lines to use gvt camera. comment out to use original camera
 //	Image image(scene->GVTCamera.getFilmSizeWidth(),scene->GVTCamera.getFilmSizeHeight(), imagename);
@@ -89,18 +103,18 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 //	scene->GVTCamera.generateRays();
 //	gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(scene->GVTCamera.rays, image)();
     image.Write();
-    
+
     //Example code. Too complex.
-    
-    
-//    
+
+
+//
 //    Image image(GVT::Env::RayTracerAttributes::rta->view.width, GVT::Env::RayTracerAttributes::rta->view.height, imagename);
-//   
+//
 //    GVT::Env::Camera<C_PERSPECTIVE> cam(rays, GVT::Env::RayTracerAttributes::rta->view, GVT::Env::RayTracerAttributes::rta->sample_rate);
 //    cam.MakeCameraRays();
 //
 //    int render_type = GVT::Env::RayTracerAttributes::rta->render_type;
-//    
+//
 //
 //    switch (GVT::Env::RayTracerAttributes::rta->schedule) {
 //        case GVT::Env::RayTracerAttributes::Image:
@@ -174,7 +188,9 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 //    if (rank == 0) {
 //        image.Write();
 //    }
-
+#ifdef USE_TAU
+  tau_stop("MantaRayTracer::RenderImage");
+#endif
 };
 
 #if !defined(M_PI)
