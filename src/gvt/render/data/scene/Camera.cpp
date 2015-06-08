@@ -14,25 +14,16 @@ using namespace std;
 
 void Camera::SetCamera(RayVector &rays, float rate)
 {
-#ifdef USE_TAU
-  TAU_START("render:data:scene:Camera::SetCamera");
-#endif
 
     this->rays = rays;
     this->rate = rate;
     this->trcUpSampling = 1;
-#ifdef USE_TAU
-  TAU_STOP("render:data:scene:Camera::SetCamera");
-#endif
 
 
 }
 
 struct cameraGenerateRays
 {
-#ifdef USE_TAU
-  TAU_START("render:data:scene:cameraGenerateRays");
-#endif
     Camera* cam;
     size_t start, end;
 
@@ -47,6 +38,9 @@ struct cameraGenerateRays
 
     void operator()()
     {
+#ifdef USE_TAU
+  TAU_START("render:data:scene:cameraGenerateRays::operator");
+#endif
         AffineTransformMatrix<float> m = cam->m; // rotation matrix
         int depth = cam->depth;
         RayVector& rays = cam->rays;
@@ -97,6 +91,10 @@ struct cameraGenerateRays
                 }
             }
         }
+
+#ifdef USE_TAU
+  TAU_STOP("render:data:scene:cameraGenerateRays::operator");
+#endif
     }
 };
 
