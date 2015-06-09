@@ -1,7 +1,7 @@
-/* 
+/*
  * File:   Ray.cpp
  * Author: jbarbosa
- * 
+ *
  * Created on March 28, 2014, 1:29 PM
  */
 
@@ -14,10 +14,10 @@
 using namespace gvt::core::math;
 using namespace gvt::render::actor;
 
-const float Ray::RAY_EPSILON = 1.e-6;   
+const float Ray::RAY_EPSILON = 1.e-6;
 
-Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, int depth) 
-: type(type), w(contribution), depth(depth) 
+Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, int depth)
+: type(type), w(contribution), depth(depth)
 {
 
     this->origin = origin;
@@ -31,7 +31,7 @@ Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, i
             //            origin_domain = -1;
 }
 
-Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m) 
+Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m)
 {
     origin = m * ray.origin;
     direction = m * (ray.direction).normalize();
@@ -52,7 +52,7 @@ Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m)
             //            visited = ray.visited;
 }
 
-Ray::Ray(const Ray& ray) 
+Ray::Ray(const Ray& ray)
 {
     origin = ray.origin;
     direction = ray.direction;
@@ -74,11 +74,11 @@ Ray::Ray(const Ray& ray)
             //            visited = ray.visited;
 }
 
-Ray::~Ray() 
+Ray::~Ray()
 {
 }
 
-Ray::Ray(const unsigned char* buf) 
+Ray::Ray(const unsigned char* buf)
 {
     GVT_DEBUG(DBG_ALWAYS, "in Ray::Ray(const unsigned char* buf)");
     origin = Vector4f((float*) buf);
@@ -103,7 +103,7 @@ Ray::Ray(const unsigned char* buf)
     buf += color.packedSize();
     int domain_size = *((int*) buf);
     buf += sizeof (int);
-    for (int i = 0; i < domain_size; ++i, buf += sizeof (isecDom)) 
+    for (int i = 0; i < domain_size; ++i, buf += sizeof (isecDom))
     {
                 //domains.insert(isecDom(*(float*) buf,*(float*) (buf + sizeof (float))));
         domains.push_back(isecDom(*(float*) buf));
@@ -111,7 +111,7 @@ Ray::Ray(const unsigned char* buf)
 
 }
 
-int Ray::packedSize() 
+int Ray::packedSize()
 {
     int total_size = origin.packedSize() + direction.packedSize() + color.packedSize();
     total_size = 4 * sizeof (int) + 4 * sizeof (double);
@@ -119,7 +119,7 @@ int Ray::packedSize()
     return total_size;
 }
 
-int Ray::pack(unsigned char* buffer) 
+int Ray::pack(unsigned char* buffer)
 {
 
     unsigned char* buf = buffer;
@@ -144,7 +144,7 @@ int Ray::pack(unsigned char* buffer)
     *((int*) buf) = domains.size();
     buf += sizeof (int);
 
-    BOOST_FOREACH(isecDom& d, domains) 
+    BOOST_FOREACH(isecDom& d, domains)
     {
                 //
                 //                *(float*) buf = boost::get<0>(d);
@@ -162,24 +162,24 @@ int Ray::pack(unsigned char* buffer)
     return packedSize();
 }
 
-void Ray::setDirection(Vector4f dir) 
+void Ray::setDirection(Vector4f dir)
 {
     inverseDirection[3] = 0;
     dir[3] = 0;
     direction = dir.normalize();
-    for (int i = 0; i < 3; i++) 
+    for (int i = 0; i < 3; i++)
     {
         if (direction[i] != 0) inverseDirection[i] = 1.0 / direction[i];
         else inverseDirection[i] = 0.;
     }
 }
 
-void Ray::setDirection(double *dir) 
+void Ray::setDirection(double *dir)
 {
     setDirection(Vector4f(dir[0], dir[1], dir[2], dir[3]));
 }
 
-void Ray::setDirection(float *dir) 
+void Ray::setDirection(float *dir)
 {
     setDirection(Vector4f(dir[0], dir[1], dir[2], dir[3]));
 }
