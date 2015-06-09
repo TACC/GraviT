@@ -88,7 +88,9 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 //	scene->GVTCamera.AllocateCameraRays();
 //	scene->GVTCamera.generateRays();
 //	gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(scene->GVTCamera.rays, image)();
-    image.Write();
+    // image.Write();
+    gvt::render::algorithm::GVT_COMM mpi;
+    if(mpi.root()) image.Write();
     
     //Example code. Too complex.
     

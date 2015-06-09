@@ -180,7 +180,7 @@ bool OptixDomain::load() {
 
 void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
   // Create our query.
-  boost::timer::auto_cpu_timer optix_time("Optix domain trace: %w\n");
+  boost::timer::auto_cpu_timer optix_time("Optix domain trace: %t\n");
   try {
     this->load();
 
@@ -211,7 +211,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   std::vector<OptixHit> hits(chunk.size());
   {
     // boost::timer::auto_cpu_timer optix_time("Convert from GVT to OptiX:
-    // %w\n");
+    // %t\n");
     for (int i = 0; i < chunk.size(); ++i) {
       Ray gvt_ray = toLocal(chunk[i]);
       optix_rays[i].origin[0] = gvt_ray.origin[0];
@@ -226,7 +226,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   }
 
   {
-    // boost::timer::auto_cpu_timer optix_time("OptiX intersect call: %w\n");
+    // boost::timer::auto_cpu_timer optix_time("OptiX intersect call: %t\n");
     // Hand the rays to Optix.
     query->setRays(optix_rays.size(),
                    RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
@@ -244,7 +244,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   // Move missed rays.
   {
     // boost::timer::auto_cpu_timer optix_time("Put rays on outbox queue:
-    // %w\n");
+    // %t\n");
     for (int i = hits.size() - 1; i >= 0; --i) {
       if (hits[i].triangle_id < 0) {
         moved_rays.push_back(chunk[i]);
@@ -259,7 +259,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   // std::cout << "num hits = " << hits.size() << "\n";
   // Trace each ray: shade, fire shadow rays, fire secondary rays.
   {
-    // boost::timer::auto_cpu_timer optix_time("Try to shade: %w\n");
+    // boost::timer::auto_cpu_timer optix_time("Try to shade: %t\n");
     for (int i = 0; i < chunk.size(); ++i) {
       if (chunk[i].type == Ray::SHADOW) return;
       if (chunk[i].type == Ray::SECONDARY) {

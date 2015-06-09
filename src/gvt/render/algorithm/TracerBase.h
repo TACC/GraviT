@@ -34,12 +34,13 @@ namespace algorithm {
 /// Tracer base class
 
 struct GVT_COMM {
-  const size_t rank;
-  const size_t world_size;
+  size_t rank;
+  size_t world_size;
 
-  GVT_COMM()
-      : rank(MPI::COMM_WORLD.Get_rank()),
-        world_size(MPI::COMM_WORLD.Get_size()) {}
+  GVT_COMM() {
+    rank = MPI::COMM_WORLD.Get_rank();
+    world_size = MPI::COMM_WORLD.Get_size();
+  }
 
   operator bool() { return (world_size > 1); }
   bool root() { return rank == 0; }
@@ -123,7 +124,7 @@ class AbstractTrace {
     chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
     for (auto limit : chunks) {
       GVT_DEBUG(DBG_ALWAYS, "Limits : " << limit.first << ", " << limit.second);
-      futures.push_back(std::async(std::launch::deferred, [&]() {
+      // futures.push_back(std::async(std::launch::deferred, [&]() {
         int chunk = limit.second - limit.first;
         std::map<int, gvt::render::actor::RayVector> local_queue;
         gvt::render::actor::RayVector local(chunk);
@@ -160,7 +161,7 @@ class AbstractTrace {
           queue[q.first]
               .insert(queue[q.first].end(), q.second.begin(), q.second.end());
         }
-      }));
+      // }));
     }
     rays.clear();
     for (auto& f : futures) f.wait();
@@ -172,31 +173,30 @@ class AbstractTrace {
     const size_t size = gvt::render::Attributes::rta->view.width *
                         gvt::render::Attributes::rta->view.height;
 
-    for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
+    // for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
 
-    // int nchunks = std::thread::hardware_concurrency() * 2;
-    // int chunk_size = size / nchunks;
-    // std::vector<std::pair<int, int>> chunks;
-    // std::vector<std::future<void>> futures;
-    // for (int ii = 0; ii < nchunks - 1; ii++) {
-    //   chunks.push_back(
-    //       std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-    // }
-    // int ii = nchunks - 1;
-    // chunks.push_back(std::make_pair(ii * chunk_size, size));
+    int nchunks = std::thread::hardware_concurrency() * 2;
+    int chunk_size = size / nchunks;
+    std::vector<std::pair<int, int>> chunks;
+    std::vector<std::future<void>> futures;
+    for (int ii = 0; ii < nchunks - 1; ii++) {
+      chunks.push_back(
+          std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
+    }
+    int ii = nchunks - 1;
+    chunks.push_back(std::make_pair(ii * chunk_size, size));
 
-    // for (auto limit : chunks) {
-    //   GVT_DEBUG(DBG_ALWAYS,"Limits : " << limit.first << ", " <<
-    // limit.second);
-    //   futures.push_back(std::async(std::launch::deferred, [&]() {
-    //     for (int i = limit.first; i < limit.second; i++)
-    //       image.Add(i, colorBuf[i]);
-    //    }));
-    // }
+    for (auto limit : chunks) {
+      GVT_DEBUG(DBG_ALWAYS, "Limits : " << limit.first << ", " << limit.second);
+      futures.push_back(std::async(std::launch::deferred, [&]() {
+        for (int i = limit.first; i < limit.second; i++)
+          image.Add(i, colorBuf[i]);
+      }));
+    }
 
-    // for (std::future<void>& f : futures) {
-    //   f.wait();
-    // }
+    for (std::future<void>& f : futures) {
+      f.wait();
+    }
   }
 
   virtual void gatherFramebuffers(int rays_traced) {
@@ -242,119 +242,125 @@ class AbstractTrace {
 
     // delete[] bufs;
 
-    for (int i = 0; i < gvt::render::Attributes::rta->view.width *
-                        gvt::render::Attributes::rta->view.height; ++i) {
-      image.Add(i, colorBuf[i]);
-    }
-    if (!mpi) return;
+    // for (int i = 0; i < gvt::render::Attributes::rta->view.width *
+    //                         gvt::render::Attributes::rta->view.height;
+    //      ++i) {
+    //   image.Add(i, colorBuf[i]);
+    // }
+
+    //localComposite();
 
     size_t size = gvt::render::Attributes::rta->view.width *
                   gvt::render::Attributes::rta->view.height;
+
+
+    for(size_t i =0; i < size; i++) image.Add(i, colorBuf[i]);                  
+
+    if (!mpi) return;
 
     unsigned char* rgb = image.GetBuffer();
 
     int rgb_buf_size = 3 * size;
 
     unsigned char* bufs =
-        (mpi.root()) ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
+        mpi.root() ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
 
     // MPI_Barrier(MPI_COMM_WORLD);
     MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size,
                MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-
     if (mpi.root()) {
-      // std::thread::hardware_concurrency() * 2;
-      // int chunk_size = size / nchunks;
-      // std::vector<std::pair<int, int>> chunks(nchunks);
-      // std::vector<std::future<void>> futures;
-      // for (int ii = 0; ii < nchunks - 1; ii++) {
-      //   chunks.push_back(
-      //       std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-      // }
-      // int ii = nchunks - 1;
-      // chunks.push_back(std::make_pair(ii * chunk_size, size));
-
-      // for (auto& limit : chunks) {
-      //   futures.push_back(std::async(std::launch::async, [&]() {
-      for (int i = 1; i < mpi.world_size; ++i) {
-        for (int j = 0; j < rgb_buf_size; j += 3) {
-          int p = i * rgb_buf_size + j;
-          // assumes black background, so adding is fine (r==g==b== 0)
-          rgb[j + 0] += bufs[p + 0];
-          rgb[j + 1] += bufs[p + 1];
-          rgb[j + 2] += bufs[p + 2];
-        }
+      int nchunks = std::thread::hardware_concurrency() * 2;
+      int chunk_size = size / nchunks;
+      std::vector<std::pair<int, int>> chunks(nchunks);
+      std::vector<std::future<void>> futures;
+      for (int ii = 0; ii < nchunks - 1; ii++) {
+        chunks.push_back(
+            std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
       }
+      int ii = nchunks - 1;
+      chunks.push_back(std::make_pair(ii * chunk_size, size));
 
-      //   }));
-      // }
-      // for (std::future<void>& f : futures) {
-      //   f.wait();
-      // }
+      for (auto& limit : chunks) {
+        futures.push_back(std::async(std::launch::async, [&]() {
+      //std::pair<int,int> limit = std::make_pair(0,size);
+          for (int i = 1; i < mpi.world_size; ++i) {
+            for (int j = limit.first * 3; j < limit.second * 3; j += 3) {
+              int p = i * rgb_buf_size + j;
+              // assumes black background, so adding is fine (r==g==b== 0)
+              rgb[j + 0] += bufs[p + 0];
+              rgb[j + 1] += bufs[p + 1];
+              rgb[j + 2] += bufs[p + 2];
+            }
+          }
+        }));
+      }
+      for (std::future<void>& f : futures) {
+        f.wait();
+      }
     }
 
     delete[] bufs;
   }
 };
 
-struct processRayVector {
-  AbstractTrace* tracer;
-  gvt::render::actor::RayVector& rays;
-  boost::atomic<int>& current_ray;
-  int last;
-  const size_t split;
-  gvt::render::data::domain::AbstractDomain* dom;
+// struct processRayVector {
+//   AbstractTrace* tracer;
+//   gvt::render::actor::RayVector& rays;
+//   boost::atomic<int>& current_ray;
+//   int last;
+//   const size_t split;
+//   gvt::render::data::domain::AbstractDomain* dom;
 
-  processRayVector(AbstractTrace* tracer, gvt::render::actor::RayVector& rays,
-                   boost::atomic<int>& current_ray, int last, const int split,
-                   gvt::render::data::domain::AbstractDomain* dom = NULL)
-      : tracer(tracer),
-        rays(rays),
-        current_ray(current_ray),
-        last(last),
-        split(split),
-        dom(dom) {}
+//   processRayVector(AbstractTrace* tracer, gvt::render::actor::RayVector& rays,
+//                    boost::atomic<int>& current_ray, int last, const int split,
+//                    gvt::render::data::domain::AbstractDomain* dom = NULL)
+//       : tracer(tracer),
+//         rays(rays),
+//         current_ray(current_ray),
+//         last(last),
+//         split(split),
+//         dom(dom) {}
 
-  void operator()() {
-    gvt::render::actor::RayVector localQueue;
-    while (!rays.empty()) {
-      localQueue.clear();
-      boost::unique_lock<boost::mutex> lock(tracer->raymutex);
-      std::size_t range = std::min(split, rays.size());
+//   void operator()() {
+//     gvt::render::actor::RayVector localQueue;
+//     while (!rays.empty()) {
+//       localQueue.clear();
+//       boost::unique_lock<boost::mutex> lock(tracer->raymutex);
+//       std::size_t range = std::min(split, rays.size());
 
-      GVT_DEBUG(DBG_ALWAYS, "processRayVector: current_ray "
-                                << current_ray << " last ray " << last
-                                << " split " << split << " rays.size()"
-                                << rays.size());
+//       GVT_DEBUG(DBG_ALWAYS, "processRayVector: current_ray "
+//                                 << current_ray << " last ray " << last
+//                                 << " split " << split << " rays.size()"
+//                                 << rays.size());
 
-      localQueue.assign(rays.begin(), rays.begin() + range);
-      rays.erase(rays.begin(), rays.begin() + range);
-      lock.unlock();
+//       localQueue.assign(rays.begin(), rays.begin() + range);
+//       rays.erase(rays.begin(), rays.begin() + range);
+//       lock.unlock();
 
-      for (int i = 0; i < localQueue.size(); i++) {
-        gvt::render::actor::Ray& ray = localQueue[i];
-        gvt::render::actor::isecDomList& len2List = ray.domains;
-        if (len2List.empty() && dom) dom->marchOut(ray);
-        if (len2List.empty())
-          gvt::render::Attributes::rta->dataset->intersect(ray, len2List);
-        if (!len2List.empty()) {
-          int domTarget = (*len2List.begin());
-          len2List.erase(len2List.begin());
-          boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
-          tracer->queue[domTarget].push_back(ray);
-        } else {
-          boost::mutex::scoped_lock fbloc(
-              tracer->colorBuf_mutex
-                  [ray.id % gvt::render::Attributes::instance()->view.width]);
-          for (int i = 0; i < 3; i++)
-            tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
-          tracer->colorBuf[ray.id].rgba[3] = 1.f;
-          tracer->colorBuf[ray.id].clamp();
-        }
-      }
-    }
-  }
-};
+//       for (int i = 0; i < localQueue.size(); i++) {
+//         gvt::render::actor::Ray& ray = localQueue[i];
+//         gvt::render::actor::isecDomList& len2List = ray.domains;
+//         if (len2List.empty() && dom) dom->marchOut(ray);
+//         if (len2List.empty())
+//           gvt::render::Attributes::rta->dataset->intersect(ray, len2List);
+//         if (!len2List.empty()) {
+//           int domTarget = (*len2List.begin());
+//           len2List.erase(len2List.begin());
+//           boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
+//           tracer->queue[domTarget].push_back(ray);
+//         } else {
+//           boost::mutex::scoped_lock fbloc(
+//               tracer->colorBuf_mutex
+//                   [ray.id % gvt::render::Attributes::instance()->view.width]);
+//           for (int i = 0; i < 3; i++)
+//             tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
+//           tracer->colorBuf[ray.id].rgba[3] = 1.f;
+//           tracer->colorBuf[ray.id].clamp();
+//         }
+//       }
+//     }
+//   }
+// };
 
 /// Generic Tracer interface for a base scheduling strategy with static inner
 /// scheduling policy

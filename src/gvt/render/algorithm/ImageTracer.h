@@ -40,7 +40,8 @@ namespace gvt {
                 virtual void FilterRaysLocally() {
                     if(mpi) {
                         gvt::render::actor::RayVector lrays;
-                        lrays.assign(rays.begin()+rays_start,rays.begin()+rays_end);
+                        lrays.assign(rays.begin() + rays_start,
+                                     rays.begin() + rays_end);
                         rays.clear();
                         shuffleRays(lrays);        
                     } else {
@@ -102,27 +103,8 @@ namespace gvt {
                                 dom->trace(this->queue[domTarget], moved_rays);
                             }
                             GVT_DEBUG(DBG_ALWAYS, "Marching rays");
-                            //                        BOOST_FOREACH( gvt::render::actor::Ray* mr,  moved_rays) {
-                            //                            dom->marchOut(mr);
-                            //                            gvt::core::schedule::asyncExec::instance()->run_task(processRay(this,mr));
-                            //                        }
-
-                            boost::atomic<int> current_ray(0);
-                            size_t workload = std::max((size_t)1,(size_t)(moved_rays.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 2)));
-                            {
-                                boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
-                                for (int rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc) {
-                                    gvt::core::schedule::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(),workload, dom));
-                                }
-                                gvt::core::schedule::asyncExec::instance()->sync();
-
-                            }
-                            GVT_DEBUG(DBG_ALWAYS, "Finished queueing");
-                            gvt::core::schedule::asyncExec::instance()->sync();
-                            GVT_DEBUG(DBG_ALWAYS, "Finished marching");
-                            //dom->free();
+                            shuffleRays(moved_rays,dom);
                             moved_rays.clear();
-                            //this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
                         }
                     } while (domTarget != -1);
                     GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");
