@@ -82,21 +82,27 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
         // process domain assigned to this proc with most rays queued
         domTarget = -1;
         domTargetCount = 0;
-        // for (std::map<int, gvt::render::actor::RayVector>::iterator q =
-        // queue.begin(); q != queue.end(); ++q)
+
+        std::vector<int> to_del;
+
         for (auto& q : queue) {
-          if ((q.first % mpi.world_size) == mpi.rank &&
-              q.second.size() > domTargetCount) {
+          if (q.second.empty()) {
+            to_del.push_back(q.first);
+            continue;
+          }
+          if ((q.first % mpi.world_size) == mpi.rank && q.second.size() > domTargetCount) {
             domTargetCount = q.second.size();
             domTarget = q.first;
           }
         }
-        GVT_DEBUG(DBG_LOW, "selected domain " << domTarget << " ("
-                                              << domTargetCount << " rays)");
-        GVT_DEBUG_CODE(DBG_LOW, if (GVT_DEBUG_RANK) std::cerr
-                                    << "selected domain " << domTarget << " ("
-                                    << domTargetCount << " rays)" << std::endl);
+        for(int domId : to_del) queue.erase(domId);
+        if(domTarget == -1) {
+            continue;
+        }
 
+        GVT_DEBUG(DBG_LOW, "selected domain " << domTarget << " ("
+                                              << domTargetCount << " rays) ["
+                                              << mpi.rank << "]");
         doms_to_send.clear();
         // pnav: use this to ignore domain x:        int domi=0;if (0)
         if (domTarget >= 0) {
@@ -120,39 +126,18 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
             moved_rays.reserve(queue[domTarget].size() * 10);
             boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
             dom->trace(queue[domTarget], moved_rays);
+            queue[domTarget].clear();
           }
           {
             shuffleRays(moved_rays, dom);
             moved_rays.clear();
           }
-          // boost::atomic<int> current_ray(0);
-          // size_t workload = std::max(
-          //     (size_t)1,
-          //     (size_t)(moved_rays.size() /
-          //              (gvt::core::schedule::asyncExec::instance()->numThreads
-          // *
-          //               2)));
-          // {
-          //   boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
-          //   for (int rc = 0;
-          //        rc < gvt::core::schedule::asyncExec::instance()->numThreads;
-          //        ++rc) {
-          //     gvt::core::schedule::asyncExec::instance()->run_task(
-          //         processRayVector(this, moved_rays, current_ray,
-          //                          moved_rays.size(), workload, dom));
-          //   }
-          //   gvt::core::schedule::asyncExec::instance()->sync();
-          // }
           queue.erase(domTarget);
         }
-        // DEBUG( else if (GVT_DEBUG_RANK) cerr << mpi.rank << ": no assigned
-        // domains have rays" << endl);
       }
-      // DEBUG( else if (GVT_DEBUG_RANK) cerr << mpi.rank << ": skipped queues.
-      // empty:" << queue.empty() << " size:" << queue.size() << endl);
 
       // done with current domain, send off rays to their proper processors.
-
+      GVT_DEBUG(DBG_ALWAYS,"Rank [ " << mpi.rank << "]  sendrays");
       SendRays();
       // are we done?
 
@@ -168,18 +153,11 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
       MPI_Scatter(empties, 1, MPI_INT, &not_done, 1, MPI_INT, 0,
                   MPI_COMM_WORLD);
-      GVT_DEBUG_CODE(DBG_LOW, if (GVT_DEBUG_RANK) cerr
-                                  << mpi.rank << ": " << not_done
-                                  << " procs still have rays"
-                                  << " (my q:" << queue.size() << ")" << endl);
-      GVT_DEBUG_CODE(
-          DBG_LOW,
-          if (GVT_DEBUG_RANK) for (map<int,
-                                       gvt::render::actor::RayVector>::iterator
-                                       q = queue.begin();
-                                   q != queue.end(); ++q) cerr
-              << "    q(" << q->first << "):" << q->second.size() << endl);
-
+      GVT_DEBUG_CODE(DBG_ALWAYS, if (GVT_DEBUG_RANK) cerr
+                                     << mpi.rank << ": " << not_done
+                                     << " procs still have rays"
+                                     << " (my q:" << queue.size() << ")"
+                                     << endl);
       all_done = (not_done == 0);
 
       delete[] empties;

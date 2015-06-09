@@ -7,7 +7,8 @@
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
-#define __FILE_SHORT__ (strstr(__FILE__, "src/") ? strstr(__FILE__, "src/") + 4 : __FILE__)
+#include <cstring>
+#define __FILE_SHORT__ (strstr(__FILE__, "src/") ? std::strstr(__FILE__, "src/") + 4 : __FILE__)
 
 const char * const DBG_COLOR_NORMAL = "\033[0m";
 const char * const DBG_COLOR_RED = "\033[1;31m";
@@ -15,6 +16,7 @@ const char * const DBG_COLOR_GREEN = "\033[1;32m";
 const char * const DBG_COLOR_YELLOW = "\033[1;33m";
 const char * const DBG_COLOR_BLUE = "\033[1;34m";
 const char * const DBG_COLOR_GRAY = DBG_COLOR_NORMAL;//"\033[1;37m";
+
 
 inline void print_trace() {
     char pid_buf[30];
@@ -38,7 +40,12 @@ inline void print_trace() {
 
 #ifdef GVT_USE_DEBUG
 
-enum DEBUG_LEVEL {
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::flush;
+
+enum GVT_DEBUG_LEVEL {
     DBG_NONE,
     DBG_ALWAYS,
     DBG_SEVERE,
@@ -46,10 +53,10 @@ enum DEBUG_LEVEL {
     DBG_LOW
 };
 
-#define DEBUG_LEVEL DBG_LOW
+#define GVT_DEBUG_LEVEL DBG_LOW
 
 // XXX TODO - remove these from source
-#define DEBUG_RANK false
+#define GVT_DEBUG_RANK 0
 #define DEBUG(x) 
 #define SUDO_DEBUG(x) 
 // end XXX TODO - remove these from source
@@ -85,7 +92,7 @@ inline std::string to_string(T value) {
 
 #define GVT_DEBUG(level,message) \
     do { \
-        if ( (level <= DEBUG_LEVEL)) { \
+        if ( (level <= GVT_DEBUG_LEVEL)) { \
             std::cerr << DBG_COLOR_GREEN << "Debug[" << DBG_COLOR_NORMAL << __FILE_SHORT__ \
                       << ":" << __LINE__ << DBG_COLOR_GREEN << "]: " << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl; \
         } \
@@ -110,7 +117,7 @@ inline std::string to_string(T value) {
 
 #define GVT_DEBUG_CODE(level,block) \
     do { \
-    	if ((level <= DEBUG_LEVEL)) { \
+    	if ((level <= GVT_DEBUG_LEVEL)) { \
     		block; \
     	} \
     } while (false)

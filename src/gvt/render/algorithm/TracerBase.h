@@ -79,10 +79,10 @@ class AbstractTrace {
         new boost::mutex[gvt::render::Attributes::rta->dataset->size()];
     colorBuf_mutex = new boost::mutex[gvt::render::RTA::instance()->view.width];
 
-    for (int i = 0; i < gvt::render::Attributes::rta->dataset->size(); i++) {
-      queue[i] = gvt::render::actor::RayVector();
-      queue[i].reserve(gvt::render::RTA::instance()->view.width);
-    }
+    // for (int i = 0; i < gvt::render::Attributes::rta->dataset->size(); i++) {
+    //   queue[i] = gvt::render::actor::RayVector();
+    //   queue[i].reserve(gvt::render::RTA::instance()->view.width);
+    // }
   }
 
   virtual ~AbstractTrace() {
@@ -110,8 +110,8 @@ class AbstractTrace {
       gvt::render::actor::RayVector& rays,
       gvt::render::data::domain::AbstractDomain* dom = NULL) {
 
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle");
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
-
     int nchunks = 1;  // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
     std::vector<std::pair<int, int>> chunks;
@@ -123,7 +123,6 @@ class AbstractTrace {
     int ii = nchunks - 1;
     chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
     for (auto limit : chunks) {
-      GVT_DEBUG(DBG_ALWAYS, "Limits : " << limit.first << ", " << limit.second);
       // futures.push_back(std::async(std::launch::deferred, [&]() {
         int chunk = limit.second - limit.first;
         std::map<int, gvt::render::actor::RayVector> local_queue;
@@ -155,16 +154,17 @@ class AbstractTrace {
         }
         for (auto& q : local_queue) {
           boost::mutex::scoped_lock(queue_mutex[q.first]);
-          GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
-                                       << q.first << " width size "
-                                       << queue[q.first].size());
+          // GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
+          //                              << q.first << " width size "
+          //                              << queue[q.first].size() << "[" << mpi.rank << "]");
           queue[q.first]
               .insert(queue[q.first].end(), q.second.begin(), q.second.end());
         }
       // }));
     }
     rays.clear();
-    for (auto& f : futures) f.wait();
+    //for (auto& f : futures) f.wait();
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
   }
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
