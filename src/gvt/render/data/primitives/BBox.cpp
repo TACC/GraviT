@@ -3,6 +3,10 @@
 
 #include "gvt/render/actor/Ray.h"
 
+#ifdef USE_TAU
+#include <TAU.h>
+#endif
+
 using namespace gvt::core::math;
 using namespace gvt::render::actor;
 using namespace gvt::render::data::primitives;
@@ -23,7 +27,7 @@ int inline InBox(Point4f Hit, Point4f B1, Point4f B2, const int Axis) {
 
 // returns true if line (L1, L2) intersects with the box (B1, B2)
 // returns intersection point in Hit
-int inline CheckLineBox(Point4f B1, Point4f B2, Point4f L1, Point4f L2, Point4f &Hit) 
+int inline CheckLineBox(Point4f B1, Point4f B2, Point4f L1, Point4f L2, Point4f &Hit)
 {
     if (L2.x < B1.x && L1.x < B1.x) return false;
     if (L2.x > B2.x && L1.x > B2.x) return false;
@@ -33,7 +37,7 @@ int inline CheckLineBox(Point4f B1, Point4f B2, Point4f L1, Point4f L2, Point4f 
     if (L2.z > B2.z && L1.z > B2.z) return false;
     if (L1.x > B1.x && L1.x < B2.x &&
         L1.y > B1.y && L1.y < B2.y &&
-        L1.z > B1.z && L1.z < B2.z) 
+        L1.z > B1.z && L1.z < B2.z)
     {
         Hit = L1;
         return true;
@@ -80,12 +84,12 @@ bool Box3D::intersect(const Ray& r) const {
 
 }
 
-bool Box3D::inBox(const Ray& r) const 
+bool Box3D::inBox(const Ray& r) const
 {
     return inBox(r.origin);
 }
 
-bool Box3D::inBox(const Point4f &origin) const 
+bool Box3D::inBox(const Point4f &origin) const
 {
     bool TT[3];
 
@@ -98,8 +102,11 @@ bool Box3D::inBox(const Point4f &origin) const
     return (TT[0] && TT[1] && TT[2]);
 }
 
-void Box3D::merge(const Box3D &other) 
+void Box3D::merge(const Box3D &other)
 {
+#ifdef USE_TAU
+  TAU_START(" Box3D::merge");
+#endif
     bounds[0][0] = fminf(other.bounds[0][0], bounds[0][0]);
     bounds[0][1] = fminf(other.bounds[0][1], bounds[0][1]);
     bounds[0][2] = fminf(other.bounds[0][2], bounds[0][2]);
@@ -107,11 +114,18 @@ void Box3D::merge(const Box3D &other)
     bounds[1][0] = fmaxf(other.bounds[1][0], bounds[1][0]);
     bounds[1][1] = fmaxf(other.bounds[1][1], bounds[1][1]);
     bounds[1][2] = fmaxf(other.bounds[1][2], bounds[1][2]);
+#ifdef USE_TAU
+  TAU_STOP(" Box3D::merge");
+#endif
 
 }
 
-void Box3D::expand(Point4f & v) 
+void Box3D::expand(Point4f & v)
 {
+#ifdef USE_TAU
+  TAU_START(" Box3D::expand");
+#endif
+
     bounds[0][0] = fminf(bounds[0][0], v[0]);
     bounds[0][1] = fminf(bounds[0][1], v[1]);
     bounds[0][2] = fminf(bounds[0][2], v[2]);
@@ -119,10 +133,19 @@ void Box3D::expand(Point4f & v)
     bounds[1][0] = fmaxf(bounds[1][0], v[0]);
     bounds[1][1] = fmaxf(bounds[1][1], v[1]);
     bounds[1][2] = fmaxf(bounds[1][2], v[2]);
+#ifdef USE_TAU
+  TAU_START(" Box3D::expand");
+#endif
+
+
 }
 
-bool Box3D::intersectDistance(const Ray& ray, float& t) const 
+bool Box3D::intersectDistance(const Ray& ray, float& t) const
 {
+#ifdef USE_TAU
+  TAU_START("Box3D::intersectDistance");
+#endif
+
 
     float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
     float t2 = (bounds[1].x - ray.origin.x) * ray.inverseDirection.x;
@@ -139,6 +162,9 @@ bool Box3D::intersectDistance(const Ray& ray, float& t) const
     t = (tmin > 0) ? t = tmin : tmax;
 
     return (t > FLT_EPSILON);
+#ifdef USE_TAU
+  TAU_STOP("Box3D::intersectDistance");
+#endif
 
 }
 

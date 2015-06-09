@@ -9,29 +9,44 @@
 
 #include <boost/timer/timer.hpp>
 
+#ifdef USE_TAU
+#include <TAU.h>
+#endif
+
 using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::data::scene;
 using namespace gvt::core::math;
 
-void GeometryDomain::free() 
+void GeometryDomain::free()
 {
+#ifdef USE_TAU
+  TAU_START("GeometryDomain::free");
+#endif
     if (!isLoaded) return;
-    for (int i = lights.size() - 1; i >= 0; i--) 
+    for (int i = lights.size() - 1; i >= 0; i--)
     {
         delete lights[i];
         lights.pop_back();
     }
-    if (mesh) 
+    if (mesh)
     {
         delete mesh;
         mesh = NULL;
     }
     isLoaded = false;
+#ifdef USE_TAU
+  TAU_STOP("GeometryDomain::free");
+#endif
+
 }
 
-bool GeometryDomain::load() 
+bool GeometryDomain::load()
 {
+#ifdef USE_TAU
+  TAU_START("GeometryDomain::load");
+#endif
+
     if (isLoaded) return true;
     GVT_ASSERT(filename == "", "No filename");
     {
@@ -45,12 +60,16 @@ bool GeometryDomain::load()
     mesh->setMaterial(new Lambert(Color(1.f, .0f, .0f, 1.f)));
     boundingBox = *(mesh->getBoundingBox());
     isLoaded = true;
+#ifdef USE_TAU
+  TAU_STOP("GeometryDomain::load");
+#endif
+
     return isLoaded;
 }
 
-namespace gvt{ namespace render{ namespace data{ namespace domain{ 
+namespace gvt{ namespace render{ namespace data{ namespace domain{
 std::ostream&
-operator<<(std::ostream& os, GeometryDomain const& d) 
+operator<<(std::ostream& os, GeometryDomain const& d)
 {
     os << "geometry domain @ addr " << (void*) &d << std::endl;
     os << "    XXX not yet implemented XXX" << std::endl;

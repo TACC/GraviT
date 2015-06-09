@@ -24,6 +24,10 @@
 #include <mpi.h>
 #endif
 
+#ifdef USE_TAU
+#include <TAU.h>
+#endif
+
 using namespace gvtapps::render;
 using namespace gvt::core::mpi;
 using namespace gvt::render::adapter::optix::data::domain;
@@ -31,49 +35,62 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene) 
+OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
+#ifdef USE_TAU
+  TAU_START("OptixRayTracer::OptixRayTracer");
+#endif
     scene->camera.SetCamera(rays,1.0);
-    
+
     gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
-    
+
     rta.dataset = new gvt::render::data::Dataset();
-    
-    
-    BOOST_FOREACH(AbstractDomain* dom, scene->domainSet) 
+
+
+    BOOST_FOREACH(AbstractDomain* dom, scene->domainSet)
     {
         GeometryDomain* d = (GeometryDomain*)dom;
         d->setLights(scene->lightSet);
         rta.dataset->addDomain(new OptixDomain(d));
     }
-    
-    
+
+
     rta.view.width = scene->camera.getFilmSizeWidth();
     rta.view.height = scene->camera.getFilmSizeHeight();
     rta.view.camera = scene->camera.getEye();
     rta.view.focus = scene->camera.getLook();
     rta.view.up = scene->camera.up;
-    
+
     rta.sample_rate = 1.0f;
     rta.sample_ratio = 1.0f;
-    
+
     rta.do_lighting = true;
     rta.schedule = gvt::render::Attributes::Image;
     rta.render_type = gvt::render::Attributes::Optix;
-    
+
     rta.datafile = "";
+#ifdef USE_TAU
+  TAU_STOP("OptixRayTracer::OptixRayTracer");
+#endif
+
 }
 
-void OptixRayTracer::RenderImage(std::string imagename = "mpitrace") 
+void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
-    
+#ifdef USE_TAU
+  TAU_START("OptixRayTracer::RenderImage");
+#endif
+
     boost::timer::auto_cpu_timer t("Total render time: %t\n");
-    
+
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
-    gvt::render::algorithm::Tracer<OptixDomain, MPICOMM, ImageScheduler>(rays, image)();  
+    gvt::render::algorithm::Tracer<OptixDomain, MPICOMM, ImageScheduler>(rays, image)();
     image.Write();
-    
+
+#ifdef USE_TAU
+  TAU_START("OptixRayTracer::RenderImage");
+#endif
 
 };
 

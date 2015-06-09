@@ -9,15 +9,19 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef USE_TAU
+#include <TAU.h>
+#endif
 using namespace gvt::render::data::domain;
 
-bool
-X_Box( const gvt::render::actor::Ray& r, const float* min, const float* max, 
-       float& t_near, float& t_far )
+bool X_Box( const gvt::render::actor::Ray& r, const float* min, const float* max, float& t_near, float& t_far )
 {
+#ifdef USE_TAU
+  TAU_START("VolumeDomain::X_Box");
+#endif
     t_near = -FLT_MAX;
     t_far = FLT_MAX;
-    
+
     for (int i=0; i < 3; ++i)
     {
         if ( r.direction[i] == 0)
@@ -42,26 +46,32 @@ X_Box( const gvt::render::actor::Ray& r, const float* min, const float* max,
             if (t2 < t_far)  t_far = t2;
             if (t_near > t_far) return false;
             if (t_far < 0) return false;
-        }       
+        }
     }
+#ifdef USE_TAU
+  TAU_STOP("VolumeDomain::X_Box");
+#endif
 
     return true;
 }
 
 bool
-VolumeDomain::MakeCell(int id, Cell& cell) 
+VolumeDomain::MakeCell(int id, Cell& cell)
 {
     return Cell::MakeCell(id, cell, dim, min, max, cell_dim, data);
 }
 
 bool
-VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells) 
+VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells)
 {
+#ifdef USE_TAU
+  TAU_START("VolumeDomain::intersect");
+#endif
     float near, far;
     float p_min[3] = {this->min[0], this->min[1], this->min[2]};
     float p_max[3] = {this->max[0], this->max[1], this->max[2]};
 
-    if (!X_Box(r, p_min, p_max, near, far)) 
+    if (!X_Box(r, p_min, p_max, near, far))
     {
         cells.clear();
         return false;
@@ -93,56 +103,59 @@ VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells)
     tDelta[1] = cell_dim[1] / r.direction[1];
     tDelta[2] = cell_dim[2] / r.direction[2];
 
-    for (int i = 0; i < 3; ++i) 
+    for (int i = 0; i < 3; ++i)
     {
-        if (r.direction[i] == 0) 
+        if (r.direction[i] == 0)
         {
             tMax[i] = FLT_MAX;
             tDelta[i] = 0;
         }
-        if (r.direction[i] < 0) 
+        if (r.direction[i] < 0)
         {
             step[i] *= -1;
             justOut[i] = -1;
         }
     }
 
-    do 
+    do
     {
         int cell_idx = idx_near[0] + idx_near[1] * dim[0] + idx_near[2] * dim[0] * dim[1];
         cells.push_back(cell_idx);
 
-        if (tMax[0] < tMax[1]) 
+        if (tMax[0] < tMax[1])
         {
-            if (tMax[0] < tMax[2]) 
+            if (tMax[0] < tMax[2])
             {
                 idx_near[0] += step[0];
                 tMax[0] += tDelta[0];
-            } 
-            else 
+            }
+            else
             {
                 idx_near[2] += step[2];
                 tMax[2] += tDelta[2];
             }
-        } 
-        else 
+        }
+        else
         {
-            if (tMax[1] < tMax[2]) 
+            if (tMax[1] < tMax[2])
             {
                 idx_near[1] += step[1];
                 tMax[1] += tDelta[1];
             }
-            else 
+            else
             {
                 idx_near[2] += step[2];
                 tMax[2] += tDelta[2];
             }
         }
 
-    } 
+    }
     while (idx_near[0] != justOut[0]
             && idx_near[1] != justOut[1]
             && idx_near[2] != justOut[2]);
+#ifdef USE_TAU
+  TAU_STOP("VolumeDomain::intersect");
+#endif
 
     return true;
 }
@@ -150,8 +163,12 @@ VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells)
 // XXX TODO: currently assumes only brick of floats
 
 bool
-VolumeDomain::load() 
+VolumeDomain::load()
 {
+#ifdef USE_TAU
+  TAU_START("VolumeDomain::load");
+#endif
+
     // data already loaded
     if (data != NULL) return true;
 
@@ -159,7 +176,7 @@ VolumeDomain::load()
     std::ifstream in;
     in.open(filename.c_str(), std::ios::binary);
 
-    if (!in.good()) 
+    if (!in.good())
     {
         GVT_DEBUG(DBG_ALWAYS,"ERROR: failed to open domain file '" << filename << "'");
         return false;
@@ -169,7 +186,7 @@ VolumeDomain::load()
     len = in.tellg();
     in.seekg(0, std::ios::beg);
 
-    if ((int) len != this->sizeInBytes()) 
+    if ((int) len != this->sizeInBytes())
     {
         GVT_DEBUG(DBG_ALWAYS,"ERROR: File size mismatch!"
             << "  Expected " << (dim[0] * dim[1] * dim[2] * sizeof (float))
@@ -181,12 +198,17 @@ VolumeDomain::load()
     in.read((char*) data, len);
 
     in.close();
+#ifdef USE_TAU
+  TAU_START("VolumeDomain::load");
+#endif
+
+
     return true;
 }
 
 namespace gvt{ namespace render{ namespace data{ namespace domain{
 std::ostream&
-operator<<(std::ostream& os, VolumeDomain const& d) 
+operator<<(std::ostream& os, VolumeDomain const& d)
 {
     os << "volume domain " << d.id << std::endl;
     os << "    file: " << d.filename << std::endl;
