@@ -156,13 +156,13 @@ bool Box3D::intersectDistance(const Ray& ray, float& t) const
 
     float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
     float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
+#ifdef USE_TAU
+  TAU_STOP("Box3D::intersectDistance");
+#endif
 
     if (tmax < 0 || tmin > tmax) return false;
 
     t = (tmin > 0) ? t = tmin : tmax;
-#ifdef USE_TAU
-  TAU_STOP("Box3D::intersectDistance");
-#endif
 
     return (t > FLT_EPSILON);
 
