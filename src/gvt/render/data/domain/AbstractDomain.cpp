@@ -16,7 +16,7 @@ AbstractDomain::AbstractDomain(gvt::core::math::AffineTransformMatrix<float> m)
     minv = m.inverse();
     normi = m.upper33().inverse().transpose();
 #ifdef USE_TAU
-  TAU_STOP("AbstractDomain::AbstractDomain");
+  TAU_STOP("AbstractDomain::AbstractDomain 1");
 #endif
 
 }
@@ -260,7 +260,10 @@ gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
   TAU_START("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
 #endif
     if (type == 0)
-    {
+     {
+#ifdef USE_TAU
+  TAU_STOP("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
+#endif       
         return boundingBox;
     }
     else
@@ -269,11 +272,12 @@ gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
         gvt::render::data::primitives::Box3D bb; // = boundingBox;
         bb.bounds[0] = m * boundingBox.bounds[0];
         bb.bounds[1] = m * boundingBox.bounds[1];
-        return bb;
-    }
 #ifdef USE_TAU
   TAU_STOP("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
-#endif
+#endif       
+	return bb;
+    }
+
 
 }
 

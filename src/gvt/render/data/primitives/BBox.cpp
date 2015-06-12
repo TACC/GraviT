@@ -134,7 +134,7 @@ void Box3D::expand(Point4f & v)
     bounds[1][1] = fmaxf(bounds[1][1], v[1]);
     bounds[1][2] = fmaxf(bounds[1][2], v[2]);
 #ifdef USE_TAU
-  TAU_START(" Box3D::expand");
+  TAU_STOP(" Box3D::expand");
 #endif
 
 
@@ -160,11 +160,11 @@ bool Box3D::intersectDistance(const Ray& ray, float& t) const
     if (tmax < 0 || tmin > tmax) return false;
 
     t = (tmin > 0) ? t = tmin : tmax;
-
-    return (t > FLT_EPSILON);
 #ifdef USE_TAU
   TAU_STOP("Box3D::intersectDistance");
 #endif
+
+    return (t > FLT_EPSILON);
 
 }
 

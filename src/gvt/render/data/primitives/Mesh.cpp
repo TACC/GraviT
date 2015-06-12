@@ -163,7 +163,14 @@ void Mesh::generateNormals()
 #ifdef USE_TAU
   TAU_START("Mesh::generateNormals");
 #endif
-  if (haveNormals) return;
+  if (haveNormals) {
+  
+#ifdef USE_TAU
+  TAU_STOP("Mesh::generateNormals");
+#endif
+
+  return;
+  }
   normals.clear();
   face_normals.clear();
   faces_to_normals.clear();
