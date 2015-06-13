@@ -2,7 +2,7 @@
 
 #include <gvt/core/Math.h>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -38,7 +38,7 @@ struct cameraGenerateRays
 
     void operator()()
     {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("render:data:scene:cameraGenerateRays::operator");
 #endif
         AffineTransformMatrix<float> m = cam->m; // rotation matrix
@@ -92,7 +92,7 @@ struct cameraGenerateRays
             }
         }
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("render:data:scene:cameraGenerateRays::operator");
 #endif
     }
@@ -101,7 +101,7 @@ struct cameraGenerateRays
 
 RayVector& Camera::MakeCameraRays()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("render:data:scene:Camera::MakeCameraRays");
 #endif
     trcUpSampling = 1;
@@ -131,10 +131,10 @@ RayVector& Camera::MakeCameraRays()
 
     GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << nrays);
     GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
-    return rays;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("render:data:scene:Camera::MakeCameraRays");
 #endif
+    return rays;
 
 }
 

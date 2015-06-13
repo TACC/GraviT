@@ -13,7 +13,7 @@
 #include <iostream>
 #include <sstream>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -39,7 +39,7 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
 
 ObjReader::ObjReader(const std::string filename) : computeNormals(false)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("ObjReader::ObjReader");
 #endif
 
@@ -84,7 +84,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false)
 
     if(computeNormals) objMesh->generateNormals();
     objMesh->computeBoundingBox();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("ObjReader::ObjReader");
 #endif
 
@@ -92,7 +92,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false)
 
 void ObjReader::parseVertex(std::string line)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("ObjReader::parseVertex");
 #endif
 
@@ -101,7 +101,7 @@ void ObjReader::parseVertex(std::string line)
     split(line, ' ', elems);
     GVT_ASSERT(elems.size() == 4, "Error parsing vertex");
     objMesh->addVertex(Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("ObjReader::parseVertex");
 #endif
 
@@ -109,7 +109,7 @@ void ObjReader::parseVertex(std::string line)
 
 void ObjReader::parseVertexNormal(std::string line)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("ObjReader::parseVertexNormal");
 #endif
 
@@ -117,7 +117,7 @@ void ObjReader::parseVertexNormal(std::string line)
     split(line, ' ', elems);
     GVT_ASSERT(elems.size() == 4, "Error parsing vertex normal");
     objMesh->addNormal(Vector4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("ObjReader::parseVertexNormal");
 #endif
 
@@ -125,7 +125,7 @@ void ObjReader::parseVertexNormal(std::string line)
 
 void ObjReader::parseVertexTexture(std::string line)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("ObjReader::parseVertexTexture");
 #endif
 
@@ -133,7 +133,7 @@ void ObjReader::parseVertexTexture(std::string line)
     split(line, ' ', elems);
     GVT_ASSERT(elems.size() == 3, "Error parsing texture map");
     objMesh->addTexUV(Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), 0, 0));
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("ObjReader::parseVertexTexture");
 #endif
 
@@ -141,7 +141,7 @@ void ObjReader::parseVertexTexture(std::string line)
 
 void ObjReader::parseFace(std::string line)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("ObjReader::parseFace");
 #endif
 
@@ -192,7 +192,7 @@ void ObjReader::parseFace(std::string line)
 
     objMesh->addFace(v1,v2,v3);
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("ObjReader::parseFace");
 #endif
 

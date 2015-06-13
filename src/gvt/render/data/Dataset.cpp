@@ -5,7 +5,7 @@
 #include <boost/range/algorithm.hpp>
 #include <boost/foreach.hpp>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -39,11 +39,11 @@ bool Dataset::intersect(Ray&  r, isecDomList& inter)
 
 AbstractDomain* Dataset::getDomain(int id)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Dataset::getDomain");
 #endif
     GVT_ASSERT_BACKTRACE(id < domainSet.size(),"Getting domain outside bound");
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Dataset::getDomain");
 #endif
     return domainSet[id];
@@ -51,11 +51,11 @@ AbstractDomain* Dataset::getDomain(int id)
 
 Light* Dataset::getLight(int id)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Dataset::getLight");
 #endif
     GVT_ASSERT_BACKTRACE(id <lightSet.size(),"Getting light source outside bound");
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Dataset::getLight");
 #endif
     return lightSet[id];
@@ -63,7 +63,7 @@ Light* Dataset::getLight(int id)
 
 int Dataset::addDomain(AbstractDomain* dom)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Dataset::addDomain");
 #endif
 
@@ -73,7 +73,7 @@ int Dataset::addDomain(AbstractDomain* dom)
 
     GVT_DEBUG(DBG_ALWAYS,"Add domain. World BB : " << dataSetBB);
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Dataset::addDomain");
 #endif
 
@@ -82,12 +82,12 @@ int Dataset::addDomain(AbstractDomain* dom)
 
 int Dataset::addLight(Light* ls)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Dataset::addLight");
 #endif
     dataSetBB.merge(ls->getWorldBoundingBox());
     lightSet.push_back(ls);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Dataset::addLight");
 #endif
     return domainSet.size() - 1;

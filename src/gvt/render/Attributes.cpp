@@ -5,7 +5,7 @@
 
 #include <gvt/render/Attributes.h>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 

@@ -1,7 +1,7 @@
 
 #include <gvt/render/data/domain/AbstractDomain.h>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -10,12 +10,12 @@ using namespace gvt::render::data::domain;
 AbstractDomain::AbstractDomain(gvt::core::math::AffineTransformMatrix<float> m)
 : m(m), domainID(-1), isLoaded(false)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("AbstractDomain::AbstractDomain 1");
 #endif
     minv = m.inverse();
     normi = m.upper33().inverse().transpose();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("AbstractDomain::AbstractDomain 1");
 #endif
 
@@ -23,14 +23,14 @@ AbstractDomain::AbstractDomain(gvt::core::math::AffineTransformMatrix<float> m)
 
 AbstractDomain::AbstractDomain(const AbstractDomain &other)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("AbstractDomain::AbstractDomain 2");
 #endif
 
     m = other.m;
     minv = other.minv;
     normi = other.normi;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("AbstractDomain::AbstractDomain 2");
 #endif
 
@@ -55,7 +55,7 @@ bool AbstractDomain::intersect(gvt::render::actor::Ray&  r, gvt::render::actor::
 
 void AbstractDomain::marchIn(gvt::render::actor::Ray&  ray)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("AbstractDomain::marchIn");
 #endif
 
@@ -68,7 +68,7 @@ void AbstractDomain::marchIn(gvt::render::actor::Ray&  ray)
         ray.origin += ray.direction * gvt::render::actor::Ray::RAY_EPSILON;
     }
     ray.setDirection(-ray.direction);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("AbstractDomain::marchIn");
 #endif
 
@@ -76,7 +76,7 @@ void AbstractDomain::marchIn(gvt::render::actor::Ray&  ray)
 // TODO : This code assumes non-overlapping domains
 void AbstractDomain::marchOut(gvt::render::actor::Ray&  ray)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("AbstractDomain::marchOut");
 #endif
 
@@ -91,7 +91,7 @@ void AbstractDomain::marchOut(gvt::render::actor::Ray&  ray)
         ray.origin += ray.direction * gvt::render::actor::Ray::RAY_EPSILON;
     }
     ray.origin += ray.direction * gvt::render::actor::Ray::RAY_EPSILON;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("AbstractDomain::marchOut");
 #endif
 }
@@ -115,14 +115,14 @@ void AbstractDomain::free()
 
 gvt::render::actor::Ray AbstractDomain::toLocal(gvt::render::actor::Ray& r)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("gvt::render::actor::Ray AbstractDomain::toLocal");
 #endif
     GVT_ASSERT((&r),"NULL POINTER");
     gvt::render::actor::Ray ray(r);
     ray.origin = minv * ray.origin;
     ray.direction = minv * ray.direction;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::render::actor::Ray AbstractDomain::toLocal");
 #endif
 
@@ -132,7 +132,7 @@ gvt::render::actor::Ray AbstractDomain::toLocal(gvt::render::actor::Ray& r)
 
 gvt::render::actor::Ray AbstractDomain::toWorld(gvt::render::actor::Ray& r)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("gvt::render::actor::Ray AbstractDomain::toWorld");
 #endif
 
@@ -140,7 +140,7 @@ gvt::render::actor::Ray AbstractDomain::toWorld(gvt::render::actor::Ray& r)
     gvt::render::actor::Ray ray(r);
     ray.origin = m * ray.origin;
     ray.direction = m * ray.direction;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::render::actor::Ray AbstractDomain::toWorld");
 #endif
     return ray;
@@ -148,13 +148,13 @@ gvt::render::actor::Ray AbstractDomain::toWorld(gvt::render::actor::Ray& r)
 
 gvt::core::math::Vector4f AbstractDomain::toLocal(const gvt::core::math::Vector4f& r)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("gvt::core::math::Vector4f AbstractDomain::toLocal");
 #endif
 
     gvt::core::math::Vector4f ret = minv * r;
     ret.normalize();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::core::math::Vector4f AbstractDomain::toLocal");
 #endif
 
@@ -163,13 +163,13 @@ gvt::core::math::Vector4f AbstractDomain::toLocal(const gvt::core::math::Vector4
 
 gvt::core::math::Vector4f AbstractDomain::toWorld(const gvt::core::math::Vector4f& r)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("gvt::core::math::Vector4f AbstractDomain::toWorld");
 #endif
 
     gvt::core::math::Vector4f ret = m * r;
     ret.normalize();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::core::math::Vector4f AbstractDomain::toWorld");
 #endif
 
@@ -178,13 +178,13 @@ gvt::core::math::Vector4f AbstractDomain::toWorld(const gvt::core::math::Vector4
 
 gvt::core::math::Vector4f AbstractDomain::localToWorldNormal(const gvt::core::math::Vector4f &v)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("gvt::core::math::Vector4f AbstractDomain::localToWorldNormal");
 #endif
 
     gvt::core::math::Vector3f ret = normi * (gvt::core::math::Vector3f)v;
     ret.normalize();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::core::math::Vector4f AbstractDomain::localToWorldNormal");
 #endif
 
@@ -193,7 +193,7 @@ gvt::core::math::Vector4f AbstractDomain::localToWorldNormal(const gvt::core::ma
 
 void AbstractDomain::translate(gvt::core::math::Vector4f t)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START(" AbstractDomain::translate");
 #endif
 
@@ -203,7 +203,7 @@ void AbstractDomain::translate(gvt::core::math::Vector4f t)
 
     minv = m.inverse();
     normi = m.upper33().inverse().transpose();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP(" AbstractDomain::translate");
 #endif
 
@@ -212,7 +212,7 @@ void AbstractDomain::translate(gvt::core::math::Vector4f t)
 
 void AbstractDomain::rotate(gvt::core::math::Vector4f t)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START(" AbstractDomain::rotate");
 #endif
 
@@ -222,7 +222,7 @@ void AbstractDomain::rotate(gvt::core::math::Vector4f t)
             * gvt::core::math::AffineTransformMatrix<float>::createRotation(t[2],0.0,0.0,1.0);
     minv = m.inverse();
     normi = m.upper33().inverse().transpose();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP(" AbstractDomain::rotate");
 #endif
 
@@ -230,14 +230,14 @@ void AbstractDomain::rotate(gvt::core::math::Vector4f t)
 
 void AbstractDomain::scale(gvt::core::math::Vector4f t)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START(" AbstractDomain::scale");
 #endif
 
     m = m * gvt::core::math::AffineTransformMatrix<float>::createScale(t[0],t[1],t[2]);
     minv = m.inverse();
     normi = m.upper33().inverse().transpose();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP(" AbstractDomain::scale");
 #endif
 
@@ -256,12 +256,12 @@ void AbstractDomain::setBoundingBox(gvt::render::data::primitives::Box3D bb)
 
 gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
 #endif
     if (type == 0)
      {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
 #endif       
         return boundingBox;
@@ -272,7 +272,7 @@ gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
         gvt::render::data::primitives::Box3D bb; // = boundingBox;
         bb.bounds[0] = m * boundingBox.bounds[0];
         bb.bounds[1] = m * boundingBox.bounds[1];
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
 #endif       
 	return bb;

@@ -3,7 +3,7 @@
 
 #include "gvt/render/actor/Ray.h"
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -104,7 +104,7 @@ bool Box3D::inBox(const Point4f &origin) const
 
 void Box3D::merge(const Box3D &other)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START(" Box3D::merge");
 #endif
     bounds[0][0] = fminf(other.bounds[0][0], bounds[0][0]);
@@ -114,7 +114,7 @@ void Box3D::merge(const Box3D &other)
     bounds[1][0] = fmaxf(other.bounds[1][0], bounds[1][0]);
     bounds[1][1] = fmaxf(other.bounds[1][1], bounds[1][1]);
     bounds[1][2] = fmaxf(other.bounds[1][2], bounds[1][2]);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP(" Box3D::merge");
 #endif
 
@@ -122,7 +122,7 @@ void Box3D::merge(const Box3D &other)
 
 void Box3D::expand(Point4f & v)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START(" Box3D::expand");
 #endif
 
@@ -133,7 +133,7 @@ void Box3D::expand(Point4f & v)
     bounds[1][0] = fmaxf(bounds[1][0], v[0]);
     bounds[1][1] = fmaxf(bounds[1][1], v[1]);
     bounds[1][2] = fmaxf(bounds[1][2], v[2]);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP(" Box3D::expand");
 #endif
 
@@ -142,7 +142,7 @@ void Box3D::expand(Point4f & v)
 
 bool Box3D::intersectDistance(const Ray& ray, float& t) const
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Box3D::intersectDistance");
 #endif
 
@@ -156,7 +156,7 @@ bool Box3D::intersectDistance(const Ray& ray, float& t) const
 
     float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
     float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Box3D::intersectDistance");
 #endif
 

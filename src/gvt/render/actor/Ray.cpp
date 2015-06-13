@@ -11,7 +11,7 @@
 #include <boost/pool/singleton_pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -23,7 +23,7 @@ const float Ray::RAY_EPSILON = 1.e-6;
 Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, int depth)
 : type(type), w(contribution), depth(depth)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::Ray 1");
 #endif
     this->origin = origin;
@@ -35,14 +35,14 @@ Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, i
     id = -1;
             //            tprim = FLT_MAX;
             //            origin_domain = -1;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::Ray 1");
 #endif
 }
 
 Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::Ray 2");
 #endif   origin = m * ray.origin;
     direction = m * (ray.direction).normalize();
@@ -61,14 +61,14 @@ Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m)
             //            tprim = ray.tprim;
             //            origin_domain = ray.origin_domain;
             //            visited = ray.visited;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::Ray 2");
 #endif
 }
 
 Ray::Ray(const Ray& ray)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::Ray 3");
 #endif
     origin = ray.origin;
@@ -89,7 +89,7 @@ Ray::Ray(const Ray& ray)
             //            tprim = ray.tprim;
             //            origin_domain = ray.origin_domain;
             //            visited = ray.visited;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::Ray 3");
 #endif
 }
@@ -100,7 +100,7 @@ Ray::~Ray()
 
 Ray::Ray(const unsigned char* buf)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::Ray 4");
 #endif
     GVT_DEBUG(DBG_ALWAYS, "in Ray::Ray(const unsigned char* buf)");
@@ -131,21 +131,21 @@ Ray::Ray(const unsigned char* buf)
                 //domains.insert(isecDom(*(float*) buf,*(float*) (buf + sizeof (float))));
         domains.push_back(isecDom(*(float*) buf));
     }
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::Ray 4");
 #endif
 }
 
 int Ray::packedSize()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::packedSize");
 #endif
     int total_size = origin.packedSize() + direction.packedSize() + color.packedSize();
     total_size = 4 * sizeof (int) + 4 * sizeof (double);
     total_size = sizeof (isecDom) * domains.size();
     return total_size;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::packedSize");
 #endif
 
@@ -153,7 +153,7 @@ int Ray::packedSize()
 
 int Ray::pack(unsigned char* buffer)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::pack");
 #endif
 
@@ -193,7 +193,7 @@ int Ray::pack(unsigned char* buffer)
 
             //                for (int i = 0; i < domains.size(); ++i, buf += (sizeof (int) + sizeof(float))))
             //                    *((int*) buf) = domains;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::pack");
 #endif
     return packedSize();
@@ -201,7 +201,7 @@ int Ray::pack(unsigned char* buffer)
 
 void Ray::setDirection(Vector4f dir)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Ray::setDirection");
 #endif
 
@@ -213,7 +213,7 @@ void Ray::setDirection(Vector4f dir)
         if (direction[i] != 0) inverseDirection[i] = 1.0 / direction[i];
         else inverseDirection[i] = 0.;
     }
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Ray::setDirection");
 #endif
 

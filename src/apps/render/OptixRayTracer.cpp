@@ -24,7 +24,7 @@
 #include <mpi.h>
 #endif
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -37,7 +37,7 @@ using namespace gvt::render::schedule;
 
 OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("OptixRayTracer::OptixRayTracer");
 #endif
     scene->camera.SetCamera(rays,1.0);
@@ -69,7 +69,7 @@ OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
     rta.render_type = gvt::render::Attributes::Optix;
 
     rta.datafile = "";
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("OptixRayTracer::OptixRayTracer");
 #endif
 
@@ -77,7 +77,7 @@ OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 
 void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("OptixRayTracer::RenderImage");
 #endif
 
@@ -88,7 +88,7 @@ void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
     gvt::render::algorithm::Tracer<OptixDomain, MPICOMM, ImageScheduler>(rays, image)();
     image.Write();
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("OptixRayTracer::RenderImage");
 #endif
 

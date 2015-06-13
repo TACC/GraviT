@@ -9,14 +9,14 @@
 #include <fstream>
 #include <iostream>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 using namespace gvt::render::data::domain;
 
 bool X_Box( const gvt::render::actor::Ray& r, const float* min, const float* max, float& t_near, float& t_far )
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("VolumeDomain::X_Box");
 #endif
     t_near = -FLT_MAX;
@@ -48,7 +48,7 @@ bool X_Box( const gvt::render::actor::Ray& r, const float* min, const float* max
             if (t_far < 0) return false;
         }
     }
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("VolumeDomain::X_Box");
 #endif
 
@@ -64,7 +64,7 @@ VolumeDomain::MakeCell(int id, Cell& cell)
 bool
 VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("VolumeDomain::intersect");
 #endif
     float near, far;
@@ -153,7 +153,7 @@ VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells)
     while (idx_near[0] != justOut[0]
             && idx_near[1] != justOut[1]
             && idx_near[2] != justOut[2]);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("VolumeDomain::intersect");
 #endif
 
@@ -165,7 +165,7 @@ VolumeDomain::intersect(gvt::render::actor::Ray& r, std::vector<int>& cells)
 bool
 VolumeDomain::load()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("VolumeDomain::load");
 #endif
 
@@ -179,7 +179,10 @@ VolumeDomain::load()
     if (!in.good())
     {
         GVT_DEBUG(DBG_ALWAYS,"ERROR: failed to open domain file '" << filename << "'");
-        return false;
+#ifdef __USE_TAU
+  TAU_START("VolumeDomain::load");
+#endif
+      return false;
     }
 
     in.seekg(0, std::ios::end);
@@ -191,14 +194,17 @@ VolumeDomain::load()
         GVT_DEBUG(DBG_ALWAYS,"ERROR: File size mismatch!"
             << "  Expected " << (dim[0] * dim[1] * dim[2] * sizeof (float))
             << "  but got " << len);
-        return false;
+ #ifdef __USE_TAU
+  TAU_START("VolumeDomain::load");
+#endif
+       return false;
     }
 
     data = new float[len];
     in.read((char*) data, len);
 
     in.close();
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("VolumeDomain::load");
 #endif
 

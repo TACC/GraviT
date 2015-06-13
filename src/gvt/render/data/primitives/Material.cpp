@@ -8,7 +8,7 @@
 #include <cmath>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Material.h>
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -60,7 +60,7 @@ Lambert::~Lambert()
 
 Vector4f Lambert::shade(const Ray&  ray, const Vector4f& N, const Light* lightSource)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Vector4f Lambert::shade");
 #endif
     Point4f L = ray.direction;
@@ -68,7 +68,7 @@ Vector4f Lambert::shade(const Ray&  ray, const Vector4f& N, const Light* lightSo
     float NdotL = std::max(0.f, N*L);
     Color lightSourceContrib = lightSource->contribution(ray);
     Color diffuse = prod(lightSourceContrib, kd * NdotL) * ray.w;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Vector4f Lambert::shade");
 #endif
     return diffuse;
@@ -100,7 +100,7 @@ Phong::~Phong()
 
 Vector4f Phong::shade(const Ray&  ray, const Vector4f& N, const Light* lightSource)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Vector4f Phong::shade");
 #endif
     Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
@@ -118,7 +118,7 @@ Vector4f Phong::shade(const Ray&  ray, const Vector4f& N, const Light* lightSour
     Color specular = prod((lightSourceContrib * power), ks) * ray.w;
 
     Color finalColor = (diffuse + specular);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Vector4f Phong::shade");
 #endif
     return finalColor;
@@ -150,7 +150,7 @@ BlinnPhong::~BlinnPhong()
 
 Vector4f BlinnPhong::shade(const Ray&  ray, const Vector4f& N, const Light* lightSource)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Vector4f BlinnPhong::shade");
 #endif
     Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
@@ -169,7 +169,7 @@ Vector4f BlinnPhong::shade(const Ray&  ray, const Vector4f& N, const Light* ligh
     Color specular = prod((lightSourceContrib * power) ,  ks) * ray.w;
 
     Color finalColor = (diffuse + specular);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Vector4f BlinnPhong::shade");
 #endif
     return finalColor;

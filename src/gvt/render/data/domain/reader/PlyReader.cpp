@@ -34,7 +34,7 @@
 #include <string>
 
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 

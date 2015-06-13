@@ -24,7 +24,7 @@
 #include <mpi.h>
 #endif
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -37,7 +37,7 @@ using namespace gvt::render::schedule;
 
 MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("MantaRayTracer::MantaRayTracer");
 #endif
     scene->camera.SetCamera(rays,1.0);
@@ -78,7 +78,7 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
     //rta.render_type = gvt::render::Attributes::Manta;
 
     //rta.datafile = "";
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("MantaRayTracer::MantaRayTracer");
 #endif
 
@@ -86,7 +86,7 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 
 void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("MantaRayTracer::RenderImage");
 #endif
 
@@ -188,7 +188,7 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 //    if (rank == 0) {
 //        image.Write();
 //    }
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("MantaRayTracer::RenderImage");
 #endif
 };

@@ -9,7 +9,7 @@
 
 #include <boost/timer/timer.hpp>
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -20,7 +20,7 @@ using namespace gvt::core::math;
 
 void GeometryDomain::free()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("GeometryDomain::free");
 #endif
     if (!isLoaded) return;
@@ -35,7 +35,7 @@ void GeometryDomain::free()
         mesh = NULL;
     }
     isLoaded = false;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("GeometryDomain::free");
 #endif
 
@@ -43,7 +43,7 @@ void GeometryDomain::free()
 
 bool GeometryDomain::load()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("GeometryDomain::load");
 #endif
 
@@ -60,7 +60,7 @@ bool GeometryDomain::load()
     mesh->setMaterial(new Lambert(Color(1.f, .0f, .0f, 1.f)));
     boundingBox = *(mesh->getBoundingBox());
     isLoaded = true;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("GeometryDomain::load");
 #endif
 

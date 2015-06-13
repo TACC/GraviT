@@ -8,7 +8,7 @@ using gvt::core::Uuid;
 using namespace gvt::core::math;
 using namespace gvt::render;
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -21,7 +21,7 @@ Context::~Context()
 
 DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("DBNodeH Context::createNodeFromType");
 #endif
     DBNodeH n = gvt::core::Context::createNode(type, name, parent);
@@ -46,7 +46,7 @@ DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)
         n += gvt::core::Context::createNode("schedule","Image");
     }
     return n;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("DBNodeH Context::createNodeFromType");
 #endif
 }

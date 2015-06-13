@@ -6,7 +6,7 @@
  */
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/primitives/Mesh.h>
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -37,79 +37,79 @@ Mesh::~Mesh()
 
 void Mesh::addVertexNormalTexUV(Point4f vertex, Vector4f normal, Point4f texUV)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::addVertexNormalTexUV");
 #endif
   vertices.push_back(vertex);
   normals.push_back(normal);
   mapuv.push_back(texUV);
   boundingBox.expand(vertex);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::addVertexNormalTexUV");
 #endif
 }
 
 void Mesh::addVertex(Point4f vertex)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::addVertex");
 #endif
   vertices.push_back(vertex);
   boundingBox.expand(vertex);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::addVertex");
 #endif
 }
 
 void Mesh::addNormal(Vector4f normal)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::addNormal");
 #endif
   normals.push_back(normal);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::addNormal");
 #endif
 }
 
 void Mesh::addTexUV(Point4f texUV)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::addTexUV");
 #endif
   mapuv.push_back(texUV);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::addTexUV");
 #endif
 }
 
 void Mesh::setNormal(int which, Vector4f normal)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::setNormal");
 #endif
   GVT_ASSERT((which > vertices.size()), "Setting normal outside the bounds");
   normals[which] = normal;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::setNormal");
 #endif
 }
 
 void Mesh::setTexUV(int which, Point4f texUV)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::setTexUV");
 #endif
   GVT_ASSERT((which > vertices.size()), "Setting texture outside the bounds");
   this->mapuv[which] = texUV;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::setTexUV");
 #endif
 }
 
 void Mesh::setVertex(int which, Point4f vertex, Vector4f normal, Point4f texUV)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::setVertex");
 #endif
   GVT_ASSERT((which > vertices.size()), "Setting vertex outside the bounds");
@@ -117,55 +117,55 @@ void Mesh::setVertex(int which, Point4f vertex, Vector4f normal, Point4f texUV)
   boundingBox.expand(vertex);
   if(normal.length2()) normals[which] = normal;
   if(texUV.length2()) this->mapuv[which] = texUV;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::setVertex");
 #endif
 }
 
 void Mesh::setMaterial(Material* mat)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::setMaterial");
 #endif
   this->mat = mat;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::setMaterial");
 #endif
 }
 
 void Mesh::addFace(int v0, int v1, int v2)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::addFace");
 #endif
   GVT_ASSERT(v0-1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0-1));
   GVT_ASSERT(v1-1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1-1));
   GVT_ASSERT(v2-1 < vertices.size(), "Vertex index 2 outside bounds : " << (v2-1));
   faces.push_back(Face(v0-1,v1-1,v2-1));
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::addFace");
 #endif
 }
 
 void Mesh::addFaceToNormals(Mesh::FaceToNormals face)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::addFaceToNormals");
 #endif
   faces_to_normals.push_back(face);
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::addFaceToNormals");
 #endif
 }
 
 void Mesh::generateNormals()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Mesh::generateNormals");
 #endif
   if (haveNormals) {
   
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::generateNormals");
 #endif
 
@@ -203,27 +203,32 @@ void Mesh::generateNormals()
   }
   for (int i = 0; i < normals.size(); ++i) normals[i].normalize();
     haveNormals = true;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Mesh::generateNormals");
 #endif
 }
 
 Color Mesh::shadeFace(const int face_id, const Ray& r, const Vector4f& normal, const Light* lsource)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Color Mesh::shadeFace");
 #endif
   // XXX TODO: shadeFace returns constant color, fix?
 
-  if(!faces_to_materials.size()) return shade(r,normal,lsource);
+  if(!faces_to_materials.size()) {
 
+#ifdef __USE_TAU
+  TAU_STOP("Color Mesh::shadeFace");
+#endif
+  return shade(r,normal,lsource);
+  }
 
   Color c(0.5f, 0.5f, 0.5f, 0.0f);
   Material* m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
   if (m) {
    c = m->shade(r, normal, lsource);
   }
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Color Mesh::shadeFace");
 #endif
   return c;
@@ -236,7 +241,7 @@ Color Mesh::shade(const Ray& r,const Vector4f& normal,const Light* lsource)
 
 Box3D Mesh::computeBoundingBox()
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Box3D Mesh::computeBoundingBox");
 #endif
   Box3D box;
@@ -248,7 +253,7 @@ Box3D Mesh::computeBoundingBox()
   }
 
   this->boundingBox = box;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Box3D Mesh::computeBoundingBox");
 #endif
 

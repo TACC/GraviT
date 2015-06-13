@@ -1,7 +1,7 @@
 #include "gvt/core/Context.h"
 #include "gvt/core/Debug.h"
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -37,14 +37,14 @@ DBNodeH Context::getNode(Uuid node)
 
 DBNodeH Context::createNode(String name, Variant val, Uuid parent)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
  TAU_START("DBNodeH Context::createNode");
 #endif
     DatabaseNode* np = new DatabaseNode(name, val, make_uuid(), parent);
     __database->setItem(np);
     GVT_DEBUG(DBG_LOW,"createNode: " << name << " " << uuid_toString(np->UUID()));
     return DBNodeH(np->UUID());
-#ifdef USE_TAU
+#ifdef __USE_TAU
  TAU_STOP("DBNodeH Context::createNode");
 #endif
 }

@@ -17,7 +17,7 @@
 #include <mpi.h>
 #endif
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 
@@ -30,7 +30,7 @@ using namespace gvt::render::schedule;
 
 EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("EmbreeRayTracer::EmbreeRayTracer");
 #endif
     std::cout << "constructing embree ray tracer" << std::endl;
@@ -67,7 +67,7 @@ EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scen
     rta.datafile = "";
 
     std::cout << "finished constructing EmbreeRayTracer" << std::endl;
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("EmbreeRayTracer::EmbreeRayTracer");
 #endif
 
@@ -75,7 +75,7 @@ EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scen
 
 void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("EmbreeRayTracer::RenderImage");
 #endif
 
@@ -96,8 +96,8 @@ void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 
     std::cout << "writing image to disk" << std::endl;
     image.Write();
-#ifdef USE_TAU
-  TAU_START("EmbreeRayTracer::RenderImage");
+#ifdef __USE_TAU
+  TAU_STOP("EmbreeRayTracer::RenderImage");
 #endif
 
 };

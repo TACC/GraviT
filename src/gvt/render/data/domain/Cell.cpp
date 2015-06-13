@@ -12,7 +12,7 @@
 #include <cstring> // memcpy
 #include <cstdlib> //realloc
 
-#ifdef USE_TAU
+#ifdef __USE_TAU
 #include <TAU.h>
 #endif
 using namespace std;
@@ -29,13 +29,13 @@ Cell::~Cell() {}
 
 bool Cell::MakeCell(int id, Cell& cell, vector<int>& dim, vector<float> min, vector<float> max, vector<float>& cell_dim, float* data)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Cell::MakeCell");
 #endif
     if (id < 0 || id >= (dim[0] * dim[1] * dim[2]))
     {
         cerr << "ERROR: invalid cell id '" << id << "' passed to MakeCell" << endl;
-#ifdef USE_TAU
+#ifdef __USE_TAU
         TAU_STOP("Cell::MakeCell");
 #endif
 
@@ -57,7 +57,7 @@ bool Cell::MakeCell(int id, Cell& cell, vector<int>& dim, vector<float> min, vec
         cell.min[i] = min[i] + idx[i] * cell_dim[i];
         cell.max[i] = min[i] + idx[i] * cell_dim[i] + cell_dim[i];
     }
-#ifdef USE_TAU
+#ifdef __USE_TAU
       TAU_START("Cell::MakeCell");
 #endif
 
@@ -66,7 +66,7 @@ bool Cell::MakeCell(int id, Cell& cell, vector<int>& dim, vector<float> min, vec
 
 bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray& r, vector<Cell::Face>& faces)
 {
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_START("Cell::FindFaceIntersectionsWithRay");
 #endif
 
@@ -170,7 +170,7 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray& r, vector<Cell:
                 return false;
         }
     }
-#ifdef USE_TAU
+#ifdef __USE_TAU
   TAU_STOP("Cell::FindFaceIntersectionsWithRay");
 #endif
 
