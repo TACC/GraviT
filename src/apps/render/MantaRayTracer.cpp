@@ -38,7 +38,7 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
 	//scene->GVTCamera.SetCamera(rays,1.0);
     
     gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
-    
+    gvt::render::Context cntxt = gvt::render::Context();   
     rta.dataset = new gvt::render::data::Dataset();
     
     
