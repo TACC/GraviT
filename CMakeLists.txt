@@ -42,6 +42,7 @@ if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" ON)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
+	option(GVT_SIMPLE_APP			"Build the simple application" ON)
 endif(GVT_RENDER) 
 
 
@@ -345,6 +346,22 @@ if (GVT_RENDER)
 		)
 endif(GVT_RENDER)
 
+if (GVT_SIMPLE_APP)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS}
+		src/apps/render/SimpleApp.cpp
+		)
+	add_executable(gvtSimple
+		${GVTSIMPLE_RENDER_SRCS}
+		)
+	target_link_libraries(gvtSimple ${GVTSIMPLE_RENDER_LIBS} gvtCore gvtRender)
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+		set_target_properties(gvtSimple PROPERTIES COMPILE_FLAGS '-std=c++11')
+	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+	
+endif(GVT_SIMPLE_APP)
 if (GVT_GLRENDER_APP)
 	find_package(MPI REQUIRED)
 	find_package(OpenGL REQUIRED)
