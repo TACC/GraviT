@@ -46,7 +46,7 @@ bool update = false;
 
 void Render() {
 	rays = sceneptr->camera.MakeCameraRays();
-	GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays, (*imageptr))();
+	GVT::Trace::Tracer<ImageSchedule>(rays, (*imageptr))();
 }
 
 // ************************* Glut callback  functions ********************************************

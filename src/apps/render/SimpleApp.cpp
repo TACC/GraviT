@@ -114,6 +114,6 @@ int main(int argc, char** argv) {
 //
 	mycamera.AllocateCameraRays();
 	mycamera.generateRays();
-	gvt::render::algorithm::Tracer<MantaDomain,MPICOMM,ImageScheduler>(mycamera.rays,myimage)();
+	gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();
 	myimage.Write();
 }
