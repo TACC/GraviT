@@ -11,7 +11,6 @@
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/algorithm/MetaProcessQueue.h>
 #include <gvt/render/Schedulers.h>
 
 #include <boost/foreach.hpp>

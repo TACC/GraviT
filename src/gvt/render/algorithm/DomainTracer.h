@@ -11,7 +11,6 @@
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/algorithm/MetaProcessQueue.h>
 #include <gvt/render/Schedulers.h>
 
 #include <boost/foreach.hpp>
@@ -124,7 +123,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
           // dom, this->colorBuf, ray_counter, domain_counter))();
           {
             moved_rays.reserve(queue[domTarget].size() * 10);
-            boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
+            boost::timer::auto_cpu_timer t("[Domain scheduler] Tracing domain rays %t\n");
             dom->trace(queue[domTarget], moved_rays);
             queue[domTarget].clear();
           }

@@ -14,7 +14,6 @@
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/algorithm/MetaProcessQueue.h>
 
 #include <boost/timer/timer.hpp>
 
