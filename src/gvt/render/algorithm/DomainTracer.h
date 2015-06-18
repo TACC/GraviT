@@ -59,6 +59,7 @@
 
                 virtual void operator()() 
                 {
+                    GVT_DEBUG(DBG_ALWAYS,"Using Domain schedule");
                     long ray_counter = 0, domain_counter = 0;
 
                     FindNeighbors();
@@ -98,7 +99,7 @@
                             }
                         }
                         GVT_DEBUG(DBG_LOW,"selected domain " << domTarget << " (" << domTargetCount << " rays)");
-                        GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) std::cerr << "selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
+                        GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << "selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
 
                         doms_to_send.clear();
                             // pnav: use this to ignore domain x:        int domi=0;if (0)
@@ -137,9 +138,9 @@
 
                             this->queue.erase(domTarget);
                         }
-                        //DEBUG( else if (GVT_DEBUG_RANK) cerr << this->rank << ": no assigned domains have rays" << endl);
+                        //DEBUG( else if (DEBUG_RANK) std::cerr << this->rank << ": no assigned domains have rays" << std::endl);
                     }
-                    //DEBUG( else if (GVT_DEBUG_RANK) cerr << this->rank << ": skipped queues.  empty:" << this->queue.empty() << " size:" << this->queue.size() << endl);
+                    //DEBUG( else if (DEBUG_RANK) std::cerr << this->rank << ": skipped queues.  empty:" << this->queue.empty() << " size:" << this->queue.size() << std::endl);
 
                         // done with current domain, send off rays to their proper processors.
 
@@ -161,10 +162,10 @@
                     }
 
                     MPI_Scatter(empties, 1, MPI_INT, &not_done, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": " << not_done << " procs still have rays" << " (my q:" << this->queue.size() << ")" << endl);
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK)
-                        for (map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
-                            cerr << "    q(" << q->first << "):" << q->second.size() << endl
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": " << not_done << " procs still have rays" << " (my q:" << this->queue.size() << ")" << std::endl);
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK)
+                        for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
+                            std::cerr << "    q(" << q->first << "):" << q->second.size() << std::endl
                         );
 
                     all_done = (not_done == 0);
@@ -311,7 +312,7 @@
                     for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
                     {
                         int n = q->first % this->world_size;
-                        GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": domain " << q->first << " maps to proc " << n);
+                        GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": domain " << q->first << " maps to proc " << n);
                         if (this->neighbors.find(n) != this->neighbors.end()) 
                         {
                             int n_ptr = 2 * n;
@@ -320,18 +321,18 @@
                             outbound[n_ptr] += q->second.size();
                             for (int r = 0; r < q->second.size(); ++r) 
                             {
-                                GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ":  " << (q->second)[r] << endl);
+                                GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ":  " << (q->second)[r] << std::endl);
                                 buf_size += (q->second)[r].packedSize(); // rays can have diff packed sizes
                             }
                             outbound[n_ptr + 1] += buf_size;
-                            GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << " neighbor! Added " << q->second.size() << " rays (" << buf_size << " bytes)" << endl);
+                            GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << " neighbor! Added " << q->second.size() << " rays (" << buf_size << " bytes)" << std::endl);
                         }
-                        //DEBUG( else if (GVT_DEBUG_RANK) cerr << " not neighbor" << endl);
+                        //DEBUG( else if (DEBUG_RANK) std::cerr << " not neighbor" << std::endl);
                     }
 
                     // let the neighbors know what's coming
                     // and find out what's coming here
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": sending neighbor info" << endl);
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": sending neighbor info" << std::endl);
 
                     int tag = 0;
                     for (std::set<int>::iterator n = neighbors.begin(); n != neighbors.end(); ++n)
@@ -341,15 +342,15 @@
 
                     MPI_Waitall(2 * this->world_size, reqs, stat);
                     GVT_DEBUG_CODE(DBG_LOW,
-                        if (GVT_DEBUG_RANK) {
-                        cerr << this->rank << ": sent neighbor info" << endl;
-                        cerr << this->rank << ": inbound ";
+                        if (DEBUG_RANK) {
+                        std::cerr << this->rank << ": sent neighbor info" << std::endl;
+                        std::cerr << this->rank << ": inbound ";
                         for (int i = 0; i < this->world_size; ++i)
-                            cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
-                        cerr << endl << this->rank << ": outbound ";
+                            std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
+                        std::cerr << std::endl << this->rank << ": outbound ";
                         for (int i = 0; i < this->world_size; ++i)
-                            cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
-                        cerr << endl;
+                            std::cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
+                        std::cerr << std::endl;
                     });
 
                     // set up send and recv buffers
@@ -372,12 +373,12 @@
                         if (inbound[2 * (*n)] > 0) 
                         {
                             GVT_DEBUG_CODE(DBG_LOW,
-                                if (GVT_DEBUG_RANK)
-                                cerr << this->rank << ": recv " << inbound[2 * (*n)] << " rays ("
-                                    << inbound[2 * (*n) + 1] << " bytes) from " << *n << endl
+                                if (DEBUG_RANK)
+                                std::cerr << this->rank << ": recv " << inbound[2 * (*n)] << " rays ("
+                                    << inbound[2 * (*n) + 1] << " bytes) from " << *n << std::endl
                                 );
                             MPI_Irecv(recv_buf[*n], inbound[2 * (*n) + 1], MPI_UNSIGNED_CHAR, *n, tag, MPI_COMM_WORLD, &reqs[2 * (*n)]);
-                            GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": recv done from " << *n << endl);
+                            GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": recv done from " << *n << std::endl);
                         }
                     }
 
@@ -387,13 +388,13 @@
                         int n = q->first % this->world_size;
                         if (outbound[2 * n] > 0) {
                             GVT_DEBUG_CODE(DBG_LOW,
-                                if (GVT_DEBUG_RANK)
-                                cerr << this->rank << ": send " << outbound[2 * n] << " rays ("
-                                    << outbound[2 * n + 1] << " bytes) to " << n << endl
+                                if (DEBUG_RANK)
+                                std::cerr << this->rank << ": send " << outbound[2 * n] << " rays ("
+                                    << outbound[2 * n + 1] << " bytes) to " << n << std::endl
                             );
                             for (int r = 0; r < q->second.size(); ++r) {
                                 gvt::render::actor::Ray ray = (q->second)[r];
-                                GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ":  " << ray << endl);
+                                GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ":  " << ray << std::endl);
                                 send_buf_ptr[n] += ray.pack(send_buf[n] + send_buf_ptr[n]);
                             }
                             to_del.push_back(q->first);
@@ -402,14 +403,14 @@
                     for (std::set<int>::iterator n = neighbors.begin(); n != neighbors.end(); ++n) {
                         if (outbound[2 * (*n)] > 0) {
                             MPI_Isend(send_buf[*n], outbound[2 * (*n) + 1], MPI_UNSIGNED_CHAR, *n, tag, MPI_COMM_WORLD, &reqs[2 * (*n) + 1]);
-                            GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": send done to " << *n << endl);
+                            GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": send done to " << *n << std::endl);
                         }
                     }
 
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": q(" << this->queue.size() << ") erasing " << to_del.size());
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": q(" << this->queue.size() << ") erasing " << to_del.size());
                     for (int i = 0; i < to_del.size(); ++i)
                         this->queue.erase(to_del[i]);
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << " q(" << this->queue.size() << ")" << endl);
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << " q(" << this->queue.size() << ")" << std::endl);
 
                     MPI_Waitall(2 * this->world_size, reqs, stat); // XXX TODO refactor to use Waitany?
 
@@ -419,21 +420,21 @@
                         if (inbound[2 * (*n)] > 0) 
                         {
                             GVT_DEBUG_CODE(DBG_LOW,
-                                if (GVT_DEBUG_RANK) {
-                                cerr << this->rank << ": adding " << inbound[2 * (*n)] << " rays (" << inbound[2 * (*n) + 1] << " B) from " << *n << endl;
-                                cerr << "    recv buf: " << (long) recv_buf[*n] << endl;
+                                if (DEBUG_RANK) {
+                                std::cerr << this->rank << ": adding " << inbound[2 * (*n)] << " rays (" << inbound[2 * (*n) + 1] << " B) from " << *n << std::endl;
+                                std::cerr << "    recv buf: " << (long) recv_buf[*n] << std::endl;
                             });
                             int ptr = 0;
                             for (int c = 0; c < inbound[2 * (*n)]; ++c) 
                             {
                                 gvt::render::actor::Ray r(recv_buf[*n] + ptr);
-                                GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ":  " << r << endl);
+                                GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ":  " << r << std::endl);
                                 this->queue[r.domains.back()].push_back(r);
                                 ptr += r.packedSize();
                             }
                         }
                     }
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << this->rank << ": sent and received rays" << endl);
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": sent and received rays" << std::endl);
 
                     // clean up
                     for (int i = 0; i < this->world_size; ++i) {
@@ -447,7 +448,7 @@
                     delete[] outbound;
                     delete[] reqs;
                     delete[] stat;
-                    GVT_DEBUG_CODE(DBG_LOW,if (GVT_DEBUG_RANK) cerr << "done with DomainSendRays" << endl);
+                    GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << "done with DomainSendRays" << std::endl);
                     return false;
                 }
             };
