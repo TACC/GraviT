@@ -53,7 +53,7 @@ enum GVT_DEBUG_LEVEL {
     DBG_LOW
 };
 
-#define GVT_DEBUG_LEVEL DBG_LOW
+#define DEBUG_LEVEL DBG_ALWAYS
 
 // XXX TODO - remove these from source
 #define GVT_DEBUG_RANK 0
