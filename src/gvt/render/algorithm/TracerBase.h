@@ -44,6 +44,7 @@ struct GVT_COMM {
 
   operator bool() { return (world_size > 1); }
   bool root() { return rank == 0; }
+
 };
 
 struct processRay;

@@ -53,6 +53,8 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
         queue[len2List[0]].push_back(ray);  // TODO: make this a ref?
       }
     }
+
+    rays.clear();
   }
 
   virtual void operator()() {
@@ -77,26 +79,34 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     int domTarget = -1, domTargetCount = 0;
 
     while (!all_done) {
+
+
       if (!queue.empty()) {
         // process domain assigned to this proc with most rays queued
         domTarget = -1;
         domTargetCount = 0;
 
         std::vector<int> to_del;
-
+        int count = 0;
         for (auto& q : queue) {
-          if (q.second.empty()) {
+          int aa = (q.first % mpi.world_size);
+
+          if (q.second.empty() || aa != mpi.rank) {
             to_del.push_back(q.first);
+            count++;
             continue;
           }
-          if ((q.first % mpi.world_size) == mpi.rank && q.second.size() > domTargetCount) {
+
+          if ( aa == mpi.rank && q.second.size() > domTargetCount) {
             domTargetCount = q.second.size();
             domTarget = q.first;
-          }
+          } 
+
         }
-        for(int domId : to_del) queue.erase(domId);
-        if(domTarget == -1) {
-            continue;
+
+          for (int domId : to_del) queue.erase(domId);
+        if (domTarget == -1) {
+          continue;
         }
 
         GVT_DEBUG(DBG_LOW, "selected domain " << domTarget << " ("
@@ -123,20 +133,31 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
           // dom, this->colorBuf, ray_counter, domain_counter))();
           {
             moved_rays.reserve(queue[domTarget].size() * 10);
-            boost::timer::auto_cpu_timer t("[Domain scheduler] Tracing domain rays %t\n");
+            boost::timer::auto_cpu_timer t(
+                "[Domain scheduler] Tracing domain rays %t\n");
             dom->trace(queue[domTarget], moved_rays);
             queue[domTarget].clear();
           }
           {
             shuffleRays(moved_rays, dom);
             moved_rays.clear();
+            queue[domTarget].clear();
           }
           queue.erase(domTarget);
         }
       }
 
+      if(!queue.empty()) {
+        
+        std::cout << "[" << mpi.rank <<"] Queue is not empty" << std::endl;
+        for(auto q : queue ) {
+          std::cout << "[" << mpi.rank << "] [" << q.first << "] : " << q.second.size() << std::endl;  
+        }
+
+      }
+
       // done with current domain, send off rays to their proper processors.
-      GVT_DEBUG(DBG_ALWAYS,"Rank [ " << mpi.rank << "]  sendrays");
+      GVT_DEBUG(DBG_ALWAYS, "Rank [ " << mpi.rank << "]  sendrays");
       SendRays();
       // are we done?
 
@@ -167,7 +188,6 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
   }
 
   virtual void FindNeighbors() {
-
     int total = gvt::render::Attributes::rta->GetTopology()[2],
         plane = gvt::render::Attributes::rta->GetTopology()[1],
         row = gvt::render::Attributes::rta->GetTopology()[0];  // XXX TODO:
@@ -264,13 +284,12 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
   }
 
   virtual bool SendRays() {
-
     int* outbound = new int[2 * mpi.world_size];
     int* inbound = new int[2 * mpi.world_size];
     MPI_Request* reqs = new MPI_Request[2 * mpi.world_size];
     MPI_Status* stat = new MPI_Status[2 * mpi.world_size];
-    unsigned char** send_buf = new unsigned char* [mpi.world_size];
-    unsigned char** recv_buf = new unsigned char* [mpi.world_size];
+    unsigned char** send_buf = new unsigned char*[mpi.world_size];
+    unsigned char** recv_buf = new unsigned char*[mpi.world_size];
     int* send_buf_ptr = new int[mpi.world_size];
 
     // init bufs

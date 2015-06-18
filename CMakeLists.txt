@@ -154,11 +154,9 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/actor/Ray.h
-	src/gvt/render/algorithm/AdaptParam.h
 	src/gvt/render/algorithm/DomainTracer.h
 	src/gvt/render/algorithm/HybridTracer.h
 	src/gvt/render/algorithm/ImageTracer.h
-	src/gvt/render/algorithm/MetaProcessQueue.h
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
 	src/gvt/render/Attributes.h

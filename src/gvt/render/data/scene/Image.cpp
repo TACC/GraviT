@@ -12,12 +12,17 @@
 
 #include <mpi.h>
 
+#include <gvt/render/algorithm/TracerBase.h>
+
 using namespace gvt::render::data::scene;
 
 void
 Image::Write()
 {
-    if(MPI::COMM_WORLD.Get_rank() != 0) return;
+    gvt::render::algorithm::GVT_COMM comm;
+
+    if(!comm.root()) return;
+
     std::string ext;
     switch (format)
     {
