@@ -8,6 +8,7 @@
 #ifndef GVT_RENDER_ALGORITHM_HYBRID_TRACER_H
 #define	GVT_RENDER_ALGORITHM_HYBRID_TRACER_H
 
+#include <gvt/core/Debug.h>
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/algorithm/TracerBase.h>
@@ -45,6 +46,7 @@ namespace gvt {
 
                 virtual void operator()() 
                 {
+                    GVT_DEBUG(DBG_ALWAYS,"Using Hybrid schedule");
                     GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << mpi.rank << ": " << (this->rays_end - this->rays_start) << " rays" << std::endl);
 
                     long ray_counter = 0;
@@ -104,7 +106,7 @@ namespace gvt {
                             if (DEBUG_RANK) std::cerr << mpi.rank << ": " << not_done << " procs still have rays" << " (my q:" << this->queue.size() << ")" << std::endl);
                         GVT_DEBUG_CODE(DBG_LOW,
                             if (DEBUG_RANK)
-                                for (map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
+                                for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
                                     std::cerr << "    q(" << q->first << "):" << q->second.size() << std::endl
                                 );
 

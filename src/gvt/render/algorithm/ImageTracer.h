@@ -50,7 +50,8 @@ namespace gvt {
 
                 virtual void operator()() 
                 {
-                  boost::timer::auto_cpu_timer t;
+                    GVT_DEBUG(DBG_ALWAYS,"Using Image schedule");
+                    boost::timer::auto_cpu_timer t;
 
                     long ray_counter = 0, domain_counter = 0;
 
@@ -86,10 +87,10 @@ namespace gvt {
                         if (domTarget >= 0) 
                         {
 
-                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << endl);
+                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << std::endl);
                             gvt::render::data::domain::AbstractDomain* dom = gvt::render::Attributes::rta->dataset->getDomain(domTarget);
                             dom->load();
-                            GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << endl);
+                            GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << std::endl);
 
                             // track domain loads
                             ++domain_counter;

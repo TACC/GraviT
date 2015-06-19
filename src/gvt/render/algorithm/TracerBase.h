@@ -18,6 +18,7 @@
 #include <boost/foreach.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/timer/timer.hpp>
 
 #include <algorithm>
 #include <future>
@@ -115,8 +116,8 @@ class AbstractTrace {
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
     int nchunks = 1;  // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
-    std::vector<std::pair<int, int>> chunks;
-    std::vector<std::future<void>> futures;
+    std::vector< std::pair<int, int> > chunks;
+    std::vector< std::future<void> > futures;
     for (int ii = 0; ii < nchunks - 1; ii++) {
       chunks.push_back(
           std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -178,8 +179,8 @@ class AbstractTrace {
 
     int nchunks = std::thread::hardware_concurrency() * 2;
     int chunk_size = size / nchunks;
-    std::vector<std::pair<int, int>> chunks;
-    std::vector<std::future<void>> futures;
+    std::vector< std::pair<int, int> > chunks;
+    std::vector< std::future<void> > futures;
     for (int ii = 0; ii < nchunks - 1; ii++) {
       chunks.push_back(
           std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -272,8 +273,8 @@ class AbstractTrace {
     if (mpi.root()) {
       int nchunks = std::thread::hardware_concurrency() * 2;
       int chunk_size = size / nchunks;
-      std::vector<std::pair<int, int>> chunks(nchunks);
-      std::vector<std::future<void>> futures;
+      std::vector< std::pair<int, int> > chunks(nchunks);
+      std::vector< std::future<void> > futures;
       for (int ii = 0; ii < nchunks - 1; ii++) {
         chunks.push_back(
             std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -398,7 +399,7 @@ class Tracer : public AbstractTrace {
  *
  */
 template <template <typename> class BSCHEDULER, class ISCHEDULER>
-class Tracer<BSCHEDULER<ISCHEDULER>> : public AbstractTrace {
+class Tracer< BSCHEDULER<ISCHEDULER> > : public AbstractTrace {
  public:
   Tracer(gvt::render::actor::RayVector& rays,
          gvt::render::data::scene::Image& image)

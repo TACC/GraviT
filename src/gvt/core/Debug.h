@@ -50,13 +50,14 @@ enum GVT_DEBUG_LEVEL {
     DBG_ALWAYS,
     DBG_SEVERE,
     DBG_MODERATE,
-    DBG_LOW
+    DBG_LOW,
+    DBG_OFF // used to keep a debug statement in place, but to turn it off, without excessive comments
 };
 
 #define DEBUG_LEVEL DBG_ALWAYS
 
 // XXX TODO - remove these from source
-#define GVT_DEBUG_RANK 0
+#define DEBUG_RANK 0
 #define DEBUG(x) 
 #define SUDO_DEBUG(x) 
 // end XXX TODO - remove these from source
@@ -92,7 +93,7 @@ inline std::string to_string(T value) {
 
 #define GVT_DEBUG(level,message) \
     do { \
-        if ( (level <= GVT_DEBUG_LEVEL)) { \
+        if ( (level <= DEBUG_LEVEL)) { \
             std::cerr << DBG_COLOR_GREEN << "Debug[" << DBG_COLOR_NORMAL << __FILE_SHORT__ \
                       << ":" << __LINE__ << DBG_COLOR_GREEN << "]: " << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl; \
         } \
@@ -117,7 +118,7 @@ inline std::string to_string(T value) {
 
 #define GVT_DEBUG_CODE(level,block) \
     do { \
-    	if ((level <= GVT_DEBUG_LEVEL)) { \
+    	if ((level <= DEBUG_LEVEL)) { \
     		block; \
     	} \
     } while (false)

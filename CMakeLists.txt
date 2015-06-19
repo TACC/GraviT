@@ -13,11 +13,14 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    #cmake_policy(SET CMP0042 NEW)
+    cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
-set(CMAKE_CXX_FLAGS "-Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+
+# use C++11 foo explicitly
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)

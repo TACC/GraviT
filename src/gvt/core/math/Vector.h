@@ -925,7 +925,7 @@
             template <class T>
             Vector<T>& Vector<T>::operator=(const Vector<T>& v) 
             { 
-                GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+                GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 for (int i = 0; i < numElements; i++)
                     n[i] = v[i];
@@ -936,7 +936,7 @@
             template <class T>
             Vector<T>& Vector<T>::operator+=(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 for (int i = 0; i < numElements; i++)
                     n[i] += v[i];
@@ -947,7 +947,7 @@
             template <class T>
             Vector<T>& Vector<T>::operator-=(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 for (int i = 0; i < numElements; i++)
                     n[i] -= v[i];
@@ -976,7 +976,7 @@
             template <class T>
             Vector<T> Vector<T>::operator-(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 Vector<T> result(numElements, false);
 
@@ -989,7 +989,7 @@
             template <class T>
             Vector<T> Vector<T>::operator+(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                Vector<T> result(numElements, false);
 
@@ -1037,7 +1037,7 @@
             template <class T>
             Vector<T> minimum(const Vector<T>& a, const Vector<T>& b) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
                 gvt::core::math::Vector<T> result(a.numElements, false);
 
@@ -1050,7 +1050,7 @@
             template <class T>
             Vector<T> maximum(const Vector<T>& a, const Vector<T>& b) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
                 Vector<T> result(a.numElements, false);
 
@@ -1063,7 +1063,7 @@
             template <class T>
             Vector<T> prod(const Vector<T>& a, const Vector<T>& b) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
                 Vector<T> result(a.numElements, false);
 

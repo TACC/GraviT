@@ -19,6 +19,7 @@
 // end Manta includes
 
 #include <boost/foreach.hpp>
+#include <boost/timer/timer.hpp>
 
 #ifdef PARALLEL
 #include <mpi.h>
