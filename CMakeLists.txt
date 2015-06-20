@@ -33,11 +33,26 @@ option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
+SET(GVT_HOST "Other" CACHE STRING "Choose Stampede | Maverick | Other")
+
 
 if(GVT_DEBUG)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
 endif(GVT_DEBUG)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+string( TOLOWER "${GVT_HOST}" host_lower )
+if( host_lower STREQUAL "stampede" )
+	set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif()
+
+if( host_lower STREQUAL "maverick" )
+	set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif()
+endif()
+
 
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
