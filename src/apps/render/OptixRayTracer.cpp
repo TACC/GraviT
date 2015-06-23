@@ -85,11 +85,13 @@ void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
 
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
-    gvt::render::algorithm::Tracer<OptixDomain, MPICOMM, ImageScheduler>(rays, image)();
-    image.Write();
 
+    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();  
+    //image.Write();
+    gvt::render::algorithm::GVT_COMM mpi;
+    if(mpi.root()) image.Write();
 #ifdef __USE_TAU
-  TAU_START("OptixRayTracer::RenderImage");
+  TAU_STOP("OptixRayTracer::RenderImage");
 #endif
 
 };

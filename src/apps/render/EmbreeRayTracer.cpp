@@ -80,9 +80,7 @@ void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 #endif
 
 
-    std::cout << "rendering image: " << imagename << std::endl;
-
-    boost::timer::auto_cpu_timer t("Total render time: %t\n");
+    boost::timer::auto_cpu_timer t("Total render time: %w\n");
 
     std::cout << "create image" << std::endl;
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
@@ -92,13 +90,16 @@ void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
     std::cout << "finished making camera rays" << std::endl;
 
     std::cout << "calling EmbreeDomain trace/render function" << std::endl;
-    gvt::render::algorithm::Tracer<EmbreeDomain, MPICOMM, ImageScheduler>(rays, image)();
-
-    std::cout << "writing image to disk" << std::endl;
-    image.Write();
+    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();
+    
+    gvt::render::algorithm::GVT_COMM mpi;
+    if(mpi.root()) {
+        std::cout << "writing image to disk" << std::endl;
+        image.Write();
 #ifdef __USE_TAU
   TAU_STOP("EmbreeRayTracer::RenderImage");
 #endif
+    }
 
 };
 

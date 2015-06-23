@@ -8,7 +8,7 @@
 template <class T>
 T operator*(const gvt::core::math::Vector<T>& a, const gvt::core::math::Vector<T>& b) 
 {
-   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch();)
+   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
     double result = 0.0;
 
@@ -63,7 +63,7 @@ gvt::core::math::Vector<T> operator/(const gvt::core::math::Vector<T>& a, const 
 template <class T>
 gvt::core::math::Vector<T> operator^(const gvt::core::math::Vector<T>& a, const gvt::core::math::Vector<T>& b) 
 {
-   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch();)
+   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
     return a;
 }
@@ -71,7 +71,7 @@ gvt::core::math::Vector<T> operator^(const gvt::core::math::Vector<T>& a, const 
 template <class T>
 bool operator==(const gvt::core::math::Vector<T>& a, const gvt::core::math::Vector<T>& b) 
 {
-   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch();)
+   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
     for (int i = 0; i < a.numElements; i++)
         if (a[i] != b[i])
@@ -83,7 +83,7 @@ bool operator==(const gvt::core::math::Vector<T>& a, const gvt::core::math::Vect
 template <class T>
 bool operator!=(const gvt::core::math::Vector<T>& a, const gvt::core::math::Vector<T>& b) 
 {
-   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch();)
+   GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
     for (int i = 0; i < a.numElements; i++)
         if (a[i] == b[i])

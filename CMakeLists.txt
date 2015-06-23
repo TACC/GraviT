@@ -13,11 +13,14 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    #cmake_policy(SET CMP0042 NEW)
+    cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
-set(CMAKE_CXX_FLAGS "-Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+
+# use C++11 foo explicitly
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -29,6 +32,26 @@ option(GVT_CORE 		 "Build GraviT core library" ON)
 option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
+option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
+SET(GVT_HOST "Other" CACHE STRING "Choose Stampede | Maverick | Other")
+
+
+if(GVT_DEBUG)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif(GVT_DEBUG)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+string( TOLOWER "${GVT_HOST}" host_lower )
+if( host_lower STREQUAL "stampede" )
+	set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif()
+
+if( host_lower STREQUAL "maverick" )
+	set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif()
+endif()
 
 
 if (GVT_RENDER)
@@ -149,11 +172,9 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/actor/Ray.h
-	src/gvt/render/algorithm/AdaptParam.h
 	src/gvt/render/algorithm/DomainTracer.h
 	src/gvt/render/algorithm/HybridTracer.h
 	src/gvt/render/algorithm/ImageTracer.h
-	src/gvt/render/algorithm/MetaProcessQueue.h
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
 	src/gvt/render/Attributes.h

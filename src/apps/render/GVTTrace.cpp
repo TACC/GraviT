@@ -88,6 +88,7 @@ int main(int argc, char** argv) {
   
   bool domain_choosen = false;
 #ifdef GVT_RENDER_ADAPTER_MANTA
+  GVT_DEBUG(DBG_ALWAYS,"Rendering with Manta");
   if (cl.domain_type == 0) {
     domain_choosen = true;
     MantaRayTracer rt(&cl.scene);
@@ -96,6 +97,7 @@ int main(int argc, char** argv) {
   }
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
+  GVT_DEBUG(DBG_ALWAYS,"Rendering with OptiX");
   if (cl.domain_type == 1) {
     domain_choosen = true;
     OptixRayTracer rt(&cl.scene);
@@ -104,6 +106,7 @@ int main(int argc, char** argv) {
   }
 #endif
 #ifdef GVT_RENDER_ADAPTER_EMBREE
+  GVT_DEBUG(DBG_ALWAYS,"Rendering with Embree");
   if (cl.domain_type == 2) {
     domain_choosen = true;
     EmbreeRayTracer rt(&cl.scene);

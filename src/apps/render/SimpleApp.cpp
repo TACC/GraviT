@@ -11,6 +11,7 @@
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/data/scene/Image.h>
@@ -26,7 +27,7 @@ using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::adapter::manta::data::domain;
-
+using namespace gvt::render::adapter::optix::data::domain;
 
 
 int main(int argc, char** argv) {
@@ -60,6 +61,8 @@ int main(int argc, char** argv) {
 	objMesh->addFace(1,5,6);
 	objMesh->addFace(1,6,7);
 	objMesh->addFace(1,7,2);
+
+	objMesh->generateNormals();
 
 	MPI_Init(&argc, &argv);
 //
@@ -107,13 +110,13 @@ int main(int argc, char** argv) {
 	rta.render_type = gvt::render::Attributes::Manta;
 	rta.dataset = new gvt::render::data::Dataset();
 	rta.do_lighting = true;
-	rta.dataset->addDomain(new MantaDomain(domain));
+	rta.dataset->addDomain(new OptixDomain(domain));
 //
 //	Render it....
 //	Hardwire the Manta adapter for this application.
 //
 	mycamera.AllocateCameraRays();
 	mycamera.generateRays();
-	gvt::render::algorithm::Tracer<MantaDomain,MPICOMM,ImageScheduler>(mycamera.rays,myimage)();
+	gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
 	myimage.Write();
 }

@@ -19,6 +19,7 @@
 // end Manta includes
 
 #include <boost/foreach.hpp>
+#include <boost/timer/timer.hpp>
 
 #ifdef PARALLEL
 #include <mpi.h>
@@ -95,15 +96,19 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 	// comment out the following 3 lines to use gvt camera
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
-    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();
+    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();  
+//    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();  
+//    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, DomainScheduler>(rays, image)();  
     //
     // uncomment the following 4 lines to use gvt camera. comment out to use original camera
 //	Image image(scene->GVTCamera.getFilmSizeWidth(),scene->GVTCamera.getFilmSizeHeight(), imagename);
 //	scene->GVTCamera.AllocateCameraRays();
 //	scene->GVTCamera.generateRays();
 //	gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(scene->GVTCamera.rays, image)();
-    image.Write();
-
+    // image.Write();
+    gvt::render::algorithm::GVT_COMM mpi;
+    if(mpi.root()) image.Write();
+    
     //Example code. Too complex.
 
 

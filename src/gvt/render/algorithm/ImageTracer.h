@@ -14,7 +14,6 @@
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/algorithm/MetaProcessQueue.h>
 
 #include <boost/timer/timer.hpp>
 
@@ -23,25 +22,43 @@ namespace gvt {
         namespace algorithm {
             /// Tracer Image (ImageSchedule) based decomposition implementation
 
-            template<class DomainType, class MPIW> class Tracer<DomainType, MPIW, gvt::render::schedule::ImageScheduler> : public TracerBase<MPIW> 
+            template<> class Tracer<gvt::render::schedule::ImageScheduler> : public AbstractTrace
             {
             public:
 
+                size_t rays_start, rays_end ;
+
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image) 
-                : TracerBase<MPIW>(rays, image) 
+                : AbstractTrace(rays, image) 
                 {
-                    int ray_portion = this->rays.size() / this->world_size;
-                    this->rays_start = this->rank * ray_portion;
-                    this->rays_end = (this->rank + 1) == this->world_size ? this->rays.size() : (this->rank + 1) * ray_portion; // tack on any odd rays to last proc
+                    int ray_portion = rays.size() / mpi.world_size;
+                    rays_start = mpi.rank * ray_portion;
+                    rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size() : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+                }
+
+                virtual void FilterRaysLocally() {
+                    if(mpi) {
+                        gvt::render::actor::RayVector lrays;
+                        lrays.assign(rays.begin() + rays_start,
+                                     rays.begin() + rays_end);
+                        rays.clear();
+                        shuffleRays(lrays);        
+                    } else {
+                        shuffleRays(rays);    
+                    }
                 }
 
                 virtual void operator()() 
                 {
-                  boost::timer::auto_cpu_timer t;
+                    GVT_DEBUG(DBG_ALWAYS,"Using Image schedule");
+                    boost::timer::auto_cpu_timer t;
 
                     long ray_counter = 0, domain_counter = 0;
 
-                    this->FilterRaysLocally();
+                    // gvt::render::actor::RayVector local;
+                    // local.assign(rays.begin()+rays_start, rays.begin()+ray_end);
+
+                    FilterRaysLocally();
 
                     // buffer for color accumulation
                     gvt::render::actor::RayVector moved_rays;
@@ -64,16 +81,16 @@ namespace gvt {
                         }
                         GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
                         //if (domTarget != -1) std::cout << "Domain " << domTarget << " size " << this->queue[domTarget].size() << std::endl;
-                        GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << this->rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
-                        GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << this->rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << std::endl);
+                        // GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
+                        // GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << std::endl);
 
                         if (domTarget >= 0) 
                         {
 
-                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << endl);
+                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << std::endl);
                             gvt::render::data::domain::AbstractDomain* dom = gvt::render::Attributes::rta->dataset->getDomain(domTarget);
                             dom->load();
-                            GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << endl);
+                            GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << std::endl);
 
                             // track domain loads
                             ++domain_counter;
@@ -86,27 +103,8 @@ namespace gvt {
                                 dom->trace(this->queue[domTarget], moved_rays);
                             }
                             GVT_DEBUG(DBG_ALWAYS, "Marching rays");
-                            //                        BOOST_FOREACH( gvt::render::actor::Ray* mr,  moved_rays) {
-                            //                            dom->marchOut(mr);
-                            //                            gvt::core::schedule::asyncExec::instance()->run_task(processRay(this,mr));
-                            //                        }
-
-                            boost::atomic<int> current_ray(0);
-                            size_t workload = std::max((size_t)1,(size_t)(moved_rays.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 2)));
-                            {
-                                boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
-                                for (int rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc) {
-                                    gvt::core::schedule::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(),workload, dom));
-                                }
-                                gvt::core::schedule::asyncExec::instance()->sync();
-
-                            }
-                            GVT_DEBUG(DBG_ALWAYS, "Finished queueing");
-                            gvt::core::schedule::asyncExec::instance()->sync();
-                            GVT_DEBUG(DBG_ALWAYS, "Finished marching");
-                            //dom->free();
+                            shuffleRays(moved_rays,dom);
                             moved_rays.clear();
-                            //this->queue.erase(domTarget); // TODO: for secondary rays, rays may have been added to this domain queue
                         }
                     } while (domTarget != -1);
                     GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");

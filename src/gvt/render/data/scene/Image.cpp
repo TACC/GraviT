@@ -10,11 +10,19 @@
 #include <iostream>
 #include <sstream>
 
+#include <mpi.h>
+
+#include <gvt/render/algorithm/TracerBase.h>
+
 using namespace gvt::render::data::scene;
 
 void
 Image::Write()
 {
+    gvt::render::algorithm::GVT_COMM comm;
+
+    if(!comm.root()) return;
+
     std::string ext;
     switch (format)
     {

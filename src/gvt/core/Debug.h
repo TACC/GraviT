@@ -7,7 +7,8 @@
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
-#define __FILE_SHORT__ (strstr(__FILE__, "src/") ? strstr(__FILE__, "src/") + 4 : __FILE__)
+#include <cstring>
+#define __FILE_SHORT__ (strstr(__FILE__, "src/") ? std::strstr(__FILE__, "src/") + 4 : __FILE__)
 
 const char * const DBG_COLOR_NORMAL = "\033[0m";
 const char * const DBG_COLOR_RED = "\033[1;31m";
@@ -15,6 +16,7 @@ const char * const DBG_COLOR_GREEN = "\033[1;32m";
 const char * const DBG_COLOR_YELLOW = "\033[1;33m";
 const char * const DBG_COLOR_BLUE = "\033[1;34m";
 const char * const DBG_COLOR_GRAY = DBG_COLOR_NORMAL;//"\033[1;37m";
+
 
 inline void print_trace() {
     char pid_buf[30];
@@ -38,18 +40,24 @@ inline void print_trace() {
 
 #ifdef GVT_USE_DEBUG
 
-enum DEBUG_LEVEL {
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::flush;
+
+enum GVT_DEBUG_LEVEL {
     DBG_NONE,
     DBG_ALWAYS,
     DBG_SEVERE,
     DBG_MODERATE,
-    DBG_LOW
+    DBG_LOW,
+    DBG_OFF // used to keep a debug statement in place, but to turn it off, without excessive comments
 };
 
-#define DEBUG_LEVEL DBG_LOW
+#define DEBUG_LEVEL DBG_ALWAYS
 
 // XXX TODO - remove these from source
-#define DEBUG_RANK false
+#define DEBUG_RANK 0
 #define DEBUG(x) 
 #define SUDO_DEBUG(x) 
 // end XXX TODO - remove these from source
