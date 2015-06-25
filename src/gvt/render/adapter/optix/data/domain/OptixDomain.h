@@ -62,7 +62,7 @@ class OptixDomain : public gvt::render::data::domain::GeometryDomain {
   ::optix::prime::Context optix_context_;
   // optix::prime::Model optix_model_;
   ::optix::prime::Model optix_model_;
-  float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); 
+  float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
   /*              thrust::device_vector<float> _vertices;
                 thrust::device_vector<int> _faces;
                 thrust::device_vector<float> _normals;

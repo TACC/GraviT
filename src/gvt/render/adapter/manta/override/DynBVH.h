@@ -14,6 +14,11 @@
 #include <Core/Util/SpinLock.h>
 #include <Model/Groups/Mesh.h>
 #include <stdio.h>
+
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
+
 namespace Manta
 {
   class Task;

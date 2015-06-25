@@ -16,6 +16,10 @@
 
 #include <string>
 
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
+
 namespace gvt {
     namespace render {
         namespace adapter {
@@ -23,7 +27,7 @@ namespace gvt {
                 namespace data {
                     namespace domain {
 
-                        class EmbreeDomain : public gvt::render::data::domain::GeometryDomain 
+                        class EmbreeDomain : public gvt::render::data::domain::GeometryDomain
                         {
                         public:
                             EmbreeDomain(gvt::render::data::domain::GeometryDomain* domain);
@@ -56,7 +60,7 @@ namespace gvt {
                             Manta::Mesh* meshManta;
 #endif
                         };
-                        
+
                     }
                 }
             }

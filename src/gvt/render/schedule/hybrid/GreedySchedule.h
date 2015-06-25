@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   GreedyScheduler.h
  * Author: jbarbosa
  *
@@ -11,33 +11,40 @@
 #include <gvt/core/Debug.h>
 #include <gvt/render/schedule/hybrid/HybridScheduleBase.h>
 
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
+
  namespace gvt {
     namespace render {
         namespace schedule {
-            namespace hybrid { 
-                struct GreedySchedule : public HybridScheduleBase 
+            namespace hybrid {
+                struct GreedySchedule : public HybridScheduleBase
                 {
 
-                    GreedySchedule(int * newMap, int &size, int *map_size_buf, int **map_recv_bufs, int *data_send_buf) 
-                    : HybridScheduleBase(newMap, size, map_size_buf, map_recv_bufs, data_send_buf) 
+                    GreedySchedule(int * newMap, int &size, int *map_size_buf, int **map_recv_bufs, int *data_send_buf)
+                    : HybridScheduleBase(newMap, size, map_size_buf, map_recv_bufs, data_send_buf)
                     {}
 
                     virtual ~GreedySchedule() {}
 
-                    virtual void operator()() 
+                    virtual void operator()()
                     {
+#ifdef __USE_TAU
+ TAU_START("GreedySchedule.h.operator");
+#endif
                         for (int i = 0; i < size; ++i)
                             newMap[i] = -1;
 
                         std::map< int, int > data2proc;
-                        for (int s = 0; s < size; ++s) 
+                        for (int s = 0; s < size; ++s)
                         {
-                            if (map_recv_bufs[s]) 
+                            if (map_recv_bufs[s])
                             {
                                 // greedily grab next unclaimed domain
-                                for (int d = 1; d < map_size_buf[s]; d += 2) 
+                                for (int d = 1; d < map_size_buf[s]; d += 2)
                                 {
-                                    if (data2proc.find(map_recv_bufs[s][d]) == data2proc.end()) 
+                                    if (data2proc.find(map_recv_bufs[s][d]) == data2proc.end())
                                     {
                                         newMap[s] = map_recv_bufs[s][d];
                                         data2proc[map_recv_bufs[s][d]] = s;
@@ -51,6 +58,10 @@
                             for (int i = 0; i < size; ++i)
                                 std::cerr << "    " << i << " -> " << newMap[i] << std::endl;
                             );
+#ifdef __USE_TAU
+ TAU_STOP("GreedySchedule.h.operator");
+#endif
+
                     }
                 };
 

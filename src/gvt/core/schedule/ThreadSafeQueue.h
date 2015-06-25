@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   ThreadSafeQueue.h
  * Author: jbarbosa
  *
@@ -12,6 +12,9 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/container/vector.hpp>
 
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
 
  namespace gvt {
     namespace core {
@@ -180,7 +183,7 @@
                     if(threadsafe) boost::mutex::scoped_lock lock(_mqueue);
                     _queue.erase(elem);
                 }
-            template <class InputIterator>    
+            template <class InputIterator>
                 inline void erase(InputIterator start, InputIterator end) {
                     if(threadsafe) boost::mutex::scoped_lock lock(_mqueue);
                     _queue.erase(start,end);
@@ -214,4 +217,3 @@
 
 
 #endif	/* GVT_CORE_SCHEDULE_THREAD_SAFE_QUEUE_H */
-
