@@ -17,6 +17,11 @@
 
 #include <boost/timer/timer.hpp>
 
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
+
+
 namespace gvt {
     namespace render {
         namespace algorithm {
@@ -28,28 +33,47 @@ namespace gvt {
 
                 size_t rays_start, rays_end ;
 
-                Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image) 
-                : AbstractTrace(rays, image) 
+                Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
+                : AbstractTrace(rays, image)
                 {
+#ifdef __USE_TAU
+  TAU_START("ImageTracer.h.Tracer");
+#endif
+
                     int ray_portion = rays.size() / mpi.world_size;
                     rays_start = mpi.rank * ray_portion;
                     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size() : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+#ifdef __USE_TAU
+  TAU_SOP("ImageTracer.h.Tracer");
+#endif
+
                 }
 
                 virtual void FilterRaysLocally() {
+#ifdef __USE_TAU
+  TAU_START("ImageTracer.h.FilterRaysLocally");
+#endif
+
                     if(mpi) {
                         gvt::render::actor::RayVector lrays;
                         lrays.assign(rays.begin() + rays_start,
                                      rays.begin() + rays_end);
                         rays.clear();
-                        shuffleRays(lrays);        
+                        shuffleRays(lrays);
                     } else {
-                        shuffleRays(rays);    
+                        shuffleRays(rays);
                     }
+#ifdef __USE_TAU
+  TAU_STOP("ImageTracer.h.FilterRaysLocally");
+#endif
                 }
 
-                virtual void operator()() 
+                virtual void operator()()
                 {
+#ifdef __USE_TAU
+  TAU_START("ImageTracer.h.operator");
+#endif
+
                     GVT_DEBUG(DBG_ALWAYS,"Using Image schedule");
                     boost::timer::auto_cpu_timer t;
 
@@ -64,16 +88,16 @@ namespace gvt {
                     gvt::render::actor::RayVector moved_rays;
                     int domTarget = -1, domTargetCount = 0;
                     // process domains until all rays are terminated
-                    do 
+                    do
                     {
                         // process domain with most rays queued
                         domTarget = -1;
                         domTargetCount = 0;
 
                         GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
-                        for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
+                        for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
                         {
-                            if (q->second.size() > domTargetCount) 
+                            if (q->second.size() > domTargetCount)
                             {
                                 domTargetCount = q->second.size();
                                 domTarget = q->first;
@@ -84,7 +108,7 @@ namespace gvt {
                         // GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
                         // GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << std::endl);
 
-                        if (domTarget >= 0) 
+                        if (domTarget >= 0)
                         {
 
                             GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << std::endl);
@@ -109,6 +133,9 @@ namespace gvt {
                     } while (domTarget != -1);
                     GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");
                     this->gatherFramebuffers(this->rays.size());
+#ifdef __USE_TAU
+  TAU_STOP("ImageTracer.h.operator");
+#endif
                 }
             };
         }

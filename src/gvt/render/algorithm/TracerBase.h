@@ -28,6 +28,11 @@
 
 #include <map>
 
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
+
+
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -73,6 +78,10 @@ class AbstractTrace {
   AbstractTrace(gvt::render::actor::RayVector& rays,
                 gvt::render::data::scene::Image& image)
       : rays(rays), image(image) {
+#ifdef __USE_TAU
+ TAU_START("TracerBase.h.AbstractTrace");
+#endif
+
     vtf = gvt::render::Attributes::rta->GetTransferFunction();
     sample_ratio = gvt::render::Attributes::rta->sample_ratio;
     colorBuf = new GVT_COLOR_ACCUM[gvt::render::RTA::instance()->view.width *
@@ -85,6 +94,10 @@ class AbstractTrace {
     //   queue[i] = gvt::render::actor::RayVector();
     //   queue[i].reserve(gvt::render::RTA::instance()->view.width);
     // }
+#ifdef __USE_TAU
+ TAU_STOP("TracerBase.h.AbstractTrace");
+#endif
+
   }
 
   virtual ~AbstractTrace() {
@@ -97,8 +110,15 @@ class AbstractTrace {
   };
 
   virtual void FilterRaysLocally(void) {
+#ifdef __USE_TAU
+ TAU_START("TracerBase.h.FilterRaysLocally");
+#endif
+
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
     shuffleRays(rays);
+#ifdef __USE_TAU
+ TAU_STOP("TracerBase.h.FilterRaysLocally");
+#endif
   }
 
   /***
@@ -111,6 +131,9 @@ class AbstractTrace {
   virtual void shuffleRays(
       gvt::render::actor::RayVector& rays,
       gvt::render::data::domain::AbstractDomain* dom = NULL) {
+#ifdef __USE_TAU
+ TAU_START("TracerBase.h.shuffleRays");
+#endif
 
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle");
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
@@ -167,6 +190,10 @@ class AbstractTrace {
     rays.clear();
     //for (auto& f : futures) f.wait();
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
+#ifdef __USE_TAU
+ TAU_STOP("TracerBase.h.shuffleRays");
+#endif
+
   }
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
@@ -181,6 +208,10 @@ class AbstractTrace {
     int chunk_size = size / nchunks;
     std::vector< std::pair<int, int> > chunks;
     std::vector< std::future<void> > futures;
+#ifdef __USE_TAU
+ TAU_START("TracerBase.h.localComposite");
+#endif
+
     for (int ii = 0; ii < nchunks - 1; ii++) {
       chunks.push_back(
           std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -199,6 +230,9 @@ class AbstractTrace {
     for (std::future<void>& f : futures) {
       f.wait();
     }
+#ifdef __USE_TAU
+ TAU_STOP("TracerBase.h.localComposite");
+#endif
   }
 
   virtual void gatherFramebuffers(int rays_traced) {
@@ -251,14 +285,22 @@ class AbstractTrace {
     // }
 
     //localComposite();
-
+#ifdef __USE_TAU
+ TAU_START("TracerBase.h.gatherFrameBuffers");
+#endif
     size_t size = gvt::render::Attributes::rta->view.width *
                   gvt::render::Attributes::rta->view.height;
 
 
-    for(size_t i =0; i < size; i++) image.Add(i, colorBuf[i]);                  
+    for(size_t i =0; i < size; i++) image.Add(i, colorBuf[i]);
 
-    if (!mpi) return;
+    if (!mpi) {
+#ifdef __USE_TAU
+ TAU_STOP("TracerBase.h.gatherFrameBuffers");
+#endif
+
+      return;
+    }
 
     unsigned char* rgb = image.GetBuffer();
 
@@ -302,6 +344,9 @@ class AbstractTrace {
     }
 
     delete[] bufs;
+#ifdef __USE_TAU
+ TAU_STOP("TracerBase.h.gatherFrameBuffers");
+#endif
   }
 };
 

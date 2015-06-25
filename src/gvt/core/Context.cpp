@@ -51,19 +51,41 @@ DBNodeH Context::createNode(String name, Variant val, Uuid parent)
 
 DBNodeH Context::createNodeFromType(String type, Uuid parent)
 {
+#ifdef __USE_TAU
+ TAU_START("DBNodeH Context::createNodeFromType(String type, Uuid parent)");
+#endif
+#ifdef __USE_TAU
+ TAU_STOP("DBNodeH Context::createNodeFromType(String type, Uuid parent)");
+#endif
+
     return createNodeFromType(type, type, parent);
 }
 
 DBNodeH Context::createNodeFromType(String type)
 {
+#ifdef __USE_TAU
+ TAU_START("DBNodeH Context::createNodeFromType(String type)");
+#endif
+#ifdef __USE_TAU
+ TAU_STOP("DBNodeH Context::createNodeFromType(String type)");
+#endif
+
+
     return createNodeFromType(type, type);
 }
 
 DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)
 {
+#ifdef __USE_TAU
+ TAU_START("DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)");
+#endif
+
     DBNodeH n = createNode(type, name, parent);
 
     // TODO - make these for GraviT
+#ifdef __USE_TAU
+ TAU_STOP("DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)");
+#endif
 
     return n;
 }

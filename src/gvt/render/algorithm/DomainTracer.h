@@ -18,6 +18,10 @@
 #include <mpi.h>
 #include <set>
 
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
+
 #define RAY_BUF_SIZE 10485760  // 10 MB per neighbor
 
 namespace gvt {
@@ -42,6 +46,10 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     // AbstractTrace::FilterRaysLocally();
 
     // for (int rc = rays_start; rc < rays_end; ++rc)
+#ifdef __USE_TAU
+ TAU_START("DomainTracer.h.FilterRaysLocally");
+#endif
+
     for (auto& ray : rays) {
       gvt::render::actor::isecDomList len2List;
       gvt::render::Attributes::rta->dataset->intersect(ray, len2List);
@@ -55,9 +63,17 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     }
 
     rays.clear();
+#ifdef __USE_TAU
+ TAU_STOP("DomainTracer.h.FilterRaysLocally");
+#endif
+
   }
 
   virtual void operator()() {
+#ifdef __USE_TAU
+ TAU_START("DomainTracer.h.operator");
+#endif
+
     long ray_counter = 0, domain_counter = 0;
 
     FindNeighbors();
@@ -100,7 +116,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
           if ( aa == mpi.rank && q.second.size() > domTargetCount) {
             domTargetCount = q.second.size();
             domTarget = q.first;
-          } 
+          }
 
         }
 
@@ -148,37 +164,37 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       }
 
       if(!queue.empty()) {
-        
+
         std::cout << "[" << mpi.rank <<"] Queue is not empty" << std::endl;
         for(auto q : queue ) {
-          std::cout << "[" << mpi.rank << "] [" << q.first << "] : " << q.second.size() << std::endl;  
+          std::cout << "[" << mpi.rank << "] [" << q.first << "] : " << q.second.size() << std::endl;
 
  // namespace gvt {
  //    namespace render {
  //        namespace algorithm {
  //            /// Tracer Domain (DomainSchedule) based decomposition implementation
 
- //            template<class DomainType, class MPIW> class Tracer<DomainType, MPIW, gvt::render::schedule::DomainScheduler> : public TracerBase<MPIW> 
+ //            template<class DomainType, class MPIW> class Tracer<DomainType, MPIW, gvt::render::schedule::DomainScheduler> : public TracerBase<MPIW>
  //            {
  //            public:
 
  //                std::set<int> neighbors;
 
- //                Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image) 
- //                : TracerBase<MPIW>(rays, image) 
+ //                Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
+ //                : TracerBase<MPIW>(rays, image)
  //                {}
 
  //                virtual ~Tracer() { }
 
- //                virtual void FilterRaysLocally() 
+ //                virtual void FilterRaysLocally()
  //                {
- //                    for (int rc = this->rays_start; rc < this->rays_end; ++rc) 
+ //                    for (int rc = this->rays_start; rc < this->rays_end; ++rc)
  //                    {
  //                        GVT_DEBUG(DBG_LOW,"Seeding ray " << rc << ": " << this->rays[rc]);
  //                        gvt::render::actor::isecDomList len2List;
  //                        gvt::render::Attributes::rta->dataset->intersect(this->rays[rc], len2List);
  //                        // only keep rays that are meant for domains on this processor
- //                        if (!len2List.empty() && ((int) len2List[0] % this->world_size) == this->rank) 
+ //                        if (!len2List.empty() && ((int) len2List[0] % this->world_size) == this->rank)
  //                        {
 
  //                            this->rays[rc].domains.assign(len2List.rbegin(), len2List.rend());
@@ -189,7 +205,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                    }
  //                }
 
- //                virtual void operator()() 
+ //                virtual void operator()()
  //                {
  //                    GVT_DEBUG(DBG_ALWAYS,"Using Domain schedule");
  //                    long ray_counter = 0, domain_counter = 0;
@@ -214,17 +230,17 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
  //                    int domTarget = -1, domTargetCount = 0;
 
- //                    while (!all_done) 
+ //                    while (!all_done)
  //                    {
- //                        if (!this->queue.empty()) 
+ //                        if (!this->queue.empty())
  //                        {
  //                            // process domain assigned to this proc with most rays queued
  //                            domTarget = -1;
  //                            domTargetCount = 0;
- //                            for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
+ //                            for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
  //                            {
  //                                if ((q->first % this->world_size) == this->rank
- //                                    && q->second.size() > domTargetCount) 
+ //                                    && q->second.size() > domTargetCount)
  //                                {
  //                                    domTargetCount = q->second.size();
  //                                domTarget = q->first;
@@ -235,7 +251,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
  //                        doms_to_send.clear();
  //                            // pnav: use this to ignore domain x:        int domi=0;if (0)
- //                        if (domTarget >= 0) 
+ //                        if (domTarget >= 0)
  //                        {
  //                            GVT_DEBUG(DBG_LOW,"Getting domain " << domTarget);
  //                            if (domTarget != lastDomain)
@@ -244,7 +260,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                            dom = gvt::render::Attributes::rta->dataset->getDomain(domTarget);
 
  //                                // track domains loaded
- //                            if (domTarget != lastDomain) 
+ //                            if (domTarget != lastDomain)
  //                            {
  //                                ++domain_counter;
  //                                lastDomain = domTarget;
@@ -261,7 +277,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                            size_t workload = std::max((size_t) 1, (size_t) (moved_rays.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 2)));
  //                            {
  //                                boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
- //                                for (int rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc) 
+ //                                for (int rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc)
  //                                {
  //                                    gvt::core::schedule::asyncExec::instance()->run_task(processRayVector(this, moved_rays, current_ray, moved_rays.size(), workload, dom));
  //                                }
@@ -284,7 +300,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                    int not_done = (int) (!this->queue.empty());
  //                    int *empties = (this->rank == 0) ? new int[this->world_size] : NULL;
  //                    MPI_Gather(&not_done, 1, MPI_INT, empties, 1, MPI_INT, 0, MPI_COMM_WORLD);
- //                    if (this->rank == 0) 
+ //                    if (this->rank == 0)
  //                    {
  //                        not_done = 0;
  //                        for (int i = 0; i < this->world_size; ++i)
@@ -313,14 +329,14 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
  //            virtual void FindNeighbors() {
 
- //                    int total = gvt::render::Attributes::rta->GetTopology()[2], 
- //                        plane = gvt::render::Attributes::rta->GetTopology()[1], 
+ //                    int total = gvt::render::Attributes::rta->GetTopology()[2],
+ //                        plane = gvt::render::Attributes::rta->GetTopology()[1],
  //                        row   = gvt::render::Attributes::rta->GetTopology()[0]; // XXX TODO: assumes grid layout
  //                    int offset[3] = {-1, 0, 1};
  //                    std::set<int> n_doms;
 
  //                    // find all domains that neighbor my domains
- //                    for (int i = 0; i < total; ++i) 
+ //                    for (int i = 0; i < total; ++i)
  //                    {
  //                        if (i % this->world_size != this->rank) continue;
 
@@ -422,7 +438,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
  //                }
 
- //                virtual bool SendRays() 
+ //                virtual bool SendRays()
  //                {
 
  //                    int* outbound = new int[2 * this->world_size];
@@ -434,24 +450,24 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                    int* send_buf_ptr = new int[this->world_size];
 
  //                    // init bufs
- //                    for (int i = 0; i < 2 * this->world_size; ++i) 
+ //                    for (int i = 0; i < 2 * this->world_size; ++i)
  //                    {
  //                        inbound[i] = outbound[i] = 0;
  //                        reqs[i] = MPI_REQUEST_NULL;
  //                    }
 
  //                    // count how many rays are to be sent to each neighbor
- //                    for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
+ //                    for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
  //                    {
  //                        int n = q->first % this->world_size;
  //                        GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ": domain " << q->first << " maps to proc " << n);
- //                        if (this->neighbors.find(n) != this->neighbors.end()) 
+ //                        if (this->neighbors.find(n) != this->neighbors.end())
  //                        {
  //                            int n_ptr = 2 * n;
  //                            int buf_size = 0;
 
  //                            outbound[n_ptr] += q->second.size();
- //                            for (int r = 0; r < q->second.size(); ++r) 
+ //                            for (int r = 0; r < q->second.size(); ++r)
  //                            {
  //                                GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ":  " << (q->second)[r] << std::endl);
  //                                buf_size += (q->second)[r].packedSize(); // rays can have diff packed sizes
@@ -486,7 +502,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                    });
 
  //                    // set up send and recv buffers
- //                    for (int i = 0, j = 0; i < this->world_size; ++i, j += 2) 
+ //                    for (int i = 0, j = 0; i < this->world_size; ++i, j += 2)
  //                    {
  //                        send_buf_ptr[i] = 0;
  //                        if (outbound[j] > 0)
@@ -500,9 +516,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
  //                    // now send and receive rays (and associated color buffers)
  //                        tag = tag + 1;
- //                    for (std::set<int>::iterator n = neighbors.begin(); n != neighbors.end(); ++n) 
+ //                    for (std::set<int>::iterator n = neighbors.begin(); n != neighbors.end(); ++n)
  //                    {
- //                        if (inbound[2 * (*n)] > 0) 
+ //                        if (inbound[2 * (*n)] > 0)
  //                        {
  //                            GVT_DEBUG_CODE(DBG_LOW,
  //                                if (DEBUG_RANK)
@@ -515,7 +531,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                    }
 
  //                    std::vector<int> to_del;
- //                    for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
+ //                    for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
  //                    {
  //                        int n = q->first % this->world_size;
  //                        if (outbound[2 * n] > 0) {
@@ -547,9 +563,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                    MPI_Waitall(2 * this->world_size, reqs, stat); // XXX TODO refactor to use Waitany?
 
 
- //                    for (std::set<int>::iterator n = neighbors.begin(); n != neighbors.end(); ++n) 
+ //                    for (std::set<int>::iterator n = neighbors.begin(); n != neighbors.end(); ++n)
  //                    {
- //                        if (inbound[2 * (*n)] > 0) 
+ //                        if (inbound[2 * (*n)] > 0)
  //                        {
  //                            GVT_DEBUG_CODE(DBG_LOW,
  //                                if (DEBUG_RANK) {
@@ -557,7 +573,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  //                                std::cerr << "    recv buf: " << (long) recv_buf[*n] << std::endl;
  //                            });
  //                            int ptr = 0;
- //                            for (int c = 0; c < inbound[2 * (*n)]; ++c) 
+ //                            for (int c = 0; c < inbound[2 * (*n)]; ++c)
  //                            {
  //                                gvt::render::actor::Ray r(recv_buf[*n] + ptr);
  //                                GVT_DEBUG_CODE(DBG_LOW,if (DEBUG_RANK) std::cerr << this->rank << ":  " << r << std::endl);
@@ -617,9 +633,17 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
     // add colors to the framebuffer
     this->gatherFramebuffers(this->rays_end - this->rays_start);
+#ifdef __USE_TAU
+ TAU_STOP("DomainTracer.h.operator");
+#endif
+
   }
 
   virtual void FindNeighbors() {
+#ifdef __USE_TAU
+ TAU_START("DomainTracer.h.FindNeighbors");
+#endif
+
     int total = gvt::render::Attributes::rta->GetTopology()[2],
         plane = gvt::render::Attributes::rta->GetTopology()[1],
         row = gvt::render::Attributes::rta->GetTopology()[0];  // XXX TODO:
@@ -713,9 +737,15 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     for (std::set<int>::iterator it = n_doms.begin(); it != n_doms.end(); ++it)
       if (*it % mpi.world_size != mpi.rank)
         neighbors.insert(*it % mpi.world_size);
+#ifdef __USE_TAU
+ TAU_STOP("DomainTracer.h.FindNeighbors");
+#endif
   }
 
   virtual bool SendRays() {
+#ifdef __USE_TAU
+ TAU_START("DomainTracer.h.SendRays");
+#endif
     int* outbound = new int[2 * mpi.world_size];
     int* inbound = new int[2 * mpi.world_size];
     MPI_Request* reqs = new MPI_Request[2 * mpi.world_size];
@@ -895,6 +925,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     delete[] stat;
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) cerr
                                 << "done with DomainSendRays" << endl);
+#ifdef __USE_TAU
+ TAU_STOP("DomainTracer.h.SendRays");
+#endif
     return false;
   }
 };
