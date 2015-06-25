@@ -44,7 +44,7 @@ namespace gvt {
                     rays_start = mpi.rank * ray_portion;
                     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size() : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
 #ifdef __USE_TAU
-  TAU_SOP("ImageTracer.h.Tracer");
+  TAU_STOP("ImageTracer.h.Tracer");
 #endif
 
                 }
