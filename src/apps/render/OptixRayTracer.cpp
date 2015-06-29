@@ -31,7 +31,7 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene) 
+OptixRayTracer::OptixRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
     scene->camera.SetCamera(rays,1.0);
     
@@ -46,8 +46,18 @@ OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
         d->setLights(scene->lightSet);
         rta.dataset->addDomain(new OptixDomain(d));
     }
-    
-    
+
+    if (cl.accel_type != ConfigFileLoader::NoAccel)
+    {
+        std::cout << "creating acceleration structure... ";
+        if (cl.accel_type == ConfigFileLoader::BVH)
+        {
+            rta.accel_type = gvt::render::Attributes::BVH;
+        }
+        rta.dataset->makeAccel(rta);
+        std::cout << "...done" << std::endl;
+    }
+
     rta.view.width = scene->camera.getFilmSizeWidth();
     rta.view.height = scene->camera.getFilmSizeHeight();
     rta.view.camera = scene->camera.getEye();

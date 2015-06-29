@@ -177,6 +177,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/scene/ColorAccumulator.h
 	src/gvt/render/data/scene/Image.h
 	src/gvt/render/data/scene/Light.h
+	src/gvt/render/data/accel/AbstractAccel.h
+	src/gvt/render/data/accel/BVH.h
 	src/gvt/render/schedule/DomainScheduler.h
 	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
 	src/gvt/render/schedule/hybrid/GreedySchedule.h
@@ -212,6 +214,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/scene/ColorAccumulator.cpp
 	src/gvt/render/data/scene/Image.cpp
 	src/gvt/render/data/scene/Light.cpp
+	src/gvt/render/data/accel/BVH.cpp
 	)
 
 

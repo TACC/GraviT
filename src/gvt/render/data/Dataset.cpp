@@ -1,6 +1,8 @@
 
 
 #include <gvt/render/data/Dataset.h>
+#include <gvt/render/Attributes.h>
+#include <gvt/render/data/accel/BVH.h>
 
 #include <boost/range/algorithm.hpp>
 #include <boost/foreach.hpp>
@@ -9,7 +11,18 @@ using namespace gvt::render::data;
 using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::data::scene;
+using namespace gvt::render::data::accel;
 using namespace gvt::render::actor;
+
+Dataset::Dataset() : acceleration(NULL)
+{
+}
+
+Dataset::~Dataset()
+{
+    if (acceleration)
+        delete acceleration;
+}
 
 bool Dataset::init() 
 {
@@ -22,12 +35,18 @@ bool Dataset::intersect(Ray&  r, isecDomList& inter)
     if (dataSetBB.intersect(r) || dataSetBB.inBox(r)) 
     {
         r.t = FLT_MAX;
-        BOOST_FOREACH(AbstractDomain* d, domainSet) d->intersect(r, inter);
-        boost::sort(inter);
-
+        if (!acceleration)
+        {
+            BOOST_FOREACH(AbstractDomain* d, domainSet) d->intersect(r, inter);
 
 //                GVT::Data::isecDomList r; r.assign(inter.rbegin(),inter.rend());
 //                inter.clear(); inter.assign(r.begin(),r.end());
+        }
+        else
+        {
+            acceleration->intersect(r, inter);
+        }
+        boost::sort(inter);
         return (!inter.empty());
     }
     return false;
@@ -66,4 +85,11 @@ int Dataset::addLight(Light* ls)
 int Dataset::size() 
 {
     return domainSet.size();
+}
+
+void Dataset::makeAccel(gvt::render::Attributes& rta)
+{
+    if (rta.GetAccelType() == gvt::render::Attributes::BVH) {
+        acceleration = new gvt::render::data::accel::BVH(domainSet);
+    }
 }

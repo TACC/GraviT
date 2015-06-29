@@ -729,7 +729,7 @@
 
                 //---[ Arithmetic Operators ]----------------
 
-                Vector4<T> operator-(const Vector4<T>& a) 
+                Vector4<T> operator-(const Vector4<T>& a) const
                 {
                     return Vector4<T>(n[0] - a[0], n[1] - a[1], n[2] - a[2], n[3] - a[3]);
                 }

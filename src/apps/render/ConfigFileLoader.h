@@ -34,6 +34,13 @@ namespace gvtapps {
 	    */
             ConfigFileLoader(const ConfigFileLoader& orig);
             virtual ~ConfigFileLoader();
+
+            enum AccelType
+            {
+                NoAccel,
+                BVH
+            };
+
         //private:
 	    /** gvt render dataset member function that contains all the scene data, cameras, lights, objects etc.
 	    */
@@ -47,6 +54,10 @@ namespace gvtapps {
 	    /** Private data member that indicates the type of scheduler to use. The default scheduler is the Image scheduler
 	    */
             unsigned scheduler_type = 0 ; /* default Image scheduler */
+        /** Private data member that indicates the type of acceleration structure to use. The default scheduler is without acceleration.
+        0: NONE, 1: BVH
+        */
+            AccelType accel_type = NoAccel; /* default no acceleration */
 
 
         };

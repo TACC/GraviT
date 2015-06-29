@@ -157,7 +157,11 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
           if(elems[1] == "DOMAIN") scheduler_type = 1;
           if(elems[1] == "HYBRID") scheduler_type = 2;
         }
-        else 
+        else if (elems[0] == "AT")
+        {
+          if(elems[1] == "BVH") accel_type = BVH;
+        }
+        else
         {
             GVT_DEBUG(DBG_LOW, "Invalid option");
         }

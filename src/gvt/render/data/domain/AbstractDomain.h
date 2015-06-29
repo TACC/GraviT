@@ -50,7 +50,7 @@ namespace gvt {
 
                     virtual void setBoundingBox(gvt::render::data::primitives::Box3D bb);
                     
-                    virtual gvt::render::data::primitives::Box3D getBounds(int type);
+                    virtual gvt::render::data::primitives::Box3D getBounds(int type) const;
 
                     virtual bool domainIsLoaded();
 
@@ -61,6 +61,8 @@ namespace gvt {
                     virtual void translate(gvt::core::math::Vector4f t);
                     virtual void rotate(gvt::core::math::Vector4f t);
                     virtual void scale(gvt::core::math::Vector4f t);
+
+                    virtual gvt::core::math::Point4f worldCentroid() const;
                     
                     
         //            virtual pop(gvt::render::actor::RayVector &queue, gvt::render::actor::Ray& ray) {
