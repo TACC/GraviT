@@ -13,7 +13,7 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    cmake_policy(SET CMP0042 NEW)
+    #cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
@@ -96,11 +96,10 @@ mark_as_advanced(GVT_USE_ICC)
 mark_as_advanced(GVT_VECTOR_TARGET)
 
 set(GVT_THIRDPARTY_GLM "third-party/glm")
+set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
+set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
+SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
-
-if (GLM_FOUND)
-    include_directories(${GLM_INCLUDE_DIRS})
-endif(GLM_FOUND)
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")

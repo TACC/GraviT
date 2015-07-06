@@ -1,0 +1,212 @@
+    #include <iostream>
+    #include <string>
+    #include <mpi.h>
+    #include <pthread.h>
+    #include <vector>
+    #include <sstream>
+    #include <stack>
+
+    #include <boost/timer/timer.hpp>
+
+    #include "gvtState.h"
+    #include "gvtServer.h"
+    #include "gvtWorker.h"
+using namespace std;
+using namespace cvt;
+
+    //
+    // server
+    //
+    // int main(int argc, char** argv)
+void Worker::Launch(int argc, char** argv)
+{
+  int rank;
+
+  MPI_Comm intercomm;
+  MPI_Status status;
+      #ifdef GVT_USE_PORT_COMM
+        // MPI_Init(&argc, &argv);
+  char port_name[MPI_MAX_PORT_NAME];
+  char conName[MPI_MAX_PORT_NAME];
+  sprintf(conName, "gvtRenderer%d", rank-1);
+  printf("client %d connecting\n", rank);
+  MPI_Lookup_name(conName, MPI_INFO_NULL, port_name);
+  MPI_Comm_connect(port_name, MPI_INFO_NULL, 0, MPI_COMM_SELF, &stateLocal.intercomm);
+        // MPI_Intercomm_merge(stateLocal.intercomm, 0, &intercomm);
+        // MPI_Comm_rank(stateLocal.intercomm, &rank);
+           //MPI_Comm_connect(port_name, MPI_INFO_NULL, 0, MPI_COMM_SELF, &intercomm);
+  printf("client %d connected\n", rank);
+        #else
+  stateLocal.intercomm = MPI_COMM_WORLD;
+        #endif
+
+
+  int size;
+  {
+
+    stateUniversal.Recv(MPI_ANY_SOURCE, stateLocal.intercomm, buffer);
+          // printf("idDisplay: %d\n", stateUniversal.idDisplay);
+
+          // boost::archive::text_iarchive ia(out);
+         // printf("client msg recved\n");
+  }
+
+  bool done = false;
+  StateFrame frame;
+  StateMsg msg;
+  StateScene scene;
+  Camera& camera = frame.camera;
+  Framebuffer<uchar3> framebuffer;
+
+        double times_render=0;
+      boost::timer::cpu_timer render_timer, pixel_timer;
+      render_timer.stop();
+      pixel_timer.stop();
+      boost::timer::nanosecond_type render_times_accumulated(0);
+      boost::timer::nanosecond_type pixel_times_accumulated(0);
+      std::vector<StatePixelsT*> pixels_sent;
+      pixels_sent.resize(256);
+      int pixels_sent_c=0;
+  while(!done)
+  {
+    MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    if (status.MPI_TAG == msg.tag)
+    {
+      done = true;
+    }
+    if (status.MPI_TAG == scene.tag)
+    {
+      scene.Recv(MPI_ANY_SOURCE,stateLocal.intercomm, buffer);
+      printf("worker got scene\n");
+      for(int i =0; i < scene.domains.size(); i++)
+        printf("domain id: %zu\n", scene.domains[i].id);
+    }
+    if (status.MPI_TAG == frame.tag)
+    {
+        //get frame
+      {
+            // printf("gvtRenderer %d: waiting for frame\n",rank);
+        frame.Recv(MPI_ANY_SOURCE, MPI_COMM_WORLD, buffer);
+        framebuffer.Resize(frame.width, frame.height);
+            // resize(frame.width,frame.height);
+        camera = frame.camera;
+
+        
+        StateRequest workRequest(GVT_WORK_REQUEST);
+            // printf("gvtRenderer %d: requesting tile\n", rank);
+        workRequest.Send(1, stateLocal.intercomm);
+      }
+    if (status.MPI_TAG == StateTile::tag)
+          // printf("gvtRenderer %d: rendering frame: %d %d %d\n", rank, frame.frame, frame.width, frame.height);
+
+        //get work tiles
+      // bool frameDone = false;
+
+      // frameDone=true; //DEBUG
+      // while(!frameDone)
+      {
+        size = 0;
+          // printf("gvtRenderer requesting tile\n");
+          // MPI_Send( &size, 1, MPI_INT, status.MPI_SOURCE,
+           // StateTile::tag, stateLocal.intercomm );
+          // StateMsg msg("wee");
+          // msg.Send(0, stateLocal.intercomm);
+        // MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        // if (status.MPI_TAG == StateTile::tag)
+        {
+            // printf("gvtRenderer waiting for tile\n");
+          StateTile tile;
+
+          tile.Recv(MPI_ANY_SOURCE, stateLocal.intercomm, buffer);
+              // printf("gvtRenderer %d: tile recieved\n", rank);
+            // printf("rank %d recieved tile %d %d %d %d\n", rank, tile.x, tile.y, tile.width, tile.height);
+          if (tile.width <= 0 || tile.height <= 0)
+            continue;
+          else
+          {
+                //
+                //  render
+                //
+
+                printf("camera fov %f from: %f %f %f\n", camera.fov, camera.from[0], camera.from[1], camera.from[2]);
+                // embree::AffineSpace3f pixel2world = embree::g_camera.pixel2world(g_width,g_height);
+              //   try {
+
+
+              //    render_timer.start();
+              //    embree::device_render_gvt((int*)g_framebuffer.GetData(),
+              //     g_width,
+              //     tile.width,
+              //     tile.height,
+              //     tile.x,
+              //     tile.y,
+              //     0,
+              //     pixel2world.l.vx,
+              //     pixel2world.l.vy,
+              //     pixel2world.l.vz,
+              //     pixel2world.p);
+              //    render_timer.stop();
+              //    render_times_accumulated += render_timer.elapsed().wall;
+              //    // times_render += at.elapsed();
+              //  }
+              //  catch (const std::exception& e) {
+              //   std::cout << "Error: " << e.what() << std::endl;
+              // }
+              // catch (...) {
+              //   std::cout << "Error: unknown exception ca/ught." << std::endl;
+              // }
+
+
+              //
+              // Send pixels
+              //
+            {
+              pixel_timer.start();
+              // static StatePixels* pixels = new StatePixels(tile.x,tile.y,tile.width,tile.height);
+              static StatePixelsT* pixels;// = new StatePixels(0,0,102,102);
+              static bool once = false;
+              static std::stringstream ss;
+              static int psize = 0;
+                // printf("TILE SIZE: %d %d\n", tile.width, tile.height);
+              // printf("framebuffer size: %d %d\n", g_framebuffer.width, g_framebuffer.height);
+              if (!once)
+              {
+                pixels = new StatePixelsT(tile.x,tile.y,tile.width,tile.height, &framebuffer);
+                once = true;
+                boost::archive::text_oarchive oa(ss);
+                oa << *pixels;
+              }
+              pixels->width= tile.width;
+              pixels->height=tile.height;
+              pixels->x = tile.x;
+              pixels->y = tile.y;
+              pixels->tagOffset = rank*100;
+
+              pixels->Send(0, MPI_COMM_WORLD);
+
+              // pixels_sent[pixels_sent_c] = pixels;
+              pixel_times_accumulated += pixel_timer.elapsed().wall;
+
+              pixel_timer.stop();
+            }
+          }
+        }
+        } // frame done
+        // for(size_t i =0;i < pixels_sent.size();i++)
+        // {
+        //   // pixels_sent[i]->Wait();
+        //   // delete pixels_sent[i];
+        // }
+        // pixels_sent_c = 0;
+
+            // boost::timer::cpu_times const elapsed_times(render_timer.elapsed());
+                 // boost::timer::nanosecond_type const elapsed(elapsed_times.system
+                  // + elapsed_times.user);
+                 // cout << boost::timer::format(render_timer.elapsed(), 3, "total render: %w seconds\n");
+
+        // printf("total render time %d: %f s\n", rank, double(render_times_accumulated/1000LL)/1000000.0d);
+        // printf("total pixel time %d: %f s\n", rank, double(pixel_times_accumulated/1000LL)/1000000.0d);
+      }
+
+    }
+  }
