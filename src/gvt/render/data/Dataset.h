@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace gvt {
     namespace render {
@@ -49,6 +50,7 @@ namespace gvt {
                 std::vector<gvt::render::data::domain::AbstractDomain*>     domainSet;
                 std::vector<gvt::render::data::scene::Light*>               lightSet;
                 gvt::render::data::accel::AbstractAccel*                    acceleration;
+                std::map<std::string, gvt::render::data::primitives::Mesh*> objMeshes;
             };
         }
     }
