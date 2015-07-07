@@ -33,6 +33,9 @@
                     bool intersectDistance(const gvt::render::actor::Ray& r, float& t) const;
                     void merge(const Box3D &other);
                     void expand(gvt::core::math::Point4f& v);
+                    int wideRangingBoxDir() const;
+                    gvt::core::math::Point4f centroid() const;
+                    float surfaceArea() const;
 
                     friend std::ostream & operator <<(std::ostream &os, const Box3D &bbox) 
                     {

@@ -32,7 +32,7 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene) 
+MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
     scene->camera.SetCamera(rays,1.0);
 	// uncomment this line to use gvtcamera
@@ -49,7 +49,17 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
         d->setLights(scene->lightSet);
         rta.dataset->addDomain(new MantaDomain(d));
     }
-    
+
+    if (cl.accel_type != ConfigFileLoader::NoAccel)
+    {
+        std::cout << "creating acceleration structure... ";
+        if (cl.accel_type == ConfigFileLoader::BVH)
+        {
+            rta.accel_type = gvt::render::Attributes::BVH;
+        }
+        rta.dataset->makeAccel(rta);
+        std::cout << "...done" << std::endl;
+    }
     
 	// uncomment the following 2 lines to use gvtcamera 
     //rta.view.width = scene->GVTCamera.getFilmSizeWidth();

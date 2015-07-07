@@ -158,7 +158,7 @@ void AbstractDomain::setBoundingBox(gvt::render::data::primitives::Box3D bb)
     boundingBox = bb;
 }
 
-gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0) 
+gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0) const
 {
     if (type == 0) 
     {
@@ -187,4 +187,10 @@ int AbstractDomain::getDomainID()
 void AbstractDomain::setDomainID(int id) 
 {
     domainID = id;
+}
+
+gvt::core::math::Point4f AbstractDomain::worldCentroid() const
+{
+    gvt::render::data::primitives::Box3D bbox = getBounds(1);
+    return (0.5 * bbox.bounds[0]) + (0.5 * bbox.bounds[1]);
 }

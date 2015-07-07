@@ -12,20 +12,24 @@
 #include <gvt/render/data/scene/Camera.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/data/scene/Light.h>
+#include <gvt/render/data/accel/AbstractAccel.h>
 
 #include <algorithm>
 #include <cfloat>
 #include <map>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace gvt {
     namespace render {
+        class Attributes;
         namespace data {
             class Dataset {
             public:
 
-                Dataset() {}
+                Dataset();
+                ~Dataset();
 
                 virtual bool init();
                 virtual int size();
@@ -34,7 +38,7 @@ namespace gvt {
                 virtual gvt::render::data::scene::Light* getLight(int id);
                 virtual int addDomain(gvt::render::data::domain::AbstractDomain* dom);
                 virtual int addLight(gvt::render::data::scene::Light* ls);
-
+                void makeAccel(gvt::render::Attributes& rta);
 
                 friend std::ostream& operator<<(std::ostream&, Dataset const&);
 
@@ -44,7 +48,9 @@ namespace gvt {
                 gvt::render::data::scene::Camera                            camera;
                 gvt::render::data::scene::gvtPerspectiveCamera              GVTCamera;
                 std::vector<gvt::render::data::domain::AbstractDomain*>     domainSet;
-                std::vector<gvt::render::data::scene::Light*>               lightSet; 
+                std::vector<gvt::render::data::scene::Light*>               lightSet;
+                gvt::render::data::accel::AbstractAccel*                    acceleration;
+                std::map<std::string, gvt::render::data::primitives::Mesh*> objMeshes;
             };
         }
     }
