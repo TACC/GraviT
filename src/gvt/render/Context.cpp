@@ -20,7 +20,19 @@ DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)
     DBNodeH n = gvt::core::Context::createNode(type, name, parent);
 
     // TODO - make these for GraviT
-    if (type == String("View"))
+    if (type == String("Camera"))
+	{
+		n += gvt::core::Context::createNode("focus");
+		n += gvt::core::Context::createNode("eyePoint");
+		n += gvt::core::Context::createNode("upVector");
+		n += gvt::core::Context::createNode("cam2wrld");
+	}
+	else if (type == String("Film")) 
+	{
+		n += gvt::core::Context::createNode("width");
+		n += gvt::core::Context::createNode("height");
+	}
+    else if (type == String("View"))
     {
         n += gvt::core::Context::createNode("width");
         n += gvt::core::Context::createNode("height");

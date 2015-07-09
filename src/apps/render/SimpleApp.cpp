@@ -17,10 +17,12 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/Attributes.h>
+#include <gvt/render/Context.h>
 
 #include <iostream>
 
 using namespace std;
+using namespace gvt::render;
 using namespace gvt::core::math;
 using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
@@ -36,7 +38,7 @@ int main(int argc, char** argv) {
 //	our friend the cone.
 //
 	Point4f points[7];
-        points[0] = Point4f(0.5,0.0,0.0,1.0);
+    points[0] = Point4f(0.5,0.0,0.0,1.0);
 	points[1] = Point4f(-0.5,0.5,0.0,1.0);
 	points[2] = Point4f(-0.5,0.25,0.433013,1.0);
 	points[3] = Point4f(-0.5,-0.25,0.43013,1.0);
@@ -103,6 +105,29 @@ int main(int argc, char** argv) {
 //	Attributes class contains information used by tracer to generate image.
 //	This will be replaced by the Context in the future. 
 //
+    gvt::core::Context& cntxt = *gvt::core::Context::singleton();
+	gvt::core::Variant V;
+	gvt::core::DBNodeH camnode,filmnode;
+	gvt::core::DBNodeH root = cntxt.getRootNode();
+
+	camnode = cntxt.createNodeFromType("Camera","raycamera");
+	V = mycamera.getEyePoint();
+	camnode["eyePoint"] = V;
+	V = mycamera.getFocalPoint();
+	camnode["focus"] = V;
+	V = mycamera.getUpVector();
+	camnode["upVector"] = V;
+	filmnode = cntxt.createNodeFromType("Film","rayfilm",cntxt.getRootNode().UUID());
+	V = mycamera.getFilmSizeWidth();
+	filmnode["width"] = V;
+	V = mycamera.getFilmSizeHeight();
+	filmnode["height"] = V;
+
+	root += camnode;
+	root += filmnode;
+
+	std::cout << "this should print the tree" << std::endl;
+	cntxt.database()->printTree(root.UUID(),10,std::cout);
 	gvt::render::Attributes& rta =*(gvt::render::Attributes::instance());
 	rta.view.width = mycamera.getFilmSizeWidth();
 	rta.view.height = mycamera.getFilmSizeHeight();
@@ -110,7 +135,7 @@ int main(int argc, char** argv) {
 	rta.render_type = gvt::render::Attributes::Manta;
 	rta.dataset = new gvt::render::data::Dataset();
 	rta.do_lighting = true;
-	rta.dataset->addDomain(new OptixDomain(domain));
+	rta.dataset->addDomain(new MantaDomain(domain));
 //
 //	Render it....
 //	Hardwire the Manta adapter for this application.

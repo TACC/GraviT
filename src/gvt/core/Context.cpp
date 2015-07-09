@@ -11,6 +11,7 @@ Context::Context()
     DatabaseNode* root = new DatabaseNode(String("GraviT"),String("GVT ROOT"),make_uuid(),nil_uuid());
     __database->setRoot(root);
     __rootNode = DBNodeH(root->UUID());
+	std::cout << __rootNode.name() << std::endl;
 }
 
 Context::~Context()

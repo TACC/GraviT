@@ -9,6 +9,7 @@ DatabaseNode* DatabaseNode::errNode = new DatabaseNode(String("error"), String("
 DatabaseNode::DatabaseNode(String name, Variant value, Uuid uuid, Uuid parentUUID)
 : p_uuid(uuid), p_name(name), p_value(value), p_parent(parentUUID)
 {
+	std::cout << " name is " << p_name << " uuid is " << p_uuid << std::endl;
 }
 
 DatabaseNode::operator bool() const
