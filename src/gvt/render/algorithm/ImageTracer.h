@@ -55,8 +55,6 @@ namespace gvt {
 
                     long ray_counter = 0, domain_counter = 0;
 
-                    // gvt::render::actor::RayVector local;
-                    // local.assign(rays.begin()+rays_start, rays.begin()+ray_end);
 
                     FilterRaysLocally();
 
@@ -80,15 +78,12 @@ namespace gvt {
                             }
                         }
                         GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
-                        //if (domTarget != -1) std::cout << "Domain " << domTarget << " size " << this->queue[domTarget].size() << std::endl;
-                        // GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": selected domain " << domTarget << " (" << domTargetCount << " rays)" << std::endl);
-                        // GVT_DEBUG_CODE(DBG_ALWAYS,if (DEBUG_RANK) std::cerr << mpi.rank << ": currently processed " << ray_counter << " rays across " << domain_counter << " domains" << std::endl);
 
                         if (domTarget >= 0) 
                         {
 
                             GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << std::endl);
-                            gvt::render::data::domain::AbstractDomain* dom = gvt::render::Attributes::rta->dataset->getDomain(domTarget);
+                            gvt::render::data::domain::AbstractDomain* dom = data->getDomain(domTarget);
                             dom->load();
                             GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << std::endl);
 
@@ -96,7 +91,6 @@ namespace gvt {
                             ++domain_counter;
 
                             GVT_DEBUG(DBG_ALWAYS, "Calling process queue");
-                            //GVT::Backend::ProcessQueue<DomainType>(new GVT::Backend::adapt_param<DomainType>(this->queue, moved_rays, domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
                             {
                                 moved_rays.reserve(this->queue[domTarget].size()*10);
                                 boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");

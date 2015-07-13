@@ -2,6 +2,8 @@
 // Simple gravit application. 
 // Load some geometry and render it. 
 //
+#include <gvt/render/RenderContext.h>
+#include <gvt/render/Types.h>
 #include <vector>
 #include <algorithm>
 #include <set>
@@ -16,8 +18,7 @@
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
-#include <gvt/render/Attributes.h>
-#include <gvt/render/Context.h>
+//#include <gvt/render/Attributes.h>
 
 #include <iostream>
 
@@ -105,29 +106,43 @@ int main(int argc, char** argv) {
 //	Attributes class contains information used by tracer to generate image.
 //	This will be replaced by the Context in the future. 
 //
-    gvt::core::Context& cntxt = *gvt::core::Context::singleton();
+    RenderContext::CreateContext() ;
+    gvt::core::CoreContext *cntxt = gvt::render::RenderContext::instance();
+	gvt::core::DBNodeH root = cntxt->getRootNode();
 	gvt::core::Variant V;
-	gvt::core::DBNodeH camnode,filmnode;
-	gvt::core::DBNodeH root = cntxt.getRootNode();
+	gvt::core::DBNodeH camnode,filmnode,datanode;
 
-	camnode = cntxt.createNodeFromType("Camera","raycamera");
+	camnode = cntxt->createNodeFromType("Camera","raycamera",root.UUID());
 	V = mycamera.getEyePoint();
 	camnode["eyePoint"] = V;
 	V = mycamera.getFocalPoint();
 	camnode["focus"] = V;
 	V = mycamera.getUpVector();
 	camnode["upVector"] = V;
-	filmnode = cntxt.createNodeFromType("Film","rayfilm",cntxt.getRootNode().UUID());
+	filmnode = cntxt->createNodeFromType("Film","rayfilm",root.UUID());
 	V = mycamera.getFilmSizeWidth();
 	filmnode["width"] = V;
 	V = mycamera.getFilmSizeHeight();
 	filmnode["height"] = V;
+    datanode = cntxt->createNodeFromType("Dataset","dataset",root.UUID());
+	//V = gvt::render::Attributes::Image;
+	V = gvt::render::scheduler::Image;
+    datanode["schedule"] = V;
+	//root += cntxt->createNode("schedule",V);
+	V = new gvt::render::data::Dataset();
+	gvt::core::variant_toDatasetPointer(V)->addDomain(new MantaDomain(domain));
+    datanode["Dataset_Pointer"] = V;
+	//root += cntxt->createNode("dataset",V);
+	//V = gvt::render::Attributes::Manta;
+	V = gvt::render::adapter::Manta;
+	datanode["render_type"] = V;
+	//root += cntxt->createNode("render_type",V);
+	V = Vector3f(1.,1.,1.);
+    datanode["topology"] = V;
 
-	root += camnode;
-	root += filmnode;
-
-	std::cout << "this should print the tree" << std::endl;
-	cntxt.database()->printTree(root.UUID(),10,std::cout);
+	int width = gvt::core::variant_toInteger(root["Film"]["width"].value());
+	std::cout << "this should print the tree " << width << std::endl;
+	cntxt->database()->printTree(root.UUID(),10,std::cout);
 	gvt::render::Attributes& rta =*(gvt::render::Attributes::instance());
 	rta.view.width = mycamera.getFilmSizeWidth();
 	rta.view.height = mycamera.getFilmSizeHeight();

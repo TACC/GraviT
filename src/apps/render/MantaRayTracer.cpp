@@ -39,7 +39,8 @@ MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 	//scene->GVTCamera.SetCamera(rays,1.0);
     
     gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
-    gvt::render::Context cntxt = gvt::render::Context();   
+    gvt::render::RenderContext::CreateContext();
+	gvt::core::CoreContext&  cntxt = *gvt::render::RenderContext::instance();   
     rta.dataset = new gvt::render::data::Dataset();
     
     

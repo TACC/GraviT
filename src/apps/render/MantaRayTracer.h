@@ -7,7 +7,7 @@
 #define GVTAPPS_RENDER_MANTA_RAY_TRACER_H
 
 #include <gvt/render/Attributes.h>
-#include <gvt/render/Context.h>
+#include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>

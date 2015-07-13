@@ -10,7 +10,8 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/schedule/TaskScheduling.h>
-#include <gvt/render/Attributes.h>
+//#include <gvt/render/Attributes.h>
+#include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
@@ -57,8 +58,14 @@ class AbstractTrace {
 
   gvt::render::actor::RayVector& rays;     ///< Rays to trace
   gvt::render::data::scene::Image& image;  ///< Final image buffer
+  gvt::core::CoreContext& cntxt = *gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH rootnode = cntxt.getRootNode();
+  gvt::render::data::Dataset* data = gvt::core::variant_toDatasetPointer(rootnode["Dataset"]["Dataset_Pointer"].value());
+  int width = gvt::core::variant_toInteger(rootnode["Film"]["width"].value());
+  int height = gvt::core::variant_toInteger(rootnode["Film"]["height"].value());
 
-  unsigned char* vtf;
+  // never used BDS
+  //unsigned char* vtf;
   float sample_ratio;
 
   boost::mutex raymutex;
@@ -73,24 +80,21 @@ class AbstractTrace {
   AbstractTrace(gvt::render::actor::RayVector& rays,
                 gvt::render::data::scene::Image& image)
       : rays(rays), image(image) {
-    vtf = gvt::render::Attributes::rta->GetTransferFunction();
-    sample_ratio = gvt::render::Attributes::rta->sample_ratio;
-    colorBuf = new GVT_COLOR_ACCUM[gvt::render::RTA::instance()->view.width *
-                                   gvt::render::RTA::instance()->view.height];
-    queue_mutex =
-        new boost::mutex[gvt::render::Attributes::rta->dataset->size()];
-    colorBuf_mutex = new boost::mutex[gvt::render::RTA::instance()->view.width];
+    // never used BDS
+    //vtf = gvt::render::Attributes::rta->GetTransferFunction();
+    // never used BDS
+    //sample_ratio = gvt::render::Attributes::rta->sample_ratio;
+    colorBuf = new GVT_COLOR_ACCUM[width*height];
+    queue_mutex = new boost::mutex[data->size()];
+    colorBuf_mutex = new boost::mutex[width];
+    //colorBuf = new GVT_COLOR_ACCUM[gvt::render::RTA::instance()->view.width *
+     //                              gvt::render::RTA::instance()->view.height];
+    //queue_mutex = new boost::mutex[gvt::render::Attributes::rta->dataset->size()];
+    //colorBuf_mutex = new boost::mutex[gvt::render::RTA::instance()->view.width];
 
-    // for (int i = 0; i < gvt::render::Attributes::rta->dataset->size(); i++) {
-    //   queue[i] = gvt::render::actor::RayVector();
-    //   queue[i].reserve(gvt::render::RTA::instance()->view.width);
-    // }
   }
 
   virtual ~AbstractTrace() {
-      // delete queue_mutex;
-      // delete colorBuf;
-      // delete colorBuf_mutex;
   };
   virtual void operator()(void) {
     GVT_ASSERT_BACKTRACE(0, "Not supported");
@@ -136,7 +140,8 @@ class AbstractTrace {
           if (len2List.empty() && dom) dom->marchOut(r);
 
           if (len2List.empty()) {
-            gvt::render::Attributes::rta->dataset->intersect(r, len2List);
+            //gvt::render::Attributes::rta->dataset->intersect(r, len2List);
+            data->intersect(r,len2List);
           }
 
           if (!len2List.empty()) {
@@ -147,7 +152,8 @@ class AbstractTrace {
           } else if (dom) {
             boost::mutex::scoped_lock fbloc(
                 colorBuf_mutex
-                    [r.id % gvt::render::Attributes::instance()->view.width]);
+                    [r.id % width]);
+                    //[r.id % gvt::render::Attributes::instance()->view.width]);
             for (int i = 0; i < 3; i++)
               colorBuf[r.id].rgba[i] += r.color.rgba[i];
             colorBuf[r.id].rgba[3] = 1.f;
@@ -172,8 +178,9 @@ class AbstractTrace {
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
 
   virtual void localComposite() {
-    const size_t size = gvt::render::Attributes::rta->view.width *
-                        gvt::render::Attributes::rta->view.height;
+    const size_t size = width*height;
+    //const size_t size = gvt::render::Attributes::rta->view.width *
+    //                   gvt::render::Attributes::rta->view.height;
 
     // for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
 
@@ -203,57 +210,9 @@ class AbstractTrace {
 
   virtual void gatherFramebuffers(int rays_traced) {
 
-    // localComposite();
-
-    // unsigned char* rgb = this->image.GetBuffer();
-
-    // int rgb_buf_size = 3 * gvt::render::Attributes::rta->view.width *
-    //                    gvt::render::Attributes::rta->view.height;
-
-    // unsigned char* bufs = (mpi.rank == 0)
-    //                           ? new unsigned char[mpi.world_size *
-    // rgb_buf_size]
-    //                           : NULL;
-    // MPI_Barrier(MPI_COMM_WORLD);
-    // MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size,
-    //            MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-
-    // // XXX TODO: find a better way to merge the color buffers
-    // if (mpi.rank == 0) {
-    //   // merge into root proc rgb
-
-    //   GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");
-    //   for (int i = 1; i < mpi.world_size; ++i) {
-    //     for (int j = 0; j < rgb_buf_size; j += 3) {
-    //       int p = i * rgb_buf_size + j;
-    //       // assumes black background, so adding is fine (r==g==b== 0)
-    //       rgb[j + 0] += bufs[p + 0];
-    //       rgb[j + 1] += bufs[p + 1];
-    //       rgb[j + 2] += bufs[p + 2];
-    //       // GVT_DEBUG(DBG_ALWAYS,"r:" << rgb[j + 0]  << " g:"<< rgb[j + 1]
-    // << "
-    //       // b:" << rgb[j + 2]  );
-    //     }
-    //   }
-
-    //   // clean up
-    // }
-
-    // DEBUG(if (DEBUG_RANK) cerr << mpi.rank << ": rgb buffer merge done"
-    //                            << endl);
-
-    // delete[] bufs;
-
-    // for (int i = 0; i < gvt::render::Attributes::rta->view.width *
-    //                         gvt::render::Attributes::rta->view.height;
-    //      ++i) {
-    //   image.Add(i, colorBuf[i]);
-    // }
-
-    //localComposite();
-
-    size_t size = gvt::render::Attributes::rta->view.width *
-                  gvt::render::Attributes::rta->view.height;
+    size_t size = width * height;
+    //size_t size = gvt::render::Attributes::rta->view.width *
+    //              gvt::render::Attributes::rta->view.height;
 
 
     for(size_t i =0; i < size; i++) image.Add(i, colorBuf[i]);                  
@@ -305,64 +264,6 @@ class AbstractTrace {
   }
 };
 
-// struct processRayVector {
-//   AbstractTrace* tracer;
-//   gvt::render::actor::RayVector& rays;
-//   boost::atomic<int>& current_ray;
-//   int last;
-//   const size_t split;
-//   gvt::render::data::domain::AbstractDomain* dom;
-
-//   processRayVector(AbstractTrace* tracer, gvt::render::actor::RayVector& rays,
-//                    boost::atomic<int>& current_ray, int last, const int split,
-//                    gvt::render::data::domain::AbstractDomain* dom = NULL)
-//       : tracer(tracer),
-//         rays(rays),
-//         current_ray(current_ray),
-//         last(last),
-//         split(split),
-//         dom(dom) {}
-
-//   void operator()() {
-//     gvt::render::actor::RayVector localQueue;
-//     while (!rays.empty()) {
-//       localQueue.clear();
-//       boost::unique_lock<boost::mutex> lock(tracer->raymutex);
-//       std::size_t range = std::min(split, rays.size());
-
-//       GVT_DEBUG(DBG_ALWAYS, "processRayVector: current_ray "
-//                                 << current_ray << " last ray " << last
-//                                 << " split " << split << " rays.size()"
-//                                 << rays.size());
-
-//       localQueue.assign(rays.begin(), rays.begin() + range);
-//       rays.erase(rays.begin(), rays.begin() + range);
-//       lock.unlock();
-
-//       for (int i = 0; i < localQueue.size(); i++) {
-//         gvt::render::actor::Ray& ray = localQueue[i];
-//         gvt::render::actor::isecDomList& len2List = ray.domains;
-//         if (len2List.empty() && dom) dom->marchOut(ray);
-//         if (len2List.empty())
-//           gvt::render::Attributes::rta->dataset->intersect(ray, len2List);
-//         if (!len2List.empty()) {
-//           int domTarget = (*len2List.begin());
-//           len2List.erase(len2List.begin());
-//           boost::mutex::scoped_lock qlock(tracer->queue_mutex[domTarget]);
-//           tracer->queue[domTarget].push_back(ray);
-//         } else {
-//           boost::mutex::scoped_lock fbloc(
-//               tracer->colorBuf_mutex
-//                   [ray.id % gvt::render::Attributes::instance()->view.width]);
-//           for (int i = 0; i < 3; i++)
-//             tracer->colorBuf[ray.id].rgba[i] += ray.color.rgba[i];
-//           tracer->colorBuf[ray.id].rgba[3] = 1.f;
-//           tracer->colorBuf[ray.id].clamp();
-//         }
-//       }
-//     }
-//   }
-// };
 
 /// Generic Tracer interface for a base scheduling strategy with static inner
 /// scheduling policy

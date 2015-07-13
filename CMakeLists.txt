@@ -134,7 +134,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/Actor.h
 	src/gvt/core/Adapter.h
 	src/gvt/core/Algorithm.h
-	src/gvt/core/Context.h
+	src/gvt/core/CoreContext.h
 	src/gvt/core/data/Transform.h
 	src/gvt/core/Data.h
 	src/gvt/core/Database.h
@@ -162,7 +162,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
-	src/gvt/core/Context.cpp
+	src/gvt/core/CoreContext.cpp
 	src/gvt/core/Database.cpp
 	src/gvt/core/DatabaseNode.cpp
 	src/gvt/core/schedule/TaskScheduling.cpp
@@ -177,7 +177,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
 	src/gvt/render/Attributes.h
-	src/gvt/render/Context.h
+	src/gvt/render/RenderContext.h
 	src/gvt/render/data/Dataset.h
 	src/gvt/render/data/DerivedTypes.h
 	src/gvt/render/data/domain/AbstractDomain.h
@@ -218,7 +218,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
 	src/gvt/render/Attributes.cpp
-	src/gvt/render/Context.cpp
+	src/gvt/render/RenderContext.cpp
 	src/gvt/render/data/Dataset.cpp
 	src/gvt/render/data/domain/AbstractDomain.cpp
 	src/gvt/render/data/domain/Cell.cpp
