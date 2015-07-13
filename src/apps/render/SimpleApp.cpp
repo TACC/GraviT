@@ -143,14 +143,14 @@ int main(int argc, char** argv) {
 	int width = gvt::core::variant_toInteger(root["Film"]["width"].value());
 	std::cout << "this should print the tree " << width << std::endl;
 	cntxt->database()->printTree(root.UUID(),10,std::cout);
-	gvt::render::Attributes& rta =*(gvt::render::Attributes::instance());
-	rta.view.width = mycamera.getFilmSizeWidth();
-	rta.view.height = mycamera.getFilmSizeHeight();
-	rta.schedule = gvt::render::Attributes::Image;
-	rta.render_type = gvt::render::Attributes::Manta;
-	rta.dataset = new gvt::render::data::Dataset();
-	rta.do_lighting = true;
-	rta.dataset->addDomain(new MantaDomain(domain));
+	//gvt::render::Attributes& rta =*(gvt::render::Attributes::instance());
+	//rta.view.width = mycamera.getFilmSizeWidth();
+	//rta.view.height = mycamera.getFilmSizeHeight();
+	//rta.schedule = gvt::render::Attributes::Image;
+	//rta.render_type = gvt::render::Attributes::Manta;
+	//rta.dataset = new gvt::render::data::Dataset();
+	//rta.do_lighting = true;
+	//rta.dataset->addDomain(new MantaDomain(domain));
 //
 //	Render it....
 //	Hardwire the Manta adapter for this application.
