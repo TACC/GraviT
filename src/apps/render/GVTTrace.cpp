@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
   GVT_DEBUG(DBG_ALWAYS,"Rendering with Manta");
   if (cl.domain_type == 0) {
     domain_choosen = true;
-    MantaRayTracer rt(&cl.scene);
+    MantaRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
     rt.RenderImage(imagename);
   }
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   GVT_DEBUG(DBG_ALWAYS,"Rendering with OptiX");
   if (cl.domain_type == 1) {
     domain_choosen = true;
-    OptixRayTracer rt(&cl.scene);
+    OptixRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
     rt.RenderImage(imagename);
   }
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   GVT_DEBUG(DBG_ALWAYS,"Rendering with Embree");
   if (cl.domain_type == 2) {
     domain_choosen = true;
-    EmbreeRayTracer rt(&cl.scene);
+    EmbreeRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
     rt.RenderImage(imagename);
   }

@@ -6,6 +6,7 @@
 #ifdef __USE_TAU
 #include <TAU.h>
 #endif
+#include <limits>
 
 using namespace gvt::core::math;
 using namespace gvt::render::actor;
@@ -55,7 +56,12 @@ int inline CheckLineBox(Point4f B1, Point4f B2, Point4f L1, Point4f L2, Point4f 
 
 Box3D::Box3D()
 {
-
+    for (int i=0; i<3; ++i) {
+        bounds[0][i] = std::numeric_limits<float>::max();
+        bounds[1][i] = -std::numeric_limits<float>::max();
+    }
+    bounds[0][3] = 1;
+    bounds[1][3] = 1;
 }
 
 Point4f Box3D::getHitpoint(const Ray& ray) const {
@@ -168,3 +174,25 @@ bool Box3D::intersectDistance(const Ray& ray, float& t) const
 
 }
 
+// returns dimension with maximum extent
+int Box3D::wideRangingBoxDir() const
+{
+    Point4f diag = bounds[1] - bounds[0];
+    if (diag.x > diag.y && diag.x > diag.z)
+        return 0; // x-axis
+    else if (diag.y > diag.z)
+        return 1; // y-axis
+    else
+        return 2; // z-axis
+}
+
+gvt::core::math::Point4f Box3D::centroid() const
+{
+    return (0.5 * bounds[0] + 0.5 * bounds[1]);
+}
+
+float Box3D::surfaceArea() const
+{
+    Point4f diag = bounds[1] - bounds[0];
+    return (2.f * (diag.x * diag.y + diag.y * diag.z + diag.z * diag.x));
+}

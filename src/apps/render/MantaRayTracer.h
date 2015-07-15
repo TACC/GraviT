@@ -11,6 +11,7 @@
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
+#include <apps/render/ConfigFileLoader.h>
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -24,7 +25,7 @@ namespace gvtapps {
         class MantaRayTracer
         {
         public:
-            MantaRayTracer(gvt::render::data::Dataset* scene);
+            MantaRayTracer(gvtapps::render::ConfigFileLoader& cl);
 
             void RenderImage(std::string);
             gvt::render::actor::RayVector rays;

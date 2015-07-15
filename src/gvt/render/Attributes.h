@@ -19,7 +19,6 @@
 
 namespace gvt {
     namespace render {
-
         class Attributes {
         public:
 
@@ -79,7 +78,13 @@ namespace gvt {
                 LoadOnce, // PAN: from TVCG 2013 paper
                 LoadAnyOnce, // PAN: from TVCG 2013 paper
                 LoadAnother, // PAN: from TVCG 2013 paper
-                LoadMany,
+                LoadMany
+            };
+
+            enum AccelType
+            {
+                NoAccel,
+                BVH
             };
 
             Attributes();
@@ -103,6 +108,11 @@ namespace gvt {
             ScheduleType GetSchedule()
             {
                 return schedule;
+            }
+
+            AccelType GetAccelType()
+            {
+                return accel_type;
             }
 
             unsigned char* GetTransferFunction()
@@ -150,6 +160,7 @@ namespace gvt {
             View view;
             RenderType render_type;
             ScheduleType schedule;
+            AccelType accel_type;
             float sample_rate;
             float sample_ratio;
             gvt::render::data::Dataset* dataset;

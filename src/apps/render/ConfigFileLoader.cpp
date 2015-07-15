@@ -14,6 +14,7 @@
 #include <sstream>
 #include <boost/regex.h>
 #include <boost/regex.hpp>
+ #include <map>
 
 using namespace gvtapps::render;
 
@@ -86,9 +87,20 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
             if(elems[1].find(".obj")< elems[1].size()) 
             {
                 GVT_DEBUG(DBG_ALWAYS, "Found obj file : " << elems[1].find(".obj"));
-                gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
+
+                gvt::render::data::primitives::Mesh* mesh;
+
+                std::map<std::string, gvt::render::data::primitives::Mesh*>::iterator meshIt = scene.objMeshes.find(elems[1]);
+
+                if (meshIt != scene.objMeshes.end()) {
+                    mesh = meshIt->second;
+                } else {
+                    gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
+                    mesh = objReader.getMesh();
+                    scene.objMeshes[elems[1]] = mesh;
+                }
                 
-                scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(objReader.getMesh()));
+                scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
                 
                 gvt::core::math::Vector4f t;
                 t[0] = std::atof(elems[2].c_str());
@@ -157,7 +169,11 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
           if(elems[1] == "DOMAIN") scheduler_type = 1;
           if(elems[1] == "HYBRID") scheduler_type = 2;
         }
-        else 
+        else if (elems[0] == "AT")
+        {
+          if(elems[1] == "BVH") accel_type = BVH;
+        }
+        else
         {
             GVT_DEBUG(DBG_LOW, "Invalid option");
         }

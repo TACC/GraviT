@@ -254,7 +254,7 @@ void AbstractDomain::setBoundingBox(gvt::render::data::primitives::Box3D bb)
     boundingBox = bb;
 }
 
-gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
+gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0) const
 {
 #ifdef __USE_TAU
   TAU_START("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
@@ -263,7 +263,7 @@ gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
      {
 #ifdef __USE_TAU
   TAU_STOP("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
-#endif       
+#endif
         return boundingBox;
     }
     else
@@ -274,7 +274,7 @@ gvt::render::data::primitives::Box3D AbstractDomain::getBounds(int type = 0)
         bb.bounds[1] = m * boundingBox.bounds[1];
 #ifdef __USE_TAU
   TAU_STOP("gvt::render::data::primitives::Box3D AbstractDomain::getBounds");
-#endif       
+#endif
 	return bb;
     }
 
@@ -295,4 +295,10 @@ int AbstractDomain::getDomainID()
 void AbstractDomain::setDomainID(int id)
 {
     domainID = id;
+}
+
+gvt::core::math::Point4f AbstractDomain::worldCentroid() const
+{
+    gvt::render::data::primitives::Box3D bbox = getBounds(1);
+    return (0.5 * bbox.bounds[0]) + (0.5 * bbox.bounds[1]);
 }

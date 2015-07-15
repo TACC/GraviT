@@ -28,7 +28,7 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
+EmbreeRayTracer::EmbreeRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
 #ifdef __USE_TAU
   TAU_START("EmbreeRayTracer::EmbreeRayTracer");
@@ -49,6 +49,16 @@ EmbreeRayTracer::EmbreeRayTracer(gvt::render::data::Dataset* scene) : scene(scen
         rta.dataset->addDomain(new EmbreeDomain(d));
     }
 
+    if (cl.accel_type != ConfigFileLoader::NoAccel)
+    {
+        std::cout << "creating acceleration structure... ";
+        if (cl.accel_type == ConfigFileLoader::BVH)
+        {
+            rta.accel_type = gvt::render::Attributes::BVH;
+        }
+        rta.dataset->makeAccel(rta);
+        std::cout << "...done" << std::endl;
+    }
 
     std::cout << "setting ray attributes" << std::endl;
     rta.view.width = scene->camera.getFilmSizeWidth();
@@ -81,6 +91,7 @@ void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 
 
     boost::timer::auto_cpu_timer t("Total render time: %w\n");
+
 
     std::cout << "create image" << std::endl;
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);

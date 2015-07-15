@@ -35,7 +35,7 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
+OptixRayTracer::OptixRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
 #ifdef __USE_TAU
   TAU_START("OptixRayTracer::OptixRayTracer");
@@ -54,6 +54,16 @@ OptixRayTracer::OptixRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
         rta.dataset->addDomain(new OptixDomain(d));
     }
 
+    if (cl.accel_type != ConfigFileLoader::NoAccel)
+    {
+        std::cout << "creating acceleration structure... ";
+        if (cl.accel_type == ConfigFileLoader::BVH)
+        {
+            rta.accel_type = gvt::render::Attributes::BVH;
+        }
+        rta.dataset->makeAccel(rta);
+        std::cout << "...done" << std::endl;
+    }
 
     rta.view.width = scene->camera.getFilmSizeWidth();
     rta.view.height = scene->camera.getFilmSizeHeight();
@@ -86,7 +96,7 @@ void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
 
-    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();  
+    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();
     //image.Write();
     gvt::render::algorithm::GVT_COMM mpi;
     if(mpi.root()) image.Write();
@@ -99,7 +109,3 @@ void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
 #if !defined(M_PI)
 #define M_PI 3.14159265358979323846
 #endif
-
-
-
-

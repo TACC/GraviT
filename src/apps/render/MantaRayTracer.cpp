@@ -36,7 +36,7 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
-MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
+MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
 #ifdef __USE_TAU
   TAU_START("MantaRayTracer::MantaRayTracer");
@@ -57,6 +57,16 @@ MantaRayTracer::MantaRayTracer(gvt::render::data::Dataset* scene) : scene(scene)
         rta.dataset->addDomain(new MantaDomain(d));
     }
 
+    if (cl.accel_type != ConfigFileLoader::NoAccel)
+    {
+        std::cout << "creating acceleration structure... ";
+        if (cl.accel_type == ConfigFileLoader::BVH)
+        {
+            rta.accel_type = gvt::render::Attributes::BVH;
+        }
+        rta.dataset->makeAccel(rta);
+        std::cout << "...done" << std::endl;
+    }
 
 	// uncomment the following 2 lines to use gvtcamera
     //rta.view.width = scene->GVTCamera.getFilmSizeWidth();
@@ -96,9 +106,9 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 	// comment out the following 3 lines to use gvt camera
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
-    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();  
-//    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();  
-//    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, DomainScheduler>(rays, image)();  
+    gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();
+//    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, ImageScheduler>(rays, image)();
+//    gvt::render::algorithm::Tracer<MantaDomain, MPICOMM, DomainScheduler>(rays, image)();
     //
     // uncomment the following 4 lines to use gvt camera. comment out to use original camera
 //	Image image(scene->GVTCamera.getFilmSizeWidth(),scene->GVTCamera.getFilmSizeHeight(), imagename);
@@ -108,7 +118,7 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
     // image.Write();
     gvt::render::algorithm::GVT_COMM mpi;
     if(mpi.root()) image.Write();
-    
+
     //Example code. Too complex.
 
 
@@ -201,7 +211,3 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 #if !defined(M_PI)
 #define M_PI 3.14159265358979323846
 #endif
-
-
-
-
