@@ -18,7 +18,7 @@ namespace gvt {
 // render stuff ya I know it doesnt belong here. 
 		typedef std::string String;
                 typedef boost::uuids::uuid Uuid;
-                typedef boost::variant<int,long,float,double,bool,String,Uuid,gvt::core::math::Vector4f,gvt::core::math::Point4f,gvt::core::math::Vector3f,gvt::render::data::Dataset*> Variant;
+                typedef boost::variant<int,long,float,double,bool,String,Uuid,gvt::core::math::Vector4f,gvt::core::math::Point4f,gvt::core::math::Vector3f,gvt::render::data::Dataset*,gvt::render::data::primitives::Mesh*> Variant;
                 template <class T> using Vector = boost::container::vector<T>;
                 template <class K, class V> using Map = boost::container::map<K, V>;
 

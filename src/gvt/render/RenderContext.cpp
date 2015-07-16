@@ -58,6 +58,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 		n += gvt::core::CoreContext::createNode("topology");
 		n += gvt::core::CoreContext::createNode("Dataset_Pointer");
 		n += gvt::core::CoreContext::createNode("accel_type");
+		n += gvt::core::CoreContext::createNode("Mesh_Pointer");
 	}
     else if (type == String("Attributes"))
     {

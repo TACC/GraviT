@@ -18,7 +18,6 @@
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
-//#include <gvt/render/Attributes.h>
 
 #include <iostream>
 
@@ -112,6 +111,7 @@ int main(int argc, char** argv) {
 	gvt::core::Variant V;
 	gvt::core::DBNodeH camnode,filmnode,datanode;
 
+// camera
 	camnode = cntxt->createNodeFromType("Camera","raycamera",root.UUID());
 	V = mycamera.getEyePoint();
 	camnode["eyePoint"] = V;
@@ -119,38 +119,33 @@ int main(int argc, char** argv) {
 	camnode["focus"] = V;
 	V = mycamera.getUpVector();
 	camnode["upVector"] = V;
+// film
 	filmnode = cntxt->createNodeFromType("Film","rayfilm",root.UUID());
 	V = mycamera.getFilmSizeWidth();
 	filmnode["width"] = V;
 	V = mycamera.getFilmSizeHeight();
 	filmnode["height"] = V;
+// dataset
     datanode = cntxt->createNodeFromType("Dataset","dataset",root.UUID());
-	//V = gvt::render::Attributes::Image;
 	V = gvt::render::scheduler::Image;
     datanode["schedule"] = V;
-	//root += cntxt->createNode("schedule",V);
 	V = new gvt::render::data::Dataset();
-	gvt::core::variant_toDatasetPointer(V)->addDomain(new MantaDomain(domain));
     datanode["Dataset_Pointer"] = V;
-	//root += cntxt->createNode("dataset",V);
-	//V = gvt::render::Attributes::Manta;
 	V = gvt::render::adapter::Manta;
 	datanode["render_type"] = V;
-	//root += cntxt->createNode("render_type",V);
+    if(gvt::core::variant_toInteger(V) == gvt::render::adapter::Manta) {
+	    gvt::core::variant_toDatasetPointer(root["Dataset"]["Dataset_Pointer"].value())->addDomain(new MantaDomain(domain));
+	}
 	V = Vector3f(1.,1.,1.);
     datanode["topology"] = V;
+	V = gvt::render::accelerator::BVH;
+	datanode["accel_type"] = V;
+	V = domain->getMesh();
+	datanode["Mesh_Pointer"] = V;
 
 	int width = gvt::core::variant_toInteger(root["Film"]["width"].value());
 	std::cout << "this should print the tree " << width << std::endl;
 	cntxt->database()->printTree(root.UUID(),10,std::cout);
-	//gvt::render::Attributes& rta =*(gvt::render::Attributes::instance());
-	//rta.view.width = mycamera.getFilmSizeWidth();
-	//rta.view.height = mycamera.getFilmSizeHeight();
-	//rta.schedule = gvt::render::Attributes::Image;
-	//rta.render_type = gvt::render::Attributes::Manta;
-	//rta.dataset = new gvt::render::data::Dataset();
-	//rta.do_lighting = true;
-	//rta.dataset->addDomain(new MantaDomain(domain));
 //
 //	Render it....
 //	Hardwire the Manta adapter for this application.
