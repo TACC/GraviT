@@ -87,6 +87,10 @@ int Dataset::size()
     return domainSet.size();
 }
 
+void Dataset::makeAccel()
+{
+        acceleration = new gvt::render::data::accel::BVH(domainSet);
+}
 void Dataset::makeAccel(gvt::render::Attributes& rta)
 {
     if (rta.GetAccelType() == gvt::render::Attributes::BVH) {

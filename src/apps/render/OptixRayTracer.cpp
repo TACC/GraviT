@@ -52,9 +52,10 @@ OptixRayTracer::OptixRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
         std::cout << "creating acceleration structure... ";
         if (cl.accel_type == ConfigFileLoader::BVH)
         {
-            rta.accel_type = gvt::render::Attributes::BVH;
+            //rta.accel_type = gvt::render::Attributes::BVH;
+        	rta.dataset->makeAccel();
         }
-        rta.dataset->makeAccel(rta);
+        //rta.dataset->makeAccel(rta);
         std::cout << "...done" << std::endl;
     }
 
