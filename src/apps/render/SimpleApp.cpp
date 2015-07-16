@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
 	gvt::core::DBNodeH camnode,filmnode,datanode;
 
 // camera
-	camnode = cntxt->createNodeFromType("Camera","raycamera",root.UUID());
+	camnode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
 	V = mycamera.getEyePoint();
 	camnode["eyePoint"] = V;
 	V = mycamera.getFocalPoint();
@@ -120,13 +120,13 @@ int main(int argc, char** argv) {
 	V = mycamera.getUpVector();
 	camnode["upVector"] = V;
 // film
-	filmnode = cntxt->createNodeFromType("Film","rayfilm",root.UUID());
+	filmnode = cntxt->createNodeFromType("Film","conefilm",root.UUID());
 	V = mycamera.getFilmSizeWidth();
 	filmnode["width"] = V;
 	V = mycamera.getFilmSizeHeight();
 	filmnode["height"] = V;
 // dataset
-    datanode = cntxt->createNodeFromType("Dataset","dataset",root.UUID());
+    datanode = cntxt->createNodeFromType("Dataset","coneset",root.UUID());
 	V = gvt::render::scheduler::Image;
     datanode["schedule"] = V;
 	V = new gvt::render::data::Dataset();
@@ -152,6 +152,11 @@ int main(int argc, char** argv) {
 //
 	mycamera.AllocateCameraRays();
 	mycamera.generateRays();
-	gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
+    int stype = gvt::core::variant_toInteger(root["Dataset"]["schedule"].value());
+	if(stype ==gvt::render::scheduler::Image) {
+		gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();
+	} else if(stype == gvt::render::scheduler::Domain) {
+		gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
+	}
 	myimage.Write();
 }

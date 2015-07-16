@@ -10,7 +10,6 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/schedule/TaskScheduling.h>
-//#include <gvt/render/Attributes.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>

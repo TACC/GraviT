@@ -48,44 +48,6 @@ int main(int argc, char** argv) {
 
   gvtapps::render::ConfigFileLoader cl(filename);
 
-  //    fstream file;
-  //    file.open(filename.c_str());
-  //
-  //    if (!file.good()) {
-  //        cerr << "ERROR: could not open file '" << filename << "'" << endl;
-  //        return -1;
-  //    }
-  //
-  //    GVT::Env::RayTracerAttributes& rta =
-  // *(GVT::Env::RayTracerAttributes::instance());
-  //
-  //    file >> rta;
-  //
-  //    file.close();
-  //
-  //    switch (rta.render_type) {
-  //        case GVT::Env::RayTracerAttributes::Volume:
-  //            GVT_DEBUG(DBG_ALWAYS, "Volume dataset");
-  //            rta.dataset = new
-  // GVT::Dataset::Dataset<GVT::Domain::VolumeDomain>(rta.datafile);
-  //            break;
-  //        case GVT::Env::RayTracerAttributes::Surface:
-  //            GVT_DEBUG(DBG_ALWAYS, "Geometry dataset");
-  //            rta.dataset = new
-  // GVT::Dataset::Dataset<GVT::Domain::GeometryDomain>(rta.datafile);
-  //            break;
-  //        case GVT::Env::RayTracerAttributes::Manta:
-  //            rta.dataset = new
-  // GVT::Dataset::Dataset<GVT::Domain::MantaDomain>(rta.datafile);
-  //            break;
-  //    }
-  //
-  //
-  //    GVT_ASSERT(rta.LoadDataset(), "Unable to load dataset");
-  //
-  //    std::cout << rta << std::endl;
-  //
-  
   bool domain_choosen = false;
 #ifdef GVT_RENDER_ADAPTER_MANTA
   GVT_DEBUG(DBG_ALWAYS,"Rendering with Manta");
