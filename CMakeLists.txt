@@ -112,6 +112,9 @@ find_package(GLM REQUIRED)
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
+
+add_subdirectory(${GVT_THIRDPARTY_TOBJ})
+
 find_path(TINYOBJPATH "tiny_obj_loader.h" ${GVT_THIRDPARTY_TOBJ})
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
 	MESSAGE(SEND_ERRORS "tiny obj reader not found")
@@ -418,8 +421,7 @@ endif(GVT_GLRENDER_APP)
 if (GVT_RENDER_APP)
     find_package(MPI REQUIRED)
     include_directories(${MPI_INCLUDE_PATH} ${TINYOBJPATH})
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES}
-${TINYOBJPATH}/libtinyobjloader.a)
+    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES} tinyobjloader)
 
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
