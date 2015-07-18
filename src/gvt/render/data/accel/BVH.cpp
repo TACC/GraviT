@@ -173,6 +173,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end)
             }
         }
     }
+    return 0.0f;
 }
 
 void BVH::trace(const gvt::render::actor::Ray& ray, const Node* node, ClosestHit& hit, gvt::render::actor::isecDomList& isect, int level)

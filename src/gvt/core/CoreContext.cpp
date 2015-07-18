@@ -3,7 +3,7 @@
 
 using namespace gvt::core;
 
-CoreContext* CoreContext::__singleton = NULL;
+CoreContext* CoreContext::__singleton = nullptr;
 
 CoreContext::CoreContext()
 {
@@ -20,7 +20,10 @@ CoreContext::~CoreContext()
 
 CoreContext* CoreContext::instance()
 {
-	if (__singleton != NULL) {return __singleton;}
+	if (__singleton == nullptr) {
+        __singleton = new CoreContext();
+    }
+    return static_cast<CoreContext*>(__singleton);
 }
 
 DBNodeH CoreContext::getNode(Uuid node)
@@ -50,6 +53,7 @@ DBNodeH CoreContext::createNodeFromType(String type)
 
 DBNodeH CoreContext::createNodeFromType(String type, String name, Uuid parent)
 {
+    std::cout << "Calling CoreContext function" << std::endl;
     DBNodeH n = createNode(type, name, parent);
 
     // TODO - make these for GraviT

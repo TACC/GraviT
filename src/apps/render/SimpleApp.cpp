@@ -105,8 +105,14 @@ int main(int argc, char** argv) {
 //	Attributes class contains information used by tracer to generate image.
 //	This will be replaced by the Context in the future. 
 //
-    RenderContext::CreateContext() ;
-    gvt::core::CoreContext *cntxt = gvt::render::RenderContext::instance();
+    // RenderContext::CreateContext() ;
+    gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+
+    if(cntxt == NULL) {
+    	std::cout << "Something went wrong" << std::endl;
+    	exit(0);
+    }
+
 	gvt::core::DBNodeH root = cntxt->getRootNode();
 	gvt::core::Variant V;
 	gvt::core::DBNodeH camnode,filmnode,datanode;
@@ -133,6 +139,10 @@ int main(int argc, char** argv) {
     datanode["Dataset_Pointer"] = V;
 	V = gvt::render::adapter::Manta;
 	datanode["render_type"] = V;
+
+		std::cout << "this should print the tree " << std::endl;
+	cntxt->database()->printTree(root.UUID(),10,std::cout);
+
     if(gvt::core::variant_toInteger(V) == gvt::render::adapter::Manta) {
 	    gvt::core::variant_toDatasetPointer(root["Dataset"]["Dataset_Pointer"].value())->addDomain(new MantaDomain(domain));
 	}

@@ -19,11 +19,21 @@ void RenderContext::CreateContext()
 	}
 }
 
+RenderContext* RenderContext::instance() {
+    // if (__singleton != nullptr) {
+    //     __singleton = new RenderContext();
+    // }
+    return static_cast<RenderContext*>(CoreContext::instance());
+}
+
 RenderContext::~RenderContext()
 {}
 
 DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 {
+
+    std::cout << "Calling RenderContext function" << std::endl;
+
     DBNodeH n = gvt::core::CoreContext::createNode(type, name, parent);
 
     // TODO - make these for GraviT

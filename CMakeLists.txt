@@ -17,10 +17,13 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
 
 # use C++11 foo explicitly
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+IF(APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+ENDIF(APPLE)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -33,25 +36,31 @@ option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
-SET(GVT_HOST "Other" CACHE STRING "Choose Stampede | Maverick | Other")
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+SET(HOST_NAME $ENV{HOSTNAME})
+if(HOST_NAME MATCHES "(.)*maverick(.)*")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
+    SET(GVT_HOST "Maverick" CACHE STRING "Choose Stampede | Maverick | Other")
+else()
+if(HOST_NAME MATCHES "(.)*stampede(.)*")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
+    SET(GVT_HOST "Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
+else()
+    SET(GVT_HOST "Other (${HOST_NAME})" CACHE STRING "Choose Stampede | Maverick | Other")
+endif()
+endif()
+endif()
 
 if(GVT_DEBUG)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
 endif(GVT_DEBUG)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-string( TOLOWER "${GVT_HOST}" host_lower )
-if( host_lower STREQUAL "stampede" )
-	set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
-	set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
-endif()
 
-if( host_lower STREQUAL "maverick" )
-	set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
-	set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
-endif()
-endif()
+
+
 
 
 if (GVT_RENDER)
@@ -113,7 +122,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-  #set(CMAKE_CXX_FLAGS "-std=c++11 -Wall  -Wno-reorder -Wno-unused-variable")
+  #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -248,7 +257,6 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		)
 
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-		src/gvt/render/adapter/manta/algorithm/MantaProcessQueue.cpp
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
 		)
 endif(GVT_RENDER_ADAPTER_MANTA)
@@ -293,15 +301,12 @@ if (GVT_CORE)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES})
 
-	add_library(gvtCore 
+	add_library(gvtCore STATIC
 		${GVT_CORE_HDRS} 
 		${GVT_CORE_SRCS}
 		)
 
 	target_link_libraries(gvtCore ${GVT_CORE_LIBS})
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtCore PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtCore
 		LIBRARY DESTINATION lib
@@ -354,9 +359,6 @@ if (GVT_RENDER)
 		)
 
 	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtRender PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtRender
 		LIBRARY DESTINATION lib
@@ -375,9 +377,6 @@ if (GVT_SIMPLE_APP)
 		${GVTSIMPLE_RENDER_SRCS}
 		)
 	target_link_libraries(gvtSimple ${GVTSIMPLE_RENDER_LIBS} gvtCore gvtRender)
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtSimple PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 	
 endif(GVT_SIMPLE_APP)
 if (GVT_GLRENDER_APP)
@@ -410,9 +409,6 @@ if (GVT_GLRENDER_APP)
 		)
 
               target_link_libraries(glTracer ${OPENGL_gl_LIBRARY} ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(glTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS glTracer
 		RUNTIME DESTINATION bin
@@ -474,9 +470,6 @@ ${TINYOBJPATH}/libtinyobjloader.a)
 		)
 
 	target_link_libraries(gvtTracer ${GVTAPP_RENDER_LIBS} gvtCore gvtRender)
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtTracer
 		RUNTIME DESTINATION bin
