@@ -53,7 +53,6 @@ DBNodeH CoreContext::createNodeFromType(String type)
 
 DBNodeH CoreContext::createNodeFromType(String type, String name, Uuid parent)
 {
-    std::cout << "Calling CoreContext function" << std::endl;
     DBNodeH n = createNode(type, name, parent);
 
     // TODO - make these for GraviT
