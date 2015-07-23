@@ -57,7 +57,8 @@ class AbstractTrace {
 
   gvt::render::actor::RayVector& rays;     ///< Rays to trace
   gvt::render::data::scene::Image& image;  ///< Final image buffer
-  gvt::core::CoreContext& cntxt = *gvt::render::RenderContext::instance();
+  gvt::render::RenderContext& cntxt = *gvt::render::RenderContext::instance();
+  //gvt::core::CoreContext& cntxt = *gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootnode = cntxt.getRootNode();
   gvt::render::data::Dataset* data = gvt::core::variant_toDatasetPointer(rootnode["Dataset"]["Dataset_Pointer"].value());
   int width = gvt::core::variant_toInteger(rootnode["Film"]["width"].value());

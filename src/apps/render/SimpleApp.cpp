@@ -158,7 +158,6 @@ int main(int argc, char** argv) {
 	cntxt->database()->printTree(root.UUID(),10,std::cout);
 //
 //	Render it....
-//	Hardwire the Manta adapter for this application.
 //
 	mycamera.AllocateCameraRays();
 	mycamera.generateRays();

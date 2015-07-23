@@ -23,7 +23,7 @@ RenderContext* RenderContext::instance() {
     // if (__singleton != nullptr) {
     //     __singleton = new RenderContext();
     // }
-    return staticbin/gvt_cast<RenderContext*>(CoreContext::instance());
+    return static_cast<RenderContext*>(CoreContext::instance());
 }
 
 RenderContext::~RenderContext()
