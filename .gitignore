@@ -1,3 +1,5 @@
+.gitignore
+
 # ignore cmake build dir
-build
+build*
 gravit.sublime*
