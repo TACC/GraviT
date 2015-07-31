@@ -42,7 +42,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 		n += gvt::core::CoreContext::createNode("upVector");
 		n += gvt::core::CoreContext::createNode("cam2wrld");
 	}
-	else if (type == String("Film")) 
+	else if (type == String("Film"))
 	{
 		n += gvt::core::CoreContext::createNode("width");
 		n += gvt::core::CoreContext::createNode("height");
@@ -59,7 +59,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
         n += gvt::core::CoreContext::createNode("nearPlane");
         n += gvt::core::CoreContext::createNode("farPlane");
     }
-    else if (type == String("Dataset"))
+    else if (type == String("Dataset")) // TODO: remove dataset db entries
 	{
 		n += gvt::core::CoreContext::createNode("schedule");
 		n += gvt::core::CoreContext::createNode("render_type");
@@ -68,12 +68,38 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 		n += gvt::core::CoreContext::createNode("accel_type");
 		n += gvt::core::CoreContext::createNode("Mesh_Pointer");
 	}
-    else if (type == String("Attributes"))
+    else if (type == String("Attributes")) // TODO: remove attributes db entries
     {
         n["Views"] += gvt::core::CoreContext::createNodeFromType("View");
         n += gvt::core::CoreContext::createNode("renderType","surface");
         n += gvt::core::CoreContext::createNode("schedule","Image");
     }
+    else if (type == String("Mesh"))
+    {
+		n += gvt::core::CoreContext::createNode("file");
+		n += gvt::core::CoreContext::createNode("ptr");
+		n += gvt::core::CoreContext::createNode("bbox");
+    }
+    else if (type == String("Instance"))
+    {
+		n += gvt::core::CoreContext::createNode("meshRef");
+		n += gvt::core::CoreContext::createNode("ptr");
+		n += gvt::core::CoreContext::createNode("centroid");
+		n += gvt::core::CoreContext::createNode("transMat");
+		n += gvt::core::CoreContext::createNode("invTransMat");
+		n += gvt::core::CoreContext::createNode("transMatUpper33");
+    }
+    else if (type == String("PointLight"))
+    {
+		n += gvt::core::CoreContext::createNode("position");
+		n += gvt::core::CoreContext::createNode("color");
+    }
+    else if (type == String("Schedule"))
+    {
+		n += gvt::core::CoreContext::createNode("type");
+		n += gvt::core::CoreContext::createNode("adapter");
+    }
+
     return n;
 }
 

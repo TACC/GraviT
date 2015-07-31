@@ -13,13 +13,13 @@ public:
 
   static CoreContext *instance();
   Database *database() {
-    GVT_ASSERT(this != nullptr && __database != nullptr,
+    GVT_ASSERT(__database != nullptr,
                "The context seems to be uninitialized.");
     return __database;
   }
 
   DBNodeH getRootNode() {
-    GVT_ASSERT(this != nullptr && __database != nullptr,
+    GVT_ASSERT(__database != nullptr,
                "The context seems to be uninitialized.");
     return __rootNode;
   }

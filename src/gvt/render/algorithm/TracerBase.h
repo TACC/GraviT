@@ -161,7 +161,7 @@ class AbstractTrace {
           }
         }
         for (auto& q : local_queue) {
-          boost::mutex::scoped_lock(queue_mutex[q.first]);
+          boost::mutex::scoped_lock sl(queue_mutex[q.first]);
           // GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
           //                              << q.first << " width size "
           //                              << queue[q.first].size() << "[" << mpi.rank << "]");

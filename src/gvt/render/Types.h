@@ -9,7 +9,8 @@ namespace gvt {
                 Volume,
                 Surface,
                 Manta,
-                Optix
+                Optix,
+                Embree
             };
 		} // namespace adapter
 		namespace scheduler {
