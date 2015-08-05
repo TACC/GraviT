@@ -21,19 +21,18 @@ using namespace gvt::core::math;
 
 // #define DEBUG_ACCEL
 
-BVH::BVH(std::vector<gvt::render::data::domain::AbstractDomain*>& domainSet)
-: AbstractAccel(domainSet), root(NULL)
+BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH>& instanceSet)
+: AbstractAccel(instanceSet), root(NULL)
 {
-    std::vector<gvt::render::data::domain::AbstractDomain*> sortedDomainSet;
-    root = build(sortedDomainSet, 0, domainSet.size(), 0);
+    gvt::core::Vector<gvt::core::DBNodeH> sortedInstanceSet;
+    root = build(sortedInstanceSet, 0, instanceSet.size(), 0);
 
 #ifdef DEBUG_ACCEL
-    assert(this->domainSet.size() == sortedDomainSet.size());
+    assert(this->instanceSet.size() == sortedInstanceSet.size());
 #endif
 
-    this->domainSet.swap(sortedDomainSet);
+    this->instanceSet.swap(sortedInstanceSet);
 }
-
 BVH::~BVH()
 {
     //TODO: better way to manage memory allocation?
@@ -51,7 +50,7 @@ void BVH::intersect(const gvt::render::actor::Ray& ray, gvt::render::actor::isec
     }
 }
 
-BVH::Node* BVH::build(std::vector<gvt::render::data::domain::AbstractDomain*>& sortedDomainSet,
+BVH::Node* BVH::build(gvt::core::Vector<gvt::core::DBNodeH>& sortedInstanceSet,
                       int start, int end, int level)
 {
     Node* node = new Node();
@@ -62,22 +61,23 @@ BVH::Node* BVH::build(std::vector<gvt::render::data::domain::AbstractDomain*>& s
     // evaluate bounds
     Box3D bbox;
     for (int i=start; i<end; ++i) {
-        bbox.merge(domainSet[i]->getWorldBoundingBox());
+        Box3D *tmpbb = gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+        bbox.merge(*tmpbb);
     }
 
-    int domainCount = end - start;
+    int instanceCount = end - start;
 
     // base case
-	if (domainCount <= LEAF_SIZE) {
+	if (instanceCount <= LEAF_SIZE) {
 #ifdef DEBUG_ACCEL
-        std::cout<<"creating leaf node.."<<"[LVL:"<<level<<"][offset: "<<sortedDomainSet.size()<<"][#domains:"<<domainCount<<"]\n";
+        std::cout<<"creating leaf node.."<<"[LVL:"<<level<<"][offset: "<<sortedInstanceSet.size()<<"][#domains:"<<instanceCount<<"]\n";
 #endif
 		// create leaf node
         node->bbox = bbox;
-		node->domainSetIdx = sortedDomainSet.size();
-		node->numDomains = domainCount;
+		node->instanceSetIdx = sortedInstanceSet.size();
+		node->numInstances = instanceCount;
         for (int i=start; i<end; ++i) {
-            sortedDomainSet.push_back(domainSet[i]);
+            sortedInstanceSet.push_back(instanceSet[i]);
         }
 		return node;
 	}
@@ -90,29 +90,29 @@ BVH::Node* BVH::build(std::vector<gvt::render::data::domain::AbstractDomain*>& s
 
 #ifdef DEBUG_ACCEL
     for (int i=start; i<end; ++i) {
-        gvt::core::math::Point4f centroid = domainSet[i]->worldCentroid();
+        gvt::core::math::Point4f centroid = instanceSet[i]->worldCentroid();
         bool lessThan = (centroid[splitAxis] < splitPoint);
-        std::cout<<"[Lvl"<<level<<"][SP:"<<splitPoint<<"]["<<i<<"][id:"<<domainSet[i]->getDomainID()<<"][centroid: "<<centroid[splitAxis]<<"][isLess: "<<lessThan<<"]\t";
+        std::cout<<"[Lvl"<<level<<"][SP:"<<splitPoint<<"]["<<i<<"][id:"<<instanceSet[i]->getDomainID()<<"][centroid: "<<centroid[splitAxis]<<"][isLess: "<<lessThan<<"]\t";
     }
     std::cout<<"\n";
 #endif
 
     // partition domains into two subsets
-    AbstractDomain** domainBound = std::partition(&domainSet[start], &domainSet[end-1]+1,
+    gvt::core::DBNodeH* instanceBound = std::partition(&instanceSet[start], &instanceSet[end-1]+1,
     	                                         CentroidLessThan(splitPoint, splitAxis));
-    int splitIdx = domainBound - &domainSet[0];
+    int splitIdx = instanceBound - &instanceSet[0];
 
     if (splitIdx == start || splitIdx == end)
     {
 #ifdef DEBUG_ACCEL
-        std::cout<<"creating leaf node.."<<"[LVL:"<<level<<"][offset: "<<sortedDomainSet.size()<<"][#domains:"<<domainCount<<"]\n";
+        std::cout<<"creating leaf node.."<<"[LVL:"<<level<<"][offset: "<<sortedInstanceSet.size()<<"][#domains:"<<instanceCount<<"]\n";
 #endif
         // create leaf node
         node->bbox = bbox;
-        node->domainSetIdx = sortedDomainSet.size();
-        node->numDomains = domainCount;
+        node->instanceSetIdx = sortedInstanceSet.size();
+        node->numInstances = instanceCount;
         for (int i=start; i<end; ++i) {
-            sortedDomainSet.push_back(domainSet[i]);
+            sortedInstanceSet.push_back(instanceSet[i]);
         }
         return node;
     }
@@ -124,13 +124,13 @@ BVH::Node* BVH::build(std::vector<gvt::render::data::domain::AbstractDomain*>& s
 
     // recursively build internal nodes
     int nextLevel = level + 1;
-    Node* nodeL = build(sortedDomainSet, start, splitIdx, nextLevel);
-    Node* nodeR = build(sortedDomainSet, splitIdx, end, nextLevel);
+    Node* nodeL = build(sortedInstanceSet, start, splitIdx, nextLevel);
+    Node* nodeR = build(sortedInstanceSet, splitIdx, end, nextLevel);
 
     node->leftChild = nodeL;
     node->rightChild = nodeR;
     node->bbox = bbox;
-    node->numDomains = 0;
+    node->numInstances = 0;
 
     return node;
 }
@@ -145,7 +145,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end)
 
     for (int i=start; i<end; ++i) {
 
-    	Box3D refBbox = domainSet[i]->getWorldBoundingBox();
+        Box3D refBbox = *gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
 
     	for (int e=0; e<2; ++e) {
 
@@ -155,7 +155,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end)
             int leftCount = 0;
 
             for (int j=start; j<end; ++j) {
-                Box3D bbox = domainSet[j]->getWorldBoundingBox();
+                Box3D bbox = *gvt::core::variant_toBox3DPtr(instanceSet[j]["bbox"].value());
                 if (bbox.centroid()[splitAxis] < edge) {
                     ++leftCount;
                     leftBox.merge(bbox);
@@ -189,18 +189,20 @@ void BVH::trace(const gvt::render::actor::Ray& ray, const Node* node, ClosestHit
         return;
     }
 
-    int domainCount = node->numDomains;
+    int instanceCount = node->numInstances;
 
-    if (domainCount > 0) { // leaf node
+    if (instanceCount > 0) { // leaf node
 #ifdef DEBUG_ACCEL
         assert(!node->leftChild && !node->rightChild);
 #endif
-  	    int start = node->domainSetIdx;
-  	    int end = start + domainCount;
+        int start = node->instanceSetIdx;
+        int end = start + instanceCount;
 
         for (int i=start; i<end; ++i) {
-            if (domainSet[i]->getWorldBoundingBox().intersectDistance(ray, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
-                isect.push_back(gvt::render::actor::isecDom(domainSet[i]->getDomainID(), t));
+            Box3D *ibbox = gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+            if (ibbox->intersectDistance(ray, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
+                int id = gvt::core::variant_toInteger(instanceSet[i]["id"].value());
+                isect.push_back(gvt::render::actor::isecDom(id, t));
             }
         }
     } else {

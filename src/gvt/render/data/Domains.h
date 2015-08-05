@@ -10,7 +10,7 @@
 
 #include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/domain/GeometryDomain.h>
-#include <gvt/render/data/domain/VolumeDomain.h>
+//#include <gvt/render/data/domain/VolumeDomain.h>
 
 #endif	/* GVT_RENDER_DATA_DOMAINS_H */
 

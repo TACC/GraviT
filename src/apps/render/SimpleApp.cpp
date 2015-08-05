@@ -85,10 +85,19 @@ int main(int argc, char** argv) {
 	}
 	Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
-	gvt::core::DBNodeH meshnode = cntxt->createNodeFromType("Mesh", "conemesh", root.UUID());
+	gvt::core::DBNodeH meshesnode = cntxt->createNodeFromType("Meshes", "Meshes", root.UUID());
+	gvt::core::DBNodeH meshnode = cntxt->createNodeFromType("Mesh", "conemesh", meshesnode.UUID());
 	meshnode["file"] = string("/fake/path/to/cone");
 	meshnode["bbox"] = meshbbox;
 	meshnode["ptr"] = objMesh;
+
+	gvt::core::DBNodeH instancesnode = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+	gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "coneinst0", instancesnode.UUID());
+	instnode["id"] = 0;
+	instnode["meshRef"] = meshnode.UUID();
+	instnode["bbox"] = meshbbox;
+	instnode["centroid"] = meshbbox->centroid();
+	instnode["transMat"] = 0;
 
 	// TODO: alim: where should the mpi_init go?
 	MPI_Init(&argc, &argv);
@@ -192,8 +201,9 @@ int main(int argc, char** argv) {
 		std::cout << "starting image scheduler" << std::endl;
 		gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();
 	} else if(stype == gvt::render::scheduler::Domain) {
-		std::cout << "starting domain scheduler" << std::endl;
-		gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
+		std::cout << "skipping domain scheduler" << std::endl;
+		//std::cout << "starting domain scheduler" << std::endl;
+		//gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
 	}
 	myimage.Write();
 }

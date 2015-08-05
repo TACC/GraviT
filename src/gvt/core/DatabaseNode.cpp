@@ -131,6 +131,7 @@ DBNodeH DBNodeH::operator[](const String& key)
     DatabaseNode* child = db.getChildByName(_uuid, key);
     if (!child)
     {
+       GVT_DEBUG(DBG_MODERATE,"DBNodeH[] failed to find key \"" << key << "\" for uuid " << uuid_toString(_uuid));
        child = &(ctx->createNode(key).getNode());
    }
    return DBNodeH(child->UUID());

@@ -12,8 +12,11 @@
 
 
 #include <gvt/core/mpi/Wrapper.h>
+#include <gvt/core/Types.h>
+#include <gvt/render/Types.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
+#include <gvt/render/adapter/embree/Wrapper.h>
 
 #include <boost/timer/timer.hpp>
 
@@ -31,20 +34,25 @@ namespace gvt {
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image) 
                 : AbstractTrace(rays, image) 
                 {
+                    GVT_DEBUG(DBG_ALWAYS, "image trace: constructor start");
                     int ray_portion = rays.size() / mpi.world_size;
                     rays_start = mpi.rank * ray_portion;
                     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size() : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+                    GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances [third time]: " << instancenodes.size());
+                    GVT_DEBUG(DBG_ALWAYS, "image trace: constructor end");
                 }
 
                 virtual void FilterRaysLocally() {
                     if(mpi) {
+                        GVT_DEBUG(DBG_ALWAYS,"filter locally mpi: " << rays.size());
                         gvt::render::actor::RayVector lrays;
                         lrays.assign(rays.begin() + rays_start,
                                      rays.begin() + rays_end);
                         rays.clear();
                         shuffleRays(lrays);        
                     } else {
-                        shuffleRays(rays);    
+                        GVT_DEBUG(DBG_ALWAYS,"filter locally non mpi: " << rays.size());
+                        shuffleRays(rays);
                     }
                 }
 
@@ -53,10 +61,14 @@ namespace gvt {
                     GVT_DEBUG(DBG_ALWAYS,"Using Image schedule");
                     boost::timer::auto_cpu_timer t;
 
+                    GVT_DEBUG(DBG_ALWAYS, "image trace: operator(): num instances: " << instancenodes.size());
                     long ray_counter = 0, domain_counter = 0;
 
+                    GVT_DEBUG(DBG_ALWAYS,"number of rays: " << rays.size());
 
                     FilterRaysLocally();
+
+                    GVT_DEBUG(DBG_ALWAYS, "image trace: operator(): num instances after filter ray: " << instancenodes.size());
 
                     // buffer for color accumulation
                     gvt::render::actor::RayVector moved_rays;
@@ -68,7 +80,7 @@ namespace gvt {
                         domTarget = -1;
                         domTargetCount = 0;
 
-                        GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
+                        GVT_DEBUG(DBG_ALWAYS, "Selecting new domain: num queues: " << this->queue.size());
                         for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
                         {
                             if (q->second.size() > domTargetCount) 
@@ -77,13 +89,32 @@ namespace gvt {
                                 domTarget = q->first;
                             }
                         }
-                        GVT_DEBUG(DBG_ALWAYS, "Selecting new domain");
+                        GVT_DEBUG(DBG_ALWAYS, "new domain: " << domTarget);
 
                         if (domTarget >= 0) 
                         {
+                            gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+                            gvt::core::DBNodeH root = ctx->getRootNode();
 
                             GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << std::endl);
-                            gvt::render::data::domain::AbstractDomain* dom = data->getDomain(domTarget);
+
+                            if(instancenodes.size() == 0) {
+                                GVT_ASSERT((instancenodes.size() == 0), "instance list is null");
+                            }
+
+                            gvt::core::DBNodeH meshnode = instancenodes[0]["meshRef"].deRef();
+                            auto m = gvt::core::variant_toMeshPtr(meshnode["ptr"].value());
+                            gvt::render::data::domain::GeometryDomain* geoDomain = new gvt::render::data::domain::GeometryDomain(m);
+
+                            auto firstAdapter = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
+
+                            gvt::render::data::domain::AbstractDomain* dom = 0;
+                            if(firstAdapter == gvt::render::adapter::Embree) {
+                                dom = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
+                            } else {
+                                // TODO: for now, just default to embree
+                                dom = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
+                            }
                             dom->load();
                             GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << std::endl);
 

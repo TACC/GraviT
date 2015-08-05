@@ -14,6 +14,8 @@
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/domain/AbstractDomain.h>
+#include <gvt/render/data/accel/BVH.h>
 
 #include <boost/foreach.hpp>
 #include <boost/thread/thread.hpp>
@@ -60,7 +62,12 @@ class AbstractTrace {
   gvt::render::RenderContext& cntxt = *gvt::render::RenderContext::instance();
   //gvt::core::CoreContext& cntxt = *gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootnode = cntxt.getRootNode();
-  gvt::render::data::Dataset* data = gvt::core::variant_toDatasetPointer(rootnode["Dataset"]["Dataset_Pointer"].value());
+  gvt::core::Vector<gvt::core::DBNodeH> instancenodes;
+
+  gvt::render::data::accel::AbstractAccel* acceleration;
+
+  // TODO: alim: removing Dataset and rta
+  // gvt::render::data::Dataset* data = gvt::core::variant_toDatasetPointer(rootnode["Dataset"]["Dataset_Pointer"].value());
   int width = gvt::core::variant_toInteger(rootnode["Film"]["width"].value());
   int height = gvt::core::variant_toInteger(rootnode["Film"]["height"].value());
 
@@ -69,7 +76,7 @@ class AbstractTrace {
   float sample_ratio;
 
   boost::mutex raymutex;
-  boost::mutex* queue_mutex;
+  boost::mutex* queue_mutex; // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue;  ///< Node rays working
   /// queue
   // std::map<int, std::mutex> queue;
@@ -80,18 +87,31 @@ class AbstractTrace {
   AbstractTrace(gvt::render::actor::RayVector& rays,
                 gvt::render::data::scene::Image& image)
       : rays(rays), image(image) {
+    GVT_DEBUG(DBG_ALWAYS, "initializing abstract trace: num rays: " << rays.size());
     // never used BDS
     //vtf = gvt::render::Attributes::rta->GetTransferFunction();
     // never used BDS
     //sample_ratio = gvt::render::Attributes::rta->sample_ratio;
     colorBuf = new GVT_COLOR_ACCUM[width*height];
-    queue_mutex = new boost::mutex[data->size()];
+
+    // TODO: alim: this queue is on the number of domains in the dataset
+    // if this is on the number of domains, then it will be equivalent to the number
+    // of instances in the database
+    instancenodes = rootnode["Instances"].getChildren();
+    int numInst = instancenodes.size();
+    GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
+    queue_mutex = new boost::mutex[numInst];
+
     colorBuf_mutex = new boost::mutex[width];
+
     //colorBuf = new GVT_COLOR_ACCUM[gvt::render::RTA::instance()->view.width *
      //                              gvt::render::RTA::instance()->view.height];
     //queue_mutex = new boost::mutex[gvt::render::Attributes::rta->dataset->size()];
     //colorBuf_mutex = new boost::mutex[gvt::render::RTA::instance()->view.width];
 
+    acceleration = new gvt::render::data::accel::BVH(instancenodes);
+
+    GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
   virtual ~AbstractTrace() {
@@ -116,7 +136,9 @@ class AbstractTrace {
       gvt::render::actor::RayVector& rays,
       gvt::render::data::domain::AbstractDomain* dom = NULL) {
 
-    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle");
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: start");
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: rays: " << rays.size());
+
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
     int nchunks = 1;  // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
@@ -128,22 +150,26 @@ class AbstractTrace {
     }
     int ii = nchunks - 1;
     chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: chunks: " << chunks.size());
+
     for (auto limit : chunks) {
       // futures.push_back(std::async(std::launch::deferred, [&]() {
         int chunk = limit.second - limit.first;
         std::map<int, gvt::render::actor::RayVector> local_queue;
         gvt::render::actor::RayVector local(chunk);
         local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
+        GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: looping through local rays: num local: " << local.size());
         for (gvt::render::actor::Ray& r : local) {
           gvt::render::actor::isecDomList& len2List = r.domains;
 
           if (len2List.empty() && dom) dom->marchOut(r);
 
           if (len2List.empty()) {
-            //gvt::render::Attributes::rta->dataset->intersect(r, len2List);
-            data->intersect(r,len2List);
+            // intersect the bvh to find the instance hit list
+            acceleration->intersect(r, len2List);
           }
 
+          // TODO: alim: figure out new shuffle algorithm, as dom is going to be null right now(?)
           if (!len2List.empty()) {
             int firstDomainOnList = (*len2List.begin());
             len2List.erase(len2List.begin());
@@ -160,11 +186,13 @@ class AbstractTrace {
             colorBuf[r.id].clamp();
           }
         }
+
+        GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: adding rays to queues num local: " << local_queue.size());
         for (auto& q : local_queue) {
           boost::mutex::scoped_lock sl(queue_mutex[q.first]);
-          // GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
-          //                              << q.first << " width size "
-          //                              << queue[q.first].size() << "[" << mpi.rank << "]");
+          GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
+                                       << q.first << " width size "
+                                       << queue[q.first].size() << "[" << mpi.rank << "]");
           queue[q.first]
               .insert(queue[q.first].end(), q.second.begin(), q.second.end());
         }

@@ -5,9 +5,12 @@
 #ifndef GVT_RENDER_DATA_ACCEL_ABSTRACT_ACCEL_H
 #define GVT_RENDER_DATA_ACCEL_ABSTRACT_ACCEL_H
 
+#include <gvt/core/CoreContext.h>
+
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/actor/Ray.h>
+
 
 #include <vector>
 #include <limits>
@@ -21,17 +24,18 @@ namespace gvt {
                 {
                     ClosestHit() : domain(NULL), distance(std::numeric_limits<float>::max()) {}
                     gvt::render::data::domain::AbstractDomain* domain;
+                    gvt::core::DBNodeH instance;
                     float distance;
                 };
 
                 class AbstractAccel
                 {
             	public:
-            	    AbstractAccel(std::vector<gvt::render::data::domain::AbstractDomain*>& domainSet)
-                    : domainSet(domainSet) {}
+                    AbstractAccel(gvt::core::Vector<gvt::core::DBNodeH>& instanceSet)
+                        : instanceSet(instanceSet) {}
                     virtual void intersect(const gvt::render::actor::Ray& ray, gvt::render::actor::isecDomList& isect) = 0;
             	protected:
-                    std::vector<gvt::render::data::domain::AbstractDomain*> domainSet;
+                    gvt::core::Vector<gvt::core::DBNodeH> instanceSet;
                 };
             }
         }

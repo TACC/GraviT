@@ -16,19 +16,19 @@ namespace gvt {
                 class BVH : public AbstractAccel
                 {
                 public:
-                    BVH(std::vector<gvt::render::data::domain::AbstractDomain*>& domainSet);
+                    BVH(gvt::core::Vector<gvt::core::DBNodeH>& instanceSet);
                     ~BVH();
 
                     virtual void intersect(const gvt::render::actor::Ray& ray, gvt::render::actor::isecDomList& isect);
                 private:
                     struct Node
                     {
-                    	Node() : leftChild(NULL), rightChild(NULL), numDomains(0) {}
+                        Node() : leftChild(NULL), rightChild(NULL), numInstances(0) {}
                         Node* leftChild; // null for leaf nodes
                         Node* rightChild; // null for leaf nodes
                         gvt::render::data::primitives::Box3D bbox;
-                        int domainSetIdx; // base, valid when numDomains>0
-                        int numDomains; // 0 means an internal node
+                        int instanceSetIdx; // base, valid when numInstances>0
+                        int numInstances; // 0 means an internal node
                     };
 
                     struct CentroidLessThan
@@ -37,16 +37,18 @@ namespace gvt {
                         : splitPoint(splitPoint), splitAxis(splitAxis)
                         {
                         }
-                        bool operator()(const gvt::render::data::domain::AbstractDomain* domain) const {
-                            gvt::core::math::Point4f centroid = domain->worldCentroid();
+                        bool operator()(const gvt::core::DBNodeH inst) const {
+                            gvt::core::DBNodeH i2 = inst;
+                            gvt::core::math::Point4f centroid = gvt::core::variant_toPoint4f(i2["centroid"].value());
                             return (centroid[splitAxis] < splitPoint);
                         }
+
                         float splitPoint;
                         int splitAxis;
                     };
 
                 private:
-                    Node* build(std::vector<gvt::render::data::domain::AbstractDomain*>& sortedDomainSet,
+                    Node* build(gvt::core::Vector<gvt::core::DBNodeH>& sortedDomainSet,
                                 int start, int end, int level);
 
                     float findSplitPoint(int splitAxis, int start, int end);
