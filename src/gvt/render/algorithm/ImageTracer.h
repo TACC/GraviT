@@ -102,11 +102,40 @@ namespace gvt {
                                 GVT_ASSERT((instancenodes.size() == 0), "instance list is null");
                             }
 
+                            //
+                            // 'getAdapter' functionality [without the cache part]
+                            //
                             gvt::core::DBNodeH meshnode = instancenodes[0]["meshRef"].deRef();
-                            auto m = gvt::core::variant_toMeshPtr(meshnode["ptr"].value());
+                            int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
+
+                            gvt::render::data::domain::GeometryDomain* geoDomain = 0; // TODO: remove this geodomain and have embree build from mesh directly
+                            gvt::render::data::domain::AbstractDomain* adapter = 0; // TODO: rename to 'Adapter'
+                            // here we would do something like Adapter *a = cache.find(meshnode, adaptertype);
+
+                            if(!adapter) {
+                                //   'getMesh' - right now in SimpleApp mesh is hard coded and pointer is valid
+                                auto m = gvt::core::variant_toMeshPtr(meshnode["ptr"].value());
+
+                                switch(adapterType) {
+                                    case gvt::render::adapter::Embree:
+                                        {
+                                            geoDomain = new gvt::render::data::domain::GeometryDomain(m);
+                                            adapter = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
+                                            break;
+                                        }
+                                    default:
+                                        {
+                                            GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
+                                        }
+                                }
+                            }
+
+                            GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
+
+
+#if 0
                             gvt::render::data::domain::GeometryDomain* geoDomain = new gvt::render::data::domain::GeometryDomain(m);
 
-                            auto firstAdapter = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
 
                             gvt::render::data::domain::AbstractDomain* dom = 0;
                             if(firstAdapter == gvt::render::adapter::Embree) {
@@ -117,6 +146,7 @@ namespace gvt {
                             }
                             dom->load();
                             GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << std::endl);
+#endif
 
                             // track domain loads
                             ++domain_counter;
@@ -125,11 +155,14 @@ namespace gvt {
                             {
                                 moved_rays.reserve(this->queue[domTarget].size()*10);
                                 boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
-                                dom->trace(this->queue[domTarget], moved_rays);
+                                adapter->trace(this->queue[domTarget], moved_rays);
                             }
                             GVT_DEBUG(DBG_ALWAYS, "Marching rays");
-                            shuffleRays(moved_rays,dom);
+                            shuffleRays(moved_rays, adapter);
                             moved_rays.clear();
+
+                            //delete adapter; // TODO: later this will be cached by the scheduler
+                            delete geoDomain;
                         }
                     } while (domTarget != -1);
                     GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");

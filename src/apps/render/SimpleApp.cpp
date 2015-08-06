@@ -191,19 +191,36 @@ int main(int argc, char** argv) {
     std::cout << "\n-- db tree --" << std::endl;
 	cntxt->database()->printTree(root.UUID(),10,std::cout);
     std::cout << "\n-- ------- --\n" << std::endl;
+
 //
 //	Render it....
 //
+    // NOTE: later this can be wrapped in a gvt::start() like function
+
 	mycamera.AllocateCameraRays();
 	mycamera.generateRays();
-	int stype = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
-	if(stype == gvt::render::scheduler::Image) {
-		std::cout << "starting image scheduler" << std::endl;
-		gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();
-	} else if(stype == gvt::render::scheduler::Domain) {
-		std::cout << "skipping domain scheduler" << std::endl;
-		//std::cout << "starting domain scheduler" << std::endl;
-		//gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
-	}
+
+	int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
+    switch(schedType) {
+        case gvt::render::scheduler::Image :
+            {
+                std::cout << "starting image scheduler" << std::endl;
+                gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();
+                break;
+            }
+        case gvt::render::scheduler::Domain :
+            {
+                std::cout << "skipping domain scheduler" << std::endl;
+                //std::cout << "starting domain scheduler" << std::endl;
+                //gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
+                break;
+            }
+        default:
+            {
+                std::cout << "unknown schedule type provided: " << schedType << std::endl;
+                break;
+            }
+    }
+
 	myimage.Write();
 }
