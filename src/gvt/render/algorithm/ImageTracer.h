@@ -31,8 +31,8 @@ namespace gvt {
 
                 size_t rays_start, rays_end ;
 
-                Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image) 
-                : AbstractTrace(rays, image) 
+                Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
+                : AbstractTrace(rays, image)
                 {
                     GVT_DEBUG(DBG_ALWAYS, "image trace: constructor start");
                     int ray_portion = rays.size() / mpi.world_size;
@@ -49,14 +49,14 @@ namespace gvt {
                         lrays.assign(rays.begin() + rays_start,
                                      rays.begin() + rays_end);
                         rays.clear();
-                        shuffleRays(lrays);        
+                        shuffleRays(lrays);
                     } else {
                         GVT_DEBUG(DBG_ALWAYS,"filter locally non mpi: " << rays.size());
                         shuffleRays(rays);
                     }
                 }
 
-                virtual void operator()() 
+                virtual void operator()()
                 {
                     GVT_DEBUG(DBG_ALWAYS,"Using Image schedule");
                     boost::timer::auto_cpu_timer t;
@@ -74,16 +74,17 @@ namespace gvt {
                     gvt::render::actor::RayVector moved_rays;
                     int domTarget = -1, domTargetCount = 0;
                     // process domains until all rays are terminated
-                    do 
+                    do
                     {
+                        std::cout << std::endl;
                         // process domain with most rays queued
                         domTarget = -1;
                         domTargetCount = 0;
 
                         GVT_DEBUG(DBG_ALWAYS, "Selecting new domain: num queues: " << this->queue.size());
-                        for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) 
+                        for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
                         {
-                            if (q->second.size() > domTargetCount) 
+                            if (q->second.size() > domTargetCount)
                             {
                                 domTargetCount = q->second.size();
                                 domTarget = q->first;
@@ -91,16 +92,14 @@ namespace gvt {
                         }
                         GVT_DEBUG(DBG_ALWAYS, "new domain: " << domTarget);
 
-                        if (domTarget >= 0) 
+                        if (domTarget >= 0)
                         {
                             gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
                             gvt::core::DBNodeH root = ctx->getRootNode();
 
-                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget << std::endl);
+                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget);
 
-                            if(instancenodes.size() == 0) {
-                                GVT_ASSERT((instancenodes.size() == 0), "instance list is null");
-                            }
+                            GVT_ASSERT((instancenodes.size() > 0), "instance list is null");
 
                             //
                             // 'getAdapter' functionality [without the cache part]
@@ -120,6 +119,17 @@ namespace gvt {
                                     case gvt::render::adapter::Embree:
                                         {
                                             geoDomain = new gvt::render::data::domain::GeometryDomain(m);
+
+                                            // TODO: workaround, setting lights here from database lights
+                                            auto lightsN = root["Lights"].getChildren();
+                                            std::vector<gvt::render::data::scene::Light*> lights;
+                                            for(auto lightN : lightsN) {
+                                                auto pos = gvt::core::variant_toVector4f(lightN["position"].value());
+                                                auto color = gvt::core::variant_toVector4f(lightN["color"].value());
+                                                lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+                                            }
+                                            geoDomain->setLights(lights);
+
                                             adapter = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
                                             break;
                                         }
@@ -135,8 +145,6 @@ namespace gvt {
 
 #if 0
                             gvt::render::data::domain::GeometryDomain* geoDomain = new gvt::render::data::domain::GeometryDomain(m);
-
-
                             gvt::render::data::domain::AbstractDomain* dom = 0;
                             if(firstAdapter == gvt::render::adapter::Embree) {
                                 dom = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
@@ -157,6 +165,7 @@ namespace gvt {
                                 boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
                                 adapter->trace(this->queue[domTarget], moved_rays);
                             }
+
                             GVT_DEBUG(DBG_ALWAYS, "Marching rays");
                             shuffleRays(moved_rays, adapter);
                             moved_rays.clear();

@@ -117,8 +117,8 @@ int main(int argc, char** argv) {
 //
 //	Add a point light at 1,1,1 and add it to the database.
 //
-	gvt::core::DBNodeH lightnode;
-	lightnode = cntxt->createNodeFromType("PointLight", "conelight", root.UUID());
+	gvt::core::DBNodeH lightsnode = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+	gvt::core::DBNodeH lightnode = cntxt->createNodeFromType("PointLight", "conelight", lightsnode.UUID());
 	lightnode["position"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 	lightnode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
 //	Create an object to hold the image and a pointer to the raw image data.
 //
 	Image myimage(mycamera.getFilmSizeWidth(),mycamera.getFilmSizeHeight(),"cone");
-	unsigned char *imagebuffer = myimage.GetBuffer();
+	//unsigned char *imagebuffer = myimage.GetBuffer(); // TODO: alim: unused
 
 //
 //	Attributes class contains information used by tracer to generate image.
