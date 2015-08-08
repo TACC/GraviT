@@ -90,9 +90,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 		n += gvt::core::CoreContext::createNode("meshRef");
 		n += gvt::core::CoreContext::createNode("bbox");
 		n += gvt::core::CoreContext::createNode("centroid");
-		n += gvt::core::CoreContext::createNode("transMat");
-		n += gvt::core::CoreContext::createNode("invTransMat");
-		n += gvt::core::CoreContext::createNode("transMatUpper33");
+		n += gvt::core::CoreContext::createNode("mat");
+		n += gvt::core::CoreContext::createNode("matInv");
+		n += gvt::core::CoreContext::createNode("normi");
     }
     else if (type == String("PointLight"))
     {

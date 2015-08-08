@@ -22,7 +22,11 @@ namespace gvt {
                 typedef boost::uuids::uuid Uuid;
                 typedef boost::variant<int,long,float,double,bool,String,Uuid,gvt::core::math::Vector4f,gvt::core::math::Point4f,gvt::core::math::Vector3f,
                         /*gvt::render::data::Dataset*,*/
-                        gvt::render::data::primitives::Mesh*,gvt::render::data::primitives::Box3D*> Variant;
+                        gvt::render::data::primitives::Mesh*,
+                        gvt::render::data::primitives::Box3D*,
+                        gvt::core::math::AffineTransformMatrix<float>*,
+                        gvt::core::math::Matrix3f*,
+                        void*> Variant;
                 template <class T> using Vector = boost::container::vector<T>;
                 template <class K, class V> using Map = boost::container::map<K, V>;
 
@@ -43,7 +47,9 @@ namespace gvt {
                 inline gvt::core::math::Point4f variant_toPoint4f(Variant v) { return boost::get<gvt::core::math::Point4f>(v); }
                 inline gvt::render::data::primitives::Box3D* variant_toBox3DPtr(Variant v) { return boost::get<gvt::render::data::primitives::Box3D*>(v);}
                 inline gvt::render::data::primitives::Mesh* variant_toMeshPtr(Variant v) { return boost::get<gvt::render::data::primitives::Mesh*>(v);}
-	}
+                inline gvt::core::math::AffineTransformMatrix<float>* variant_toAffineTransformMatPtr(Variant v) { return boost::get<gvt::core::math::AffineTransformMatrix<float>*>(v);}
+                inline gvt::core::math::Matrix3f* variant_toMatrix3fPtr(Variant v) { return boost::get<gvt::core::math::Matrix3f*>(v);}
+}
 }
 
 #endif // GVT_CORE_TYPES_H

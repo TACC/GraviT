@@ -16,6 +16,7 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/accel/BVH.h>
+#include <gvt/render/Adapter.h>
 
 #include <boost/foreach.hpp>
 #include <boost/thread/thread.hpp>
@@ -202,6 +203,105 @@ class AbstractTrace {
     //for (auto& f : futures) f.wait();
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
   }
+
+
+  //
+  // FIXME: temporary until the other tracers switch over to using instances
+  //
+
+  virtual void shuffleRays(
+      gvt::render::actor::RayVector& rays,
+      gvt::core::DBNodeH instNode) {
+
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: start");
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: rays: " << rays.size());
+
+    boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
+    int nchunks = 1;  // std::thread::hardware_concurrency();
+    int chunk_size = rays.size() / nchunks;
+    std::vector< std::pair<int, int> > chunks;
+    std::vector< std::future<void> > futures;
+    for (int ii = 0; ii < nchunks - 1; ii++) {
+      chunks.push_back(
+          std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
+    }
+    int ii = nchunks - 1;
+    chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: chunks: " << chunks.size());
+
+    for (auto limit : chunks) {
+      // futures.push_back(std::async(std::launch::deferred, [&]() {
+        int chunk = limit.second - limit.first;
+        std::map<int, gvt::render::actor::RayVector> local_queue;
+        gvt::render::actor::RayVector local(chunk);
+        local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
+        GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: looping through local rays: num local: " << local.size());
+        for (gvt::render::actor::Ray& r : local) {
+          gvt::render::actor::isecDomList& len2List = r.domains;
+
+          if (len2List.empty() && instNode) {
+              //adapter->marchOut(r);
+
+              gvt::render::data::primitives::Box3D &wBox = *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
+              float t = FLT_MAX;
+              if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
+              while(wBox.intersectDistance(r,t))
+              {
+                  r.origin += r.direction * t;
+                  r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
+              }
+              r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
+
+          }
+
+          if (len2List.empty()) {
+            // intersect the bvh to find the instance hit list
+            acceleration->intersect(r, len2List);
+          }
+
+          // TODO: alim: figure out new shuffle algorithm, as adapter is going to be null right now(?)
+          if (!len2List.empty()) {
+            int firstDomainOnList = (*len2List.begin());
+            len2List.erase(len2List.begin());
+            local_queue[firstDomainOnList].push_back(r);
+
+          } else if (instNode) {
+            boost::mutex::scoped_lock fbloc(
+                colorBuf_mutex
+                    [r.id % width]);
+                    //[r.id % gvt::render::Attributes::instance()->view.width]);
+            for (int i = 0; i < 3; i++)
+              colorBuf[r.id].rgba[i] += r.color.rgba[i];
+            colorBuf[r.id].rgba[3] = 1.f;
+            colorBuf[r.id].clamp();
+          }
+        }
+
+        GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: adding rays to queues num local: " << local_queue.size());
+        for (auto& q : local_queue) {
+          boost::mutex::scoped_lock sl(queue_mutex[q.first]);
+          GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
+                                       << q.first << " width size "
+                                       << queue[q.first].size() << "[" << mpi.rank << "]");
+          queue[q.first]
+              .insert(queue[q.first].end(), q.second.begin(), q.second.end());
+        }
+      // }));
+    }
+    rays.clear();
+    //for (auto& f : futures) f.wait();
+    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
+  }
+
+  //
+  //
+  //
+
+
+
+
+
+
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
 

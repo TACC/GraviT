@@ -104,9 +104,11 @@ namespace gvt {
                             //
                             // 'getAdapter' functionality [without the cache part]
                             //
-                            gvt::core::DBNodeH meshnode = instancenodes[0]["meshRef"].deRef();
+                            gvt::core::DBNodeH meshnode = instancenodes[domTarget]["meshRef"].deRef();
                             int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
 
+//#define OLD_EMBREE
+#ifdef OLD_EMBREE
                             gvt::render::data::domain::GeometryDomain* geoDomain = 0; // TODO: remove this geodomain and have embree build from mesh directly
                             gvt::render::data::domain::AbstractDomain* adapter = 0; // TODO: rename to 'Adapter'
                             // here we would do something like Adapter *a = cache.find(meshnode, adaptertype);
@@ -139,6 +141,10 @@ namespace gvt {
                                         }
                                 }
                             }
+#else
+                            gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshnode);
+
+#endif
 
                             GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
 
@@ -163,15 +169,23 @@ namespace gvt {
                             {
                                 moved_rays.reserve(this->queue[domTarget].size()*10);
                                 boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
+#ifdef OLD_EMBREE
                                 adapter->trace(this->queue[domTarget], moved_rays);
+#else
+                                adapter->trace(this->queue[domTarget], moved_rays, instancenodes[domTarget]);
+#endif
                             }
 
                             GVT_DEBUG(DBG_ALWAYS, "Marching rays");
+#ifdef OLD_EMBREE
                             shuffleRays(moved_rays, adapter);
+#else
+                            shuffleRays(moved_rays, instancenodes[domTarget]);
+#endif
                             moved_rays.clear();
 
                             //delete adapter; // TODO: later this will be cached by the scheduler
-                            delete geoDomain;
+                            //delete geoDomain;
                         }
                     } while (domTarget != -1);
                     GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");

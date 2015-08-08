@@ -290,11 +290,13 @@ if (GVT_RENDER_ADAPTER_EMBREE)
   add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
 	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.h
+		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.h
 		src/gvt/render/adapter/embree/data/Transforms.h
 		src/gvt/render/adapter/embree/Wrapper.h
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.cpp
+		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.cpp
 		)
 endif(GVT_RENDER_ADAPTER_EMBREE)
 

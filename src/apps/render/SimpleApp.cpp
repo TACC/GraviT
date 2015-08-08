@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
 	points[4] = Point4f(-0.5,-0.5,0.0,1.0);
 	points[5] = Point4f(-0.5,-0.25,-0.433013,1.0);
 	points[6] = Point4f(-0.5,0.25,-0.433013,1.0);
+
 //
 //	build a mesh object from cone geometry.
 //
@@ -76,6 +77,7 @@ int main(int argc, char** argv) {
 
 	objMesh->generateNormals();
 
+    // calculate the bounding box of the mesh
 	Point4f lower = points[0], upper = points[0];
 	for(int i=1; i<7; i++) {
 		for(int j=0; j<3; j++) {
@@ -85,34 +87,47 @@ int main(int argc, char** argv) {
 	}
 	Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
+    // add Mesh to the database
 	gvt::core::DBNodeH meshesnode = cntxt->createNodeFromType("Meshes", "Meshes", root.UUID());
 	gvt::core::DBNodeH meshnode = cntxt->createNodeFromType("Mesh", "conemesh", meshesnode.UUID());
 	meshnode["file"] = string("/fake/path/to/cone");
 	meshnode["bbox"] = meshbbox;
 	meshnode["ptr"] = objMesh;
 
+    // create instances
 	gvt::core::DBNodeH instancesnode = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
-	gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "coneinst0", instancesnode.UUID());
-	instnode["id"] = 0;
-	instnode["meshRef"] = meshnode.UUID();
-	instnode["bbox"] = meshbbox;
-	instnode["centroid"] = meshbbox->centroid();
-	instnode["transMat"] = 0;
 
-	// TODO: alim: where should the mpi_init go?
+    // create a 3x3 grid of cones, offset using i and j
+    int instId = 0;
+    for(int i=-1; i<2; i++) {
+        for(int j=-1; j<2; j++) {
+            gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "coneinst", instancesnode.UUID());
+            instnode["id"] = instId++;
+            instnode["meshRef"] = meshnode.UUID();
+            auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
+            auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
+            auto normi = new gvt::core::math::Matrix3f();
+
+            *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, i*0.5, j*0.5);
+            *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(0.5, 0.5, 0.5);
+
+            instnode["mat"] = m;
+            *minv = m->inverse();
+            instnode["matInv"] = minv;
+            *normi = m->upper33().inverse().transpose();
+            instnode["normi"] = normi;
+
+            auto il = (*m) * lower; // TODO: verify that this bbox calc is correct
+            auto ih = (*m) * upper;
+            Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+
+            instnode["bbox"] = ibox;
+            instnode["centroid"] = ibox->centroid();
+        }
+    }
+
+
 	MPI_Init(&argc, &argv);
-
-//
-//	scene contains the geometry domain and the other elements like
-//	camera, lights, etc.
-//
-	// gvt::render::data::Dataset scene; // TODO: alim: removing dataset concept
-
-//
-//	create a geometry domain and place the mesh inside
-//
-	// gvt::render::data::domain::GeometryDomain* domain = new gvt::render::data::domain::GeometryDomain(objMesh);
-	// scene.domainSet.push_back(domain );
 
 //
 //	Add a point light at 1,1,1 and add it to the database.
@@ -134,59 +149,21 @@ int main(int argc, char** argv) {
 	mycamera.setFOV(fov);
 	mycamera.setFilmsize(512,512);
 
-//
-//	Create an object to hold the image and a pointer to the raw image data.
-//
+	// Create an object to hold the image.
 	Image myimage(mycamera.getFilmSizeWidth(),mycamera.getFilmSizeHeight(),"cone");
-	//unsigned char *imagebuffer = myimage.GetBuffer(); // TODO: alim: unused
 
-//
-//	Attributes class contains information used by tracer to generate image.
-//	This will be replaced by the Context in the future.
-//
-
-	gvt::core::Variant V;
-	gvt::core::DBNodeH camnode,filmnode,datanode;
-
-// camera
-	camnode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
+	gvt::core::DBNodeH camnode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
 	camnode["eyePoint"] = mycamera.getEyePoint();
 	camnode["focus"] = mycamera.getFocalPoint();
 	camnode["upVector"] = mycamera.getUpVector();
 
-// film
-	filmnode = cntxt->createNodeFromType("Film","conefilm",root.UUID());
+	gvt::core::DBNodeH filmnode = cntxt->createNodeFromType("Film","conefilm",root.UUID());
 	filmnode["width"] = mycamera.getFilmSizeWidth();
 	filmnode["height"] = mycamera.getFilmSizeHeight();
 
-// scheduler
 	gvt::core::DBNodeH schednode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
 	schednode["type"] = gvt::render::scheduler::Image;
 	schednode["adapter"] = gvt::render::adapter::Embree;
-
-#if 0
-// dataset
-    datanode = cntxt->createNodeFromType("Dataset","coneset",root.UUID());
-	V = gvt::render::scheduler::Image;
-    datanode["schedule"] = V;
-	V = new gvt::render::data::Dataset();
-    datanode["Dataset_Pointer"] = V;
-	V = gvt::render::adapter::Embree;
-	datanode["render_type"] = V;
-
-		std::cout << "this should print the tree " << std::endl;
-	cntxt->database()->printTree(root.UUID(),10,std::cout);
-
-    if(gvt::core::variant_toInteger(V) == gvt::render::adapter::Embree) {
-		gvt::core::variant_toDatasetPointer(root["Dataset"]["Dataset_Pointer"].value())->addDomain(new EmbreeDomain(domain));
-	}
-	V = Vector3f(1.,1.,1.);
-    datanode["topology"] = V;
-	V = gvt::render::accelerator::BVH;
-	datanode["accel_type"] = V;
-	V = domain->getMesh();
-	datanode["Mesh_Pointer"] = V;
-#endif
 
     std::cout << "\n-- db tree --" << std::endl;
 	cntxt->database()->printTree(root.UUID(),10,std::cout);
