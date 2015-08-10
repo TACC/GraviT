@@ -1,5 +1,7 @@
 <h1>GraviT: A Comprehensive Ray Tracing Framework for Visualization in Distributed-Memory Parallel Environments </h1>
 
+<a href="http://tacc.github.io/GraviT/">http://tacc.github.io/GraviT/</a>
+
 <h2>Overview</h2>
 
 GraviT is a software library for the class of simulation problems where insight is derived from actors operating on scientific data, i.e., data that has physical coordinates.  This data is often so large that it cannot reside in the memory of a single compute node.  While GraviT is designed with many types of actors and use cases in mind, the canonical usage of GraviT is with the actors that are rays and data that are tessellated surfaces.  In this case, GraviT produces ray-traced renderings.
