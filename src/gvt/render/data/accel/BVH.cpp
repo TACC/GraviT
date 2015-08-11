@@ -89,12 +89,22 @@ BVH::Node* BVH::build(gvt::core::Vector<gvt::core::DBNodeH>& sortedInstanceSet,
     float splitPoint = findSplitPoint(splitAxis, start, end);
 
 #ifdef DEBUG_ACCEL
+#ifdef DEBUG_ACCEL_DOMAIN_SET
     for (int i=start; i<end; ++i) {
         gvt::core::math::Point4f centroid = instanceSet[i]->worldCentroid();
         bool lessThan = (centroid[splitAxis] < splitPoint);
         std::cout<<"[Lvl"<<level<<"][SP:"<<splitPoint<<"]["<<i<<"][id:"<<instanceSet[i]->getDomainID()<<"][centroid: "<<centroid[splitAxis]<<"][isLess: "<<lessThan<<"]\t";
     }
     std::cout<<"\n";
+#else
+    for (int i=start; i<end; ++i) {
+        gvt::core::math::Point4f centroid = gvt::core::variant_toPoint4f(instanceSet[i]["centroid"].value());
+        bool lessThan = (centroid[splitAxis] < splitPoint);
+        int id = gvt::core::variant_toInteger(instanceSet[i]["id"].value());
+        std::cout<<"[Lvl"<<level<<"][SP:"<<splitPoint<<"]["<<i<<"][id:"<<id<<"][centroid: "<<centroid[splitAxis]<<"][isLess: "<<lessThan<<"]\t";
+    }
+    std::cout<<"\n";
+#endif
 #endif
 
     // partition domains into two subsets

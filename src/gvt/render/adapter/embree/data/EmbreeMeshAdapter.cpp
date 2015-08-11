@@ -117,34 +117,20 @@ struct parallelTraceE2
 
         gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
 
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting instance transform data");
         // pull out instance data
+        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting instance transform data");
         gvt::render::data::primitives::Box3D *bbox = gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: got bbox");
-        gvt::core::math::Matrix3f *normi = gvt::core::variant_toMatrix3fPtr(instNode["normi"].value());
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: got normi");
-
-        /*
-        auto v = instNode["mat"].value();
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: pulled out mat variant");
-        void* vvm = gvt::core::variant_toPtr(v);
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: convert variant to void* pointer");
-        auto vm = gvt::core::variant_toAffineTransformMatPtr(v);
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: convert variant to mat pointer");
-        */
-
         gvt::core::math::AffineTransformMatrix<float> *m = gvt::core::variant_toAffineTransformMatPtr(instNode["mat"].value());
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: got matrix");
         gvt::core::math::AffineTransformMatrix<float> *minv = gvt::core::variant_toAffineTransformMatPtr(instNode["matInv"].value());
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: got inv matrix");
+        gvt::core::math::Matrix3f *normi = gvt::core::variant_toMatrix3fPtr(instNode["normi"].value());
 
         GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
         // TODO: don't use gvt mesh, need to fix embree triangle normal hit
         auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
 
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting lights [hack for now]");
         // pull out lights list
         auto lightNodes = root["Lights"].getChildren();
+        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting lights list [hack for now]: size: " << lightNodes.size());
 
         RTCScene scene = adapter->getScene();
 
@@ -223,15 +209,16 @@ struct parallelTraceE2
                         float t = ray4.tfar[pindex];
                         rayPacket[pindex].t = t;
 
+                        // FIXME: fix embree normal calculation to remove dependency from gvt mesh
                         // for some reason the embree normals aren't working, so just going to manually calculate the triangle normal
-                        //Vector4f embreeNormal = Vector4f(ray4.Ngx[pindex], ray4.Ngy[pindex], ray4.Ngz[pindex], 0.0);
+                        // Vector4f embreeNormal = Vector4f(ray4.Ngx[pindex], ray4.Ngy[pindex], ray4.Ngz[pindex], 0.0);
 
                         Vector4f manualNormal;
                         {
                             const int triangle_id = ray4.primID[pindex];
                             const float u = ray4.u[pindex];
                             const float v = ray4.v[pindex];
-                            const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // TODO: this needs to be removed, cannot assume mesh is live in memory
+                            const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // FIXME: this needs to be removed, cannot assume mesh is live in memory
                             const Vector4f &a = mesh->normals[normals.get<1>()];
                             const Vector4f &b = mesh->normals[normals.get<2>()];
                             const Vector4f &c = mesh->normals[normals.get<0>()];
