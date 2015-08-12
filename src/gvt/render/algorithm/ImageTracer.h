@@ -29,167 +29,114 @@ namespace gvt {
             {
             public:
 
-                size_t rays_start, rays_end ;
+                // ray range [used when mpi is enabled]
+                size_t rays_start, rays_end;
+
+                // caches meshes that are converted into the adapter's format
+                std::map<gvt::core::Uuid, gvt::render::Adapter*> adapterCache;
 
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
                 : AbstractTrace(rays, image)
                 {
-                    GVT_DEBUG(DBG_ALWAYS, "image trace: constructor start");
                     int ray_portion = rays.size() / mpi.world_size;
                     rays_start = mpi.rank * ray_portion;
                     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size() : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
-                    GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances [third time]: " << instancenodes.size());
-                    GVT_DEBUG(DBG_ALWAYS, "image trace: constructor end");
                 }
 
+                // organize the rays into queues
+                // if using mpi, only keep the rays for the current rank
                 virtual void FilterRaysLocally() {
+                    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
+
                     if(mpi) {
-                        GVT_DEBUG(DBG_ALWAYS,"filter locally mpi: " << rays.size());
+                        GVT_DEBUG(DBG_ALWAYS,"image scheduler: filter locally mpi: [" << rays_start << ", " << rays_end << "]");
                         gvt::render::actor::RayVector lrays;
                         lrays.assign(rays.begin() + rays_start,
                                      rays.begin() + rays_end);
                         rays.clear();
-                        shuffleRays(lrays);
+                        shuffleRays(lrays, nullNode);
                     } else {
-                        GVT_DEBUG(DBG_ALWAYS,"filter locally non mpi: " << rays.size());
-                        shuffleRays(rays);
+                        GVT_DEBUG(DBG_ALWAYS,"image scheduler: filter locally non mpi: " << rays.size());
+                        shuffleRays(rays, nullNode);
                     }
                 }
 
                 virtual void operator()()
                 {
-                    GVT_DEBUG(DBG_ALWAYS,"Using Image schedule");
                     boost::timer::auto_cpu_timer t;
+                    GVT_DEBUG(DBG_ALWAYS,"image scheduler: starting, num rays: " << rays.size());
+                    gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
-                    GVT_DEBUG(DBG_ALWAYS, "image trace: operator(): num instances: " << instancenodes.size());
-                    long ray_counter = 0, domain_counter = 0;
+                    GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
+                    int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
 
-                    GVT_DEBUG(DBG_ALWAYS,"number of rays: " << rays.size());
-
+                    // sort rays into queues
                     FilterRaysLocally();
 
-                    GVT_DEBUG(DBG_ALWAYS, "image trace: operator(): num instances after filter ray: " << instancenodes.size());
-
-                    // buffer for color accumulation
                     gvt::render::actor::RayVector moved_rays;
-                    int domTarget = -1, domTargetCount = 0;
+                    int instTarget = -1, instTargetCount = 0;
                     // process domains until all rays are terminated
                     do
                     {
-                        std::cout << std::endl;
                         // process domain with most rays queued
-                        domTarget = -1;
-                        domTargetCount = 0;
+                        instTarget = -1;
+                        instTargetCount = 0;
 
-                        GVT_DEBUG(DBG_ALWAYS, "Selecting new domain: num queues: " << this->queue.size());
+                        GVT_DEBUG(DBG_ALWAYS, "image scheduler: selecting next instance, num queues: " << this->queue.size());
                         for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q)
                         {
-                            if (q->second.size() > domTargetCount)
+                            if (q->second.size() > (size_t)instTargetCount)
                             {
-                                domTargetCount = q->second.size();
-                                domTarget = q->first;
+                                instTargetCount = q->second.size();
+                                instTarget = q->first;
                             }
                         }
-                        GVT_DEBUG(DBG_ALWAYS, "new domain: " << domTarget);
+                        GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget);
 
-                        if (domTarget >= 0)
+                        if (instTarget >= 0)
                         {
-                            gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
-                            gvt::core::DBNodeH root = ctx->getRootNode();
+                            gvt::render::Adapter *adapter = 0;
+                            gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
-                            GVT_DEBUG(DBG_ALWAYS, "Getting domain " << domTarget);
 
-                            GVT_ASSERT((instancenodes.size() > 0), "instance list is null");
-
-                            //
-                            // 'getAdapter' functionality [without the cache part]
-                            //
-                            gvt::core::DBNodeH meshnode = instancenodes[domTarget]["meshRef"].deRef();
-                            int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
-
-//#define OLD_EMBREE
-#ifdef OLD_EMBREE
-                            gvt::render::data::domain::GeometryDomain* geoDomain = 0; // TODO: remove this geodomain and have embree build from mesh directly
-                            gvt::render::data::domain::AbstractDomain* adapter = 0; // TODO: rename to 'Adapter'
-                            // here we would do something like Adapter *a = cache.find(meshnode, adaptertype);
-
+                            // 'getAdapterFromCache' functionality
+                            auto it = adapterCache.find(meshNode.UUID());
+                            if(it != adapterCache.end()) {
+                                adapter = it->second;
+                                GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << gvt::core::uuid_toString(meshNode.UUID()) << "], " << (void*)adapter);
+                            }
                             if(!adapter) {
-                                //   'getMesh' - right now in SimpleApp mesh is hard coded and pointer is valid
-                                auto m = gvt::core::variant_toMeshPtr(meshnode["ptr"].value());
-
+                                GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
                                 switch(adapterType) {
                                     case gvt::render::adapter::Embree:
-                                        {
-                                            geoDomain = new gvt::render::data::domain::GeometryDomain(m);
-
-                                            // TODO: workaround, setting lights here from database lights
-                                            auto lightsN = root["Lights"].getChildren();
-                                            std::vector<gvt::render::data::scene::Light*> lights;
-                                            for(auto lightN : lightsN) {
-                                                auto pos = gvt::core::variant_toVector4f(lightN["position"].value());
-                                                auto color = gvt::core::variant_toVector4f(lightN["color"].value());
-                                                lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-                                            }
-                                            geoDomain->setLights(lights);
-
-                                            adapter = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
-                                            break;
-                                        }
+                                        adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
+                                        break;
                                     default:
-                                        {
-                                            GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
-                                        }
+                                        GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
                                 }
+
+                                adapterCache[meshNode.UUID()] = adapter;
                             }
-#else
-                            gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshnode);
-
-#endif
-
                             GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
+                            // end getAdapterFromCache concept
 
 
-#if 0
-                            gvt::render::data::domain::GeometryDomain* geoDomain = new gvt::render::data::domain::GeometryDomain(m);
-                            gvt::render::data::domain::AbstractDomain* dom = 0;
-                            if(firstAdapter == gvt::render::adapter::Embree) {
-                                dom = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
-                            } else {
-                                // TODO: for now, just default to embree
-                                dom = new gvt::render::adapter::embree::data::domain::EmbreeDomain(geoDomain);
-                            }
-                            dom->load();
-                            GVT_DEBUG(DBG_ALWAYS, "dom: " << domTarget << std::endl);
-#endif
-
-                            // track domain loads
-                            ++domain_counter;
-
-                            GVT_DEBUG(DBG_ALWAYS, "Calling process queue");
+                            GVT_DEBUG(DBG_ALWAYS, "image scheduler: calling process queue");
                             {
-                                moved_rays.reserve(this->queue[domTarget].size()*10);
+                                moved_rays.reserve(this->queue[instTarget].size()*10);
                                 boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
-#ifdef OLD_EMBREE
-                                adapter->trace(this->queue[domTarget], moved_rays);
-#else
-                                adapter->trace(this->queue[domTarget], moved_rays, instancenodes[domTarget]);
-#endif
+                                adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
                             }
 
-                            GVT_DEBUG(DBG_ALWAYS, "Marching rays");
-#ifdef OLD_EMBREE
-                            shuffleRays(moved_rays, adapter);
-#else
-                            shuffleRays(moved_rays, instancenodes[domTarget]);
-#endif
+                            GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
+                            shuffleRays(moved_rays, instancenodes[instTarget]);
                             moved_rays.clear();
-
-                            //delete adapter; // TODO: later this will be cached by the scheduler
-                            //delete geoDomain;
                         }
-                    } while (domTarget != -1);
-                    GVT_DEBUG(DBG_ALWAYS, "Gathering buffers");
+                    } while (instTarget != -1);
+                    GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
                     this->gatherFramebuffers(this->rays.size());
+
+                    GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
                 }
             };
         }

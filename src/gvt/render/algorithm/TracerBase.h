@@ -253,12 +253,12 @@ class AbstractTrace {
                   r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
               }
               r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
-
           }
 
           if (len2List.empty()) {
             // intersect the bvh to find the instance hit list
             acceleration->intersect(r, len2List);
+            boost::sort(len2List);
           }
 
           // TODO: alim: figure out new shuffle algorithm, as adapter is going to be null right now(?)
