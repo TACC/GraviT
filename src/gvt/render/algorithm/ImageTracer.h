@@ -16,6 +16,7 @@
 #include <gvt/render/Types.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
+
 #include <gvt/render/adapter/embree/Wrapper.h>
 
 #include <boost/timer/timer.hpp>

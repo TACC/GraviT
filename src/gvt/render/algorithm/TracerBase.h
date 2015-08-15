@@ -242,7 +242,7 @@ class AbstractTrace {
           gvt::render::actor::isecDomList& len2List = r.domains;
 
           if (len2List.empty() && instNode) {
-              //adapter->marchOut(r);
+              //instance(?)->marchOut(r);
 
               gvt::render::data::primitives::Box3D &wBox = *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
               float t = FLT_MAX;

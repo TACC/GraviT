@@ -40,6 +40,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 		n += gvt::core::CoreContext::createNode("focus");
 		n += gvt::core::CoreContext::createNode("eyePoint");
 		n += gvt::core::CoreContext::createNode("upVector");
+		n += gvt::core::CoreContext::createNode("fov");
 		n += gvt::core::CoreContext::createNode("cam2wrld");
 	}
 	else if (type == String("Film"))

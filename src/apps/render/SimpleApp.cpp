@@ -38,7 +38,6 @@ using namespace gvt::render::adapter::embree::data::domain;
 void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char** argv) {
-    // RenderContext::CreateContext() ;
     gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
 	if(cntxt == NULL) {
 		std::cout << "Something went wrong initializing the context" << std::endl;
@@ -193,6 +192,7 @@ int main(int argc, char** argv) {
 	camNode["eyePoint"] = Point4f(1.0, 1.0, 1.0, 1.0);
 	camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
 	camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+	camNode["fov"] = 45.0 * M_PI/180.0;
 
 	gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film","conefilm",root.UUID());
 	filmNode["width"] = 512;
@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
 	gvtPerspectiveCamera mycamera;
 	Point4f cameraposition = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
 	Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-	float fov = 45.0 * M_PI/180.0;
+	float fov = gvt::core::variant_toFloat(camNode["fov"].value());
 	Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
 	mycamera.lookAt(cameraposition,focus,up);
 	mycamera.setFOV(fov);
