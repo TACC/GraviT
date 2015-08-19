@@ -48,7 +48,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
 		n += gvt::core::CoreContext::createNode("width");
 		n += gvt::core::CoreContext::createNode("height");
 	}
-    else if (type == String("View"))
+    else if (type == String("View")) // TODO: remove view db entries
     {
         n += gvt::core::CoreContext::createNode("width");
         n += gvt::core::CoreContext::createNode("height");

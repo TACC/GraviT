@@ -64,7 +64,9 @@ namespace gvt {
 
                 virtual void operator()()
                 {
-                    boost::timer::auto_cpu_timer t;
+                    boost::timer::cpu_timer t_sched;
+                    t_sched.start();
+                    boost::timer::cpu_timer t_trace;
                     GVT_DEBUG(DBG_ALWAYS,"image scheduler: starting, num rays: " << rays.size());
                     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
@@ -124,9 +126,13 @@ namespace gvt {
 
                             GVT_DEBUG(DBG_ALWAYS, "image scheduler: calling process queue");
                             {
+                                t_trace.resume();
                                 moved_rays.reserve(this->queue[instTarget].size()*10);
-                                boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
+#ifdef GVT_USE_DEBUG
+                                boost::timer::auto_cpu_timer t("Tracing rays in adapter: %w\n");
+#endif
                                 adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
+                                t_trace.stop();
                             }
 
                             GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
@@ -138,6 +144,8 @@ namespace gvt {
                     this->gatherFramebuffers(this->rays.size());
 
                     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+                    std::cout << "image scheduler: trace time: " << t_trace.format();
+                    std::cout << "image scheduler: sched time: " << t_sched.format();
                 }
             };
         }

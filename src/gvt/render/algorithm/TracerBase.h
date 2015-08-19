@@ -141,7 +141,9 @@ class AbstractTrace {
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: rays: " << rays.size());
 
+#ifdef GVT_USE_DEBUG
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
+#endif
     int nchunks = 1;  // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
     std::vector< std::pair<int, int> > chunks;
@@ -218,7 +220,9 @@ class AbstractTrace {
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: rays: " << rays.size());
 
+#ifdef GVT_USE_DEBUG
     boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
+#endif
     int nchunks = 1;  // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
     std::vector< std::pair<int, int> > chunks;

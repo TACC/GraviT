@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
 	camNode["eyePoint"] = Point4f(1.0, 1.0, 1.0, 1.0);
 	camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
 	camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
-	camNode["fov"] = 45.0 * M_PI/180.0;
+	camNode["fov"] = (float)(45.0 * M_PI/180.0);
 
 	gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film","conefilm",root.UUID());
 	filmNode["width"] = 512;
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
 	schedNode["type"] = gvt::render::scheduler::Image;
 	schedNode["adapter"] = gvt::render::adapter::Embree;
 
-#ifdef GVT_DEBUG
+#if 0
     std::cout << "\n-- db tree --" << std::endl;
 	cntxt->database()->printTree(root.UUID(),10,std::cout);
     std::cout << "\n-- ------- --\n" << std::endl;
