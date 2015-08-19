@@ -108,7 +108,8 @@
 
             };
 
-            typedef std::vector< Ray, boost::pool_allocator<Ray> > RayVector;
+            // NOTE: removing boost pool allocator greatly improves timings
+            typedef std::vector< Ray > RayVector;
         }
     }
 }
