@@ -57,7 +57,7 @@ Ray::Ray(const Ray& ray)
     origin = ray.origin;
     direction = ray.direction;
     inverseDirection = ray.inverseDirection;
-    setDirection(direction);
+    //setDirection(ray.direction); // TODO: alim: remove unnecessary calculation for inverseDirection?
     t = ray.t;
             //            tmin = ray.tmin;
             //            tmax = ray.tmax;
