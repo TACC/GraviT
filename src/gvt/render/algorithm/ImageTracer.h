@@ -94,7 +94,7 @@ namespace gvt {
                                 instTarget = q->first;
                             }
                         }
-                        GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget);
+                        GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
                         if (instTarget >= 0)
                         {

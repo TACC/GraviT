@@ -49,9 +49,9 @@ int main(int argc, char** argv) {
     // mix of cones and cubes
 
     // TODO: maybe rename to 'Data' - as it can store different types of data [mesh, volume, lines]
-    gvt::core::DBNodeH meshNodes = cntxt->createNodeFromType("Meshes", "Meshes", root.UUID());
+    gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
 
-    gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", meshNodes.UUID());
+    gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
     {
         Mesh* mesh = new Mesh(new Lambert(Vector4f(0.5,0.5,0.5,1.0)));
         int numPoints = 7;
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
         coneMeshNode["ptr"] = mesh;
     }
 
-    gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", meshNodes.UUID());
+    gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
     {
         Mesh* mesh = new Mesh(new Lambert(Vector4f(0.5,0.5,0.5,1.0)));
         int numPoints = 8;
@@ -200,7 +200,8 @@ int main(int argc, char** argv) {
 
     // TODO: schedule db design could be modified a bit
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
-	schedNode["type"] = gvt::render::scheduler::Image;
+	//schedNode["type"] = gvt::render::scheduler::Image;
+	schedNode["type"] = gvt::render::scheduler::Domain;
 	schedNode["adapter"] = gvt::render::adapter::Embree;
 
 #if 0
@@ -244,9 +245,8 @@ int main(int argc, char** argv) {
             }
         case gvt::render::scheduler::Domain :
             {
-                std::cout << "skipping domain scheduler" << std::endl;
-                //std::cout << "starting domain scheduler" << std::endl;
-                //gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
+                std::cout << "starting domain scheduler" << std::endl;
+                gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
                 break;
             }
         default:
