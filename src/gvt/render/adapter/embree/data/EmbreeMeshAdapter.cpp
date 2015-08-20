@@ -202,19 +202,19 @@ struct embreeParallelTrace
      * \param rays          vector of rays to read from
      * \param startIdx      starting point to read from in `rays`
      */
-    void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid, const int packetSize, gvt::render::actor::RayVector& rays, const size_t startIdx) {
+    void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid, const int localPacketSize, gvt::render::actor::RayVector& rays, const size_t startIdx) {
         // reset valid to match the number of active rays in the packet
         if(resetValid) {
-            for(int i=0; i<packetSize; i++) {
+            for(int i=0; i<localPacketSize; i++) {
                 valid[i] = -1;
             }
-            for(int i=packetSize; i<4; i++) {
+            for(int i=localPacketSize; i<packetSize; i++) {
                 valid[i] = 0;
             }
         }
 
-        // convert packetSize rays into embree's RTCRay4 struct
-        for(int i=0; i<packetSize; i++) {
+        // convert localPacketSize rays into embree's RTCRay4 struct
+        for(int i=0; i<localPacketSize; i++) {
             if(valid[i]) {
                 const Ray &r = rays[startIdx + i];
                 const auto origin = (*minv) * r.origin; // transform ray to local space
@@ -258,7 +258,9 @@ struct embreeParallelTrace
             const float t_max = dir.length();
 
             // note: ray copy constructor is too heavy, so going to build it manually
-            Ray shadow_ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth);
+            shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+
+            Ray &shadow_ray = shadowRays.back();
             shadow_ray.t = r.t;
             shadow_ray.id = r.id;
             shadow_ray.t_max = t_max;
@@ -268,8 +270,6 @@ struct embreeParallelTrace
             //gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray, normal, lights[lindex]);
             shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
 
-            // note: still have to pay the cost of the copy constructor here
-            shadowRays.push_back(shadow_ray);
         }
     }
 
@@ -290,10 +290,9 @@ struct embreeParallelTrace
             rtcOccluded4(valid, scene, ray4);
 
             for(size_t pi = 0; pi < localPacketSize; pi++) {
-                auto &r = shadowRays[idx + pi];
                 if(valid[pi] && ray4.geomID[pi] == (int)RTC_INVALID_GEOMETRY_ID) {
                     // ray is valid, but did not hit anything, so add to dispatch queue
-                    localDispatch.push_back(r);
+                    localDispatch.push_back(shadowRays[idx + pi]);
                 }
             }
         }
@@ -305,8 +304,39 @@ struct embreeParallelTrace
      *
      * Loops through rays in `rayList`, converts them to embree format, and traces against embree's scene
      *
-     * TODO: write detailed description
+     * Threads work on rays in chunks of `workSize` units.  An atomic add on `sharedIdx` distributes
+     * the ranges of rays to work on.
      *
+     * After getting a chunk of rays to work with, the adapter loops through in sets of `packetSize`.  Right
+     * now this supports a 4 wide packet [Embree has support for 8 and 16 wide packets].
+     *
+     * The packet is traced and re-used until all of the 4 rays and their secondary rays have been traced to
+     * completion.  Shadow rays are added to a queue and are tested after each intersection test.
+     *
+     * The `while(validRayLeft)` loop behaves something like this:
+     *
+     * r0: primary -> secondary -> secondary -> ... -> terminated
+     * r1: primary -> secondary -> secondary -> ... -> terminated
+     * r2: primary -> secondary -> secondary -> ... -> terminated
+     * r3: primary -> secondary -> secondary -> ... -> terminated
+     *
+     * It is possible to get diverging packets such as:
+     *
+     * r0: primary   -> secondary -> terminated
+     * r1: secondary -> secondary -> terminated
+     * r2: shadow    -> terminated
+     * r3: primary   -> secondary -> secondary -> secondary -> terminated
+     *
+     * TODO: investigate switching terminated rays in the vector with active rays [swap with ones at the end]
+     *
+     * Terminated above means:
+     * - shadow ray hits object and is occluded
+     * - primary / secondary ray miss and are passed out of the queue
+     *
+     * After a packet is completed [including its generated rays], the system moves on * to the next packet
+     * in its chunk. Once a chunk is completed, the thread increments `sharedIdx` again to get more work.
+     *
+     * If `sharedIdx` grows to be larger than the incoming ray size, then the thread is complete.
      */
     void operator()()
     {
@@ -362,8 +392,8 @@ struct embreeParallelTrace
                 // NOTE: perf issue: this will cause smaller and smaller packets to be traced at a time - need to track to see effects
                 bool validRayLeft = true;
 
-                // the first time we enter the loop, we want to reset the valid boolean list
-                // TODO: alternatively just memset the valid to local packet size instead of testing the 'if' every time
+                // the first time we enter the loop, we want to reset the valid boolean list that was
+                // modified with the previous packet
                 bool resetValid = true;
                 while(validRayLeft) {
                     validRayLeft = false;
