@@ -97,27 +97,88 @@ EmbreeMeshAdapter::~EmbreeMeshAdapter() {
 
 struct parallelTraceE2
 {
+    /**
+     * Pointer to EmbreeMeshAdapter to get Embree scene information
+     */
     gvt::render::adapter::embree::data::EmbreeMeshAdapter* adapter;
+
+    /**
+     * Shared ray list used in the current trace() call
+     */
     gvt::render::actor::RayVector& rayList;
+
+    /**
+     * Shared outgoing ray list used in the current trace() call
+     */
     gvt::render::actor::RayVector& moved_rays;
+
+    /**
+     * Number of rays to work on at once [load balancing].
+     */
     const size_t workSize;
+
+    /**
+     * Index into the shared `rayList`.  Atomically incremented to 'grab'
+     * the next set of rays.
+     */
     std::atomic<size_t>& sharedIdx;
 
+    /**
+     * DB reference to the current instance
+     */
     gvt::core::DBNodeH instNode;
-    gvt::render::data::primitives::Box3D *bbox; // transforms
-    gvt::core::math::AffineTransformMatrix<float> *m;
-    gvt::core::math::AffineTransformMatrix<float> *minv;
-    gvt::core::math::Matrix3f *normi;
-    std::vector<gvt::render::data::scene::Light*>& lights;
 
-    std::atomic<size_t>& counter; // used for debugging purposes
+    /**
+     * Stored bbox in the current instance
+     */
+    const gvt::render::data::primitives::Box3D *bbox; // transforms
 
+    /**
+     * Stored transformation matrix in the current instance
+     */
+    const gvt::core::math::AffineTransformMatrix<float> *m;
+
+    /**
+     * Stored inverse transformation matrix in the current instance
+     */
+    const gvt::core::math::AffineTransformMatrix<float> *minv;
+
+    /**
+     * Stored upper33 inverse matrix in the current instance
+     */
+    const gvt::core::math::Matrix3f *normi;
+
+    /**
+     * Stored transformation matrix in the current instance
+     */
+    const std::vector<gvt::render::data::scene::Light*>& lights;
+
+    /**
+     * Count the number of rays processed by the current trace() call.
+     *
+     * Used for debugging purposes
+     */
+    std::atomic<size_t>& counter;
+
+    /**
+     * Thread local outgoing ray queue
+     */
     gvt::render::actor::RayVector localDispatch;
+
+    /**
+     * List of shadow rays to be processed
+     */
     gvt::render::actor::RayVector shadowRays;
-    gvt::render::actor::RayVector secondaryRays;
 
-    const size_t packetSize = 4; // TODO: later make this configurable
+    /**
+     * Size of Embree packet
+     */
+    const size_t packetSize; // TODO: later make this configurable
 
+    /**
+     * Construct a parallelTraceE2 struct with information needed for the thread
+     * to do its tracing
+     */
     parallelTraceE2(
             gvt::render::adapter::embree::data::EmbreeMeshAdapter* adapter,
             gvt::render::actor::RayVector& rayList,
@@ -133,22 +194,22 @@ struct parallelTraceE2
             std::atomic<size_t>& counter) :
         adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
         instNode(instNode), bbox(bbox), m(m), minv(minv), normi(normi), lights(lights),
-        counter(counter)
+        counter(counter), packetSize(adapter->getPacketSize())
     {
     }
 
     /**
      * Convert a set of rays from a vector into a RTCRay4 ray packet.
      *
-     * \param ray4 reference of RTCRay4 struct to write to
-     * \param valid aligned array of 4 ints to mark valid rays
-     * \param resetValid if true, reset the valid bits, if false, re-use old valid to know which to convert
-     * \param packetSize number of rays to convert
-     * \param rays vector of rays to read from
-     * \param startIdx starting point to read from in `rays`
+     * \param ray4          reference of RTCRay4 struct to write to
+     * \param valid         aligned array of 4 ints to mark valid rays
+     * \param resetValid    if true, reset the valid bits, if false, re-use old valid to know which to convert
+     * \param packetSize    number of rays to convert
+     * \param rays          vector of rays to read from
+     * \param startIdx      starting point to read from in `rays`
      */
-    void prepRTCRay4(RTCRay4 &ray4, int valid[4], bool resetValid, const int packetSize, gvt::render::actor::RayVector& rays, const size_t startIdx) {
-        // reset valid
+    void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid, const int packetSize, gvt::render::actor::RayVector& rays, const size_t startIdx) {
+        // reset valid to match the number of active rays in the packet
         if(resetValid) {
             for(int i=0; i<packetSize; i++) {
                 valid[i] = -1;
@@ -159,10 +220,9 @@ struct parallelTraceE2
         }
 
         // convert packetSize rays into embree's RTCRay4 struct
-        for (int i = 0; i < packetSize; i++)
-        {
+        for(int i=0; i<packetSize; i++) {
             if(valid[i]) {
-                Ray &r = rays[startIdx + i];
+                const Ray &r = rays[startIdx + i];
                 const auto origin = (*minv) * r.origin; // transform ray to local space
                 const auto direction = (*minv) * r.direction;
                 ray4.orgx[i] = origin[0];
@@ -209,7 +269,7 @@ struct parallelTraceE2
             shadow_ray.id = r.id;
             shadow_ray.t_max = t_max;
 
-            // TODO: remove dependency on mesh->shadeFace
+            // FIXME: remove dependency on mesh->shadeFace
             gvt::render::data::Color c = mesh->shadeFace(primID, shadow_ray, normal, light);
             //gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray, normal, lights[lindex]);
             shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
@@ -246,6 +306,14 @@ struct parallelTraceE2
         shadowRays.clear();
     }
 
+    /**
+     * Trace function.
+     *
+     * Loops through rays in `rayList`, converts them to embree format, and traces against embree's scene
+     *
+     * TODO: write detailed description
+     *
+     */
     void operator()()
     {
 #ifdef GVT_USE_DEBUG
@@ -254,28 +322,23 @@ struct parallelTraceE2
         GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: started thread");
 
         GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
-        // TODO: don't use gvt mesh, need to fix embree triangle normal hit
+        // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals and shading calculations
         auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
 
         RTCScene scene = adapter->getScene();
-
         localDispatch.reserve(rayList.size() * 2);
 
-        // there are a fixed amount of shadow rays that are generated with each embree packet
+        // there is an upper bound on the nubmer of shadow rays generated per embree packet
         // its embree_packetSize * lights.size()
-        // right now we're using 4 as the embree packet width
-        shadowRays.reserve(adapter->getPacketSize() * lights.size());
-
-        // there are a fixed amount of secondary arrays that are generated with each embree packet
-        // embree_packetSize * num_secondary_rays
-        // right now this is 4 * 1, but later when we get ao, it will be 4 * n
-        secondaryRays.reserve(adapter->getPacketSize());
+        shadowRays.reserve(packetSize * lights.size());
 
         GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
         while (sharedIdx < rayList.size())
         {
+#ifdef GVT_USE_DEBUG
             // boost::timer::auto_cpu_timer t_outer_loop("EmbreeMeshAdapter: workSize rays traced: %w\n");
+#endif
 
             // atomically get the next chunk range
             size_t workStart = sharedIdx.fetch_add(workSize);
@@ -291,13 +354,11 @@ struct parallelTraceE2
                 workEnd = rayList.size();
             }
 
-            size_t localIdx = workStart;
-
             RTCRay4 ray4 = {};
             RTCORE_ALIGN(16) int valid[4] = {0};
 
             GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays [" << workStart << ", " << workEnd << "]");
-            for(size_t localIdx = workStart; localIdx < workEnd; localIdx += this->packetSize)
+            for(size_t localIdx = workStart; localIdx < workEnd; localIdx += packetSize)
             {
                 // this is the local packet size. this might be less than the main packetSize due to uneven amount of rays
                 const size_t localPacketSize = (localIdx + packetSize > workEnd) ? (workEnd - localIdx) : packetSize;
@@ -346,18 +407,15 @@ struct parallelTraceE2
                                     const int triangle_id = ray4.primID[pi];
                                     const float u = ray4.u[pi];
                                     const float v = ray4.v[pi];
-                                    const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // FIXME: this needs to be removed, cannot assume mesh is live in memory
+                                    const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // FIXME: need to figure out where to store `faces_to_normals` list
                                     const Vector4f &a = mesh->normals[normals.get<1>()];
                                     const Vector4f &b = mesh->normals[normals.get<2>()];
                                     const Vector4f &c = mesh->normals[normals.get<0>()];
                                     manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                                    // 'localToWorldNormal'
-                                    //manualNormal = adapter->localToWorldNormal(manualNormal);
                                     manualNormal = (*normi) * (gvt::core::math::Vector3f)manualNormal;
                                     manualNormal.normalize();
                                 }
-
                                 const Vector4f &normal = manualNormal;
 
                                 // reduce contribution of the color that the shadow rays get
@@ -371,29 +429,28 @@ struct parallelTraceE2
 
                                 int ndepth = r.depth - 1;
                                 float p = 1.f - (float(rand()) / RAND_MAX);
-                                // replace current ray with generated secondary ray [or next step secondary ray]
+                                // replace current ray with generated secondary ray
                                 if (ndepth > 0 && r.w > p)
                                 {
                                     r.domains.clear();
                                     r.type = gvt::render::actor::Ray::SECONDARY;
                                     const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
-                                    float t_secondary = multiplier * r.t;
+                                    const float t_secondary = multiplier * r.t;
                                     r.origin = r.origin + r.direction * t_secondary;
 
-                                    // TODO: hack: remove this dependency on mesh, store material object in the database
+                                    // TODO: remove this dependency on mesh, store material object in the database
                                     //r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
                                     r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
 
                                     r.w = r.w * (r.direction * normal);
                                     r.depth = ndepth;
-                                    //secondaryRays.push_back(r); // TODO: push to secondary r queue
                                     validRayLeft = true; // we still have a valid ray in the packet to trace
                                 } else {
                                     // secondary ray is terminated, so disable its valid bit
                                     valid[pi] = 0;
                                 }
                             } else {
-                                // ray is valid, but did not hit anything, so add to dispatch queue
+                                // ray is valid, but did not hit anything, so add to dispatch queue and disable it
                                 localDispatch.push_back(r);
                                 valid[pi] = 0;
                             }
@@ -406,6 +463,7 @@ struct parallelTraceE2
             }
         }
 
+#ifdef GVT_USE_DEBUG
         size_t shadow_count = 0;
         size_t primary_count = 0;
         size_t secondary_count = 0;
@@ -420,13 +478,11 @@ struct parallelTraceE2
         }
         GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size()
                 << ", types: primary: " << primary_count << ", shadow: " << shadow_count << ", secondary: " << secondary_count << ", other: " << other_count);
+#endif
 
-
-        //GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
-        GVT_DEBUG(DBG_ALWAYS, "vector capacities : shadow: " << shadowRays.capacity() << ", secondary: " << secondaryRays.capacity());
-
+        // copy localDispatch rays to outgoing rays queue
         boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
-        moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
+        moved_rays.insert(moved_rays.end(), localDispatch.begin(), localDispatch.end());
         moved.unlock();
     }
 };
@@ -700,7 +756,6 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::rende
 
     // # notes
     // boost threads vs c++11 threads don't seem to have much of a runtime difference
-    // 
 
 #if 1
   #ifdef EMBREE_BOOST_THREADS
