@@ -33,12 +33,17 @@ public:
     /**
      * Return the Embree scene handle;
      */
-    RTCScene getScene() { return scene; }
+    RTCScene getScene() const { return scene; }
 
     /**
      * Return the geometry id.
      */
-    unsigned getGeomId() { return geomId; }
+    unsigned getGeomId() const { return geomId; }
+
+    /**
+     * Return the packet size
+     */
+    RTCAlgorithmFlags getPacketSize () const { return packetSize; }
 
     /**
      * Trace rays using the Embree adapter.
