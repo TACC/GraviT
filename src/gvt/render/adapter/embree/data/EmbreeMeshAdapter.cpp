@@ -17,6 +17,7 @@
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 
+#include <atomic>
 #include <thread>
 
 #include <boost/atomic.hpp>
