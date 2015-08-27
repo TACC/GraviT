@@ -36,6 +36,7 @@ option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
+option(GVT_MPE "Use MPE Profileing" ON)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 SET(HOST_NAME $ENV{HOSTNAME})
@@ -58,10 +59,6 @@ if(GVT_DEBUG)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
 endif(GVT_DEBUG)
-
-
-
-
 
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
@@ -97,6 +94,10 @@ endif(APPLE)
 
 # compiler options
 set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
+if(GVT_MPE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_MPE=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
+endif(GVT_MPE)
 # the compiler is ususally set through environment vars outside the cmake file
 # so this is redundant. CMake detects the compiler. 
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
@@ -372,18 +373,25 @@ if (GVT_RENDER)
 endif(GVT_RENDER)
 
 if (GVT_SIMPLE_APP)
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB1})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
 	find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH})
 	set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS}  ${MPI_LIBRARIES})
-	set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS}
-		src/apps/render/SimpleApp.cpp
-		)
-	add_executable(gvtSimple
-		${GVTSIMPLE_RENDER_SRCS}
-		)
-	target_link_libraries(gvtSimple ${GVTSIMPLE_RENDER_LIBS} gvtCore gvtRender)
-	
+	set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
+	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
+	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
 endif(GVT_SIMPLE_APP)
+
 if (GVT_GLRENDER_APP)
 	find_package(MPI REQUIRED)
 	find_package(OpenGL REQUIRED)
@@ -424,7 +432,18 @@ if (GVT_RENDER_APP)
     find_package(MPI REQUIRED)
     include_directories(${MPI_INCLUDE_PATH} ${TINYOBJPATH})
     set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES} tinyobjloader)
-
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      #SET(MPE_LIBRARIES "${MPE_LIB1} ${MPE_LIB2}")
+      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB1})
+      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB2})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
 

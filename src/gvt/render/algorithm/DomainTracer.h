@@ -9,6 +9,9 @@
 #define GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 
 #include <gvt/core/mpi/Wrapper.h>
+#ifdef GVT_USE_MPE
+#include "mpe.h"
+#endif
 #include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/algorithm/TracerBase.h>
 #include <gvt/render/Schedulers.h>
@@ -16,11 +19,11 @@
 
 #include <boost/foreach.hpp>
 
-#include <mpi.h>
 #include <set>
 
 #define RAY_BUF_SIZE 10485760  // 10 MB per neighbor
 
+using namespace gvt::core::mpi;
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -37,10 +40,26 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
   std::map<gvt::core::Uuid, gvt::render::Adapter*> adapterCache;
   gvt::core::Vector<gvt::core::DBNodeH> dataNodes;
   std::map<gvt::core::Uuid, size_t> mpiInstanceMap;
+#ifdef GVT_USE_MPE
+	int tracestart, traceend;
+	int shufflestart, shuffleend;
+	int framebufferstart, framebufferend;
+#endif
 
   Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
   : AbstractTrace(rays, image)
   {
+#ifdef GVT_USE_MPE
+	//MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPE_Log_get_state_eventIDs(&tracestart,&traceend);
+	MPE_Log_get_state_eventIDs(&shufflestart,&shuffleend);
+	MPE_Log_get_state_eventIDs(&framebufferstart,&framebufferend);
+	if(mpi.rank == 0) {
+		MPE_Describe_state(tracestart,traceend,"Process Queue","blue");
+		MPE_Describe_state(shufflestart,shuffleend,"Shuffle Rays","green");
+		MPE_Describe_state(framebufferstart,framebufferend,"Gather Framebuffer","orange");
+	}
+#endif
     dataNodes = rootnode["Data"].getChildren();
 
     // create a map of instances to mpi rank
@@ -50,7 +69,8 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       size_t dataIdx = -1;
       for(size_t d=0; d<dataNodes.size(); d++) {
         if(dataNodes[d].UUID() == meshNode.UUID()) {
-          dataIdx = d;
+          //dataIdx = d;
+          dataIdx = i; // BDS changed to i because dataIdx only had values 0 and 1.
           break;
         }
       }
@@ -58,7 +78,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       // NOTE: mpi-data(domain) assignment strategy
       size_t mpiNode = dataIdx % mpi.world_size;
 
-      GVT_DEBUG(DBG_ALWAYS, "domain scheduler: instId: " << i << ", dataIdx: " << dataIdx << ", target mpi node: " << mpiNode);
+      GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx << ", target mpi node: " << mpiNode << ", world size: " <<mpi.world_size);
 
       GVT_ASSERT(dataIdx != (size_t)-1, "domain scheduler: could not find data node");
       mpiInstanceMap[instancenodes[i].UUID()] = mpiNode;
@@ -234,18 +254,30 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
           }
           GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
 
-          GVT_DEBUG(DBG_ALWAYS, "domain scheduler: calling process queue");
+          GVT_DEBUG(DBG_ALWAYS,"[" << mpi.rank << "] domain scheduler: calling process queue");
           {
             t_trace.resume();
             moved_rays.reserve(this->queue[instTarget].size()*10);
 #ifdef GVT_USE_DEBUG
             boost::timer::auto_cpu_timer t("Tracing rays in adapter: %w\n");
 #endif
+#ifdef GVT_USE_MPE
+						MPE_Log_event(tracestart,0,NULL);
+#endif
             adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
+#ifdef GVT_USE_MPE
+						MPE_Log_event(traceend,0,NULL);
+#endif
             t_trace.stop();
           }
 
+#ifdef GVT_USE_MPE
+	MPE_Log_event(shufflestart,0,NULL);
+#endif
           shuffleRays(moved_rays, instancenodes[instTarget]);
+#ifdef GVT_USE_MPE
+	MPE_Log_event(shuffleend,0,NULL);
+#endif
           moved_rays.clear();
           queue[instTarget].clear();
 
@@ -290,7 +322,13 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     }
 
     // add colors to the framebuffer
+#ifdef GVT_USE_MPE
+		MPE_Log_event(framebufferstart,0,NULL);
+#endif
     this->gatherFramebuffers(this->rays_end - this->rays_start);
+#ifdef GVT_USE_MPE
+		MPE_Log_event(framebufferend,0,NULL);
+#endif
   }
 
   // FIXME: update FindNeighbors to use mpiInstanceMap

@@ -15,6 +15,9 @@
 //#include <gvt/render/adapter/manta/Wrapper.h>
 //#include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/adapter/embree/Wrapper.h>
+#ifdef GVT_USE_MPE
+#include "mpe.h"
+#endif
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/data/scene/Image.h>
@@ -38,6 +41,25 @@ using namespace gvt::render::adapter::embree::data::domain;
 void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char** argv) {
+
+
+	MPI_Init(&argc, &argv);
+	MPI_Pcontrol(0);
+	int rank = -1;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#ifdef GVT_USE_MPE
+	//MPE_Init_log();
+	int readstart, readend;
+	int renderstart, renderend;
+	MPE_Log_get_state_eventIDs(&readstart,&readend);
+	MPE_Log_get_state_eventIDs(&renderstart,&renderend);
+	if(rank == 0) {
+		MPE_Describe_state(readstart, readend, "Initialize context state","red");
+		MPE_Describe_state(renderstart, renderend, "Render","yellow");
+	}
+  MPI_Pcontrol(1);
+	MPE_Log_event(readstart,0,NULL);
+#endif
     gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
 	if(cntxt == NULL) {
 		std::cout << "Something went wrong initializing the context" << std::endl;
@@ -175,7 +197,6 @@ int main(int argc, char** argv) {
     }
 
 
-	MPI_Init(&argc, &argv);
 
     // add lights, camera, and film to the database
     gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
@@ -225,6 +246,9 @@ int main(int argc, char** argv) {
 	mycamera.setFOV(fov);
 	mycamera.setFilmsize(gvt::core::variant_toInteger(filmNode["width"].value()), gvt::core::variant_toInteger(filmNode["height"].value()));
 
+#ifdef GVT_USE_MPE
+	MPE_Log_event(readend,0,NULL);
+#endif
 	// setup image from database sizes
 	Image myimage(mycamera.getFilmSizeWidth(),mycamera.getFilmSizeHeight(),"cone");
 
@@ -246,7 +270,13 @@ int main(int argc, char** argv) {
         case gvt::render::scheduler::Domain :
             {
                 std::cout << "starting domain scheduler" << std::endl;
+#ifdef GVT_USE_MPE
+								MPE_Log_event(renderstart,0,NULL);
+#endif
                 gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays,myimage)();
+#ifdef GVT_USE_MPE
+								MPE_Log_event(renderend,0,NULL);
+#endif
                 break;
             }
         default:
@@ -257,6 +287,11 @@ int main(int argc, char** argv) {
     }
 
 	myimage.Write();
+#ifdef GVT_USE_MPE
+	MPE_Log_sync_clocks();
+	//MPE_Finish_log("gvtSimplelog");
+#endif
+	if(MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 
 
