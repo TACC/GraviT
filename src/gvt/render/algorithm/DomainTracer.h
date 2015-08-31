@@ -44,6 +44,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 	int tracestart, traceend;
 	int shufflestart, shuffleend;
 	int framebufferstart, framebufferend;
+	int localrayfilterstart, localrayfilterend;
+	int intersectbvhstart, intersectbvhend;
+	int marchinstart,marchinend;
 #endif
 
   Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
@@ -54,10 +57,16 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 	MPE_Log_get_state_eventIDs(&tracestart,&traceend);
 	MPE_Log_get_state_eventIDs(&shufflestart,&shuffleend);
 	MPE_Log_get_state_eventIDs(&framebufferstart,&framebufferend);
+	MPE_Log_get_state_eventIDs(&localrayfilterstart,&localrayfilterend);
+	MPE_Log_get_state_eventIDs(&intersectbvhstart,&intersectbvhend);
+	MPE_Log_get_state_eventIDs(&marchinstart,&marchinend);
 	if(mpi.rank == 0) {
 		MPE_Describe_state(tracestart,traceend,"Process Queue","blue");
 		MPE_Describe_state(shufflestart,shuffleend,"Shuffle Rays","green");
 		MPE_Describe_state(framebufferstart,framebufferend,"Gather Framebuffer","orange");
+		MPE_Describe_state(localrayfilterstart,localrayfilterend,"Filter Rays Local","coral");
+		MPE_Describe_state(intersectbvhstart,intersectbvhend,"Intersect BVH","azure");
+		MPE_Describe_state(marchinstart,marchinend,"March Ray in","LimeGreen");
 	}
 #endif
     dataNodes = rootnode["Data"].getChildren();
@@ -166,7 +175,13 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     // sort rays into queues
     // note: right now throws away rays that do not hit any domain owned by the current
     // rank
+#ifdef GVT_USE_MPE
+						MPE_Log_event(localrayfilterstart,0,NULL);
+#endif
     FilterRaysLocally();
+#ifdef GVT_USE_MPE
+						MPE_Log_event(localrayfilterend,0,NULL);
+#endif
 
     GVT_DEBUG(DBG_LOW, "tracing rays");
 
