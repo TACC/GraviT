@@ -78,8 +78,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       size_t dataIdx = -1;
       for(size_t d=0; d<dataNodes.size(); d++) {
         if(dataNodes[d].UUID() == meshNode.UUID()) {
-          //dataIdx = d;
-          dataIdx = i; // BDS changed to i because dataIdx only had values 0 and 1.
+          dataIdx = d;
           break;
         }
       }
@@ -100,6 +99,8 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     for (auto& ray : rays) {
       gvt::render::actor::isecDomList len2List;
       acceleration->intersect(ray, len2List);
+      boost::sort(len2List);
+			// added boost sort
 
       // ray never hits anything, so drop it
       if(len2List.empty()) {
