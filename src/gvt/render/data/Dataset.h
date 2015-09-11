@@ -39,6 +39,7 @@ namespace gvt {
                 virtual int addDomain(gvt::render::data::domain::AbstractDomain* dom);
                 virtual int addLight(gvt::render::data::scene::Light* ls);
                 void makeAccel(gvt::render::Attributes& rta);
+				void makeAccel();
 
                 friend std::ostream& operator<<(std::ostream&, Dataset const&);
 

@@ -1,5 +1,5 @@
 #include "gvt/core/DatabaseNode.h"
-#include "gvt/core/Context.h"
+#include "gvt/core/CoreContext.h"
 #include "gvt/core/Debug.h"
 
 using namespace gvt::core;
@@ -64,7 +64,7 @@ void DatabaseNode::setValue(Variant value)
 void DatabaseNode::propagateUpdate()
 {
     DatabaseNode* pn;
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     pn = db.getItem(p_parent);
     Uuid cid = UUID();
@@ -78,7 +78,7 @@ void DatabaseNode::propagateUpdate()
 
 Vector<DatabaseNode*> DatabaseNode::getChildren() 
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     return db.getChildren(UUID());
 }
@@ -96,7 +96,7 @@ Vector<DatabaseNode*> DatabaseNode::getChildren()
 
 DatabaseNode& DBNodeH::getNode()
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     DatabaseNode* n = db.getItem(_uuid);
     if (n)
@@ -107,7 +107,7 @@ DatabaseNode& DBNodeH::getNode()
 
 DBNodeH DBNodeH::deRef()
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
 //    DEBUG(value().toUuid().toString().toStdString());
     DatabaseNode& n = getNode();
@@ -126,11 +126,12 @@ DBNodeH DBNodeH::deRef()
 
 DBNodeH DBNodeH::operator[](const String& key)
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     DatabaseNode* child = db.getChildByName(_uuid, key);
     if (!child)
     {
+       GVT_DEBUG(DBG_ALWAYS,"DBNodeH[] failed to find key \"" << key << "\" for uuid " << uuid_toString(_uuid));
        child = &(ctx->createNode(key).getNode());
    }
    return DBNodeH(child->UUID());
@@ -138,7 +139,7 @@ DBNodeH DBNodeH::operator[](const String& key)
 
 DBNodeH& DBNodeH::operator+=(DBNodeH child)
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     child.setParentUUID(UUID());
     db.addChild(UUID(), &(child.getNode()));
@@ -237,7 +238,7 @@ void DBNodeH::connectChildChanged(const void * receiver,  const char* method)
 
 Vector<DBNodeH> DBNodeH::getChildren() 
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     Vector<DatabaseNode*> children = db.getChildren(UUID());
     Vector<DBNodeH> result;

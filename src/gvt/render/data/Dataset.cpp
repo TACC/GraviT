@@ -20,8 +20,8 @@ Dataset::Dataset() : acceleration(NULL)
 
 Dataset::~Dataset()
 {
-    if (acceleration)
-        delete acceleration;
+    //if (acceleration)
+    //    delete acceleration;
 }
 
 bool Dataset::init() 
@@ -87,9 +87,13 @@ int Dataset::size()
     return domainSet.size();
 }
 
+void Dataset::makeAccel()
+{
+        //acceleration = new gvt::render::data::accel::BVH(domainSet);
+}
 void Dataset::makeAccel(gvt::render::Attributes& rta)
 {
     if (rta.GetAccelType() == gvt::render::Attributes::BVH) {
-        acceleration = new gvt::render::data::accel::BVH(domainSet);
+        //acceleration = new gvt::render::data::accel::BVH(domainSet);
     }
 }

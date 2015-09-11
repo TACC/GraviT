@@ -123,7 +123,7 @@ void Database::printTree(const Uuid& parent, const int depth, std::ostream& os)
 {
     DatabaseNode* pnode = this->getItem(parent);
     if(!pnode) {
-        GVT_DEBUG(DBG_MODERATE, "Database::printTree - node not found: " << uuid_toString(parent));
+        GVT_DEBUG(DBG_ALWAYS, "Database::printTree - node not found: " << uuid_toString(parent));
         return;
     }
     std::string offset = "";

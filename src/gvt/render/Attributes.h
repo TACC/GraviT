@@ -7,7 +7,6 @@
 
 #include <gvt/core/Math.h>
 #include <gvt/core/Types.h>
-#include <gvt/render/Context.h>
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Primitives.h>
 

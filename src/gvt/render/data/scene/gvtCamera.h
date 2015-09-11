@@ -62,6 +62,9 @@ namespace gvt {
 
 				/** Bunch-o-rays */
 				gvt::render::actor::RayVector rays;
+				gvt::core::math::Point4f getEyePoint() {return eye_point;};
+				gvt::core::math::Point4f getFocalPoint() {return focal_point;};
+				gvt::core::math::Vector4f getUpVector() {return up_vector;};
 			protected:
 				gvt::core::math::AffineTransformMatrix<float> cam2wrld; //!< transform from camera to world coords
 				gvt::core::math::AffineTransformMatrix<float> wrld2cam; //!< transform from world to camera coords

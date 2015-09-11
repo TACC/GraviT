@@ -1,11 +1,11 @@
-#include "gvt/core/Context.h"
+#include "gvt/core/CoreContext.h"
 #include "gvt/core/Debug.h"
 
 using namespace gvt::core;
 
-Context* Context::__singleton = NULL;
+CoreContext* CoreContext::__singleton = nullptr;
 
-Context::Context()
+CoreContext::CoreContext()
 {
     __database = new Database();
     DatabaseNode* root = new DatabaseNode(String("GraviT"),String("GVT ROOT"),make_uuid(),nil_uuid());
@@ -13,25 +13,27 @@ Context::Context()
     __rootNode = DBNodeH(root->UUID());
 }
 
-Context::~Context()
+CoreContext::~CoreContext()
 {
     delete __database;
 }
 
-Context* Context::singleton()
+CoreContext* CoreContext::instance()
 {
-	if (!__singleton) { __singleton = new Context(); }
-	return __singleton;
+	if (__singleton == nullptr) {
+        __singleton = new CoreContext();
+    }
+    return static_cast<CoreContext*>(__singleton);
 }
 
-DBNodeH Context::getNode(Uuid node)
+DBNodeH CoreContext::getNode(Uuid node)
 {
 	DatabaseNode* n = __database->getItem(node);
 	if (n) return DBNodeH(n->UUID());
 	else return DBNodeH();
 }
 
-DBNodeH Context::createNode(String name, Variant val, Uuid parent)
+DBNodeH CoreContext::createNode(String name, Variant val, Uuid parent)
 {
     DatabaseNode* np = new DatabaseNode(name, val, make_uuid(), parent);
     __database->setItem(np);
@@ -39,17 +41,17 @@ DBNodeH Context::createNode(String name, Variant val, Uuid parent)
     return DBNodeH(np->UUID());
 }
 
-DBNodeH Context::createNodeFromType(String type, Uuid parent)
+DBNodeH CoreContext::createNodeFromType(String type, Uuid parent)
 {
     return createNodeFromType(type, type, parent);
 }
 
-DBNodeH Context::createNodeFromType(String type)
+DBNodeH CoreContext::createNodeFromType(String type)
 {
     return createNodeFromType(type, type);
 }
 
-DBNodeH Context::createNodeFromType(String type, String name, Uuid parent)
+DBNodeH CoreContext::createNodeFromType(String type, String name, Uuid parent)
 {
     DBNodeH n = createNode(type, name, parent);
 

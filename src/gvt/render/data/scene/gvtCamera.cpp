@@ -1,4 +1,5 @@
 #include <gvt/render/data/scene/gvtCamera.h>
+#include <boost/timer/timer.hpp>
 
 using namespace gvt::core::math;
 using namespace gvt::render::data::scene;
@@ -124,6 +125,9 @@ void gvtCameraBase::lookAt(Point4f eye, Point4f focus, Vector4f up) {
 }
 //gvt::render::actor::RayVector gvtCameraBase::AllocateCameraRays() {
 void gvtCameraBase::AllocateCameraRays() {
+#ifdef GVT_USE_DEBUG
+    boost::timer::auto_cpu_timer t("gvtCameraBase::AllocateCameraRays: time: %w\n");
+#endif
 	depth = 0;
 	size_t nrays = filmsize[0]*filmsize[1];
 	rays.resize(nrays);
@@ -143,6 +147,9 @@ gvtPerspectiveCamera::~gvtPerspectiveCamera(){
 }
 //gvt::render::actor::RayVector gvtPerspectiveCamera::generateRays() {
 void gvtPerspectiveCamera::generateRays() {
+#ifdef GVT_USE_DEBUG
+    boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
+#endif
 	// Generate rays direction in camera space and transform to world space.
 	int buffer_width  = filmsize[0];
 	int buffer_height = filmsize[1];
