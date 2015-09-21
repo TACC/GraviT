@@ -14,7 +14,7 @@
 #include <gvt/render/Schedulers.h>
 //#include <gvt/render/adapter/manta/Wrapper.h>
 //#include <gvt/render/adapter/optix/Wrapper.h>
-#include <gvt/render/adapter/embree/Wrapper.h>
+//#include <gvt/render/adapter/embree/Wrapper.h>
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
@@ -36,7 +36,7 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 //using namespace gvt::render::adapter::manta::data::domain;
 //using namespace gvt::render::adapter::optix::data::domain;
-using namespace gvt::render::adapter::embree::data::domain;
+//using namespace gvt::render::adapter::embree::data::domain;
 
 void test_bvh(gvtPerspectiveCamera &camera);
 
