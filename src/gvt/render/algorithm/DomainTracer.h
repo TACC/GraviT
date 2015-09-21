@@ -13,6 +13,7 @@
 #include "mpe.h"
 #endif
 #include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/RenderContext.h>
@@ -96,6 +97,19 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
   virtual ~Tracer() {}
 
   virtual void FilterRaysLocally() {
+    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
+    shuffleRays(rays, nullNode);
+
+    for(auto e : queue) {
+      if(mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
+        GVT_DEBUG(DBG_ALWAYS, "clearing queue " << e);
+        queue[e.first].clear();
+      }
+    }
+  }
+
+#if 0
+  virtual void FilterRaysLocally() {
     for (auto& ray : rays) {
       gvt::render::actor::isecDomList len2List;
       acceleration->intersect(ray, len2List);
@@ -135,6 +149,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
     rays.clear();
   }
+#endif
 
 
 #if 0
@@ -295,9 +310,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 	MPE_Log_event(shuffleend,0,NULL);
 #endif
           moved_rays.clear();
-          queue[instTarget].clear();
+          //queue[instTarget].clear();
 
-          queue.erase(instTarget);
+          //queue.erase(instTarget);
         }
       }
 
