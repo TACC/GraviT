@@ -36,7 +36,7 @@ option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
-option(GVT_MPE "Use MPE Profileing" ON)
+option(GVT_MPE "Use MPE Profileing" OFF)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 SET(HOST_NAME $ENV{HOSTNAME})
