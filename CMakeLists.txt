@@ -271,6 +271,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
 		src/gvt/render/adapter/optix/data/Formats.h
 		src/gvt/render/adapter/optix/data/Transforms.h
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
 		)
 
@@ -280,6 +281,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.cpp
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.h

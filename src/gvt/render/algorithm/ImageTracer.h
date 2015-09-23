@@ -18,6 +18,7 @@
 #include <gvt/render/algorithm/TracerBase.h>
 
 #include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/optix/Wrapper.h>
 
 #include <boost/timer/timer.hpp>
 
@@ -35,6 +36,10 @@ namespace gvt {
 
                 // caches meshes that are converted into the adapter's format
                 std::map<gvt::core::Uuid, gvt::render::Adapter*> adapterCache;
+                //TODO: Make structure accept multiple Adapters for the same UUID
+
+
+
 
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
                 : AbstractTrace(rays, image)
@@ -102,6 +107,9 @@ namespace gvt {
                             gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
 
+
+                            //TODO: Make cache generic needs to accept any kind of adpater
+
                             // 'getAdapterFromCache' functionality
                             auto it = adapterCache.find(meshNode.UUID());
                             if(it != adapterCache.end()) {
@@ -114,12 +122,17 @@ namespace gvt {
                                     case gvt::render::adapter::Embree:
                                         adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
                                         break;
+                                    case gvt::render::adapter::Optix:
+                                        adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
+                                        break;
                                     default:
                                         GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
                                 }
 
                                 adapterCache[meshNode.UUID()] = adapter;
                             }
+
+
                             GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
                             // end getAdapterFromCache concept
 

@@ -1,22 +1,16 @@
 //
 //  RayTracer.C
 //
-
+#include "EmbreeRayTracer.h"
 #include "OptixRayTracer.h"
 
 #include <gvt/core/mpi/Wrapper.h>
+//#include <gvt/render/adapter/embree/Wrapper.h>
 #include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/scene/Camera.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/Schedulers.h>
-
-// Optix includes
-#include <Interface/LightSet.h>
-#include <Model/Lights/PointLight.h>
-#include <Model/Materials/Phong.h>
-#include <Model/Readers/PlyReader.h>
-// end Manta includes
 
 #include <boost/foreach.hpp>
 
