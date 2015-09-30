@@ -17,7 +17,9 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
+#endif
 
 #include <boost/timer/timer.hpp>
 
@@ -111,9 +113,11 @@ namespace gvt {
                             if(!adapter) {
                                 GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
                                 switch(adapterType) {
+#ifdef GVT_RENDER_ADAPTER_EMBREE
                                     case gvt::render::adapter::Embree:
                                         adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
                                         break;
+#endif
                                     default:
                                         GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
                                 }

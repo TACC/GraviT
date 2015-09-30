@@ -34,6 +34,11 @@ using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+int adapterType = gvt::render::adapter::Embree;
+#elif GVT_RENDER_ADAPTER_MANTA
+int adapterType = gvt::render::adapter::Manta;
+#endif
 //using namespace gvt::render::adapter::manta::data::domain;
 //using namespace gvt::render::adapter::optix::data::domain;
 //using namespace gvt::render::adapter::embree::data::domain;
@@ -223,7 +228,7 @@ int main(int argc, char** argv) {
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
 	//schedNode["type"] = gvt::render::scheduler::Image;
 	schedNode["type"] = gvt::render::scheduler::Domain;
-	schedNode["adapter"] = gvt::render::adapter::Embree;
+	schedNode["adapter"] = adapterType;
 
 #if 0
     std::cout << "\n-- db tree --" << std::endl;
