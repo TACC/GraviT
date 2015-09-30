@@ -274,6 +274,7 @@ struct parallelTrace
                         
                         // gvt::core::math::Vector4f normal = dom->toWorld(gvt::render::adapter::manta::data::transform<Manta::Vector, gvt::core::math::Vector4f>(mRays.getNormal(pindex)));
                         gvt::core::math::Vector4f normal = (*normi) * (gvt::core::math::Vector3f)(transform<Manta::Vector, Vector4f>(mRays.getNormal(pindex)));
+                        normal.normalize();
                         
                         if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) 
                         {
@@ -733,7 +734,7 @@ struct mantaParallelTrace
                                 ray.setDirection(light->position - ray.origin);
                                 gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
                                 ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
-                                // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
+                                //ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
                                 // localQueue.push_back(ray);
                                 shadowRays.push_back(ray);
                             }
