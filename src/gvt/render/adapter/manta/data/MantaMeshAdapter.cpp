@@ -331,6 +331,8 @@ struct parallelTrace
     }
 };
 
+// TODO: Warning! the following trace structure is still buggy.
+// Random stripes on the final image are seen.
 struct mantaParallelTrace 
 {
     /**

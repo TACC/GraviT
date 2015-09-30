@@ -170,8 +170,6 @@ int main(int argc, char** argv) {
     int instId = 0;
     int ii[2] = {-2, 3}; // i range
     int jj[2] = {-2, 3}; // j range
-    // int ii[2] = {0, 1}; // i range
-    // int jj[2] = {0, 1}; // j range
     for(int i=ii[0]; i<ii[1]; i++) {
         for(int j=jj[0]; j<jj[1]; j++) {
             gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
