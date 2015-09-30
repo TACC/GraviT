@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
         case gvt::render::scheduler::Image :
             {
                 std::cout << "starting image scheduler" << std::endl;
-                for(int z=0; z<10; z++) {
+                for(int z=0; z<1; z++) {
                     mycamera.AllocateCameraRays();
                     mycamera.generateRays();
                     gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();
