@@ -212,6 +212,11 @@ namespace gvt {
                                 Manta::Vector v0 = gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(mesh->vertices[i]);
                                 m->vertices.push_back(v0);
                             }
+                            for(int i=0; i < mesh->normals.size(); i++)
+                            {
+                                Manta::Vector v0 = gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(mesh->normals[i]);
+                                m->vertexNormals.push_back(v0);
+                            }
                             for (int i = 0; i < mesh->faces.size(); i++) 
                             {
                                 gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
@@ -221,6 +226,9 @@ namespace gvt {
                                 m->vertex_indices.push_back(boost::get<0>(f));
                                 m->vertex_indices.push_back(boost::get<1>(f));
                                 m->vertex_indices.push_back(boost::get<2>(f));
+                                m->normal_indices.push_back(boost::get<0>(f));
+                                m->normal_indices.push_back(boost::get<1>(f));
+                                m->normal_indices.push_back(boost::get<2>(f));
                                 m->face_material.push_back(0);
                                 m->addTriangle(new Manta::KenslerShirleyTriangle());
                             }

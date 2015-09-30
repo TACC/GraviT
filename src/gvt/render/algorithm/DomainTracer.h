@@ -9,6 +9,7 @@
 #define GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 
 #include <gvt/core/mpi/Wrapper.h>
+#include <gvt/render/Types.h>
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
@@ -16,6 +17,9 @@
 #include <gvt/render/algorithm/TracerBase.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/RenderContext.h>
+
+#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/manta/Wrapper.h>
 
 #include <boost/foreach.hpp>
 
@@ -259,6 +263,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
               switch(adapterType) {
                 case gvt::render::adapter::Embree:
                   adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
+                  break;
+                case gvt::render::adapter::Manta:
+                  adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
                   break;
                 default:
                   GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: " << adapterType);

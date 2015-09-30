@@ -84,6 +84,7 @@ public:
                        gvt::render::actor::RayVector& moved_rays,
                        gvt::core::DBNodeH instNode);
     // void trace(gvt::render::actor::RayVector& rayList, gvt::render::actor::RayVector& moved_rays);
+    //
     
 protected:
     /**

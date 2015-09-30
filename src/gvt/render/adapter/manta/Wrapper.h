@@ -10,6 +10,7 @@
 
 #include <gvt/render/adapter/manta/data/Transforms.h>
 #include <gvt/render/adapter/manta/data/domain/MantaDomain.h>
+#include <gvt/render/adapter/manta/data/MantaMeshAdapter.h>
 #include <gvt/render/data/Dataset.h>
 
 #endif	/* GVT_RENDER_ADAPTER_MANTA_WRAPPER_H */
