@@ -18,6 +18,7 @@
 #include <gvt/render/algorithm/TracerBase.h>
 
 #include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/manta/Wrapper.h>
 
 #include <boost/timer/timer.hpp>
 
@@ -113,6 +114,9 @@ namespace gvt {
                                 switch(adapterType) {
                                     case gvt::render::adapter::Embree:
                                         adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
+                                        break;
+                                    case gvt::render::adapter::Manta:
+                                        adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
                                         break;
                                     default:
                                         GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);

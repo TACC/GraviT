@@ -15,6 +15,7 @@
 //#include <gvt/render/adapter/manta/Wrapper.h>
 //#include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/manta/Wrapper.h>
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
@@ -37,6 +38,7 @@ using namespace gvt::render::data::primitives;
 //using namespace gvt::render::adapter::manta::data::domain;
 //using namespace gvt::render::adapter::optix::data::domain;
 using namespace gvt::render::adapter::embree::data::domain;
+using namespace gvt::render::adapter::manta::data::domain;
 
 void test_bvh(gvtPerspectiveCamera &camera);
 
@@ -221,9 +223,10 @@ int main(int argc, char** argv) {
 
     // TODO: schedule db design could be modified a bit
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
-	//schedNode["type"] = gvt::render::scheduler::Image;
-	schedNode["type"] = gvt::render::scheduler::Domain;
-	schedNode["adapter"] = gvt::render::adapter::Embree;
+	schedNode["type"] = gvt::render::scheduler::Image;
+	// schedNode["type"] = gvt::render::scheduler::Domain;
+	// schedNode["adapter"] = gvt::render::adapter::Embree;
+	schedNode["adapter"] = gvt::render::adapter::Manta;
 
 #if 0
     std::cout << "\n-- db tree --" << std::endl;
