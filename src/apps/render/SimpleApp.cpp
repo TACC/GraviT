@@ -12,10 +12,20 @@
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
-//#include <gvt/render/adapter/manta/Wrapper.h>
-//#include <gvt/render/adapter/optix/Wrapper.h>
+
+
+#ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+#include <gvt/render/adapter/optix/Wrapper.h>
+#endif
+
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
@@ -35,10 +45,15 @@ using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
-//using namespace gvt::render::adapter::manta::data::domain;
-//using namespace gvt::render::adapter::optix::data::domain;
-using namespace gvt::render::adapter::embree::data::domain;
-using namespace gvt::render::adapter::manta::data::domain;
+
+//  //using namespace gvt::render::adapter::manta::data::domain;
+//  //using namespace gvt::render::adapter::optix::data::domain;
+//  <<<<<<< HEAD
+//  using namespace gvt::render::adapter::embree::data::domain;
+//  using namespace gvt::render::adapter::manta::data::domain;
+//  =======
+//  //using namespace gvt::render::adapter::embree::data::domain;
+//  >>>>>>> origin/gvt27-28
 
 void test_bvh(gvtPerspectiveCamera &camera);
 
@@ -225,8 +240,18 @@ int main(int argc, char** argv) {
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
 	schedNode["type"] = gvt::render::scheduler::Image;
 	// schedNode["type"] = gvt::render::scheduler::Domain;
+
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+    int adapterType = gvt::render::adapter::Embree;
+#elif GVT_RENDER_ADAPTER_MANTA
+    int adapterType = gvt::render::adapter::Manta;
+#elif
+    GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+#endif
+
 	// schedNode["adapter"] = gvt::render::adapter::Embree;
-	schedNode["adapter"] = gvt::render::adapter::Manta;
+	// schedNode["adapter"] = gvt::render::adapter::Manta;
+	schedNode["adapter"] = adapterType;
 
 #if 0
     std::cout << "\n-- db tree --" << std::endl;
