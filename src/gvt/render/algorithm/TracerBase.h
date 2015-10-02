@@ -242,6 +242,9 @@ class AbstractTrace {
         gvt::render::actor::RayVector local(chunk);
         local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
         GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: looping through local rays: num local: " << local.size());
+				// go through the local list of rays and stash them in 
+				// local_queue[dom] where dom is the first "domain" the
+				// ray intersects. 
         for (gvt::render::actor::Ray& r : local) {
           gvt::render::actor::isecDomList& len2List = r.domains;
 

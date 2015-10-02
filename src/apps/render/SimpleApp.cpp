@@ -201,16 +201,16 @@ int main(int argc, char** argv) {
     // add lights, camera, and film to the database
     gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
     gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lightNode["position"] = Vector4f(1.0, 1.0, 1.0, 0.0);
-    lightNode["color"] = Vector4f(0.0, 1.0, 1.0, 0.0);
+    lightNode["position"] = Vector4f(1.0, 0.0, 0.0, 0.0);
+    lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
     // second light just for fun
     gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lN2["position"] = Vector4f(2.0, 2.0, 0.0, 0.0);
-    lN2["color"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+    lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
+    lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
 
 	gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
-	camNode["eyePoint"] = Point4f(1.0, 1.0, 1.0, 1.0);
+	camNode["eyePoint"] = Point4f(4.0, 0.0, 0.0, 1.0);
 	camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
 	camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
 	camNode["fov"] = (float)(45.0 * M_PI/180.0);
