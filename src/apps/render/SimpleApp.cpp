@@ -171,7 +171,8 @@ int main(int argc, char** argv) {
     for(int i=ii[0]; i<ii[1]; i++) {
         for(int j=jj[0]; j<jj[1]; j++) {
             gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-            gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
+            //gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
+            gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
             Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
 
             instnode["id"] = instId++;
@@ -205,9 +206,9 @@ int main(int argc, char** argv) {
     lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
     // second light just for fun
-    gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
-    lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
+    //gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+    //lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
+    //lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
 
 	gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
 	camNode["eyePoint"] = Point4f(4.0, 0.0, 0.0, 1.0);

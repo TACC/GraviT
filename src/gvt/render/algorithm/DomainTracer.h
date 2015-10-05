@@ -331,7 +331,6 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       // done with current domain, send off rays to their proper processors.
       GVT_DEBUG(DBG_ALWAYS, "Rank [ " << mpi.rank << "]  calling SendRays");
       SendRays();
-      //SendRays2();
       // are we done?
 
       // root proc takes empty flag from all procs
@@ -467,117 +466,6 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       if (*it % mpi.world_size != mpi.rank)
         neighbors.insert(*it % mpi.world_size);
   }
-	// sendrays to ranks where they belong. 
-	// given a collection of rayvectors in the form <instance,rayvector>
-	// send the rayvector associated with the instance to the rank
-	// that contains that instance. It may be the case that a rank contains
-	// multiple instances. In that case multiple rayvectors will be sent to
-	// that rank in the form of multiple sends. This is inefficient but
-	// simplifies packing and sending logic. 
-  virtual bool SendRays2() { // send rays to other ranks
-		if(mpi.world_size < 2) { // no place to go
-			return true;
-		}
-		int numInstances = mpiInstanceMap.size();
-		// arrays of pointers to buffers of unsigned char
-    unsigned char** send_buf = new unsigned char*[numInstances];
-    unsigned char** recv_buf = new unsigned char*[numInstances];
-		// status and request handles
-    MPI_Request* recvreqs = new MPI_Request[numInstances];
-    MPI_Request* sendreqs = new MPI_Request[numInstances];
-    MPI_Status* stat = new MPI_Status[numInstances];
-    int destination; // destination rank for particular queue
-		std::map<int,int> to_send; // <queue,destination> 
-		int tag;
-		// figure out if there are any ray vectors to send 
-		// and where to send them.
-		tag = 0; 
-		for (auto& q : queue) { // loop through queues
-			destination = mpiInstanceMap[instancenodes[q.first].UUID()];
-			if(destination != mpi.rank) { // find the queues that dont belong to this rank
-				to_send[q.first] = destination;
-				// calculate buffer size for this rayvector
-				int nbytes = 0;
-        for (int r = 0; r < q.second.size(); ++r) {
-          gvt::render::actor::Ray ray = (q.second)[r];
-					nbytes += ray.packedSize();
-				}
-				// allocate a large enough send buffer for rayvector
-        send_buf[q.first] = new unsigned char[nbytes];
-				// pack the buffer
-				int bufptr = 0;
-				for (int r=0; r < q.second.size(); ++r) {
-          gvt::render::actor::Ray ray = (q.second)[r];
-					bufptr += ray.pack(send_buf[q.first] + bufptr);
-        }
-				// send buffer off here
-				GVT_DEBUG(DBG_ALWAYS,"SENDRAYS2: rank["<< mpi.rank<< "] sending " << q.second.size() << " rays from queue "<< q.first << " to " << destination  << " bufptr= " << bufptr << " nbytes= " << nbytes );
-        MPI_Send(send_buf[q.first], bufptr, MPI_UNSIGNED_CHAR, destination,
-                  q.first, MPI_COMM_WORLD );
-				delete[] send_buf[q.first];
-        //MPI_Isend(send_buf[q.first], bufptr, MPI_UNSIGNED_CHAR, destination,
-         //         q.first, MPI_COMM_WORLD, &sendreqs[q.first]);
-			}
-		}
-		GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: done sending");
-		// post receives 
-		int flag = 0;
-		int reqcount = 0;
-		int count;
-		int source;
-		int destination_queue;
-		bool notdone = true;
-		while(notdone) { // probe for messages until none remain.
-			MPI_Iprobe(MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&flag,&stat[mpi.rank]);
-		// If there are no messages returned from the probe then
-		// assume we are done. We dont have any way of knowing if 
-		// a rank is due a message or not. 
-			if(flag) { // got a message so post receive. 
-				source = stat[mpi.rank].MPI_SOURCE;
-				destination_queue = stat[mpi.rank].MPI_TAG; // tag contains target queue
-				MPI_Get_count(&stat[mpi.rank],MPI_UNSIGNED_CHAR,&count);
-				GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: from " << source << " length " << count << " for queue " << destination_queue);
-				// allocate receive buffer 
-				recv_buf[destination_queue] = new unsigned char[count];
-				// post receive
-				MPI_Irecv(recv_buf[destination_queue],count,MPI_UNSIGNED_CHAR,source,destination_queue,MPI_COMM_WORLD,&recvreqs[reqcount]);
-				reqcount++;
-				flag = 0;
-			} else {
-				GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: done receiving " );
-				notdone = false;
-			}
-		}
-#if 0
-		// clean up sends while receives do their thing
-		if(to_send.size() != 0) { // see if we sent any queues
-			//while(!to_send.empty()) {
-				for(auto &it : to_send) {
-					//MPI_Test(&sendreqs[it.first],&flag,&stat[it.first]);
-					if(sendreqs[it.first]!=MPI_REQUEST_NULL) { 
-					GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: waiting on " << it.first  );
-					MPI_Wait(&sendreqs[it.first],&stat[it.first]);
-					GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: " << it.first << " finished" );
-					} else {
-					GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: " << it.first << " got null request"  );
-					}
-					//GVT_DEBUG(DBG_ALWAYS,"rank["<< mpi.rank<< "] SENDRAYS2: testing " << it.first << " flag " << flag);
-					//if(flag) {
-					//	delete[] send_buf[it.first];
-						//to_send.erase(it.first);
-					//	flag=0;
-					//}
-				} 
-			}
-#endif
-		delete [] recvreqs;
-		delete [] sendreqs;
-		delete [] stat;
-		delete [] send_buf;
-		delete [] recv_buf;
-		return false;
-	}
-  // FIXME: update SendRays to use mpiInstanceMap
   virtual bool SendRays() {
     int* outbound = new int[2 * mpi.world_size];
     int* inbound = new int[2 * mpi.world_size];
@@ -587,6 +475,8 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     unsigned char** recv_buf = new unsigned char*[mpi.world_size];
     int* send_buf_ptr = new int[mpi.world_size];
 
+		// if there is only one rank we dont need to go through this routine. 
+		if(mpi.rank < 2 ) return false;
     // init bufs
     for (int i = 0; i < 2 * mpi.world_size; ++i) {
       inbound[i] = outbound[i] = 0;
