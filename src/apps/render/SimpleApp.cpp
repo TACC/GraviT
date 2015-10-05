@@ -223,7 +223,8 @@ int main(int argc, char** argv) {
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
 	schedNode["type"] = gvt::render::scheduler::Image;
 	//schedNode["type"] = gvt::render::scheduler::Domain;
-	schedNode["adapter"] = gvt::render::adapter::Optix;
+	//schedNode["adapter"] = gvt::render::adapter::Embree;
+    schedNode["adapter"] = gvt::render::adapter::Optix;
 
 #if 0
     std::cout << "\n-- db tree --" << std::endl;

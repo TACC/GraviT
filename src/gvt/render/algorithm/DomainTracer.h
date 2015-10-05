@@ -18,6 +18,9 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/RenderContext.h>
 
+#include <gvt/render/adapter/Embree/Wrapper.h>
+#include <gvt/render/adapter/Optix/Wrapper.h>
+
 #include <boost/foreach.hpp>
 
 #include <set>
@@ -274,6 +277,9 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
               switch(adapterType) {
                 case gvt::render::adapter::Embree:
                   adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
+                  break;
+                case gvt::render::adapter::Optix:
+                  adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
                   break;
                 default:
                   GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: " << adapterType);

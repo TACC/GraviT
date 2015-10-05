@@ -3,10 +3,11 @@
 
 #include "gvt/render/Adapter.h"
 
-#include <embree2/rtcore.h>
-#include <embree2/rtcore_ray.h>
-
 #include <string>
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <optix_prime/optix_primepp.h>
 
 namespace gvt {
 namespace render {
@@ -33,7 +34,7 @@ public:
     /**
      * Return the Embree scene handle;
      */
-    RTCScene getScene() const { return scene; }
+    ::optix::prime::Model getScene() const { return optix_model_; }
 
     /**
      * Return the geometry id.
@@ -43,7 +44,7 @@ public:
     /**
      * Return the packet size
      */
-    RTCAlgorithmFlags getPacketSize () const { return packetSize; }
+    unsigned long long getPacketSize () const { return packetSize; }
 
     /**
      * Trace rays using the Embree adapter.
@@ -60,8 +61,23 @@ public:
             gvt::core::DBNodeH instNode);
 
 protected:
+
+
     /**
-     * Static bool to initialize Embree (calling rtcInit) before use.
+     * Handle to Optix context.
+     */
+    ::optix::prime::Context optix_context_;
+
+    /**
+     * Handle to Optix model.
+     */
+    ::optix::prime::Model optix_model_;
+
+
+    float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); 
+
+    /**
+     * Static bool to initialize Optix before use.
      * 
      * // TODO: this will need to move in the future when we have different types of Embree adapters (ex: mesh + volume)
      */
@@ -70,12 +86,12 @@ protected:
     /**
      * Currently selected packet size flag.
      */
-    RTCAlgorithmFlags packetSize;
+    unsigned long long packetSize;
 
     /**
      * Handle to Embree scene.
      */
-    RTCScene scene;
+    // RTCScene scene;
 
     /**
      * Handle to the Embree triangle mesh.
