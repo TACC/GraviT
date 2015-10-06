@@ -500,24 +500,24 @@ struct OptixParallelTrace {
                 Vector4f manualNormal;
                 {
                   const int triangle_id = hits[pi].triangle_id;
-                  const float uh = hits[pi].u;
-                  const float vh = hits[pi].v;
-                  // const Mesh::FaceToNormals &normals =
-                  //     mesh->faces_to_normals[triangle_id];  // FIXME: need to
-                  //                                           // figure out
-                  // where
-                  //                                           // to store
-                  // // `faces_to_normals`
-                  // // list
-                  // const Vector4f &a = mesh->normals[normals.get<1>()];
-                  // const Vector4f &b = mesh->normals[normals.get<2>()];
-                  // const Vector4f &c = mesh->normals[normals.get<0>()];
-                  // manualNormal = a * u + b * v + c * (1.0f - u - v);
+#ifndef FLAT_SHADING
+                  const float u = hits[pi].u;
+                  const float v = hits[pi].v;
+                  const Mesh::FaceToNormals &normals =
+                      mesh->faces_to_normals[triangle_id];  // FIXME: need to
+                                                            // figure out
+                                                            // to store
+                  // `faces_to_normals`
+                  // list
+                  const Vector4f &a = mesh->normals[normals.get<1>()];
+                  const Vector4f &b = mesh->normals[normals.get<2>()];
+                  const Vector4f &c = mesh->normals[normals.get<0>()];
+                  manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                  // manualNormal =
-                  //     (*normi) * (gvt::core::math::Vector3f)manualNormal;
-                  // manualNormal.normalize();
-
+                  manualNormal =
+                      (*normi) * (gvt::core::math::Vector3f)manualNormal;
+                  manualNormal.normalize();
+#else
                   int I = mesh->faces[triangle_id].get<0>();
                   int J = mesh->faces[triangle_id].get<1>();
                   int K = mesh->faces[triangle_id].get<2>();
@@ -533,6 +533,7 @@ struct OptixParallelTrace {
                   normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
                   normal.n[3] = 0.0f;
                   manualNormal = normal.normalize();
+#endif
 
 
                 }
