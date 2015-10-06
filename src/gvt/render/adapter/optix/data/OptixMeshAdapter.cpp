@@ -39,7 +39,7 @@ static std::atomic<size_t> counter(0);
 
 bool OptixMeshAdapter::init = false;
 
-OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
+OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) : Adapter(node), packetSize(4096) {
 
   Mesh *mesh = gvt::core::variant_toMeshPtr(node["ptr"].value());
 
@@ -246,7 +246,7 @@ struct OptixParallelTrace {
   /**
    * Size of Embree packet
    */
-  const size_t packetSize; // TODO: later make this configurable
+  const size_t packetSize = 4096; // TODO: later make this configurable
 
   /**
    * Construct a OptixParallelTrace struct with information needed for the
@@ -297,7 +297,7 @@ struct OptixParallelTrace {
         optix_ray.direction[1] = direction[1];
         optix_ray.direction[2] = direction[2];
         optix_ray.t_max = FLT_MAX;
-        optixrays.push_back(optix_ray);
+        optixrays[i] = optix_ray;
       }
     }
   }
@@ -468,8 +468,14 @@ struct OptixParallelTrace {
     auto mesh = gvt::core::variant_toMeshPtr(
         instNode["meshRef"].deRef()["ptr"].value());
 
+
+    GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: getting model [hack for now]");
     ::optix::prime::Model scene = adapter->getScene();
+
+
+    GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: reserve local dispatch queue [hack for now]");
     localDispatch.reserve(rayList.size() * 2);
+
 
     // there is an upper bound on the nubmer of shadow rays generated per embree
     // packet
@@ -503,13 +509,18 @@ struct OptixParallelTrace {
 
       GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: working on rays ["
                                 << workStart << ", " << workEnd << "]");
-      for (size_t localIdx = workStart; localIdx < workEnd;
-           localIdx += packetSize) {
+      //return;
+      for (size_t localIdx = workStart; localIdx < workEnd; localIdx += packetSize) {
+
+         GVT_DEBUG(DBG_ALWAYS, "Local start index: " << localIdx);
+
         // this is the local packet size. this might be less than the main
         // packetSize due to uneven amount of rays
         const size_t localPacketSize = (localIdx + packetSize > workEnd)
                                            ? (workEnd - localIdx)
                                            : packetSize;
+
+        GVT_DEBUG(DBG_ALWAYS, "Local packet size : " << localPacketSize << " Packet size :" << packetSize);
 
         // trace a packet of rays, then keep tracing the generated secondary
         // rays to completion
@@ -526,47 +537,48 @@ struct OptixParallelTrace {
 
         std::vector<bool> valid(localPacketSize);
         std::vector<OptixRay> optix_rays(localPacketSize);
-        prepOptixRays(optix_rays, valid, true, localPacketSize, shadowRays,
-                      localIdx);
+        std::vector<OptixHit> hits(localPacketSize);
+
 
         std::fill(valid.begin(), valid.end(), true);
 
         while (validRayLeft) {
           validRayLeft = false;
 
-          // prepRTCRay4(ray4, valid, resetValid, localPacketSize, rayList,
-          //             localIdx);
-          // rtcIntersect4(valid, scene, ray4);
-          // resetValid = false;
+          GVT_DEBUG(DBG_ALWAYS, "Packing rays");
+          prepOptixRays(optix_rays, valid, true, localPacketSize, shadowRays,
+                      localIdx);
 
-          //(localPacketSize);
-
-          std::vector<OptixHit> hits(optix_rays.size());
-          ; //(localPacketSize);
-
+          GVT_DEBUG(DBG_ALWAYS, "Create Query");
           ::optix::prime::Query query =
-              adapter->getScene()->createQuery(RTP_QUERY_TYPE_ANY);
+              adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
 
+          GVT_DEBUG(DBG_ALWAYS, "Set rays");
           query->setRays(optix_rays.size(),
                          RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
                          RTP_BUFFER_TYPE_HOST, &optix_rays[0]);
 
+          GVT_DEBUG(DBG_ALWAYS, "Set hits");
           // Create and pass hit results in an Optix friendly format.
           query->setHits(hits.size(), RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V,
                          RTP_BUFFER_TYPE_HOST, &hits[0]);
 
+          GVT_DEBUG(DBG_ALWAYS, "Query");
           // Execute our query and wait for it to finish.
           query->execute(RTP_QUERY_HINT_ASYNC);
           query->finish();
+
           GVT_ASSERT(query.isValid(), "Something went wrong.");
 
+          GVT_DEBUG(DBG_ALWAYS, "Finished query");
           for (size_t pi = 0; pi < localPacketSize; pi++) {
             if (valid[pi]) {
               // counter++; // tracks rays processed [atomic]
+              GVT_DEBUG(DBG_ALWAYS, "Get ray index" << (localIdx + pi));
               auto &r = rayList[localIdx + pi];
-              if (hits[pi].triangle_id < 0) {
+              if (hits[pi].triangle_id >= 0) {
                 // ray has hit something
-
+                 GVT_DEBUG(DBG_ALWAYS, "Able to find ray : " << (localIdx + pi));
                 // shadow ray hit something, so it should be dropped
                 if (r.type == gvt::render::actor::Ray::SHADOW) {
                   continue;
@@ -588,8 +600,11 @@ struct OptixParallelTrace {
                 // Vector4f embreeNormal = Vector4f(ray4.Ngx[pi], ray4.Ngy[pi],
                 // ray4.Ngz[pi], 0.0);
 
+
+                GVT_DEBUG(DBG_ALWAYS, "Going to generate shadow ");
                 Vector4f manualNormal;
                 {
+                  GVT_DEBUG(DBG_ALWAYS, "Get triangle " << hits[pi].triangle_id);
                   const int triangle_id = hits[pi].triangle_id;
                   const float u = hits[pi].u;
                   const float v = hits[pi].v;
@@ -616,8 +631,9 @@ struct OptixParallelTrace {
                   r.w = r.w * t;
                 }
 
+                GVT_DEBUG(DBG_ALWAYS, "Going to generate shadow ");
                 generateShadowRays(r, normal, hits[pi].triangle_id, mesh);
-
+                GVT_DEBUG(DBG_ALWAYS, "Generate shadow ");
                 int ndepth = r.depth - 1;
                 float p = 1.f - (float(rand()) / RAND_MAX);
                 // replace current ray with generated secondary ray
@@ -648,6 +664,8 @@ struct OptixParallelTrace {
                       true; // we still have a valid ray in the packet to trace
                 } else {
                   // secondary ray is terminated, so disable its valid bit
+                  valid[pi] = false;
+
                 }
               } else {
                 // ray is valid, but did not hit anything, so add to dispatch
@@ -706,8 +724,8 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
   std::atomic<size_t> sharedIdx(0); // shared index into rayList
-  const size_t numThreads =
-      gvt::core::schedule::asyncExec::instance()->numThreads;
+  const size_t numThreads = 1;
+      //gvt::core::schedule::asyncExec::instance()->numThreads;
   const size_t workSize = std::max(
       (size_t)8,
       (size_t)(rayList.size() /

@@ -17,8 +17,17 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_MANTA
+#include <gvt/render/adapter/manta/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/Wrapper.h>
+#endif
 
 #include <boost/timer/timer.hpp>
 
@@ -36,11 +45,6 @@ namespace gvt {
 
                 // caches meshes that are converted into the adapter's format
                 std::map<gvt::core::Uuid, gvt::render::Adapter*> adapterCache;
-                //TODO: Make structure accept multiple Adapters for the same UUID
-
-
-
-
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
                 : AbstractTrace(rays, image)
                 {
@@ -119,12 +123,21 @@ namespace gvt {
                             if(!adapter) {
                                 GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
                                 switch(adapterType) {
+#ifdef GVT_RENDER_ADAPTER_EMBREE
                                     case gvt::render::adapter::Embree:
                                         adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
                                         break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_MANTA
+                                    case gvt::render::adapter::Manta:
+                                        adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
+                                        break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_OPTIX
                                     case gvt::render::adapter::Optix:
                                         adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
                                         break;
+#endif
                                     default:
                                         GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
                                 }

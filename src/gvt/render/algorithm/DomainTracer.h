@@ -9,6 +9,7 @@
 #define GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 
 #include <gvt/core/mpi/Wrapper.h>
+#include <gvt/render/Types.h>
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
@@ -18,8 +19,16 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/RenderContext.h>
 
-#include <gvt/render/adapter/Embree/Wrapper.h>
-#include <gvt/render/adapter/Optix/Wrapper.h>
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+#include <gvt/render/adapter/embree/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_MANTA
+#include <gvt/render/adapter/manta/Wrapper.h>
+#endif
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+#include <gvt/render/adapter/optix/Wrapper.h>
+#endif
 
 #include <boost/foreach.hpp>
 
@@ -105,7 +114,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
     for(auto e : queue) {
       if(mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
-        GVT_DEBUG(DBG_ALWAYS, "clearing queue " << e);
+        //GVT_DEBUG(DBG_ALWAYS, "clearing queue " << e);
         queue[e.first].clear();
       }
     }
@@ -275,19 +284,28 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
             if(!adapter) {
               GVT_DEBUG(DBG_ALWAYS, "domain scheduler: creating new adapter");
               switch(adapterType) {
+#ifdef GVT_RENDER_ADAPTER_EMBREE
                 case gvt::render::adapter::Embree:
                   adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
                   break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_MANTA
+                case gvt::render::adapter::Manta:
+                  adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
+                  break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_OPTIX
                 case gvt::render::adapter::Optix:
                   adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
                   break;
+#endif
                 default:
                   GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: " << adapterType);
               }
               //adapterCache[meshNode.UUID()] = adapter;
             }
             // end 'getAdapterFromCache' concept
-            // 
+            //
           }
           GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
 
