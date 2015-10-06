@@ -12,6 +12,11 @@ namespace gvt {
             template<class T> class Deg;
             template<class T> class Rad;
 
+            // angle in degrees
+          /** 
+          templated class to represent an angle in degrees. 
+          Templeted to allow both single and double precision representation.
+          */
             template<class T> class Deg: public Unit<Deg, T> 
             {
             public:
@@ -26,6 +31,11 @@ namespace gvt {
                Deg(Unit<Rad, T> value);
            };
 
+            // angle in radians
+          /** 
+          templated class to represent an angle in radians. 
+          Templeted to allow both single and double precision representation.
+          */
            template<class T> class Rad: 
            public Unit<Rad, T> 
            {

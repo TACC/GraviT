@@ -11,6 +11,7 @@
 namespace gvt {
     namespace core {
         namespace mpi {
+            /// base class for a processing node in MPI-based communications
             class SingleNode  
             {    
             public:

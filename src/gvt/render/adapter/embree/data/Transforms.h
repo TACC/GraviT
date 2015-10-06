@@ -21,6 +21,7 @@ namespace gvt {
                 namespace data {
                     GVT_TRANSFORM_TEMPLATE; // see gvt/core/data/Transform.h
 
+                    /// return an Embree-compliant point
                     template<>
                     struct transform_impl<float[3], gvt::core::math::Point4f >
                     {
@@ -31,16 +32,17 @@ namespace gvt {
                     };
 
 
+                    /// return an Embree-compliant vector
                     template<>
                     struct transform_impl<float[3], gvt::core::math::Vector4f >
                     {
                         static inline gvt::core::math::Vector4f transform(const float r[3])
                         {
-                            return gvt::core::math::Point4f(r[0], r[1], r[2], 0.f);
+                            return gvt::core::math::Vector4f(r[0], r[1], r[2], 0.f);
                         }
                     };
 
-
+                    /// return an Embree-compliant ray from a GraviT ray
                     template<>
                     struct transform_impl<gvt::render::actor::Ray, RTCRay>
                     {
@@ -57,6 +59,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant ray from an Embree ray
                     template<>
                     struct transform_impl<RTCRay, gvt::render::actor::Ray>
                     {

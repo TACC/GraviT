@@ -13,7 +13,10 @@ namespace render {
 namespace adapter {
 namespace embree {
 namespace data {
-
+/// mesh adapter for Intel Embree ray tracer
+/** this helper class transforms mesh data from the GraviT internal format 
+to the format expected by Intel's Embree ray tracer
+*/
 class EmbreeMeshAdapter : public gvt::render::Adapter
 {
 public:

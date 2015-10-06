@@ -22,7 +22,10 @@ namespace gvt {
             namespace embree {
                 namespace data {
                     namespace domain {
-
+                        /// data adapter for Intel Embree ray tracer
+                        /** this helper class transforms geometry data from the GraviT internal format 
+                        to the format expected by Intel's Embree ray tracer
+                        */
                         class EmbreeDomain : public gvt::render::data::domain::GeometryDomain 
                         {
                         public:

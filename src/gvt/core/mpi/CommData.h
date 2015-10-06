@@ -14,6 +14,10 @@
 namespace gvt {
     namespace core {
         namespace mpi {
+            /// data struct for MPI-based communication
+            /** helper struct to organize MPI-based communication.
+                \sa 
+            */
             struct comm_data 
             {
                 std::vector<int> *to_send;

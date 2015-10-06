@@ -29,6 +29,14 @@
 using namespace std;
 using namespace gvtapps::render;
 
+/// command-line renderer using compile-time specified engine
+/**
+  command-line ray tracing renderer that uses the engine(s) activated
+  during CMake configuration. Available engines include:
+   - Manta (mantawiki.sci.utah.edu)
+   - Embree (embree.github.io)
+   - Optix Prime (developer.nvidia.com/optix)
+ */
 int main(int argc, char** argv) {
 
   MPI_Init(&argc, &argv);
@@ -55,7 +63,7 @@ int main(int argc, char** argv) {
     domain_choosen = true;
     MantaRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(imagename);
+    rt.RenderImage(imagename+"_manta");
   }
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
@@ -64,7 +72,7 @@ int main(int argc, char** argv) {
     domain_choosen = true;
     OptixRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(imagename);
+    rt.RenderImage(imagename+"_optix");
   }
 #endif
 #ifdef GVT_RENDER_ADAPTER_EMBREE
@@ -73,7 +81,7 @@ int main(int argc, char** argv) {
     domain_choosen = true;
     EmbreeRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(imagename);
+    rt.RenderImage(imagename+"_embree");
   }
 #endif
 

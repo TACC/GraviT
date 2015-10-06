@@ -22,6 +22,10 @@
 
             typedef boost::function< void() > Task;
 
+            /// base class for threaded GraviT components
+            /** base class for asynchronously-executing components of GraviT.
+            This class manages thread execution and synchronization
+            */
             class asyncExec {
             protected:
                 std::queue< boost::function< void() > > tasks_;

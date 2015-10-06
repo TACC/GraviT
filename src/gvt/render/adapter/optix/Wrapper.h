@@ -11,5 +11,7 @@
 #include <gvt/render/adapter/optix/data/Transforms.h>
 #include <gvt/render/adapter/optix/data/domain/OptixDomain.h>
  
+/// single include for all OptiX-specific headers
+
 #endif	/* GVT_RENDER_ADAPTER_OPTIX_WRAPPER_H */
 

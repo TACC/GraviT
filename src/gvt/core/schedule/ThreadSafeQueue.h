@@ -17,6 +17,7 @@
     namespace core {
         namespace schedule {
         template<class T, bool threadsafe = true >
+            /// a thread-safe queue implementation
             class ThreadSafeQueue {
             public:
 

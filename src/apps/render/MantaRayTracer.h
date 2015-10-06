@@ -21,7 +21,13 @@
 
 namespace gvtapps {
     namespace render {
+        /// Render using the SCI Manta ray tracer
+        /** 
+            Ray traces a scene using the SCI Manta ray tracing engine (http://mantawiki.sci.utah.edu).
+            Ray tracer is initialized using a configuration file and rendered using RenderImage
 
+            \sa ConfigFileLoader, EmbreeRayTracer, OptixRayTracer
+        */
         class MantaRayTracer
         {
         public:

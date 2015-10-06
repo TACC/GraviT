@@ -1,7 +1,11 @@
-//
-// Simple gravit application.
-// Load some geometry and render it.
-//
+/**
+ * A simple GraviT application that loads some geometry and renders it.
+ *
+ * This application renders a simple scene of cones and cubes using the GraviT interface.
+ * This will run in both single-process and MPI modes. You can alter the work scheduler 
+ * used by changing line 242.
+ * 
+*/
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Types.h>
 #include <vector>

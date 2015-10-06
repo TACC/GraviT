@@ -37,8 +37,19 @@ using namespace gvt::core::mpi;
 namespace gvt {
 namespace render {
 namespace algorithm {
-/// Tracer Domain (DomainSchedule) based decomposition implementation
 
+/// work scheduler that strives to keep domains loaded and send rays
+/**
+  The Domain scheduler strives to schedule work such that loaded domains remain loaded 
+  and rays are sent to the process that contains the loaded domain (or is responsible for loading the domain).
+  A domain is loaded in at most one process at any time. If there are sufficent processes to load
+  all domains, the entire render will proceed in-core.
+
+  This scheduler can become unbalanced when:
+   - there are more processes than domains, excess processes will remain idle
+   - rays are concentrated at a few domains, processes with other domains loaded can remain idle
+   - when there are few rays remaining to render, other processes can remain idle
+   */
 template <>
 class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
  public:

@@ -14,6 +14,7 @@ namespace adapter {
 namespace optix {
 namespace data {
 
+/// OptiX ray format
 struct OptixRay {
   float origin[3];
   float t_min;
@@ -26,6 +27,7 @@ struct OptixRay {
   }
 };
 
+/// OptiX hit format
 struct OptixHit {
   float t;
   int triangle_id;

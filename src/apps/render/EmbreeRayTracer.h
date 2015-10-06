@@ -20,7 +20,13 @@
 
 namespace gvtapps {
     namespace render {
+        /// Render using the Intel Embree ray tracer
+        /** 
+            Ray traces a scene using the Intel Embree ray tracing engine (http://embree.github.io).
+            Ray tracer is initialized using a configuration file and rendered using RenderImage
 
+            \sa ConfigFileLoader, MantaRayTracer, OptixRayTracer
+        */
         class EmbreeRayTracer
         {
         public:

@@ -54,6 +54,11 @@ struct GVT_COMM {
 
 struct processRay;
 
+/// base tracer class for GraviT ray tracing framework
+/** 
+  This is the base class for the GraviT ray tracing framework on which the work schedulers are implemented.
+  \sa DomainTracer, HybridTracer, ImageTracer
+  */
 class AbstractTrace {
  public:
   ///! Define mpi communication world

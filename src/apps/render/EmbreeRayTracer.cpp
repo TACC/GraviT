@@ -24,6 +24,10 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
+/// constructor
+/**
+ * \param cl configuration file loader for ray tracer initalization
+ */
 EmbreeRayTracer::EmbreeRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
     std::cout << "constructing embree ray tracer" << std::endl;
@@ -73,6 +77,10 @@ EmbreeRayTracer::EmbreeRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
     std::cout << "finished constructing EmbreeRayTracer" << std::endl;
 }
 
+/// render the image using the Embree ray tracer
+/**
+    \param imagename filename for the output image
+*/
 void EmbreeRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
 
