@@ -58,9 +58,9 @@ Lambert::~Lambert()
 Vector4f Lambert::shade(const Ray&  ray, const Vector4f& N, const Light* lightSource) 
 {
 
-    Point4f L = ray.direction;
-    L = L.normalize();
-    float NdotL = std::max(0.f, N*L);
+    Point4f V = ray.direction;
+    V = V.normalize();
+    float NdotL = std::max(0.f, std::abs(N * V));
     Color lightSourceContrib = lightSource->contribution(ray);
     Color diffuse = prod(lightSourceContrib, kd * NdotL) * ray.w;
     return diffuse;

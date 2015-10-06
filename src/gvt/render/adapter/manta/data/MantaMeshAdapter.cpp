@@ -481,47 +481,16 @@ struct mantaParallelTrace
     void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal, gvt::render::data::primitives::Mesh* mesh) {
         for(gvt::render::data::scene::Light* light : lights) {
             GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-            // Try to ensure that the shadow ray is on the correct side of the triangle.
-            // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
-            // Using about 8 * ULP(t).
-            // const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
-            // const float t_shadow = multiplier * r.t;
-
-            // const Point4f origin = r.origin + r.direction * t_shadow;
-            // const Vector4f dir = light->position - origin;
-            // const float t_max = dir.length();
-
-            // // note: ray copy constructor is too heavy, so going to build it manually
-            // shadowRays.push_back(Ray(origin, dir, r.w, Ray::SHADOW, r.depth));
-
-            // Ray &shadow_ray = shadowRays.back();
-            // shadow_ray.t = r.t;
-            // shadow_ray.id = r.id;
-            // shadow_ray.t_max = t_max;
-
-            // // FIXME: remove dependency on mesh->shadeFace
-            // // gvt::render::data::Color c = mesh->shadeFace(primID, shadow_ray, normal, light);
-            // gvt::render::data::Color c = mesh->mat->shade(shadow_ray, normal, light);
-            // shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
-            // // shadow_ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
-            // gvt::render::actor::Ray ray(rayPacket[pindex]);
             const Point4f origin = r.origin + r.direction * r.t;
             const Vector4f dir = light->position - origin;
             const float t_max = dir.length();
-            // r.domains.clear();
-            shadowRays.push_back(Ray(origin, dir, r.w, Ray::SHADOW, r.depth));
-
+            shadowRays.push_back(Ray(origin, dir.normalize(), r.w, Ray::SHADOW, r.depth));
             Ray &shadow_ray = shadowRays.back();
-
             shadow_ray.t = r.t;
             shadow_ray.id = r.id;
             shadow_ray.t_max = t_max;
-
             gvt::render::data::Color c = mesh->mat->shade(r, normal, light);
-            //ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
-            // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
             shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
-            // localQueue.push_back(ray);
         }
     }
 
