@@ -44,7 +44,7 @@ PROJECT_NUMBER         =
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = 
+PROJECT_BRIEF          = "Scalable, Platform-Independent Ray Tracing"
 
 # With the PROJECT_LOGO tag one can specify an logo or icon that is included in
 # the documentation. The maximum height of the logo should not exceed 55 pixels
@@ -743,10 +743,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/doc \
-                         @CMAKE_CURRENT_SOURCE_DIR@/src/GVT \
-                         @CMAKE_CURRENT_SOURCE_DIR@/src/Frontend \
-                         @CMAKE_CURRENT_SOURCE_DIR@/src/Backend
+INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/src 
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -768,6 +765,8 @@ INPUT_ENCODING         = UTF-8
 
 FILE_PATTERNS          = *.dox \
                          *.cpp \
+                         *.cu \
+                         *.inl \
                          *.h \
                          *.ih
 
@@ -801,6 +800,8 @@ EXCLUDE_SYMLINKS       = NO
 # exclude all test directories for example use the pattern */test/*
 
 EXCLUDE_PATTERNS       = */.svn/* \
+						 */.git/* \
+						 CMakeLists.txt \
                          /opt/* \
                          /usr/*
 
@@ -1167,7 +1168,7 @@ GENERATE_DOCSET        = NO
 # The default value is: Doxygen generated docs.
 # This tag requires that the tag GENERATE_DOCSET is set to YES.
 
-DOCSET_FEEDNAME        = "Doxygen generated docs"
+DOCSET_FEEDNAME        = "GraviT Doxygen docs"
 
 # This tag specifies a string that should uniquely identify the documentation
 # set bundle. This should be a reverse domain-name style string, e.g.
