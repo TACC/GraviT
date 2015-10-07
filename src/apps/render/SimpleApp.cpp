@@ -139,12 +139,25 @@ int main(int argc, char** argv) {
         mesh->addFace(6, 8, 7);
         mesh->addFace(5, 1, 4);
         mesh->addFace(5, 4, 8);
-        mesh->addFace(1, 2, 6);
-        mesh->addFace(1, 6, 5);
+        mesh->addFace(1, 5, 6);
+        mesh->addFace(1, 6, 2);
         mesh->addFace(4, 3, 7);
         mesh->addFace(4, 7, 8);
         mesh->generateNormals();
 
+        //mesh->addFace(1, 2, 3);
+        //mesh->addFace(1, 3, 4);
+        //mesh->addFace(2, 6, 7);
+        //mesh->addFace(2, 7, 3);
+        //mesh->addFace(6, 5, 8);
+        //mesh->addFace(6, 8, 7);
+        //mesh->addFace(5, 1, 4);
+        //mesh->addFace(5, 4, 8);
+        //mesh->addFace(1, 2, 6);
+        //mesh->addFace(1, 6, 5);
+        //mesh->addFace(4, 3, 7);
+        //mesh->addFace(4, 7, 8);
+        //mesh->generateNormals();
         // calculate bbox
         Point4f lower = points[0], upper = points[0];
         for(int i=1; i<numPoints; i++) {

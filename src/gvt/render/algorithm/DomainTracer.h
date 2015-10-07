@@ -589,10 +589,10 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       }
     }
 
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << ": q(" << queue.size()
-                                << ") erasing " << to_del.size());
-    for (int i = 0; i < to_del.size(); ++i) queue.erase(to_del[i]);
-    GVT_DEBUG(DBG_ALWAYS,  " q(" << queue.size() << ")" << std::endl);
+    //GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << ": q(" << queue.size()
+    //                            << ") erasing " << to_del.size());
+    //for (int i = 0; i < to_del.size(); ++i) queue.erase(to_del[i]);
+    //GVT_DEBUG(DBG_ALWAYS,  " q(" << queue.size() << ")" << std::endl);
 
     MPI_Waitall(2 * mpi.world_size, reqs,
                 stat);  // XXX TODO refactor to use Waitany?

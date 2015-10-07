@@ -342,11 +342,11 @@ struct embreeParallelTrace
     void operator()()
     {
 #ifdef GVT_USE_DEBUG
-        boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: thread trace time: %w\n");
+        //boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: thread trace time: %w\n");
 #endif
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: started thread");
+        //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: started thread");
 
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
+        //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
         // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals and shading calculations
         auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
 
@@ -357,7 +357,7 @@ struct embreeParallelTrace
         // its embree_packetSize * lights.size()
         shadowRays.reserve(packetSize * lights.size());
 
-        GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
+        //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
         while (sharedIdx < rayList.size())
         {
@@ -382,7 +382,7 @@ struct embreeParallelTrace
             RTCRay4 ray4 = {};
             RTCORE_ALIGN(16) int valid[4] = {0};
 
-            GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays [" << workStart << ", " << workEnd << "]");
+            //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays [" << workStart << ", " << workEnd << "]");
             for(size_t localIdx = workStart; localIdx < workEnd; localIdx += packetSize)
             {
                 // this is the local packet size. this might be less than the main packetSize due to uneven amount of rays
@@ -501,8 +501,8 @@ struct embreeParallelTrace
                 default: other_count++; break;
             }
         }
-        GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size()
-                << ", types: primary: " << primary_count << ", shadow: " << shadow_count << ", secondary: " << secondary_count << ", other: " << other_count);
+        //GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size()
+         //       << ", types: primary: " << primary_count << ", shadow: " << shadow_count << ", secondary: " << secondary_count << ", other: " << other_count);
 #endif
 
         // copy localDispatch rays to outgoing rays queue
@@ -521,13 +521,13 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::rende
     const size_t numThreads = gvt::core::schedule::asyncExec::instance()->numThreads;
     const size_t workSize = std::max((size_t) 8, (size_t) (rayList.size() / (numThreads * 8))); // size of 'chunk' of rays to work on
 
-    GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: trace: instNode: " << gvt::core::uuid_toString(instNode.UUID()) << ", rays: " << rayList.size() << ", workSize: " << workSize << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
+    //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: trace: instNode: " << gvt::core::uuid_toString(instNode.UUID()) << ", rays: " << rayList.size() << ", workSize: " << workSize << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
 
     // pull out information out of the database, create local structs that will be passed into the parallel struct
     gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
 
     // pull out instance transform data
-    GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting instance transform data");
+    //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting instance transform data");
     gvt::core::math::AffineTransformMatrix<float> *m = gvt::core::variant_toAffineTransformMatPtr(instNode["mat"].value());
     gvt::core::math::AffineTransformMatrix<float> *minv = gvt::core::variant_toAffineTransformMatPtr(instNode["matInv"].value());
     gvt::core::math::Matrix3f *normi = gvt::core::variant_toMatrix3fPtr(instNode["normi"].value());
@@ -549,7 +549,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::rende
             lights.push_back(new gvt::render::data::scene::AmbientLight(color));
         }
     }
-    GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converted " << lightNodes.size() << " light nodes into structs: size: " << lights.size());
+    //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converted " << lightNodes.size() << " light nodes into structs: size: " << lights.size());
     // end `convertLights`
     //
 
@@ -571,7 +571,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::rende
     // embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights, counter)();
 
     //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Processed rays: " << counter);
-    GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
+    //GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
 
     rayList.clear();
 }
