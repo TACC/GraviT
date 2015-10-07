@@ -20,9 +20,6 @@ void RenderContext::CreateContext()
 }
 
 RenderContext* RenderContext::instance() {
-    // if (__singleton != nullptr) {
-    //     __singleton = new RenderContext();
-    // }
     return static_cast<RenderContext*>(CoreContext::instance());
 }
 

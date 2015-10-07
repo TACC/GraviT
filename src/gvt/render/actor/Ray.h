@@ -57,7 +57,6 @@
 
 
 
-            //GVT_CONVERTABLE_OBJ(gvt::render::data::primitives::Ray);
 
                 Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1), 
                     gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), 
@@ -88,12 +87,10 @@
                 mutable gvt::core::math::Point4f    origin;
                 mutable gvt::core::math::Vector4f   direction;
                 mutable gvt::core::math::Vector4f   inverseDirection;
-    //            mutable int sign[3];
 
 
                 int id; ///<! index into framebuffer
                 int depth; ///<! sample rate 
-//            float r; ///<! sample rate
                 float w; ///<! weight of image contribution
                 mutable float t;
                 mutable float t_min;

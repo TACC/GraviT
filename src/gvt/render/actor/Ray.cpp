@@ -24,11 +24,7 @@ Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, i
     this->direction = (direction).normalize();
     setDirection(direction);
     t = FLT_MAX;
-            //            tmin = FLT_MAX;
-            //            tmax = -FLT_MAX;
     id = -1;
-            //            tprim = FLT_MAX;
-            //            origin_domain = -1;
 }
 
 Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m) 
@@ -37,19 +33,12 @@ Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m)
     direction = m * (ray.direction).normalize();
     setDirection(direction);
     t = ray.t;
-            //            tmin = ray.tmax;
-            //            tmax = ray.tmax;
     color = ray.color;
     domains = ray.domains;
     id = ray.id;
-            //            r = ray.r;
-            //            b = ray.b;
     type = ray.type;
     w = ray.w;
     depth = ray.depth;
-            //            tprim = ray.tprim;
-            //            origin_domain = ray.origin_domain;
-            //            visited = ray.visited;
 }
 
 Ray::Ray(const Ray& ray) 
@@ -57,21 +46,13 @@ Ray::Ray(const Ray& ray)
     origin = ray.origin;
     direction = ray.direction;
     inverseDirection = ray.inverseDirection;
-    //setDirection(ray.direction); // TODO: alim: remove unnecessary calculation for inverseDirection?
     t = ray.t;
-            //            tmin = ray.tmin;
-            //            tmax = ray.tmax;
     color = ray.color;
     domains = ray.domains;
     id = ray.id;
-            //            r = ray.r;
-            //            b = ray.b;
     w = ray.w;
     type = ray.type;
     depth = ray.depth;
-            //            tprim = ray.tprim;
-            //            origin_domain = ray.origin_domain;
-            //            visited = ray.visited;
 }
 
 Ray::~Ray() 
@@ -91,13 +72,9 @@ Ray::Ray(const unsigned char* buf)
     buf += sizeof (int);
     type = *((int*) buf);
     buf += sizeof (int);
-            //            r = *((double*) buf);
-            //            buf += sizeof (double);
     w = *((double*) buf);
     buf += sizeof (double);
     t = *((double*) buf);
-            //            buf += sizeof (double);
-            //            tmax = *((double*) buf);
     buf += sizeof (double);
     color = GVT_COLOR_ACCUM(buf);
     buf += color.packedSize();
@@ -105,7 +82,6 @@ Ray::Ray(const unsigned char* buf)
     buf += sizeof (int);
     for (int i = 0; i < domain_size; ++i, buf += sizeof (isecDom)) 
     {
-                //domains.insert(isecDom(*(float*) buf,*(float*) (buf + sizeof (float))));
         domains.push_back(isecDom(*(float*) buf));
     }
 
@@ -132,32 +108,21 @@ int Ray::pack(unsigned char* buffer)
     buf += sizeof (int);
     *((int*) buf) = type;
     buf += sizeof (int);
-            //            *((double*) buf) = r;
-            //            buf += sizeof (double);
     *((double*) buf) = w;
     buf += sizeof (double);
     *((double*) buf) = t;
     buf += sizeof (double);
-            //            *((double*) buf) = tmax;
-            //            buf += sizeof (double);
     buf += color.pack(buf);
     *((int*) buf) = domains.size();
     buf += sizeof (int);
 
     BOOST_FOREACH(isecDom& d, domains) 
     {
-                //
-                //                *(float*) buf = boost::get<0>(d);
-                //                buf += sizeof (float);
-                //                *(int*) buf = boost::get<1>(d);
-                //                buf += sizeof (int);
 
         *(isecDom*) buf = d;
         buf += sizeof (int);
     }
 
-            //                for (int i = 0; i < domains.size(); ++i, buf += (sizeof (int) + sizeof(float))))
-            //                    *((int*) buf) = domains;
 
     return packedSize();
 }

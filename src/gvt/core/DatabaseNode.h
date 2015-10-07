@@ -8,11 +8,6 @@ namespace gvt {
         class DatabaseNode
         {
 
-            // TODO: pnav - implement Boost Signals2 interface
-            //Q_PROPERTY(QUuid p_uuid READ UUID WRITE setUUID NOTIFY uuidChanged)
-            //Q_PROPERTY(QString p_name READ name WRITE setName NOTIFY nameChanged)
-            //Q_PROPERTY(QUuid p_parent READ parentUUID WRITE setParentUUID NOTIFY parentUUIDChanged)
-            //Q_PROPERTY(QVariant p_value READ value WRITE setValue NOTIFY valueChanged)
 
             Uuid        p_uuid;
             String      p_name;
@@ -39,16 +34,6 @@ namespace gvt {
 
             static DatabaseNode* errNode;
 
-#if 0 // pnav - TODO
-            signals:
-            void uuidChanged();
-            void nameChanged();
-            void parentUUIDChanged();
-            void valueChanged();
-            void childChanged(QUuid);
-
-            public slots:
-#endif
         };
 
         class DBNodeH
