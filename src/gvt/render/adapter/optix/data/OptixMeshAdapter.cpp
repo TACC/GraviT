@@ -69,7 +69,7 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
       if (prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
       // Oversubcribe the GPU
       packetSize =
-          prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor * 5;
+          prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor;
     }
     if (!activeDevices.size()) {
       activeDevices.push_back(0);
@@ -509,9 +509,9 @@ struct OptixParallelTrace {
                                                             // to store
                   // `faces_to_normals`
                   // list
-                  const Vector4f &a = mesh->normals[normals.get<1>()];
-                  const Vector4f &b = mesh->normals[normals.get<2>()];
-                  const Vector4f &c = mesh->normals[normals.get<0>()];
+                  const Vector4f &a = mesh->normals[normals.get<0>()];
+                  const Vector4f &b = mesh->normals[normals.get<1>()];
+                  const Vector4f &c = mesh->normals[normals.get<2>()];
                   manualNormal = a * u + b * v + c * (1.0f - u - v);
 
                   manualNormal =

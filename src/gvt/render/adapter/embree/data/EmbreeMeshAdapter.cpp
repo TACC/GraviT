@@ -489,8 +489,8 @@ struct embreeParallelTrace {
                 {
                   const int triangle_id = ray4.primID[pi];
 #ifndef FLAT_SHADING
-                  const float u = hits[pi].u;
-                  const float v = hits[pi].v;
+                  const float u = ray4.u[pi];
+                  const float v = ray4.v[pi];
                   const Mesh::FaceToNormals &normals =
                       mesh->faces_to_normals[triangle_id];  // FIXME: need to
                                                             // figure out
