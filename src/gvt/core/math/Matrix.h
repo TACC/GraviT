@@ -206,10 +206,6 @@ namespace gvt {
                                 std::swap(b[i1][i], b[j][i]);
                             }
 
-                            // Scale row j to have a unit diagonal
-                            //			if (a[j][j]==0.)
-                            //				throw SingularMatrixrixException();
-
                             double scale = a[j][j];
                             for (i = 0; i < 3; i++) 
                             {
@@ -529,10 +525,6 @@ namespace gvt {
                             std::swap(a[i1][i], a[j][i]);
                             std::swap(b[i1][i], b[j][i]);
                         }
-
-                        // Scale row j to have a unit diagonal
-                        //			if (a[j][j]==0.)
-                        //				throw SingularMatrixrixException();
 
                         double scale = a[j][j];
                         for (i = 0; i < 4; i++) 

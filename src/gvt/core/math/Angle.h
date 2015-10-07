@@ -40,11 +40,6 @@ namespace gvt {
                 Rad(Unit<Deg, T> value);
            };
 
-/*
- Rad<double> operator "" _rad(long double value) { return Rad<double>(value); }
- Rad<float> operator "" _radf(long double value) { return Rad<float>(value); }
-*/
-
            template<class T>  Deg<T>::Deg(Unit<Rad, T> value): Unit<math::Deg, T>(T(180)*T(value)/Constants<T>::pi()) {}
            template<class T>  Rad<T>::Rad(Unit<Deg, T> value): Unit<math::Rad, T>(T(value)*Constants<T>::pi()/T(180)) {}
         }

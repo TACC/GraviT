@@ -26,14 +26,6 @@ namespace gvt {
                 virtual ~SingleNode() 
                 {
                 }
-
-                //    void getMyPlaceInTheworld(int &rank, int& rank_size, int& rays_start, int& rays_end) {
-                //        rank = this->rank;
-                //        rank_size = this->rank_size;
-                //        rays_start = this->rays_start;
-                //        rays_end = this->rays_end;
-                //    }
-
             };
         }
     }

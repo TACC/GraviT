@@ -67,8 +67,10 @@
                 // creates a new vector with size elements
                 // if zeroElements is true the vector is initialized to zero
                 Vector(int size, bool zeroElements = false);
+
                 // copy constructor
                 Vector(const Vector<T>& v);
+
                 // destructor, simply deletes the array
                 virtual ~Vector();
 
