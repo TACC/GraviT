@@ -476,7 +476,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     int* send_buf_ptr = new int[mpi.world_size];
 
 		// if there is only one rank we dont need to go through this routine. 
-		if(mpi.rank < 2 ) return false;
+		if(mpi.world_size < 2 ) return false;
     // init bufs
     for (int i = 0; i < 2 * mpi.world_size; ++i) {
       inbound[i] = outbound[i] = 0;
