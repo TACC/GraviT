@@ -102,7 +102,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 
     for(auto e : queue) {
       if(mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
-        //GVT_DEBUG(DBG_ALWAYS, "clearing queue " << e);
+        GVT_DEBUG(DBG_ALWAYS, "clearing queue " << e.first);
         queue[e.first].clear();
       }
     }
