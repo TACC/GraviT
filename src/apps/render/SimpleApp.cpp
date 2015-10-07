@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
         Mesh* mesh = new Mesh(new Lambert(Vector4f(0.5,0.5,0.5,1.0)));
         int numPoints = 8;
         Point4f points[8];
-
+#if 0
         // Sides:
 // 2---3  3---7  7---6  6---2
 // |   |  |   |  |   |  |   |
@@ -166,16 +166,17 @@ int main(int argc, char** argv) {
         // mesh->addFace(4, 7, 8);
 
 
-// 3---4  4---8  8---7  7---3
-// |   |  |   |  |   |  |   |
-// |   |  |   |  |   |  |   |
-// 1---2  2---6  6---5  5---1
+        // Sides
+        // 3---4  4---8  8---7  7---3
+        // |  /|  |   |  |   |  |   |
+        // | / |  |   |  |   |  |   |
+        // 1---2  2---6  6---5  5---1
 
-// Bottom/Top
-// 1---2  7---8
-// |   |  |   |
-// |   |  |   |
-// 5---6  3---4
+        // Bottom/Top
+        // 1---2  7---8
+        // |   |  |   |
+        // |   |  |   |
+        // 5---6  3---4
 
         mesh->addFace(1,2,4);
         mesh->addFace(1,4,3);
@@ -189,12 +190,35 @@ int main(int argc, char** argv) {
         mesh->addFace(5,2,1);
         mesh->addFace(3,4,8);
         mesh->addFace(3,8,7);
-        
+#else
+        points[0] = Point4f(-0.5, -0.5,  0.5, 1.0);
+        points[1] = Point4f( 0.5, -0.5,  0.5, 1.0);
+        points[2] = Point4f( 0.5,  0.5,  0.5, 1.0);
+        points[3] = Point4f(-0.5,  0.5,  0.5, 1.0);
+        points[4] = Point4f(-0.5, -0.5, -0.5, 1.0);
+        points[5] = Point4f( 0.5, -0.5, -0.5, 1.0);
+        points[6] = Point4f( 0.5,  0.5, -0.5, 1.0);
+        points[7] = Point4f(-0.5,  0.5, -0.5, 1.0);
 
+        for(int i=0; i<numPoints; i++) {
+            mesh->addVertex(points[i]);
+        }
+        // faces are 1 indexed
+        mesh->addFace(1, 2, 3);
+        mesh->addFace(1, 3, 4);
+        mesh->addFace(2, 6, 7);
+        mesh->addFace(2, 7, 3);
+        mesh->addFace(6, 5, 8);
+        mesh->addFace(6, 8, 7);
+        mesh->addFace(5, 1, 4);
+        mesh->addFace(5, 4, 8);
+        mesh->addFace(1, 2, 6);
+        mesh->addFace(1, 6, 5);
+        mesh->addFace(4, 3, 7);
+        mesh->addFace(4, 7, 8);
+        mesh->generateNormals();
+#endif
 
-
-
-        
         mesh->generateNormals();
 
         // calculate bbox

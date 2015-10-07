@@ -9,7 +9,7 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 
-#include <gvt/core/schedule/TaskScheduling.h>  // used for threads
+#include <gvt/core/schedule/TaskScheduling.h> // used for threads
 
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/embree/data/Transforms.h>
@@ -59,18 +59,18 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
   mesh->generateNormals();
 
   switch (GVT_EMBREE_PACKET_SIZE) {
-    case 4:
-      packetSize = RTC_INTERSECT4;
-      break;
-    case 8:
-      packetSize = RTC_INTERSECT8;
-      break;
-    case 16:
-      packetSize = RTC_INTERSECT16;
-      break;
-    default:
-      packetSize = RTC_INTERSECT1;
-      break;
+  case 4:
+    packetSize = RTC_INTERSECT4;
+    break;
+  case 8:
+    packetSize = RTC_INTERSECT8;
+    break;
+  case 16:
+    packetSize = RTC_INTERSECT16;
+    break;
+  default:
+    packetSize = RTC_INTERSECT1;
+    break;
   }
 
   scene = rtcNewScene(RTC_SCENE_STATIC, packetSize);
@@ -184,7 +184,7 @@ struct embreeParallelTrace {
   /**
    * Size of Embree packet
    */
-  const size_t packetSize;  // TODO: later make this configurable
+  const size_t packetSize; // TODO: later make this configurable
 
   /**
    * Construct a embreeParallelTrace struct with information needed for the
@@ -201,17 +201,9 @@ struct embreeParallelTrace {
       gvt::core::math::Matrix3f *normi,
       std::vector<gvt::render::data::scene::Light *> &lights,
       std::atomic<size_t> &counter)
-      : adapter(adapter),
-        rayList(rayList),
-        moved_rays(moved_rays),
-        sharedIdx(sharedIdx),
-        workSize(workSize),
-        instNode(instNode),
-        m(m),
-        minv(minv),
-        normi(normi),
-        lights(lights),
-        counter(counter),
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
+        sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
+        minv(minv), normi(normi), lights(lights), counter(counter),
         packetSize(adapter->getPacketSize()) {}
 
   /**
@@ -220,7 +212,7 @@ struct embreeParallelTrace {
    * \param ray4          reference of RTCRay4 struct to write to
    * \param valid         aligned array of 4 ints to mark valid rays
    * \param resetValid    if true, reset the valid bits, if false, re-use old
-   *valid to know which to convert
+   * valid to know which to convert
    * \param packetSize    number of rays to convert
    * \param rays          vector of rays to read from
    * \param startIdx      starting point to read from in `rays`
@@ -242,7 +234,7 @@ struct embreeParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * r.origin;  // transform ray to local space
+        const auto origin = (*minv) * r.origin; // transform ray to local space
         const auto direction = (*minv) * r.direction;
         ray4.orgx[i] = origin[0];
         ray4.orgy[i] = origin[1];
@@ -336,21 +328,21 @@ struct embreeParallelTrace {
    * Trace function.
    *
    * Loops through rays in `rayList`, converts them to embree format, and traces
-   *against embree's scene
+   * against embree's scene
    *
    * Threads work on rays in chunks of `workSize` units.  An atomic add on
-   *`sharedIdx` distributes
+   * `sharedIdx` distributes
    * the ranges of rays to work on.
    *
    * After getting a chunk of rays to work with, the adapter loops through in
-   *sets of `packetSize`.  Right
+   * sets of `packetSize`.  Right
    * now this supports a 4 wide packet [Embree has support for 8 and 16 wide
-   *packets].
+   * packets].
    *
    * The packet is traced and re-used until all of the 4 rays and their
-   *secondary rays have been traced to
+   * secondary rays have been traced to
    * completion.  Shadow rays are added to a queue and are tested after each
-   *intersection test.
+   * intersection test.
    *
    * The `while(validRayLeft)` loop behaves something like this:
    *
@@ -367,19 +359,19 @@ struct embreeParallelTrace {
    * r3: primary   -> secondary -> secondary -> secondary -> terminated
    *
    * TODO: investigate switching terminated rays in the vector with active rays
-   *[swap with ones at the end]
+   * [swap with ones at the end]
    *
    * Terminated above means:
    * - shadow ray hits object and is occluded
    * - primary / secondary ray miss and are passed out of the queue
    *
    * After a packet is completed [including its generated rays], the system
-   *moves on * to the next packet
+   * moves on * to the next packet
    * in its chunk. Once a chunk is completed, the thread increments `sharedIdx`
-   *again to get more work.
+   * again to get more work.
    *
    * If `sharedIdx` grows to be larger than the incoming ray size, then the
-   *thread is complete.
+   * thread is complete.
    */
   void operator()() {
 #ifdef GVT_USE_DEBUG
@@ -492,11 +484,11 @@ struct embreeParallelTrace {
                   const float u = ray4.u[pi];
                   const float v = ray4.v[pi];
                   const Mesh::FaceToNormals &normals =
-                      mesh->faces_to_normals[triangle_id];  // FIXME: need to
-                                                            // figure out
-                                                            // to store
-                  // `faces_to_normals`
-                  // list
+                      mesh->faces_to_normals[triangle_id]; // FIXME: need to
+                                                           // figure out
+                                                           // to store
+                                                           // `faces_to_normals`
+                                                           // list
                   const Vector4f &a = mesh->normals[normals.get<1>()];
                   const Vector4f &b = mesh->normals[normals.get<2>()];
                   const Vector4f &c = mesh->normals[normals.get<0>()];
@@ -509,7 +501,7 @@ struct embreeParallelTrace {
                   int I = mesh->faces[triangle_id].get<0>();
                   int J = mesh->faces[triangle_id].get<1>();
                   int K = mesh->faces[triangle_id].get<2>();
-                  
+
                   Vector4f a = mesh->vertices[I];
                   Vector4f b = mesh->vertices[J];
                   Vector4f c = mesh->vertices[K];
@@ -542,10 +534,10 @@ struct embreeParallelTrace {
                   const float multiplier =
                       1.0f -
                       16.0f *
-                          std::numeric_limits<float>::epsilon();  // TODO: move
-                                                                  // out
-                                                                  // somewhere /
-                                                                  // make static
+                          std::numeric_limits<float>::epsilon(); // TODO: move
+                                                                 // out
+                                                                 // somewhere /
+                                                                 // make static
                   const float t_secondary = multiplier * r.t;
                   r.origin = r.origin + r.direction * t_secondary;
 
@@ -560,7 +552,7 @@ struct embreeParallelTrace {
                   r.w = r.w * (r.direction * normal);
                   r.depth = ndepth;
                   validRayLeft =
-                      true;  // we still have a valid ray in the packet to trace
+                      true; // we still have a valid ray in the packet to trace
                 } else {
                   // secondary ray is terminated, so disable its valid bit
                   valid[pi] = 0;
@@ -587,18 +579,18 @@ struct embreeParallelTrace {
     size_t other_count = 0;
     for (auto &r : localDispatch) {
       switch (r.type) {
-        case gvt::render::actor::Ray::SHADOW:
-          shadow_count++;
-          break;
-        case gvt::render::actor::Ray::PRIMARY:
-          primary_count++;
-          break;
-        case gvt::render::actor::Ray::SECONDARY:
-          secondary_count++;
-          break;
-        default:
-          other_count++;
-          break;
+      case gvt::render::actor::Ray::SHADOW:
+        shadow_count++;
+        break;
+      case gvt::render::actor::Ray::PRIMARY:
+        primary_count++;
+        break;
+      case gvt::render::actor::Ray::SECONDARY:
+        secondary_count++;
+        break;
+      default:
+        other_count++;
+        break;
       }
     }
     GVT_DEBUG(DBG_ALWAYS, "Local dispatch : "
@@ -622,14 +614,13 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: trace time: %w\n");
 #endif
-  std::atomic<size_t> sharedIdx(0);  // shared index into rayList
+  std::atomic<size_t> sharedIdx(0); // shared index into rayList
   const size_t numThreads =
       gvt::core::schedule::asyncExec::instance()->numThreads;
   const size_t workSize = std::max(
-      (size_t)8, (size_t)(rayList.size() / (numThreads * 8)));  // size of
-                                                                // 'chunk' of
-                                                                // rays to work
-                                                                // on
+      (size_t)8,
+      (size_t)(rayList.size() /
+               (numThreads * 8))); // size of 'chunk' of rays to work on
 
   GVT_DEBUG(DBG_ALWAYS,
             "EmbreeMeshAdapter: trace: instNode: "
