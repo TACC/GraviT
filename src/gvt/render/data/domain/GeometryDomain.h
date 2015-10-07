@@ -16,7 +16,10 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace domain {
-
+                /// atomic geometry data unit for GraviT internal use
+                /** Domain for geometry data. 
+                \sa AbstractDomain, VolumeDomain
+                */
                 class GeometryDomain : public AbstractDomain 
                 {
                 public:

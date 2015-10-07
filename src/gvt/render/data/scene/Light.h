@@ -16,6 +16,9 @@
     namespace render {
         namespace data {
             namespace scene {
+                /// base class for light sources
+                /** \sa AmbientLight, PointLight
+                */
                 class Light 
                 {
                 public:
@@ -33,7 +36,7 @@
                         return bb;
                     }
                 };
-
+                /// general lighting factor added to each successful ray intersection
                 class AmbientLight : public Light 
                 {
                 public:
@@ -45,7 +48,7 @@
                     
                     gvt::core::math::Vector4f color;
                 };
-                
+                /// point light source
                 class PointLight : public Light 
                 {
                 public:

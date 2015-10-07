@@ -14,6 +14,7 @@
 
 namespace gvt {
     namespace render {
+        /// GraviT internal state for ray tracer. Deprecated for RenderContext?
         class Attributes {
         public:
 

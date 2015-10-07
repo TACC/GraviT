@@ -12,5 +12,7 @@
 #include <gvt/render/data/domain/GeometryDomain.h>
 //#include <gvt/render/data/domain/VolumeDomain.h>
 
+/// single include for domain types
+
 #endif	/* GVT_RENDER_DATA_DOMAINS_H */
 

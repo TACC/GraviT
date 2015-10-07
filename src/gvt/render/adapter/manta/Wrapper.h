@@ -13,5 +13,7 @@
 #include <gvt/render/adapter/manta/data/MantaMeshAdapter.h>
 #include <gvt/render/data/Dataset.h>
 
+/// single include for all Manta-specific headers
+
 #endif	/* GVT_RENDER_ADAPTER_MANTA_WRAPPER_H */
 

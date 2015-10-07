@@ -17,7 +17,7 @@ namespace gvt {
     namespace render {
       namespace data {
         namespace scene {
-
+            /// viewpoint through which the scene is rendered
                 class Camera 
                 {
                 public:

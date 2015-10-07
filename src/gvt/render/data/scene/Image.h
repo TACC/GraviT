@@ -14,7 +14,9 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace scene {
-
+                /// image buffer 
+                /** image buffer used to accumulate the final image
+                */
                 class Image 
                 {
                 public:

@@ -14,6 +14,17 @@ namespace gvt {
     namespace render {
         namespace schedule {
             namespace hybrid {
+                /// hybrid schedule that distributes requested data across available processes
+                /** This schedule simply allocates requested domains to availalbe processes, regardless of number of pending rays,
+                 where a process is 'available' if none of its loaded data is currently requested by any ray. 
+
+                This schedule has the following issues:
+                    - domains with large ids tend to get starved, since the greedy loop iterates from small id to large id
+                    - processes may remain idle if there are fewer requested domains than processes
+                    - a domain can be assigned to a process that does not have rays queued for it, incurring excess ray sends
+
+                    \sa LoadAnyOnceSchedule, GreedySchedule, RayWeightedSpreadSchedule
+                    */
                  struct SpreadSchedule : public HybridScheduleBase 
                  {
 

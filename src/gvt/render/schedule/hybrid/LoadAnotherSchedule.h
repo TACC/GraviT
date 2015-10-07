@@ -19,7 +19,13 @@
     namespace render {
         namespace schedule {
             namespace hybrid {
+                /// hybrid schedule that attempts to load additional copies of domains that have high demand
+                /** This schedule attempts to load domains that have high ray demand to any available processes, where
+                a process is 'available' if none of its loaded data is currently requested by any ray. This follows the
+                same logic as the LoadOnce schedule, but without the check as to whether the data is already loaded.
 
+                \sa LoadOnceSchedule, LoadAnyOnceSchedule, LoadManySchedule
+                */ 
                 struct LoadAnotherSchedule : public HybridScheduleBase 
                 {
 

@@ -16,6 +16,9 @@ namespace gvt {
 		namespace data {
 			namespace domain {
 				namespace reader {
+					/// read ply formatted geometry data
+					/** read ply format files and return a Mesh object
+					*/
 					class PlyReader 
 					{
 					public:

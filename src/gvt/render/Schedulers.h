@@ -23,5 +23,7 @@
 #include <gvt/render/schedule/DomainScheduler.h>
 #include <gvt/render/schedule/HybridScheduler.h>
 
+/// single include for all scheduler headers
+
 #endif	/* GVT_RENDER_SCHEDULERS_H */
 

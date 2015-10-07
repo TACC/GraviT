@@ -16,6 +16,11 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace domain {
+                /// base class for data domains
+                /** base class for GraviT data domains. A domain is the atomic data representation within GraviT. 
+                A domain is passed to a rendering engine in its entirety, where it might be subdivided for the engine's use.
+                Domains are not subdivided within GraviT.
+                */
                 class AbstractDomain {
                 protected:
 

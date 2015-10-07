@@ -15,6 +15,15 @@ namespace gvt {
     namespace render {
         namespace schedule {
             namespace hybrid {
+                /// hybrid schedule that attempts to load multiple data copies in response to ray load
+                /** This schedule attempts to detect high ray demand for particular data 
+                and loads multiple copies of that data in order to balance ray load across multiple processes.
+
+                The current implementation is not particularly successful at this. Issues include:
+                    - data loads typically occur at remote processes, incurring data send costs
+                    - demand detection algorith needs improvement, particularly ray demand threshold over which additional data is loaded
+                    - eviction logic could be improved: at present the algorithm prefers to keep loaded data if even one ray needs it
+                */
                 struct AdaptiveSendSchedule : public HybridScheduleBase 
                 {
                     

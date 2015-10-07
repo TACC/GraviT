@@ -13,6 +13,7 @@
 namespace gvt {
 	namespace render {
 		namespace data {
+			/// color used in geometric rendering
 			typedef gvt::core::math::Vector4f Color;
 		}
 	}

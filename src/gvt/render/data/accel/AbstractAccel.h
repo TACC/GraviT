@@ -19,7 +19,7 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace accel {
-
+                /// struct for closest intersection between ray and acceleration structure
                 struct ClosestHit
                 {
                     ClosestHit() : domain(NULL), distance(std::numeric_limits<float>::max()) {}
@@ -28,6 +28,7 @@ namespace gvt {
                     float distance;
                 };
 
+                /// abstract base class for acceleration structures
                 class AbstractAccel
                 {
             	public:

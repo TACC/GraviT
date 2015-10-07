@@ -49,6 +49,8 @@ namespace algorithm {
    - there are more processes than domains, excess processes will remain idle
    - rays are concentrated at a few domains, processes with other domains loaded can remain idle
    - when there are few rays remaining to render, other processes can remain idle
+
+     \sa HybridTracer, ImageTracer
    */
 template <>
 class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
