@@ -44,7 +44,6 @@ PlyReader::PlyReader(std::string filename)
     Manta::Mesh* mesh = new Manta::Mesh();
     Manta::Material *material = new Manta::Phong(Manta::Color::white() * 0.6, Manta::Color::white()* 0.8, 16, 0);
     Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
-    //string filename(filename);
     readPlyFile(filename, Manta::AffineTransform::createIdentity(), mesh, material, triangleType);
     
     for(int i=0; i < mesh->vertices.size(); i++) {
@@ -60,7 +59,6 @@ PlyReader::PlyReader(std::string filename)
     
     
     delete material;
-    //delete mesh;
 }
 
 PlyReader::~PlyReader()

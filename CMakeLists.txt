@@ -198,7 +198,6 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/domain/GeometryDomain.h
 	src/gvt/render/data/domain/reader/ObjReader.h
 	src/gvt/render/data/domain/reader/PlyReader.h
-	src/gvt/render/data/domain/VolumeDomain.h
 	src/gvt/render/data/Domains.h
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
@@ -238,7 +237,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/domain/GeometryDomain.cpp
 	src/gvt/render/data/domain/reader/ObjReader.cpp
 	src/gvt/render/data/domain/reader/PlyReader.cpp
-	src/gvt/render/data/domain/VolumeDomain.cpp
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp

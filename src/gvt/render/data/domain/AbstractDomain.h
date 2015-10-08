@@ -64,25 +64,6 @@ namespace gvt {
 
                     virtual gvt::core::math::Point4f worldCentroid() const;
                     
-                    
-        //            virtual pop(gvt::render::actor::RayVector &queue, gvt::render::actor::Ray& ray) {
-        //                boost::mutex::scoped_lock lock(_inqueue);
-        //                if(queue.empty()) return false;
-        //                ray = queue.back();
-        //                queue.pop_back();
-        //                return true;
-        //                
-        //            }
-        //                        
-        //            virtual void push(gvt::render::actor::RayVector &queue, gvt::render::actor::Ray&  r) {
-        //                boost::mutex::scoped_lock lock(_inqueue);
-        //                queue.push_back(r);
-        //            }
-        //            
-        //            virtual void dispatch(gvt::render::actor::RayVector &queue, gvt::render::actor::Ray&  r) {
-        //                boost::lock_guard<boost::mutex> _lock(_outqueue);
-        //                queue.push_back(r);
-        //            }
                     // Public variables
                     gvt::core::math::AffineTransformMatrix<float> m;
                     gvt::core::math::AffineTransformMatrix<float> minv;

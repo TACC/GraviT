@@ -26,7 +26,6 @@ namespace gvt {
                     {
                         if (filename != "") {
                             load();
-                            //free();
                         }
                     }
                     
@@ -52,8 +51,6 @@ namespace gvt {
                         filename = other.filename;
                         isLoaded = true;
                     }
-
-                    //virtual bool intersect(GVT::Data::ray&, vector<int>&);
 
                     virtual bool hasGeometry() 
                     { return isLoaded; }

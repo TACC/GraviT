@@ -127,11 +127,6 @@ BVH::Node* BVH::build(gvt::core::Vector<gvt::core::DBNodeH>& sortedInstanceSet,
         return node;
     }
 
-// #ifdef DEBUG_ACCEL
-//     std::cout<<"start:"<<start<<"\tend:"<<end<<"\tsplitIdx: "<<splitIdx<<"\t level: "<<level<<"\n";
-//     if (level == 1) return node;
-// #endif
-
     // recursively build internal nodes
     int nextLevel = level + 1;
     Node* nodeL = build(sortedInstanceSet, start, splitIdx, nextLevel);

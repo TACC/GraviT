@@ -9,8 +9,8 @@
 #include <vector>
 #include <gvt/render/data/domain/Cell.h>
 
-#include <cstring> // memcpy
-#include <cstdlib> //realloc
+#include <cstring> 
+#include <cstdlib> 
 
 using namespace std;
 using namespace gvt::render::data::domain;
