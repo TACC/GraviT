@@ -10,6 +10,9 @@
 
 #include <gvt/core/Debug.h>
 
+/**
+ * Base class for schedulers.
+ */
 class SchedulerBase 
 {
 public:
