@@ -12,6 +12,9 @@
 ###############################################################################
 #SET(EMBREE_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 #SET(EMBREE_BUILD_PREFIX ${CMAKE_SOURCE_DIR}/buildTigger)
+IF(NOT EMBREE_BUILD_PREFIX)
+	SET(EMBREE_BUILD_PREFIX $ENV{EMBREE_BUILD_PREFIX})
+ENDIF()
 
 IF   (EMBREE_BUILD_PREFIX)
 

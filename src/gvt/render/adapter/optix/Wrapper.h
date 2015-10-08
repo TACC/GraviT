@@ -10,6 +10,7 @@
 
 #include <gvt/render/adapter/optix/data/Transforms.h>
 #include <gvt/render/adapter/optix/data/domain/OptixDomain.h>
+#include <gvt/render/adapter/optix/data/OptixMeshAdapter.h>
  
 #endif	/* GVT_RENDER_ADAPTER_OPTIX_WRAPPER_H */
 

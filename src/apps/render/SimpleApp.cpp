@@ -46,15 +46,6 @@ using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
-//  //using namespace gvt::render::adapter::manta::data::domain;
-//  //using namespace gvt::render::adapter::optix::data::domain;
-//  <<<<<<< HEAD
-//  using namespace gvt::render::adapter::embree::data::domain;
-//  using namespace gvt::render::adapter::manta::data::domain;
-//  =======
-//  //using namespace gvt::render::adapter::embree::data::domain;
-//  >>>>>>> origin/gvt27-28
-
 void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char** argv) {
@@ -135,6 +126,71 @@ int main(int argc, char** argv) {
         Mesh* mesh = new Mesh(new Lambert(Vector4f(0.5,0.5,0.5,1.0)));
         int numPoints = 8;
         Point4f points[8];
+#if 0
+        // Sides:
+// 2---3  3---7  7---6  6---2
+// |   |  |   |  |   |  |   |
+// |   |  |   |  |   |  |   |
+// 0---1  1---5  5---4  4---0
+
+// Bottom/Top
+// 0---1  6---7
+// |   |  |   |
+// |   |  |   |
+// 4---5  2---3
+
+        points[0] = Point4f(-0.5, -0.5, -0.5, 1.0); 
+        points[1] = Point4f( 0.5, -0.5, -0.5, 1.0);
+        points[2] = Point4f(-0.5,  0.5, -0.5, 1.0);
+        points[3] = Point4f( 0.5,  0.5, -0.5, 1.0);
+        points[4] = Point4f(-0.5, -0.5,  0.5, 1.0); 
+        points[5] = Point4f( 0.5, -0.5,  0.5, 1.0);
+        points[6] = Point4f(-0.5,  0.5,  0.5, 1.0);
+        points[7] = Point4f( 0.5,  0.5,  0.5, 1.0);
+
+        for(int i=0; i<numPoints; i++) {
+            mesh->addVertex(points[i]);
+        }
+        // faces are 1 indexed
+        // mesh->addFace(1, 2, 3);
+        // mesh->addFace(1, 3, 4);
+        // mesh->addFace(2, 6, 7);
+        // mesh->addFace(2, 7, 3);
+        // mesh->addFace(6, 5, 8);
+        // mesh->addFace(6, 8, 7);
+        // mesh->addFace(5, 1, 4);
+        // mesh->addFace(5, 4, 8);
+        // mesh->addFace(1, 2, 6);
+        // mesh->addFace(1, 6, 5);
+        // mesh->addFace(4, 3, 7);
+        // mesh->addFace(4, 7, 8);
+
+
+        // Sides
+        // 3---4  4---8  8---7  7---3
+        // |  /|  |   |  |   |  |   |
+        // | / |  |   |  |   |  |   |
+        // 1---2  2---6  6---5  5---1
+
+        // Bottom/Top
+        // 1---2  7---8
+        // |   |  |   |
+        // |   |  |   |
+        // 5---6  3---4
+
+        mesh->addFace(1,2,4);
+        mesh->addFace(1,4,3);
+        mesh->addFace(2,6,8);
+        mesh->addFace(2,8,4);
+        mesh->addFace(6,5,7);
+        mesh->addFace(6,7,8);
+        mesh->addFace(5,1,3);
+        mesh->addFace(5,3,7);
+        mesh->addFace(5,6,2);
+        mesh->addFace(5,2,1);
+        mesh->addFace(3,4,8);
+        mesh->addFace(3,8,7);
+#else
         points[0] = Point4f(-0.5, -0.5,  0.5, 1.0);
         points[1] = Point4f( 0.5, -0.5,  0.5, 1.0);
         points[2] = Point4f( 0.5,  0.5,  0.5, 1.0);
@@ -160,6 +216,9 @@ int main(int argc, char** argv) {
         mesh->addFace(1, 6, 5);
         mesh->addFace(4, 3, 7);
         mesh->addFace(4, 7, 8);
+        mesh->generateNormals();
+#endif
+
         mesh->generateNormals();
 
         // calculate bbox
@@ -245,6 +304,8 @@ int main(int argc, char** argv) {
     int adapterType = gvt::render::adapter::Embree;
 #elif GVT_RENDER_ADAPTER_MANTA
     int adapterType = gvt::render::adapter::Manta;
+#elif GVT_RENDER_ADAPTER_OPTIX
+    int adapterType = gvt::render::adapter::Optix;
 #elif
     GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif

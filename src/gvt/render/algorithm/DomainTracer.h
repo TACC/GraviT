@@ -26,6 +26,9 @@
 #ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/Wrapper.h>
 #endif
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+#include <gvt/render/adapter/optix/Wrapper.h>
+#endif
 
 #include <boost/foreach.hpp>
 
@@ -289,6 +292,11 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 #ifdef GVT_RENDER_ADAPTER_MANTA
                 case gvt::render::adapter::Manta:
                   adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
+                  break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+                case gvt::render::adapter::Optix:
+                  adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
                   break;
 #endif
                 default:

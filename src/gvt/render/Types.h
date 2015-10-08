@@ -10,7 +10,8 @@ namespace gvt {
                 Surface,
                 Manta,
                 Optix,
-                Embree
+                Embree,
+                Hybrid
             };
 		} // namespace adapter
 		namespace scheduler {

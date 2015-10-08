@@ -67,6 +67,7 @@ if (GVT_RENDER)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
 	option(GVT_SIMPLE_APP			"Build the simple application" ON)
+	option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
 endif(GVT_RENDER) 
 
 
@@ -271,6 +272,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
 		src/gvt/render/adapter/optix/data/Formats.h
 		src/gvt/render/adapter/optix/data/Transforms.h
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
 		)
 
@@ -280,6 +282,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.cpp
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
@@ -391,6 +394,26 @@ if (GVT_SIMPLE_APP)
 	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
 	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
 endif(GVT_SIMPLE_APP)
+
+if (GVT_SIMPLE_FILE_LOAD_APP)
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB1})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTSIMPLEFILE_RENDER_SRCS ${GVTSIMPLEFILE_RENDER_SRCS} src/apps/render/SimpleFileLoadApp.cpp)
+	add_executable(gvtFileLoad ${GVTSIMPLEFILE_RENDER_SRCS})
+	target_link_libraries(gvtFileLoad gvtCore gvtRender ${GVTSIMPLEFILE_RENDER_LIBS} )
+endif(GVT_SIMPLE_FILE_LOAD_APP)
 
 if (GVT_GLRENDER_APP)
 	find_package(MPI REQUIRED)
