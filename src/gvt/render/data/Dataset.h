@@ -43,7 +43,6 @@ namespace gvt {
 
                 friend std::ostream& operator<<(std::ostream&, Dataset const&);
 
-//        protected:
             public:
                 gvt::render::data::primitives::Box3D                        dataSetBB;
                 gvt::render::data::scene::Camera                            camera;

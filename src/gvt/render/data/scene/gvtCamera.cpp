@@ -180,7 +180,6 @@ void gvtPerspectiveCamera::generateRays() {
 			ray.setDirection(cam2wrld*camera_space_ray_direction.normalize());
 			ray.depth = depth;
 		}
-	//return rays;
 }
 void gvtPerspectiveCamera::setFOV(const float fov) {
 	field_of_view = fov;

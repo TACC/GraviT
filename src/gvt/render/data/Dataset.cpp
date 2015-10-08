@@ -20,8 +20,6 @@ Dataset::Dataset() : acceleration(NULL)
 
 Dataset::~Dataset()
 {
-    //if (acceleration)
-    //    delete acceleration;
 }
 
 bool Dataset::init() 
@@ -39,8 +37,6 @@ bool Dataset::intersect(Ray&  r, isecDomList& inter)
         {
             BOOST_FOREACH(AbstractDomain* d, domainSet) d->intersect(r, inter);
 
-//                GVT::Data::isecDomList r; r.assign(inter.rbegin(),inter.rend());
-//                inter.clear(); inter.assign(r.begin(),r.end());
         }
         else
         {
@@ -89,11 +85,7 @@ int Dataset::size()
 
 void Dataset::makeAccel()
 {
-        //acceleration = new gvt::render::data::accel::BVH(domainSet);
 }
 void Dataset::makeAccel(gvt::render::Attributes& rta)
 {
-    if (rta.GetAccelType() == gvt::render::Attributes::BVH) {
-        //acceleration = new gvt::render::data::accel::BVH(domainSet);
-    }
 }

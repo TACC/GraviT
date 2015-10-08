@@ -209,13 +209,11 @@ namespace gvt {
                 {
                     if (t < c.t) 
                     {
-                        //GVT_DEBUG(DBG_ALWAYS,t << " " << c.t);
-                        return;
+                         return;
                     }
 
                     if(c.t < t) 
                     {
-                        //GVT_DEBUG(DBG_ALWAYS, "new depth: " << t << " " << c.t);
                         t = c.t;
                         rgba[0] = c.rgba[0];
                         rgba[1] = c.rgba[1];
@@ -225,18 +223,9 @@ namespace gvt {
                     
                     if (t == c.t && t != FLT_MAX) 
                     {
-                        //t = c.t; // depth value;
-                        //GVT_DEBUG(DBG_ALWAYS,t << " " << c.t);
-                        //    double one_a = 1. - rgba[3];
-                        //    rgba[0] = rgba[0]*rgba[3] + c.rgba[0]*c.rgba[3]*one_a;
-                        //    rgba[1] = rgba[1]*rgba[3] + c.rgba[1]*c.rgba[3]*one_a;
-                        //    rgba[2] = rgba[2]*rgba[3] + c.rgba[2]*c.rgba[3]*one_a;
-                        //    rgba[3] =         rgba[3] +           c.rgba[3]*one_a;
                         rgba[0] = rgba[0] + c.rgba[0];
                         rgba[1] = rgba[1] + c.rgba[1];
                         rgba[2] = rgba[2] + c.rgba[2];
-                        //rgba[3] =         rgba[3] +           c.rgba[3]*one_a;
-
                     }
                 }
 
