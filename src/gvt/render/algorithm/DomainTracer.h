@@ -117,73 +117,6 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     }
   }
 
-#if 0
-  virtual void FilterRaysLocally() {
-    for (auto& ray : rays) {
-      gvt::render::actor::isecDomList len2List;
-      acceleration->intersect(ray, len2List);
-      boost::sort(len2List);
-			// added boost sort
-
-      // ray never hits anything, so drop it
-      if(len2List.empty()) {
-        continue;
-      }
-
-      // if the first hit instance id is in my rank in mpiInstanceMap, keep it
-      const int instId = len2List[0];
-      auto instNode = instancenodes[instId];
-
-      if (!len2List.empty() &&
-          mpiInstanceMap[instNode.UUID()] == mpi.rank) {
-        ray.domains.assign(len2List.rbegin(), len2List.rend());
-
-        // 'marchIn'
-        {
-          gvt::render::data::primitives::Box3D &wBox = *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
-          float t = FLT_MAX;
-          ray.setDirection(-ray.direction);
-          while(wBox.inBox(ray.origin))
-          {
-            if(wBox.intersectDistance(ray,t)) ray.origin += ray.direction * t;
-            ray.origin += ray.direction * gvt::render::actor::Ray::RAY_EPSILON;
-          }
-          ray.setDirection(-ray.direction);
-        }
-        // end 'marchIn'
-
-        queue[len2List[0]].push_back(ray);  // TODO: make this a ref?
-      }
-    }
-
-    rays.clear();
-  }
-#endif
-
-
-#if 0
-  virtual void FilterRaysLocally() {
-    // AbstractTrace::FilterRaysLocally();
-
-    // for (int rc = rays_start; rc < rays_end; ++rc)
-    for (auto& ray : rays) {
-      gvt::render::actor::isecDomList len2List;
-      //gvt::render::Attributes::rta->dataset->intersect(ray, len2List);
-      data->intersect(ray, len2List);
-      if (!len2List.empty() &&
-          ((int)len2List[0] % mpi.world_size) == mpi.rank) {
-        ray.domains.assign(len2List.rbegin(), len2List.rend());
-        //gvt::render::Attributes::rta->dataset->getDomain(len2List[0])
-        data->getDomain(len2List[0])
-            ->marchIn(ray);
-        queue[len2List[0]].push_back(ray);  // TODO: make this a ref?
-      }
-    }
-
-    rays.clear();
-  }
-#endif
-
   virtual void operator()() {
     boost::timer::cpu_timer t_sched;
     t_sched.start();
@@ -294,7 +227,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
                 default:
                   GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: " << adapterType);
               }
-              //adapterCache[meshNode.UUID()] = adapter;
+              //adapterCache[meshNode.UUID()] = adapter; // note: cache logic comes later when we implement hybrid
             }
             // end 'getAdapterFromCache' concept
             //
@@ -326,9 +259,6 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
 	MPE_Log_event(shuffleend,0,NULL);
 #endif
           moved_rays.clear();
-          //queue[instTarget].clear();
-
-          //queue.erase(instTarget);
         }
       }
 
