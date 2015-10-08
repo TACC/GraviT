@@ -42,9 +42,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false)
     GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
     objMesh = new Mesh(new Lambert(Vector4f(0.5,0.5,0.5,1.0)));
-    
-    //objMesh->setMaterial(new GVT::Data::Lambert());
-    
+       
     while (file.good()) 
     {
         std::string line;
