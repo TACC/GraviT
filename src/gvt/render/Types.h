@@ -4,6 +4,7 @@
 namespace gvt {
 	namespace render {
 		namespace adapter {
+            /// render engine used
 			enum RenderType
             {
                 Volume,
@@ -14,6 +15,7 @@ namespace gvt {
                 Hybrid
             };
 		} // namespace adapter
+        /// schedule used
 		namespace scheduler {
 			enum ScheduleType
             {
@@ -26,6 +28,7 @@ namespace gvt {
                 LoadMany
             };
 		} // namespace scheduler
+        /// top-level acceleration structure to organize domains within GraviT
 		namespace accelerator {
             enum AccelType
             {

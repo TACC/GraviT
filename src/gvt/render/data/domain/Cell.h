@@ -18,7 +18,7 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace domain {
-
+                /// subdivision of a domain
                 class Cell 
                 {
                 public:

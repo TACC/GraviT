@@ -19,7 +19,9 @@
     namespace render {
         namespace data {
             namespace primitives {
-
+                /// surface material properties
+                /** surface material properties used to shade intersected geometry
+                */
                 class Material {
                 public:
                     Material();

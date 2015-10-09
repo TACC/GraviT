@@ -25,6 +25,11 @@ namespace gvt {
     namespace render {
         class Attributes;
         namespace data {
+            /// global data representation
+            /** container for global data information.
+            A Dataset contains a set of Domains and the acceleration structure for the domain extents,
+            as well as global informaiton such as light sources
+            */
             class Dataset {
             public:
 

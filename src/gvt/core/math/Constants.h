@@ -32,6 +32,7 @@
 
 namespace gvt { namespace core { namespace math {
 
+/// mathematical constants PI, root-2 and root-3
 template<class T> struct Constants {
     static  T pi();
 
@@ -39,12 +40,15 @@ template<class T> struct Constants {
     static  T sqrt3();  /**< @brief Square root of 3 */
 };
 
+/// double-precision mathematical constants PI, root-2 and root-3
 template<> struct Constants<double> {
 
     static  double pi()    { return 3.141592653589793; }
     static  double sqrt2() { return 1.414213562373095; }
     static  double sqrt3() { return 1.732050807568877; }
 };
+
+/// single-precision mathematical constants PI, root-2 and root-3
 template<> struct Constants<float> {
 
     static  float pi()    { return 3.141592654f; }

@@ -1,4 +1,5 @@
-/*
+/// OpenGL-based render window using GraviT
+/**
  * GLTrace - GraviT rendering with render window display.
  * Modeled after MPITrace example program. Added glut window calls.
  *

@@ -19,6 +19,12 @@
 using namespace gvtapps::render;
 
 namespace gvtapps{ namespace render{ 
+    /// split a string into a set of substrings based on the supplied delimiter.
+    /**
+      \param s the string to split
+      \param delim a char delimiter
+      \param elems a string vector on which the substrings are placed
+    */
 std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) 
 {
     std::stringstream ss(s);
@@ -34,6 +40,10 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
 }
 }} // namespace render} namespace gvtapps}
 
+///constructor
+/** 
+    \param filename configuration file 
+*/
 ConfigFileLoader::ConfigFileLoader(const std::string filename) 
 {
 

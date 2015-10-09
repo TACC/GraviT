@@ -5,6 +5,9 @@
 
 namespace gvt {
 	namespace render {
+		/// internal context for GraviT ray tracing renderer
+		/** \sa CoreContext
+		*/
 		class RenderContext : public gvt::core::CoreContext
 		{
 		public:

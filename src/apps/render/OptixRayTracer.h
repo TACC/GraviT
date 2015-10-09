@@ -20,7 +20,13 @@
 
 namespace gvtapps {
     namespace render {
+        /// Render using the NVIDIA Optix Prime ray tracer
+        /** 
+            Ray traces a scene using the NVIDIA Optix Prime ray tracing engine (http://developer.nvidia.com/optix).
+            Ray tracer is initialized using a configuration file and rendered using RenderImage
 
+            \sa ConfigFileLoader, MantaRayTracer, EmbreeRayTracer
+        */
         class OptixRayTracer
         {
         public:

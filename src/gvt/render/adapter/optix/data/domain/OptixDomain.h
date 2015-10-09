@@ -25,6 +25,10 @@ namespace optix {
 namespace data {
 namespace domain {
 
+/// data adapter for NVIDIA OptiX Prime ray tracer
+/** this helper class transforms geometry data from the GraviT internal format 
+to the format expected by NVIDIA's OptiX Prime ray tracer
+*/
 class OptixDomain : public gvt::render::data::domain::GeometryDomain {
  public:
   OptixDomain();

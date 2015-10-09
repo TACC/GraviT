@@ -17,7 +17,10 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace scene {
-
+                /// base class for color accumulation methods
+                /** base class for color accumulation methods typically used in volume rendering
+                \sa CHat, CTilde
+                */
                 class ColorAccumulator 
                 {
                 public:
@@ -67,13 +70,17 @@ namespace gvt {
                     }
 
                     ColorAccumulator& operator=(const ColorAccumulator&);
+                    /// add color but do not accumulate opacity. To accumulate opacity, use accumulate()
                     void add(const ColorAccumulator&);
+                    /// add color and accumulate opacity. To only add color, use add()
                     virtual void accumulate(const ColorAccumulator&) = 0;
                     bool operator<(const ColorAccumulator&) const;
                     bool operator>(const ColorAccumulator&) const;
+                    /// pack color buffer for communication over MPI
                     int pack(unsigned char* buf);
+                    /// unpack color buffer received from MPI communication
                     void unpack(const unsigned char* buf);
-
+                    /// reset buffer to zeros
                     void clear() 
                     {
                         t = FLT_MAX, rgba[0] = 0.f;
@@ -102,9 +109,12 @@ namespace gvt {
                     const static float ALPHA_MAX;
                 };
 
-                // represents C-Hat, as defined in Levoy 1990
-                // devide rgb by a to get normalized color
-
+                /// color accumulator attenuated by accumulated alpha
+                /** 
+                 devide rgb by a to get normalized color
+                 represents C-Hat, as defined in Levoy 1990
+                 \sa CTilde
+                 */
                 class CHat : public ColorAccumulator 
                 {
                 public:
@@ -127,9 +137,11 @@ namespace gvt {
                     void accumulate(const ColorAccumulator&);
                 };
 
-                // represents C-Tilde, as defined in Blinn 1994, Wittenbrink 1998
-                // stores associated (Blinn) or opacity-weighted (Wittenbrink) color
-
+                /// alternate color accumulator 
+                /** stores associated (Blinn) or opacity-weighted (Wittenbrink) color
+                    represents C-Tilde, as defined in Blinn 1994, Wittenbrink 1998
+                    \sa CHat
+                */
                 class CTilde : public ColorAccumulator 
                 {
                 public:

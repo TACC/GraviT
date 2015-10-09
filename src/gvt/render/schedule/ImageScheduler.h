@@ -14,7 +14,10 @@
  	namespace render {
  		namespace schedule {
 
- 			struct ImageScheduler: public SchedulerBase 
+ 			/// scheduler placeholder for Image schedule
+			/** \sa ImageTracer
+			*/
+			struct ImageScheduler: public SchedulerBase 
  			{
  				
  				ImageScheduler() : SchedulerBase() {}

@@ -46,6 +46,7 @@ namespace gvt {
 
                     GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
+                    /// return a Manta-compliant 4-float vector
                     template<>
                     struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f > 
                     {
@@ -56,6 +57,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant 4-float vector
                     template<>
                     struct transform_impl<gvt::core::math::Point4f, Manta::Vec4f > 
                     {
@@ -66,6 +68,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant vector
                     template<>
                     struct transform_impl<gvt::core::math::Point4f, Manta::Vector > 
                     {
@@ -76,6 +79,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant vector
                     template<>
                     struct transform_impl<gvt::core::math::Vector4f, Manta::Vector> 
                     {
@@ -86,6 +90,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant Point
                     template<>
                     struct transform_impl<Manta::Vector, gvt::core::math::Point4f > 
                     {
@@ -96,6 +101,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant Vector
                     template<>
                     struct transform_impl<Manta::Vector, gvt::core::math::Vector4f > 
                     {
@@ -107,6 +113,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant ray
                     template<>
                     struct transform_impl<gvt::render::actor::Ray, Manta::Ray> 
                     {
@@ -120,6 +127,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant ray
                     template<>
                     struct transform_impl<Manta::Ray, gvt::render::actor::Ray> 
                     {
@@ -132,7 +140,7 @@ namespace gvt {
                         }
                     };
                     
-                    
+                    /// return a Manta-compliant point light
                     template<>
                     struct transform_impl<Manta::PointLight*, gvt::render::data::scene::PointLight* > 
                     {
@@ -173,6 +181,7 @@ namespace gvt {
             //            }
             //        };
 
+                    /// return a GraviT-compliant Mesh
                     template<>
                     struct transform_impl<Manta::Mesh*, gvt::render::data::primitives::Mesh*> 
                     {
@@ -198,6 +207,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant Mesh
                     template<>
                     struct transform_impl<gvt::render::data::primitives::Mesh*, Manta::Mesh*> 
                     {

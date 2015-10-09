@@ -17,6 +17,7 @@
     namespace render {
         namespace data {
             namespace primitives {
+                /// bounding box for data and acceleration structures
                 class Box3D {
                 public:
                     gvt::core::math::Point4f bounds[2];

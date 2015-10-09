@@ -21,11 +21,20 @@
 namespace gvt {
     namespace render {
         namespace algorithm {
-            /// Tracer Hybrid (HybridSchedule) based decomposition implementation
-            ///
-            /// Deprecated until its updated to use instancing.
+ 
+        /// work scheduler that adapts between Image and Domain scheduling based on render state
+        /**
+          The Hybrid scheduler strives to combine the advantages of Image and Domain scheduling to achieve
+          performant work balance across the system for the entire render process. The initial schedule divides
+          rays across processes, similar to the Image scheduler, then operates according to the heuristics defined 
+          in the gvt::render::schedule::hybrid classes. These typically seek to maintain loaded domains in-core so long 
+          as there are rays that need the domain's data.
 
-            template<class SCHEDULER> class Tracer<gvt::render::schedule::HybridScheduler<SCHEDULER> > : public AbstractTrace {
+          This scheduler can become unbalanced depending on the characteristics of the schedule heuristics.
+
+            \sa DomainTracer, ImageTracer
+           */  
+             template<class SCHEDULER> class Tracer<gvt::render::schedule::HybridScheduler<SCHEDULER> > : public AbstractTrace {
             public:
 
                 size_t rays_start, rays_end ;

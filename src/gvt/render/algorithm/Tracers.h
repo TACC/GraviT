@@ -15,5 +15,6 @@
 #include <gvt/render/algorithm/ImageTracer.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
+/// single include file for all tracers
 
 #endif /* GVT_RENDER_ALGORITHM_TRACERS_H */

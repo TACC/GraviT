@@ -34,8 +34,19 @@
 namespace gvt {
     namespace render {
         namespace algorithm {
-            /// Tracer Image (ImageSchedule) based decomposition implementation
+            /// work scheduler that strives to keep rays resident and load data domains as needed
+            /**
+              The Image scheduler strives to schedule work such that rays remain resident on their initial process
+              and domains are loaded as necessary to retire those rays. Rays are never sent to other processes. 
+              Domains can be loaded at multiple processes, depending on the requirements of the rays at each process.
 
+              This scheduler can become unbalanced when:
+               - certain rays require more time to process than others
+               - rays at a process require many domains, which can cause memory thrashing
+               - when there are few rays remaining to render, other processes can remain idle
+
+                 \sa DomainTracer, HybridTracer
+               */
             template<> class Tracer<gvt::render::schedule::ImageScheduler> : public AbstractTrace
             {
             public:

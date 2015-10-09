@@ -20,6 +20,19 @@ namespace gvt {
     namespace render {
         namespace schedule {
             namespace hybrid {
+                /// hybrid schedule that attempts to load additional copies of domains that have high demand
+                /** This schedule attempts to load domains that have high ray demand to any available processes, where
+                a process is 'available' if none of its loaded data is currently requested by any ray. This follows the
+                same logic as the LoadOnce schedule, but without the check as to whether the data is already loaded. 
+                Whereas the LoadAnother schedule loads only one additional copy of much-requested data, this schedule
+                can load multiple copies in an effort to distribute high ray load more broadly across processes.
+
+                This schedule has the following issues:
+                    - the thresholding for multiple loads should be improved, perhaps adapted according to total ray state
+                    - schedule will prefer the domain with most rays pending even if other domains have nearly as many
+                    - schedule can load many copies of data which might not be needed in subsequent processing steps, increasing data loads
+                \sa LoadAnotherSchedule, LoadOnceSchedule, LoadAnyOnceSchedule
+                */ 
                  struct LoadManySchedule : public HybridScheduleBase 
                  {
 

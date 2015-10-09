@@ -35,7 +35,10 @@ namespace gvt {
             namespace manta {
                 namespace data {
                     namespace domain {
-
+                        /// data adapter for SCI Manta ray tracer
+                        /** this helper class transforms geometry data from the GraviT internal format 
+                        to the format expected by SCI's Manta ray tracer
+                        */
                         class MantaDomain : public gvt::render::data::domain::GeometryDomain 
                         {
                         public:

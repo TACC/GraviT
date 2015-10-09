@@ -14,6 +14,9 @@
  	namespace render {
  		namespace schedule {
 
+			/// scheduler placeholder for Hybrid schedule
+			/** \sa HybridTracer
+			*/
 			template<class SCHEDULER>
  			struct HybridScheduler: public SchedulerBase 
  			{

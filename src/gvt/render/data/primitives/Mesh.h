@@ -22,6 +22,7 @@ namespace render {
 namespace data {
 namespace primitives {
 
+/// base class for mesh
 class AbstractMesh {
 public:
   AbstractMesh() {}
@@ -37,6 +38,10 @@ public:
   }
 };
 
+/// geometric mesh
+/** geometric mesh used within geometric domains
+\sa GeometryDomain
+*/
 class Mesh : public AbstractMesh {
 public:
   typedef boost::tuple<int, int, int> Face;

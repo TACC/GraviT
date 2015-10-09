@@ -14,6 +14,9 @@ namespace gvt{
 	namespace render {
 		namespace schedule {
 
+			/// scheduler placeholder for Domain schedule
+			/** \sa DomainTracer
+			*/
 			struct DomainScheduler: public SchedulerBase {
 
 				DomainScheduler() : SchedulerBase() {}

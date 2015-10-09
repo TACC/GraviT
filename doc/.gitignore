@@ -1,0 +1,5 @@
+# ignore doxygen output, we will link latest version off GraviT website
+# tacc.github.io/GraviT
+debug.txt
+html
+

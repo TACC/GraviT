@@ -12,6 +12,10 @@
  	namespace render {
  		namespace schedule {
  			namespace hybrid {
+ 				/// base for hybrid schedules
+ 				/**
+ 				\sa AdaptiveSendSchedule, GreedySchedule, LoadAnotherSchedule, LoadAnyOnceSchedule, LoadManySchedule, LoadOnceSchedule, RayWeightedSpreadSchedule, SpreadSchedule
+ 				*/
  				struct HybridScheduleBase {
 
  					int * newMap; 

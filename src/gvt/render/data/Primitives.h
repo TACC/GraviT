@@ -13,5 +13,7 @@
 #include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/data/primitives/Mesh.h>
 
+/// single include for scene primitive types
+
 #endif	/* GVT_RENDER_DATA_PRIMITIVES */
 

@@ -24,15 +24,18 @@
  namespace gvt {
     namespace render {
         namespace actor {
+            /// container for intersection point information
             typedef struct intersection 
             {
-                int domain;
-                float d;
+                int domain; /// domain in which the intersection occurred
+                float d;    /// distance to the intersection point
 
                 intersection(int dom) : domain(dom),d(FLT_MAX) {}
                 intersection(int dom, float dist) : domain(dom),d(dist) {}
 
+                /// return the id of the intersected domain
                 operator int(){return domain;}
+                /// return the distance to the intersection point
                 operator float(){return d;}
                 friend inline bool operator == (const intersection& lhs, const intersection& rhs ) 
                 { return (lhs.d == rhs.d) && (lhs.d == rhs.d); } 
@@ -48,6 +51,12 @@
             {      
             public:
 
+                /// ray type
+                /** ray type enumeration
+                 - PRIMARY - a camera or eye ray
+                 - SHADOW - a ray that tests visibility from a light source to an intersection point
+                 - SECONDARY - all other rays
+                 */
                 enum RayType 
                 {
                     PRIMARY,
@@ -74,8 +83,10 @@
                 void setDirection(double *dir);
                 void setDirection(float *dir);
 
+                /// returns size in bytes for the ray information to be sent via MPI
                 int packedSize();
 
+                /// packs the ray information onto the given buffer and returns the number of bytes packed
                 int pack(unsigned char* buffer);
 
                 friend std::ostream& operator<<(std::ostream& stream, Ray const& ray) 

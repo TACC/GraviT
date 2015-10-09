@@ -37,7 +37,10 @@ namespace adapter {
 namespace manta {
 namespace data {
 
-// class MantaMeshAdapter : public gvt::render::data::domain::GeometryDomain
+/// mesh adapter for SCI's Manta ray tracer
+/** this helper class transforms mesh data from the GraviT internal format 
+to the format expected by SCI's Manta ray tracer
+*/
 class MantaMeshAdapter : public gvt::render::Adapter
 {
 public:

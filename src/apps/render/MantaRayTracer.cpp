@@ -33,6 +33,10 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 
+/// constructor
+/**
+ * \param cl configuration file loader for ray tracer initalization
+ */
 MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
     scene->camera.SetCamera(rays,1.0);
@@ -74,6 +78,10 @@ MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 	filmnode["height"] = V;
 }
 
+/// render the image using the Embree ray tracer
+/**
+    \param imagename filename for the output image
+*/
 void MantaRayTracer::RenderImage(std::string imagename = "mpitrace") 
 {
     
