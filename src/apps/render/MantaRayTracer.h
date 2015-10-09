@@ -6,7 +6,6 @@
 #ifndef GVTAPPS_RENDER_MANTA_RAY_TRACER_H
 #define GVTAPPS_RENDER_MANTA_RAY_TRACER_H
 
-//#include <gvt/render/Attributes.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/data/Primitives.h>
@@ -62,7 +61,6 @@ namespace gvtapps {
             LoadBalancer* loadBalancer;
 
         private:
-//            void parallel_comm_2(gvt::render::Attributes& rta, gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image);
         };
     }
 }

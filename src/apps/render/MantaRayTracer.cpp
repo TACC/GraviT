@@ -37,13 +37,11 @@ MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 {
     scene->camera.SetCamera(rays,1.0);
     
-    //gvt::render::Attributes& rta = *(gvt::render::Attributes::instance());
-    gvt::render::RenderContext::CreateContext();
+  gvt::render::RenderContext::CreateContext();
 	cntxt = gvt::render::RenderContext::instance();   
 	root = cntxt->getRootNode();
 	gvt::core::Variant V;
 	gvt::core::DBNodeH datanode = cntxt->createNodeFromType("Dataset","somedata",root.UUID());
-    //rta.dataset = new gvt::render::data::Dataset();
 	gvt::render::data::Dataset* ds = new gvt::render::data::Dataset();
     
     
@@ -52,7 +50,6 @@ MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
         GeometryDomain* d = (GeometryDomain*)dom;
         d->setLights(scene->lightSet);
         ds->addDomain(new MantaDomain(d));
-        //rta.dataset->addDomain(new MantaDomain(d));
     }
 
     if (cl.accel_type != ConfigFileLoader::NoAccel)
@@ -60,11 +57,8 @@ MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
         std::cout << "creating acceleration structure... ";
         if (cl.accel_type == ConfigFileLoader::BVH)
         {
-            //rta.accel_type = gvt::render::Attributes::BVH;
-        	//rta.dataset->makeAccel();
         	ds -> makeAccel();
         }
-        //rta.dataset->makeAccel(rta);
         std::cout << "...done" << std::endl;
     }
 	V = ds;
@@ -78,8 +72,6 @@ MantaRayTracer::MantaRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
 	filmnode["width"] = V;
 	V = scene->camera.getFilmSizeHeight();
 	filmnode["height"] = V;
-    //rta.view.width = scene->camera.getFilmSizeWidth();
-    //rta.view.height = scene->camera.getFilmSizeHeight();
 }
 
 void MantaRayTracer::RenderImage(std::string imagename = "mpitrace") 

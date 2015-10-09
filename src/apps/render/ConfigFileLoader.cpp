@@ -56,9 +56,6 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
         if (elems[0] == "F") 
         {
             scene.camera.setFilmSize(std::atoi(elems[1].c_str()),std::atoi(elems[2].c_str()));
-		// uncomment this line to use gvtcamera
-            	//scene.GVTCamera.setFilmsize(std::atoi(elems[1].c_str()),std::atoi(elems[2].c_str()));
-            //scene.camera.setAspectRatio(double(std::atoi(elems[1].c_str()))/double(std::atoi(elems[2].c_str())));
         } 
         else if (elems[0] == "C") 
         {
@@ -71,10 +68,6 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
             scene.camera.setLook(pos,look,up);
             scene.camera.setFOV(fov);
             scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
-		// stuff for gvtcamera initialization. uncomment these 3 lines to use gvtcamera
-            	//focus[0] = std::atof(elems[4].c_str());focus[1] = std::atof(elems[5].c_str());focus[2] = std::atof(elems[6].c_str());focus[3]=1.f;
-		//scene.GVTCamera.lookAt(pos,focus,up); 
-		//scene.GVTCamera.setFOV(fov);
             
         } 
         else if (elems[0] == "G") 

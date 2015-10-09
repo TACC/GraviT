@@ -5,7 +5,6 @@
 #include "OptixRayTracer.h"
 
 #include <gvt/core/mpi/Wrapper.h>
-//#include <gvt/render/adapter/embree/Wrapper.h>
 #include <gvt/render/adapter/optix/Wrapper.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/scene/Camera.h>
@@ -46,10 +45,8 @@ OptixRayTracer::OptixRayTracer(ConfigFileLoader& cl) : scene(&cl.scene)
         std::cout << "creating acceleration structure... ";
         if (cl.accel_type == ConfigFileLoader::BVH)
         {
-            //rta.accel_type = gvt::render::Attributes::BVH;
         	rta.dataset->makeAccel();
         }
-        //rta.dataset->makeAccel(rta);
         std::cout << "...done" << std::endl;
     }
 
@@ -77,7 +74,6 @@ void OptixRayTracer::RenderImage(std::string imagename = "mpitrace")
     Image image(scene->camera.getFilmSizeWidth(),scene->camera.getFilmSizeHeight(), imagename);
     rays = scene->camera.MakeCameraRays();
     gvt::render::algorithm::Tracer<DomainScheduler>(rays, image)();  
-    //image.Write();
     gvt::render::algorithm::GVT_COMM mpi;
     if(mpi.root()) image.Write();
 

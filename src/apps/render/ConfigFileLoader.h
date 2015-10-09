@@ -41,20 +41,18 @@ namespace gvtapps {
                 BVH
             };
 
-        //private:
 	    /** gvt render dataset member function that contains all the scene data, cameras, lights, objects etc.
 	    */
             gvt::render::data::Dataset scene;
-            //GVT::Env::RayTracerAttributes rta;
             
-	    /** Private data member that indicates the type of renderer to use. Options include but are not limited to
+	    /**  data member that indicates the type of renderer to use. Options include but are not limited to
 	    * Manta, Optix, and Embree.
 	    */
             int domain_type = 0 ; /* default Manta domain */
-	    /** Private data member that indicates the type of scheduler to use. The default scheduler is the Image scheduler
+	    /**  data member that indicates the type of scheduler to use. The default scheduler is the Image scheduler
 	    */
             int scheduler_type = 0 ; /* default Image scheduler */
-        /** Private data member that indicates the type of acceleration structure to use. The default scheduler is without acceleration.
+        /**  data member that indicates the type of acceleration structure to use. The default scheduler is without acceleration.
         0: NONE, 1: BVH
         */
             AccelType accel_type = NoAccel; /* default no acceleration */
