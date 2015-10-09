@@ -22,9 +22,9 @@ namespace gvt {
     namespace render {
         namespace algorithm {
             /// Tracer Hybrid (HybridSchedule) based decomposition implementation
+            ///
+            /// Deprecated until its updated to use instancing.
 
-                    /*
-             */
             template<class SCHEDULER> class Tracer<gvt::render::schedule::HybridScheduler<SCHEDULER> > : public AbstractTrace {
             public:
 

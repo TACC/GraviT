@@ -22,6 +22,17 @@
 
             typedef boost::function< void() > Task;
 
+            /**
+             * Singleton that maintains a boost thread pool.
+             *
+             * Execute threads with:
+             *
+             *      gvt::core::schedule::asyncExec::instance()->run_task(foo);
+             *
+             * Sync threads with:
+             *
+             *      gvt::core::schedule::asyncExec::instance()->sync();
+             */
             class asyncExec {
             protected:
                 std::queue< boost::function< void() > > tasks_;
@@ -33,8 +44,6 @@
                 boost::condition_variable condition_;
                 bool running_;
 
-
-            //static asyncTaskExecution _singleton;
 
             public:
                 std::size_t numThreads;
@@ -60,22 +69,28 @@
                         }
                     }
 
+                    /**
+                     * Retrieve an instance to the thread pool singleton.
+                     */
                     static asyncExec* instance() {
                         if(!_sinstance) _sinstance = new asyncExec();
                         return _sinstance;
                     }
 
-            template < typename T >
+                    /**
+                     * Add a task to the thread pool to be executed.
+                     */
+                    template < typename T >
                     void run_task(T task) {
                         boost::unique_lock< boost::mutex > lock(mutex_);
                         wcounter++;
                         tasks_.push(task);
                         condition_.notify_one();
                     }
-            template < typename T >
-                    void sync(T task) {
-                    }
 
+                    /**
+                     * Block until all pending tasks are complete.
+                     */
                     void sync() {
                         while (!tasks_.empty() || wcounter > 0) {
                             asm("");
