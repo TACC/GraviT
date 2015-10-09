@@ -22,24 +22,10 @@
 
             typedef boost::function< void() > Task;
 
-<<<<<<< HEAD
-            /**
-             * Singleton that maintains a boost thread pool.
-             *
-             * Execute threads with:
-             *
-             *      gvt::core::schedule::asyncExec::instance()->run_task(foo);
-             *
-             * Sync threads with:
-             *
-             *      gvt::core::schedule::asyncExec::instance()->sync();
-             */
-=======
             /// base class for threaded GraviT components
             /** base class for asynchronously-executing components of GraviT.
             This class manages thread execution and synchronization
             */
->>>>>>> origin/GVT-35
             class asyncExec {
             protected:
                 std::queue< boost::function< void() > > tasks_;

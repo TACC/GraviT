@@ -68,6 +68,7 @@ if (GVT_RENDER)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
 	option(GVT_SIMPLE_APP			"Build the simple application" ON)
 	option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
+	add_definitions(-DGVT_RENDER)
 endif(GVT_RENDER) 
 
 

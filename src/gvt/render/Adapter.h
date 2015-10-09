@@ -9,7 +9,7 @@
 namespace gvt {
 namespace render {
 /// base class for ray tracing engine adapters
-/** \sa MantaMeshAdapter, EmbreeMeshAdapter, OptixMeshAdapter
+/**  MantaMeshAdapter, EmbreeMeshAdapter, OptixMeshAdapter */
 class Adapter {
 protected:
     /**
