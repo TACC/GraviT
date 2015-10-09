@@ -61,7 +61,7 @@ Ray::~Ray()
 
 Ray::Ray(const unsigned char* buf) 
 {
-    GVT_DEBUG(DBG_ALWAYS, "in Ray::Ray(const unsigned char* buf)");
+    //GVT_DEBUG(DBG_ALWAYS, "in Ray::Ray(const unsigned char* buf)");
     origin = Vector4f((float*) buf);
     buf += origin.packedSize();
     direction = Vector4f((float*) buf);
@@ -78,11 +78,11 @@ Ray::Ray(const unsigned char* buf)
     buf += sizeof (double);
     color = GVT_COLOR_ACCUM(buf);
     buf += color.packedSize();
-    int domain_size = *((int*) buf);
+    int domain_size = *((int*) buf); 
     buf += sizeof (int);
     for (int i = 0; i < domain_size; ++i, buf += sizeof (isecDom)) 
     {
-        domains.push_back(isecDom(*(float*) buf));
+        domains.push_back(isecDom(*(int*)buf,*(float*)((int*)buf+sizeof(int))));
     }
 
 }
@@ -90,8 +90,9 @@ Ray::Ray(const unsigned char* buf)
 int Ray::packedSize() 
 {
     int total_size = origin.packedSize() + direction.packedSize() + color.packedSize();
-    total_size = 4 * sizeof (int) + 4 * sizeof (double);
-    total_size = sizeof (isecDom) * domains.size();
+    total_size += 4 * sizeof (int) + 2 * sizeof (double);
+		total_size += domains.size() * ( sizeof(float) + sizeof(int));
+    //total_size += sizeof (isecDom) * domains.size();
     return total_size;
 }
 
@@ -99,9 +100,10 @@ int Ray::pack(unsigned char* buffer)
 {
 
     unsigned char* buf = buffer;
+		unsigned char* buf0 = buffer;
 
-    buffer += origin.pack(buf);
-    buffer += direction.pack(buf);
+    buf += origin.pack(buf);
+    buf += direction.pack(buf);
     *((int*) buf) = id;
     buf += sizeof (int);
     *((int*) buf) = depth;
@@ -116,14 +118,18 @@ int Ray::pack(unsigned char* buffer)
     *((int*) buf) = domains.size();
     buf += sizeof (int);
 
-    BOOST_FOREACH(isecDom& d, domains) 
-    {
+		for(auto& dom :domains) {
+			*((int*) buf) = dom;
+			buf += sizeof(int);
+			*((float*) buf) = dom;
+			buf += sizeof(float);
+		}
+			
 
-        *(isecDom*) buf = d;
-        buf += sizeof (int);
-    }
-
-
+		if(packedSize() != (buf - buf0)) {
+			std::cout << " error in pack " << buf - buf0 << " " << packedSize() << std::endl;
+			exit(0);
+		}
     return packedSize();
 }
 

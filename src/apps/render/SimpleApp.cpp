@@ -151,12 +151,10 @@ int main(int argc, char** argv) {
         mesh->addFace(6, 8, 7);
         mesh->addFace(5, 1, 4);
         mesh->addFace(5, 4, 8);
-        mesh->addFace(1, 2, 6);
-        mesh->addFace(1, 6, 5);
+        mesh->addFace(1, 5, 6);
+        mesh->addFace(1, 6, 2);
         mesh->addFace(4, 3, 7);
         mesh->addFace(4, 7, 8);
-        mesh->generateNormals();
-
         mesh->generateNormals();
 
         // calculate bbox
@@ -185,7 +183,8 @@ int main(int argc, char** argv) {
     for(int i=ii[0]; i<ii[1]; i++) {
         for(int j=jj[0]; j<jj[1]; j++) {
             gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-            gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
+            //gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
+            gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
             Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
 
             instnode["id"] = instId++;
@@ -215,16 +214,16 @@ int main(int argc, char** argv) {
     // add lights, camera, and film to the database
     gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
     gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lightNode["position"] = Vector4f(1.0, 1.0, 1.0, 0.0);
-    lightNode["color"] = Vector4f(0.0, 1.0, 1.0, 0.0);
+    lightNode["position"] = Vector4f(1.0, 0.0, 0.0, 0.0);
+    lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
     // second light just for fun
-    gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lN2["position"] = Vector4f(2.0, 2.0, 0.0, 0.0);
-    lN2["color"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+    //gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+    //lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
+    //lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
 
 	gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
-	camNode["eyePoint"] = Point4f(1.0, 1.0, 1.0, 1.0);
+	camNode["eyePoint"] = Point4f(4.0, 0.0, 0.0, 1.0);
 	camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
 	camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
 	camNode["fov"] = (float)(45.0 * M_PI/180.0);

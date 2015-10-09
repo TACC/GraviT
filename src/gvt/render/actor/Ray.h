@@ -91,7 +91,7 @@
 
                 friend std::ostream& operator<<(std::ostream& stream, Ray const& ray) 
                 {
-                    stream << ray.origin << "-->" << ray.direction << "[" << ray.type << "]";
+                    stream << ray.origin << "-->" << ray.direction << " [" << ray.type << "]";
                     return stream;
                 }
 

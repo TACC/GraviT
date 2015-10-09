@@ -375,16 +375,14 @@ struct embreeParallelTrace {
    */
   void operator()() {
 #ifdef GVT_USE_DEBUG
-    boost::timer::auto_cpu_timer t_functor(
-        "EmbreeMeshAdapter: thread trace time: %w\n");
+    boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: thread trace time: %w\n");
 #endif
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: started thread");
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = gvt::core::variant_toMeshPtr(
-        instNode["meshRef"].deRef()["ptr"].value());
+    auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
 
     RTCScene scene = adapter->getScene();
     localDispatch.reserve(rayList.size() * 2);
@@ -522,40 +520,29 @@ struct embreeParallelTrace {
                   t = (t > 1) ? 1.f / t : t;
                   r.w = r.w * t;
                 }
-
                 generateShadowRays(r, normal, ray4.primID[pi], mesh);
 
-                int ndepth = r.depth - 1;
-                float p = 1.f - (float(rand()) / RAND_MAX);
-                // replace current ray with generated secondary ray
-                if (ndepth > 0 && r.w > p) {
-                  r.domains.clear();
-                  r.type = gvt::render::actor::Ray::SECONDARY;
-                  const float multiplier =
-                      1.0f -
-                      16.0f *
-                          std::numeric_limits<float>::epsilon(); // TODO: move
-                                                                 // out
-                                                                 // somewhere /
-                                                                 // make static
-                  const float t_secondary = multiplier * r.t;
-                  r.origin = r.origin + r.direction * t_secondary;
+                 int ndepth = r.depth - 1;
+                 float p = 1.f - (float(rand()) / RAND_MAX);
+                 // replace current ray with generated secondary ray
+                 if (ndepth > 0 && r.w > p)
+                   {
+                    r.domains.clear();
+                    r.type = gvt::render::actor::Ray::SECONDARY;
+                    const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
+                    const float t_secondary = multiplier * r.t;
+                         r.origin = r.origin + r.direction * t_secondary;
 
-                  // TODO: remove this dependency on mesh, store material object
-                  // in the database
-                  // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                  r.setDirection(
-                      mesh->getMaterial()
-                          ->CosWeightedRandomHemisphereDirection2(normal)
-                          .normalize());
+                    // TODO: remove this dependency on mesh, store material object in the database
+                    //r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                    r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
 
-                  r.w = r.w * (r.direction * normal);
-                  r.depth = ndepth;
-                  validRayLeft =
-                      true; // we still have a valid ray in the packet to trace
-                } else {
-                  // secondary ray is terminated, so disable its valid bit
-                  valid[pi] = 0;
+                    r.w = r.w * (r.direction * normal);
+                    r.depth = ndepth;
+                    validRayLeft = true; // we still have a valid ray in the packet to trace
+                  } else {
+                   // secondary ray is terminated, so disable its valid bit
+                    valid[pi] = 0;
                 }
               } else {
                 // ray is valid, but did not hit anything, so add to dispatch
