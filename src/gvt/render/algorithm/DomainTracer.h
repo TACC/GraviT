@@ -315,8 +315,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       GVT_DEBUG_CODE(DBG_ALWAYS, if (DEBUG_RANK) cerr
                                      << mpi.rank << ": " << not_done
                                      << " procs still have rays"
-                                     << " (my q:" << queue.size() << ")"
-                                     << endl);
+                                     << " (my q:" << queue.size() << ")");
       all_done = (not_done == 0);
 
       delete[] empties;
@@ -494,7 +493,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
       std::cerr << mpi.rank << ": inbound ";
       for (int i = 0; i < mpi.world_size; ++i)
         std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
-      std::cerr << endl << mpi.rank << ": outbound ";
+      std::cerr << std::endl << mpi.rank << ": outbound ";
       for (int i = 0; i < mpi.world_size; ++i)
         std::cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
       std::cerr << std::endl;
@@ -599,7 +598,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     delete[] outbound;
     delete[] reqs;
     delete[] stat;
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] done with DomainSendRays" << endl);
+    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] done with DomainSendRays");
     return false;
   }
 };
