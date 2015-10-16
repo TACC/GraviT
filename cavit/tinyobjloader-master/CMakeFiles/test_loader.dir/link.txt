@@ -1,1 +1,0 @@
-/opt/intel/2015/composer_xe_2015.2.164/bin/intel64/icpc      CMakeFiles/test_loader.dir/test.cc.o  -o test_loader -rdynamic libtinyobjloader.a 

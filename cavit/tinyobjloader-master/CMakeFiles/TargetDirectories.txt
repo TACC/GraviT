@@ -1,3 +1,0 @@
-/home/jbarbosa/TACC/gravit/third-party/tinyobjloader-master/CMakeFiles/tinyobjloader.dir
-/home/jbarbosa/TACC/gravit/third-party/tinyobjloader-master/CMakeFiles/obj_sticher.dir
-/home/jbarbosa/TACC/gravit/third-party/tinyobjloader-master/CMakeFiles/test_loader.dir
