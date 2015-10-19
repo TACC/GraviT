@@ -1,7 +1,34 @@
-//
-// Simple gravit application.
-// Load some geometry and render it.
-//
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
+/**
+ * A simple GraviT application that loads some geometry and renders it.
+ *
+ * This application renders a simple scene of cones and cubes using the GraviT interface.
+ * This will run in both single-process and MPI modes. You can alter the work scheduler 
+ * used by changing line 242.
+ * 
+*/
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Types.h>
 #include <vector>
@@ -12,9 +39,20 @@
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
-//#include <gvt/render/adapter/manta/Wrapper.h>
-//#include <gvt/render/adapter/optix/Wrapper.h>
+
+
+#ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_MANTA
+#include <gvt/render/adapter/manta/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+#include <gvt/render/adapter/optix/Wrapper.h>
+#endif
+
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
@@ -34,9 +72,6 @@ using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
-//using namespace gvt::render::adapter::manta::data::domain;
-//using namespace gvt::render::adapter::optix::data::domain;
-using namespace gvt::render::adapter::embree::data::domain;
 
 void test_bvh(gvtPerspectiveCamera &camera);
 
@@ -139,8 +174,8 @@ int main(int argc, char** argv) {
         mesh->addFace(6, 8, 7);
         mesh->addFace(5, 1, 4);
         mesh->addFace(5, 4, 8);
-        mesh->addFace(1, 2, 6);
-        mesh->addFace(1, 6, 5);
+        mesh->addFace(1, 5, 6);
+        mesh->addFace(1, 6, 2);
         mesh->addFace(4, 3, 7);
         mesh->addFace(4, 7, 8);
         mesh->generateNormals();
@@ -171,7 +206,8 @@ int main(int argc, char** argv) {
     for(int i=ii[0]; i<ii[1]; i++) {
         for(int j=jj[0]; j<jj[1]; j++) {
             gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-            gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
+            //gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
+            gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
             Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
 
             instnode["id"] = instId++;
@@ -201,16 +237,16 @@ int main(int argc, char** argv) {
     // add lights, camera, and film to the database
     gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
     gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lightNode["position"] = Vector4f(1.0, 1.0, 1.0, 0.0);
-    lightNode["color"] = Vector4f(0.0, 1.0, 1.0, 0.0);
+    lightNode["position"] = Vector4f(1.0, 0.0, 0.0, 0.0);
+    lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
     // second light just for fun
-    gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-    lN2["position"] = Vector4f(2.0, 2.0, 0.0, 0.0);
-    lN2["color"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+    //gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+    //lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
+    //lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
 
 	gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera","conecam",root.UUID());
-	camNode["eyePoint"] = Point4f(1.0, 1.0, 1.0, 1.0);
+	camNode["eyePoint"] = Point4f(4.0, 0.0, 0.0, 1.0);
 	camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
 	camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
 	camNode["fov"] = (float)(45.0 * M_PI/180.0);
@@ -221,15 +257,20 @@ int main(int argc, char** argv) {
 
     // TODO: schedule db design could be modified a bit
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
-	//schedNode["type"] = gvt::render::scheduler::Image;
-	schedNode["type"] = gvt::render::scheduler::Domain;
-	schedNode["adapter"] = gvt::render::adapter::Embree;
+	schedNode["type"] = gvt::render::scheduler::Image;
+	// schedNode["type"] = gvt::render::scheduler::Domain;
 
-#if 0
-    std::cout << "\n-- db tree --" << std::endl;
-	cntxt->database()->printTree(root.UUID(),10,std::cout);
-    std::cout << "\n-- ------- --\n" << std::endl;
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+    int adapterType = gvt::render::adapter::Embree;
+#elif GVT_RENDER_ADAPTER_MANTA
+    int adapterType = gvt::render::adapter::Manta;
+#elif GVT_RENDER_ADAPTER_OPTIX
+    int adapterType = gvt::render::adapter::Optix;
+#elif
+    GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
+
+	schedNode["adapter"] = adapterType;
 
     // end db setup
 
@@ -260,7 +301,7 @@ int main(int argc, char** argv) {
         case gvt::render::scheduler::Image :
             {
                 std::cout << "starting image scheduler" << std::endl;
-                for(int z=0; z<10; z++) {
+                for(int z=0; z<1; z++) {
                     mycamera.AllocateCameraRays();
                     mycamera.generateRays();
                     gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,myimage)();

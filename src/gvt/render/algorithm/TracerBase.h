@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /*
  * Tracer.h
  *
@@ -54,6 +77,11 @@ struct GVT_COMM {
 
 struct processRay;
 
+/// base tracer class for GraviT ray tracing framework
+/** 
+  This is the base class for the GraviT ray tracing framework on which the work schedulers are implemented.
+  \sa DomainTracer, HybridTracer, ImageTracer
+  */
 class AbstractTrace {
  public:
   ///! Define mpi communication world
@@ -62,38 +90,26 @@ class AbstractTrace {
   gvt::render::actor::RayVector& rays;     ///< Rays to trace
   gvt::render::data::scene::Image& image;  ///< Final image buffer
   gvt::render::RenderContext& cntxt = *gvt::render::RenderContext::instance();
-  //gvt::core::CoreContext& cntxt = *gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootnode = cntxt.getRootNode();
   gvt::core::Vector<gvt::core::DBNodeH> instancenodes;
 
   gvt::render::data::accel::AbstractAccel* acceleration;
 
-  // TODO: alim: removing Dataset and rta
-  // gvt::render::data::Dataset* data = gvt::core::variant_toDatasetPointer(rootnode["Dataset"]["Dataset_Pointer"].value());
   int width = gvt::core::variant_toInteger(rootnode["Film"]["width"].value());
   int height = gvt::core::variant_toInteger(rootnode["Film"]["height"].value());
 
-  // never used BDS
-  //unsigned char* vtf;
   float sample_ratio;
 
   boost::mutex raymutex;
   boost::mutex* queue_mutex; // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue;  ///< Node rays working
-  /// queue
-  // std::map<int, std::mutex> queue;
-  // buffer for color accumulation
-  boost::mutex* colorBuf_mutex;
+  boost::mutex* colorBuf_mutex; ///< buffer for color accumulation
   GVT_COLOR_ACCUM* colorBuf;
 
   AbstractTrace(gvt::render::actor::RayVector& rays,
                 gvt::render::data::scene::Image& image)
       : rays(rays), image(image) {
     GVT_DEBUG(DBG_ALWAYS, "initializing abstract trace: num rays: " << rays.size());
-    // never used BDS
-    //vtf = gvt::render::Attributes::rta->GetTransferFunction();
-    // never used BDS
-    //sample_ratio = gvt::render::Attributes::rta->sample_ratio;
     colorBuf = new GVT_COLOR_ACCUM[width*height];
 
     // TODO: alim: this queue is on the number of domains in the dataset
@@ -103,14 +119,7 @@ class AbstractTrace {
     int numInst = instancenodes.size();
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
     queue_mutex = new boost::mutex[numInst];
-
     colorBuf_mutex = new boost::mutex[width];
-
-    //colorBuf = new GVT_COLOR_ACCUM[gvt::render::RTA::instance()->view.width *
-     //                              gvt::render::RTA::instance()->view.height];
-    //queue_mutex = new boost::mutex[gvt::render::Attributes::rta->dataset->size()];
-    //colorBuf_mutex = new boost::mutex[gvt::render::RTA::instance()->view.width];
-
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
 
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
@@ -124,16 +133,18 @@ class AbstractTrace {
 
   virtual void FilterRaysLocally(void) {
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
-    shuffleRays(rays);
+    shuffleRays(rays, gvt::core::DBNodeH());
   }
 
-  /***
-  *   Given a queue of rays:
-  *     - Moves the ray to the next domain on the list
-  *     -
-  *
-  */
+#if 0
+  // NOTE: this legacy function is required for hybrid tracer to compile.  eventually
+  // hybrid tracer needs to be updated to use instances
+  //
+  // The new / correct shuffleRays function is after this one.
 
+  /**
+   * Deprecated
+   */
   virtual void shuffleRays(
       gvt::render::actor::RayVector& rays,
       gvt::render::data::domain::AbstractDomain* dom = NULL) {
@@ -207,12 +218,13 @@ class AbstractTrace {
     //for (auto& f : futures) f.wait();
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
   }
+#endif
 
 
-  //
-  // FIXME: temporary until the other tracers switch over to using instances
-  //
-
+  /**
+   * Given a queue of rays, intersects them against the accel structure
+   * to find out what instance they will hit next
+   */
   virtual void shuffleRays(
       gvt::render::actor::RayVector& rays,
       gvt::core::DBNodeH instNode) {
@@ -242,6 +254,9 @@ class AbstractTrace {
         gvt::render::actor::RayVector local(chunk);
         local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
         GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: looping through local rays: num local: " << local.size());
+				// go through the local list of rays and stash them in 
+				// local_queue[dom] where dom is the first "domain" the
+				// ray intersects. 
         for (gvt::render::actor::Ray& r : local) {
           gvt::render::actor::isecDomList& len2List = r.domains;
 
@@ -299,24 +314,11 @@ class AbstractTrace {
     GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
   }
 
-  //
-  //
-  //
-
-
-
-
-
-
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
 
   virtual void localComposite() {
     const size_t size = width*height;
-    //const size_t size = gvt::render::Attributes::rta->view.width *
-    //                   gvt::render::Attributes::rta->view.height;
-
-    // for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
 
     int nchunks = std::thread::hardware_concurrency() * 2;
     int chunk_size = size / nchunks;
@@ -345,9 +347,6 @@ class AbstractTrace {
   virtual void gatherFramebuffers(int rays_traced) {
 
     size_t size = width * height;
-    //size_t size = gvt::render::Attributes::rta->view.width *
-    //              gvt::render::Attributes::rta->view.height;
-
 
     for(size_t i =0; i < size; i++) image.Add(i, colorBuf[i]);                  
 
@@ -410,7 +409,6 @@ class AbstractTrace {
  * \tparam BSCHEDUDER Base tracer scheduler (e.g. Image, Domain or Hybrid)
  *
  */
-
 template <class BSCHEDULER>
 class Tracer : public AbstractTrace {
  public:
@@ -420,6 +418,8 @@ class Tracer : public AbstractTrace {
 
   virtual ~Tracer() {}
 };
+
+
 /// Generic Tracer interface for a base scheduling strategy with mutable inner
 /// scheduling policy
 

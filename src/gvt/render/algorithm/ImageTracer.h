@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /*
  * ImageTracer.h
  *
@@ -17,15 +40,36 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_MANTA
+#include <gvt/render/adapter/manta/Wrapper.h>
+#endif
+
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+#include <gvt/render/adapter/optix/Wrapper.h>
+#endif
 
 #include <boost/timer/timer.hpp>
 
 namespace gvt {
     namespace render {
         namespace algorithm {
-            /// Tracer Image (ImageSchedule) based decomposition implementation
+            /// work scheduler that strives to keep rays resident and load data domains as needed
+            /**
+              The Image scheduler strives to schedule work such that rays remain resident on their initial process
+              and domains are loaded as necessary to retire those rays. Rays are never sent to other processes. 
+              Domains can be loaded at multiple processes, depending on the requirements of the rays at each process.
 
+              This scheduler can become unbalanced when:
+               - certain rays require more time to process than others
+               - rays at a process require many domains, which can cause memory thrashing
+               - when there are few rays remaining to render, other processes can remain idle
+
+                 \sa DomainTracer, HybridTracer
+               */
             template<> class Tracer<gvt::render::schedule::ImageScheduler> : public AbstractTrace
             {
             public:
@@ -35,7 +79,6 @@ namespace gvt {
 
                 // caches meshes that are converted into the adapter's format
                 std::map<gvt::core::Uuid, gvt::render::Adapter*> adapterCache;
-
                 Tracer(gvt::render::actor::RayVector& rays, gvt::render::data::scene::Image& image)
                 : AbstractTrace(rays, image)
                 {
@@ -102,6 +145,9 @@ namespace gvt {
                             gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
 
+
+                            //TODO: Make cache generic needs to accept any kind of adpater
+
                             // 'getAdapterFromCache' functionality
                             auto it = adapterCache.find(meshNode.UUID());
                             if(it != adapterCache.end()) {
@@ -111,15 +157,29 @@ namespace gvt {
                             if(!adapter) {
                                 GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
                                 switch(adapterType) {
+#ifdef GVT_RENDER_ADAPTER_EMBREE
                                     case gvt::render::adapter::Embree:
                                         adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
                                         break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_MANTA
+                                    case gvt::render::adapter::Manta:
+                                        adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
+                                        break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+                                    case gvt::render::adapter::Optix:
+                                        adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
+                                        break;
+#endif
                                     default:
                                         GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
                                 }
 
                                 adapterCache[meshNode.UUID()] = adapter;
                             }
+
+
                             GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
                             // end getAdapterFromCache concept
 

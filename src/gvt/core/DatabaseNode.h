@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 #ifndef GVT_CORE_DATABASE_NODE_H
 #define GVT_CORE_DATABASE_NODE_H
 
@@ -8,11 +31,6 @@ namespace gvt {
         class DatabaseNode
         {
 
-            // TODO: pnav - implement Boost Signals2 interface
-            //Q_PROPERTY(QUuid p_uuid READ UUID WRITE setUUID NOTIFY uuidChanged)
-            //Q_PROPERTY(QString p_name READ name WRITE setName NOTIFY nameChanged)
-            //Q_PROPERTY(QUuid p_parent READ parentUUID WRITE setParentUUID NOTIFY parentUUIDChanged)
-            //Q_PROPERTY(QVariant p_value READ value WRITE setValue NOTIFY valueChanged)
 
             Uuid        p_uuid;
             String      p_name;
@@ -39,16 +57,6 @@ namespace gvt {
 
             static DatabaseNode* errNode;
 
-#if 0 // pnav - TODO
-            signals:
-            void uuidChanged();
-            void nameChanged();
-            void parentUUIDChanged();
-            void valueChanged();
-            void childChanged(QUuid);
-
-            public slots:
-#endif
         };
 
         class DBNodeH

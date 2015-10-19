@@ -1,4 +1,28 @@
-/*
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
+/// OpenGL-based render window using GraviT
+/**
  * GLTrace - GraviT rendering with render window display.
  * Modeled after MPITrace example program. Added glut window calls.
  *
@@ -23,10 +47,8 @@
 #include <gvt/render/Attributes.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/Camera.h>
-//#include <Interface/LightSet.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/adapter/manta/Wrapper.h>
-//#include <gvt/render/adapter/optix/Wrapper.h>
 
 #include <GL/freeglut.h>
 #define ESCAPE 27
@@ -58,8 +80,6 @@ void Render() {
   rays = sceneptr->camera.MakeCameraRays();
   gvt::render::algorithm::Tracer<DomainScheduler>(
       rays, (*imageptr))();
-  // GVT::Trace::Tracer<GVT::Domain::MantaDomain, MPICOMM, ImageSchedule>(rays,
-  // (*imageptr))();
 }
 
 // ************************* Glut callback  functions
@@ -91,34 +111,28 @@ void reshape(int w, int h) {
 void specialkey(int key, int x, int y) {
   Vector4f eye1, focus, up1;
   eye1 = sceneptr->camera.getEye();
-  // focus = sceneptr->camera.getFocus();
   up1 = sceneptr->camera.getUp();
   switch (key) {
     case GLUT_KEY_LEFT:  // translate camera left
       eye1[0] = eye1[0] - 0.05;
-      // focus[0] = focus[0] - 0.05;
       update = true;
       break;
     case GLUT_KEY_RIGHT:  // translate camera right
       eye1[0] = eye1[0] + 0.05;
-      // focus[0] = focus[0] + 0.05;
       update = true;
       break;
     case GLUT_KEY_UP:  // translate camera right
       eye1[1] = eye1[1] + 0.05;
-      // focus[0] = focus[0] + 0.05;
       update = true;
       break;
     case GLUT_KEY_DOWN:  // translate camera right
       eye1[1] = eye1[1] - 0.05;
-      // focus[0] = focus[0] + 0.05;
       update = true;
       break;
     default:
       break;
   }
   sceneptr->camera.setEye(eye1);
-  // sceneptr->camera.setLook(eye1,focus,up1);
   glutPostRedisplay();
 }
 
@@ -173,8 +187,6 @@ int main(int argc, char *argv[]) {
   sceneptr = scene;
   scene->camera.SetCamera(rays, 1.0);
   gvt::render::Attributes &rta = *(gvt::render::Attributes::instance());
-  // GVT::Env::RayTracerAttributes& rta =
-  // *(GVT::Env::RayTracerAttributes::instance());
   rta.dataset = new gvt::render::data::Dataset();
 
   BOOST_FOREACH (AbstractDomain *dom, scene->domainSet) {
@@ -191,8 +203,6 @@ int main(int argc, char *argv[]) {
   rta.do_lighting = true;
   rta.schedule = gvt::render::Attributes::Image;
   rta.render_type = gvt::render::Attributes::Manta;
-  // rta.schedule = GVT::Env::RayTracerAttributes::Image;
-  // rta.render_type = GVT::Env::RayTracerAttributes::Manta;
 
   Image image(scene->camera.getFilmSizeWidth(),
               scene->camera.getFilmSizeHeight(), "spoot");

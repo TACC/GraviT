@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /* 
  * File:   ConfigFileLoader.cpp
  * Author: jbarbosa
@@ -19,6 +42,12 @@
 using namespace gvtapps::render;
 
 namespace gvtapps{ namespace render{ 
+    /// split a string into a set of substrings based on the supplied delimiter.
+    /**
+      \param s the string to split
+      \param delim a char delimiter
+      \param elems a string vector on which the substrings are placed
+    */
 std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) 
 {
     std::stringstream ss(s);
@@ -34,6 +63,10 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
 }
 }} // namespace render} namespace gvtapps}
 
+///constructor
+/** 
+    \param filename configuration file 
+*/
 ConfigFileLoader::ConfigFileLoader(const std::string filename) 
 {
 
@@ -56,9 +89,6 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
         if (elems[0] == "F") 
         {
             scene.camera.setFilmSize(std::atoi(elems[1].c_str()),std::atoi(elems[2].c_str()));
-		// uncomment this line to use gvtcamera
-            	//scene.GVTCamera.setFilmsize(std::atoi(elems[1].c_str()),std::atoi(elems[2].c_str()));
-            //scene.camera.setAspectRatio(double(std::atoi(elems[1].c_str()))/double(std::atoi(elems[2].c_str())));
         } 
         else if (elems[0] == "C") 
         {
@@ -71,10 +101,6 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
             scene.camera.setLook(pos,look,up);
             scene.camera.setFOV(fov);
             scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
-		// stuff for gvtcamera initialization. uncomment these 3 lines to use gvtcamera
-            	//focus[0] = std::atof(elems[4].c_str());focus[1] = std::atof(elems[5].c_str());focus[2] = std::atof(elems[6].c_str());focus[3]=1.f;
-		//scene.GVTCamera.lookAt(pos,focus,up); 
-		//scene.GVTCamera.setFOV(fov);
             
         } 
         else if (elems[0] == "G") 

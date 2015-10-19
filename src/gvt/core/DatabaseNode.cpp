@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 #include "gvt/core/DatabaseNode.h"
 #include "gvt/core/CoreContext.h"
 #include "gvt/core/Debug.h"
@@ -39,26 +62,21 @@ Variant DatabaseNode::value()
 void DatabaseNode::setUUID(Uuid uuid) 
 {
     p_uuid = uuid;
-    //emit uuidChanged();
 }
 
 void DatabaseNode::setName(String name) 
 {
     p_name = name;
-    //emit nameChanged();
 }
 
 void DatabaseNode::setParentUUID(Uuid parentUUID) 
 {
     p_parent = parentUUID;
-    //emit parentUUIDChanged();
 }
 
 void DatabaseNode::setValue(Variant value) 
 {
     p_value = value;
-    //emit valueChanged();
-    //propagateUpdate();
 }
 
 void DatabaseNode::propagateUpdate()
@@ -70,7 +88,6 @@ void DatabaseNode::propagateUpdate()
     Uuid cid = UUID();
     while (pn)
     {
-        //emit pn->childChanged(cid);
         cid = pn->UUID();
         pn = db.getItem(pn->parentUUID());
     }
@@ -91,8 +108,6 @@ Vector<DatabaseNode*> DatabaseNode::getChildren()
  *******************/
 
 
-//DBNodeH DBNodeH::errNode();
-//DBNodeH* DBNodeH::errNode = new DBNodeH(String("error"), Uuid(0), Uuid(0), 0);
 
 DatabaseNode& DBNodeH::getNode()
 {
@@ -109,12 +124,10 @@ DBNodeH DBNodeH::deRef()
 {
     CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
-//    DEBUG(value().toUuid().toString().toStdString());
     DatabaseNode& n = getNode();
     DatabaseNode* ref = db.getItem(variant_toUuid(n.value()));
     if (ref && (variant_toUuid(n.value()) != nil_uuid()))
     {
-//        DEBUG("success");
         return DBNodeH(ref->UUID());
     }
     else
@@ -149,7 +162,6 @@ DBNodeH& DBNodeH::operator+=(DBNodeH child)
 
 DBNodeH& DBNodeH::operator=(Variant val)
 {
-//    DEBUG(p_name.toStdString());
     setValue(val);
     return *this;
 }
@@ -161,10 +173,6 @@ bool DBNodeH::operator==(const Variant val)
 
 DBNodeH::operator bool() const
 {
-//    if (this == errNode)
-//        DEBUG("is errNode");
-//    DEBUG("bool:");
-//    DEBUG(p_uuid.toString().toStdString());
     return (_uuid != nil_uuid());
 }
 
@@ -227,13 +235,11 @@ void DBNodeH::propagateUpdate()
 void DBNodeH::connectValueChanged(const void * receiver, const char* method)
 {
     GVT_DEBUG(DBG_ALWAYS,"gvt::core::DBNodeH::connectValueChanged not implemented");
-    //receiver->connect(&getNode(),SIGNAL(valueChanged()), method);
 }
 
 void DBNodeH::connectChildChanged(const void * receiver,  const char* method)
 {
     GVT_DEBUG(DBG_ALWAYS,"gvt::core::DBNodeH::connectChildChanged not implemented");
-    //receiver->connect(&getNode(),SIGNAL(connectChildChanged()), method);
 }
 
 Vector<DBNodeH> DBNodeH::getChildren() 

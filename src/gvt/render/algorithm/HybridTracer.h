@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /* 
  * File:   HybridTracer.h
  * Author: jbarbosa
@@ -21,11 +44,20 @@
 namespace gvt {
     namespace render {
         namespace algorithm {
-            /// Tracer Hybrid (HybridSchedule) based decomposition implementation
+ 
+        /// work scheduler that adapts between Image and Domain scheduling based on render state
+        /**
+          The Hybrid scheduler strives to combine the advantages of Image and Domain scheduling to achieve
+          performant work balance across the system for the entire render process. The initial schedule divides
+          rays across processes, similar to the Image scheduler, then operates according to the heuristics defined 
+          in the gvt::render::schedule::hybrid classes. These typically seek to maintain loaded domains in-core so long 
+          as there are rays that need the domain's data.
 
-                    /*
-             */
-            template<class SCHEDULER> class Tracer<gvt::render::schedule::HybridScheduler<SCHEDULER> > : public AbstractTrace {
+          This scheduler can become unbalanced depending on the characteristics of the schedule heuristics.
+
+            \sa DomainTracer, ImageTracer
+           */  
+             template<class SCHEDULER> class Tracer<gvt::render::schedule::HybridScheduler<SCHEDULER> > : public AbstractTrace {
             public:
 
                 size_t rays_start, rays_end ;
