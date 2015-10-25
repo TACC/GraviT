@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /* 
  * File:   ConfigFileLoader.cpp
  * Author: jbarbosa
@@ -14,10 +37,17 @@
 #include <sstream>
 #include <boost/regex.h>
 #include <boost/regex.hpp>
+ #include <map>
 
 using namespace gvtapps::render;
 
 namespace gvtapps{ namespace render{ 
+    /// split a string into a set of substrings based on the supplied delimiter.
+    /**
+      \param s the string to split
+      \param delim a char delimiter
+      \param elems a string vector on which the substrings are placed
+    */
 std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) 
 {
     std::stringstream ss(s);
@@ -33,6 +63,10 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
 }
 }} // namespace render} namespace gvtapps}
 
+///constructor
+/** 
+    \param filename configuration file 
+*/
 ConfigFileLoader::ConfigFileLoader(const std::string filename) 
 {
 
@@ -55,11 +89,10 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
         if (elems[0] == "F") 
         {
             scene.camera.setFilmSize(std::atoi(elems[1].c_str()),std::atoi(elems[2].c_str()));
-            //scene.camera.setAspectRatio(double(std::atoi(elems[1].c_str()))/double(std::atoi(elems[2].c_str())));
         } 
         else if (elems[0] == "C") 
         {
-            gvt::core::math::Vector4f pos,look,up;
+            gvt::core::math::Vector4f pos,look,up,focus;
             float fov = std::atof(elems[10].c_str()) * M_PI / 180.0;
             pos[0] = std::atof(elems[1].c_str());pos[1] = std::atof(elems[2].c_str());pos[2] = std::atof(elems[3].c_str());pos[3]=1.f;
             look[0] = std::atof(elems[4].c_str());look[1] = std::atof(elems[5].c_str());look[2] = std::atof(elems[6].c_str());look[3]=0.f;
@@ -80,9 +113,20 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
             if(elems[1].find(".obj")< elems[1].size()) 
             {
                 GVT_DEBUG(DBG_ALWAYS, "Found obj file : " << elems[1].find(".obj"));
-                gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
+
+                gvt::render::data::primitives::Mesh* mesh;
+
+                std::map<std::string, gvt::render::data::primitives::Mesh*>::iterator meshIt = scene.objMeshes.find(elems[1]);
+
+                if (meshIt != scene.objMeshes.end()) {
+                    mesh = meshIt->second;
+                } else {
+                    gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
+                    mesh = objReader.getMesh();
+                    scene.objMeshes[elems[1]] = mesh;
+                }
                 
-                scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(objReader.getMesh()));
+                scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
                 
                 gvt::core::math::Vector4f t;
                 t[0] = std::atof(elems[2].c_str());
@@ -151,7 +195,11 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename)
           if(elems[1] == "DOMAIN") scheduler_type = 1;
           if(elems[1] == "HYBRID") scheduler_type = 2;
         }
-        else 
+        else if (elems[0] == "AT")
+        {
+          if(elems[1] == "BVH") accel_type = BVH;
+        }
+        else
         {
             GVT_DEBUG(DBG_LOW, "Invalid option");
         }

@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 #include <algorithm>
 #include <string>
 #include <boost/timer/timer.hpp>
@@ -7,7 +30,6 @@
 #include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/manta/data/Transforms.h>
-#include <gvt/render/Attributes.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 
@@ -19,8 +41,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <optix_prime/optix_primepp.h>
-
-#include <thrust/host_vector.h>
+//#include <thrust/host_vector.h>
 //#include <thrust/device_vector.h>
 //#include <thrust/generate.h>
 //#include <thrust/sort.h>
@@ -44,11 +65,11 @@ using namespace gvt::render::adapter::optix::data::domain;
 using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
 
-using optix::prime::BufferDesc;
-using optix::prime::Exception;
-using optix::prime::Context;
-using optix::prime::Model;
-using optix::prime::Query;
+// using optix::prime::BufferDesc;
+// using optix::prime::Exception;
+// using optix::prime::Context;
+// using optix::prime::Model;
+// using optix::prime::Query;
 
 static void gvtRayToOptixRay(const Ray &gvt_ray, OptixRay &optix_ray) {
   optix_ray.origin[0] = gvt_ray.origin[0];
@@ -102,7 +123,7 @@ bool OptixDomain::load() {
     this->mesh->generateNormals();
 
   // Create an Optix context to use.
-  optix_context_ = Context::create(RTP_CONTEXT_TYPE_CUDA);
+  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
   if (!optix_context_.isValid()) return false;
 
@@ -141,7 +162,7 @@ bool OptixDomain::load() {
     faces.push_back(f.get<1>());
     faces.push_back(f.get<2>());
   }
-  BufferDesc vertices_desc;
+  ::optix::prime::BufferDesc vertices_desc;
   vertices_desc = optix_context_->createBufferDesc(
       RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
 
@@ -152,7 +173,7 @@ bool OptixDomain::load() {
   vertices_desc->setStride(sizeof(float) * 3);
 
   // Setup the triangle indices buffer.
-  BufferDesc indices_desc;
+  ::optix::prime::BufferDesc indices_desc;
   indices_desc = optix_context_->createBufferDesc(
       RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST, &faces[0]);
 
@@ -180,7 +201,7 @@ bool OptixDomain::load() {
 
 void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
   // Create our query.
-  boost::timer::auto_cpu_timer optix_time("Optix domain trace: %w\n");
+  boost::timer::auto_cpu_timer optix_time("Optix domain trace: %t\n");
   try {
     this->load();
 
@@ -195,15 +216,15 @@ void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
       chunk.swap(ray_list);
       traceChunk(chunk, ray_list, moved_rays);
     }
-  } catch (const Exception &e) {
-    GVT_ASSERT(false, e.getErrorString());
+  } catch (const std::exception &e) {
+    GVT_ASSERT(false, e.what());
   }
 }
 
 void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
                              RayVector &moved_rays) {
   // Create our query.
-  Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
+  ::optix::prime::Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
   if (!query.isValid()) return;
 
   // Format GVT rays for Optix and give Optix an array of rays.
@@ -211,7 +232,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   std::vector<OptixHit> hits(chunk.size());
   {
     // boost::timer::auto_cpu_timer optix_time("Convert from GVT to OptiX:
-    // %w\n");
+    // %t\n");
     for (int i = 0; i < chunk.size(); ++i) {
       Ray gvt_ray = toLocal(chunk[i]);
       optix_rays[i].origin[0] = gvt_ray.origin[0];
@@ -226,7 +247,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   }
 
   {
-    // boost::timer::auto_cpu_timer optix_time("OptiX intersect call: %w\n");
+    // boost::timer::auto_cpu_timer optix_time("OptiX intersect call: %t\n");
     // Hand the rays to Optix.
     query->setRays(optix_rays.size(),
                    RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
@@ -244,7 +265,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   // Move missed rays.
   {
     // boost::timer::auto_cpu_timer optix_time("Put rays on outbox queue:
-    // %w\n");
+    // %t\n");
     for (int i = hits.size() - 1; i >= 0; --i) {
       if (hits[i].triangle_id < 0) {
         moved_rays.push_back(chunk[i]);
@@ -259,7 +280,7 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   // std::cout << "num hits = " << hits.size() << "\n";
   // Trace each ray: shade, fire shadow rays, fire secondary rays.
   {
-    // boost::timer::auto_cpu_timer optix_time("Try to shade: %w\n");
+    // boost::timer::auto_cpu_timer optix_time("Try to shade: %t\n");
     for (int i = 0; i < chunk.size(); ++i) {
       if (chunk[i].type == Ray::SHADOW) return;
       if (chunk[i].type == Ray::SECONDARY) {

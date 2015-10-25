@@ -1,0 +1,1 @@
+/usr/bin/icpc    -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/obj_sticher.dir/examples/obj_sticher/obj_writer.cc.o CMakeFiles/obj_sticher.dir/examples/obj_sticher/obj_sticher.cc.o  -o obj_sticher  libtinyobjloader.a 

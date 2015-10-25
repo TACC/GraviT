@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /* 
  * File:   Vector.h
  * Author: jbarbosa
@@ -67,8 +90,10 @@
                 // creates a new vector with size elements
                 // if zeroElements is true the vector is initialized to zero
                 Vector(int size, bool zeroElements = false);
+
                 // copy constructor
                 Vector(const Vector<T>& v);
+
                 // destructor, simply deletes the array
                 virtual ~Vector();
 
@@ -729,7 +754,7 @@
 
                 //---[ Arithmetic Operators ]----------------
 
-                Vector4<T> operator-(const Vector4<T>& a) 
+                Vector4<T> operator-(const Vector4<T>& a) const
                 {
                     return Vector4<T>(n[0] - a[0], n[1] - a[1], n[2] - a[2], n[3] - a[3]);
                 }
@@ -925,7 +950,7 @@
             template <class T>
             Vector<T>& Vector<T>::operator=(const Vector<T>& v) 
             { 
-                GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+                GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 for (int i = 0; i < numElements; i++)
                     n[i] = v[i];
@@ -936,7 +961,7 @@
             template <class T>
             Vector<T>& Vector<T>::operator+=(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 for (int i = 0; i < numElements; i++)
                     n[i] += v[i];
@@ -947,7 +972,7 @@
             template <class T>
             Vector<T>& Vector<T>::operator-=(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 for (int i = 0; i < numElements; i++)
                     n[i] -= v[i];
@@ -976,7 +1001,7 @@
             template <class T>
             Vector<T> Vector<T>::operator-(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                 Vector<T> result(numElements, false);
 
@@ -989,7 +1014,7 @@
             template <class T>
             Vector<T> Vector<T>::operator+(const Vector<T>& v) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch());
 
                Vector<T> result(numElements, false);
 
@@ -1037,7 +1062,7 @@
             template <class T>
             Vector<T> minimum(const Vector<T>& a, const Vector<T>& b) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
                 gvt::core::math::Vector<T> result(a.numElements, false);
 
@@ -1050,7 +1075,7 @@
             template <class T>
             Vector<T> maximum(const Vector<T>& a, const Vector<T>& b) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
                 Vector<T> result(a.numElements, false);
 
@@ -1063,7 +1088,7 @@
             template <class T>
             Vector<T> prod(const Vector<T>& a, const Vector<T>& b) 
             {
-               GVT_DEBUG_CODE(DBG_ALWAYS,if (v.numElements != numElements) throw VectortorSizeMismatch();)
+               GVT_DEBUG_CODE(DBG_ALWAYS,if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
                 Vector<T> result(a.numElements, false);
 

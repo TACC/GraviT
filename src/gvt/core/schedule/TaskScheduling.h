@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /* 
  * File:   TaskScheduling.h
  * Author: jbarbosa
@@ -22,6 +45,10 @@
 
             typedef boost::function< void() > Task;
 
+            /// base class for threaded GraviT components
+            /** base class for asynchronously-executing components of GraviT.
+            This class manages thread execution and synchronization
+            */
             class asyncExec {
             protected:
                 std::queue< boost::function< void() > > tasks_;
@@ -34,13 +61,11 @@
                 bool running_;
 
 
-            //static asyncTaskExecution _singleton;
-
             public:
                 std::size_t numThreads;
                 static asyncExec* _sinstance;
 
-                asyncExec(std::size_t numThreads = 1) //boost::thread::hardware_concurrency() / 2 )
+                asyncExec(std::size_t numThreads = boost::thread::hardware_concurrency() / 2 )
                     : numThreads(numThreads), running_(true), wcounter(0) {
                     for (std::size_t i = 0; i < numThreads; ++i) {
                         threads_.create_thread(boost::bind(&asyncExec::pool_main, this));
@@ -60,22 +85,28 @@
                         }
                     }
 
+                    /**
+                     * Retrieve an instance to the thread pool singleton.
+                     */
                     static asyncExec* instance() {
                         if(!_sinstance) _sinstance = new asyncExec();
                         return _sinstance;
                     }
 
-            template < typename T >
+                    /**
+                     * Add a task to the thread pool to be executed.
+                     */
+                    template < typename T >
                     void run_task(T task) {
                         boost::unique_lock< boost::mutex > lock(mutex_);
                         wcounter++;
                         tasks_.push(task);
                         condition_.notify_one();
                     }
-            template < typename T >
-                    void sync(T task) {
-                    }
 
+                    /**
+                     * Block until all pending tasks are complete.
+                     */
                     void sync() {
                         while (!tasks_.empty() || wcounter > 0) {
                             asm("");

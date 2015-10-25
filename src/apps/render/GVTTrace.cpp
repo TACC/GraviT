@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 //
 //  GVTTrace.C
 //
@@ -29,6 +52,14 @@
 using namespace std;
 using namespace gvtapps::render;
 
+/// command-line renderer using compile-time specified engine
+/**
+  command-line ray tracing renderer that uses the engine(s) activated
+  during CMake configuration. Available engines include:
+   - Manta (mantawiki.sci.utah.edu)
+   - Embree (embree.github.io)
+   - Optix Prime (developer.nvidia.com/optix)
+ */
 int main(int argc, char** argv) {
 
   MPI_Init(&argc, &argv);
@@ -48,67 +79,32 @@ int main(int argc, char** argv) {
 
   gvtapps::render::ConfigFileLoader cl(filename);
 
-  //    fstream file;
-  //    file.open(filename.c_str());
-  //
-  //    if (!file.good()) {
-  //        cerr << "ERROR: could not open file '" << filename << "'" << endl;
-  //        return -1;
-  //    }
-  //
-  //    GVT::Env::RayTracerAttributes& rta =
-  // *(GVT::Env::RayTracerAttributes::instance());
-  //
-  //    file >> rta;
-  //
-  //    file.close();
-  //
-  //    switch (rta.render_type) {
-  //        case GVT::Env::RayTracerAttributes::Volume:
-  //            GVT_DEBUG(DBG_ALWAYS, "Volume dataset");
-  //            rta.dataset = new
-  // GVT::Dataset::Dataset<GVT::Domain::VolumeDomain>(rta.datafile);
-  //            break;
-  //        case GVT::Env::RayTracerAttributes::Surface:
-  //            GVT_DEBUG(DBG_ALWAYS, "Geometry dataset");
-  //            rta.dataset = new
-  // GVT::Dataset::Dataset<GVT::Domain::GeometryDomain>(rta.datafile);
-  //            break;
-  //        case GVT::Env::RayTracerAttributes::Manta:
-  //            rta.dataset = new
-  // GVT::Dataset::Dataset<GVT::Domain::MantaDomain>(rta.datafile);
-  //            break;
-  //    }
-  //
-  //
-  //    GVT_ASSERT(rta.LoadDataset(), "Unable to load dataset");
-  //
-  //    std::cout << rta << std::endl;
-  //
-  
   bool domain_choosen = false;
 #ifdef GVT_RENDER_ADAPTER_MANTA
+  GVT_DEBUG(DBG_ALWAYS,"Rendering with Manta");
   if (cl.domain_type == 0) {
     domain_choosen = true;
-    MantaRayTracer rt(&cl.scene);
+    MantaRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(imagename);
+    rt.RenderImage(imagename+"_manta");
   }
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
+  GVT_DEBUG(DBG_ALWAYS,"Rendering with OptiX");
   if (cl.domain_type == 1) {
     domain_choosen = true;
-    OptixRayTracer rt(&cl.scene);
+    OptixRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(imagename);
+    rt.RenderImage(imagename+"_optix");
   }
 #endif
 #ifdef GVT_RENDER_ADAPTER_EMBREE
+  GVT_DEBUG(DBG_ALWAYS,"Rendering with Embree");
   if (cl.domain_type == 2) {
     domain_choosen = true;
-    EmbreeRayTracer rt(&cl.scene);
+    EmbreeRayTracer rt(cl);
     MPI_Barrier(MPI_COMM_WORLD);
-    rt.RenderImage(imagename);
+    rt.RenderImage(imagename+"_embree");
   }
 #endif
 

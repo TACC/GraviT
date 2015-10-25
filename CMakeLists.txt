@@ -17,7 +17,13 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 # show all warnings, but disable c11 warnings
-set(CMAKE_CXX_FLAGS "-Wall -Wno-c++11-extensions -Wno-reorder -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
+
+# use C++11 foo explicitly
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+IF(APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+ENDIF(APPLE)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -29,14 +35,40 @@ option(GVT_CORE 		 "Build GraviT core library" ON)
 option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
+option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
+option(GVT_MPE "Use MPE Profileing" OFF)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+SET(HOST_NAME $ENV{HOSTNAME})
+if(HOST_NAME MATCHES "(.)*maverick(.)*")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
+    SET(GVT_HOST "Maverick" CACHE STRING "Choose Stampede | Maverick | Other")
+else()
+if(HOST_NAME MATCHES "(.)*stampede(.)*")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
+    SET(GVT_HOST "Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
+else()
+    SET(GVT_HOST "Other (${HOST_NAME})" CACHE STRING "Choose Stampede | Maverick | Other")
+endif()
+endif()
+endif()
+
+if(GVT_DEBUG)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif(GVT_DEBUG)
 
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
 	option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" OFF)
-	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
+	option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" ON)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
-	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF )
+	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
+	option(GVT_SIMPLE_APP			"Build the simple application" ON)
+	option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
+	add_definitions(-DGVT_RENDER)
 endif(GVT_RENDER) 
 
 
@@ -64,6 +96,10 @@ endif(APPLE)
 
 # compiler options
 set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
+if(GVT_MPE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_MPE=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
+endif(GVT_MPE)
 # the compiler is ususally set through environment vars outside the cmake file
 # so this is redundant. CMake detects the compiler. 
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
@@ -72,18 +108,27 @@ mark_as_advanced(GVT_USE_ICC)
 mark_as_advanced(GVT_VECTOR_TARGET)
 
 set(GVT_THIRDPARTY_GLM "third-party/glm")
+set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
+set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
+SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
 
-if (GLM_FOUND)
-    include_directories(${GLM_INCLUDE_DIRS})
-endif(GLM_FOUND)
+#set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
+set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
+
+add_subdirectory(${GVT_THIRDPARTY_TOBJ})
+
+find_path(TINYOBJPATH "tiny_obj_loader.h" ${GVT_THIRDPARTY_TOBJ})
+if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
+	MESSAGE(SEND_ERRORS "tiny obj reader not found")
+endif (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-  #set(CMAKE_CXX_FLAGS "-std=c++11 -Wall  -Wno-reorder -Wno-unused-variable")
+  #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -104,7 +149,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/Actor.h
 	src/gvt/core/Adapter.h
 	src/gvt/core/Algorithm.h
-	src/gvt/core/Context.h
+	src/gvt/core/CoreContext.h
 	src/gvt/core/data/Transform.h
 	src/gvt/core/Data.h
 	src/gvt/core/Database.h
@@ -125,14 +170,13 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/mpi/Wrapper.h
 	src/gvt/core/schedule/SchedulerBase.h
 	src/gvt/core/schedule/TaskScheduling.h
-	src/gvt/core/schedule/ThreadSafeQueue.h
 	src/gvt/core/Schedule.h
 	src/gvt/core/Types.h
 	)
 
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
-	src/gvt/core/Context.cpp
+	src/gvt/core/CoreContext.cpp
 	src/gvt/core/Database.cpp
 	src/gvt/core/DatabaseNode.cpp
 	src/gvt/core/schedule/TaskScheduling.cpp
@@ -141,15 +185,13 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/actor/Ray.h
-	src/gvt/render/algorithm/AdaptParam.h
 	src/gvt/render/algorithm/DomainTracer.h
 	src/gvt/render/algorithm/HybridTracer.h
 	src/gvt/render/algorithm/ImageTracer.h
-	src/gvt/render/algorithm/MetaProcessQueue.h
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
 	src/gvt/render/Attributes.h
-	src/gvt/render/Context.h
+	src/gvt/render/RenderContext.h
 	src/gvt/render/data/Dataset.h
 	src/gvt/render/data/DerivedTypes.h
 	src/gvt/render/data/domain/AbstractDomain.h
@@ -157,17 +199,19 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/domain/GeometryDomain.h
 	src/gvt/render/data/domain/reader/ObjReader.h
 	src/gvt/render/data/domain/reader/PlyReader.h
-	src/gvt/render/data/domain/VolumeDomain.h
 	src/gvt/render/data/Domains.h
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
 	src/gvt/render/data/primitives/Material.h
 	src/gvt/render/data/primitives/Mesh.h
 	src/gvt/render/data/scene/Camera.h
+	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
 	src/gvt/render/data/scene/Image.h
 	src/gvt/render/data/scene/Light.h
+	src/gvt/render/data/accel/AbstractAccel.h
+	src/gvt/render/data/accel/BVH.h
 	src/gvt/render/schedule/DomainScheduler.h
 	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
 	src/gvt/render/schedule/hybrid/GreedySchedule.h
@@ -187,21 +231,22 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
 	src/gvt/render/Attributes.cpp
-	src/gvt/render/Context.cpp
+	src/gvt/render/RenderContext.cpp
 	src/gvt/render/data/Dataset.cpp
 	src/gvt/render/data/domain/AbstractDomain.cpp
 	src/gvt/render/data/domain/Cell.cpp
 	src/gvt/render/data/domain/GeometryDomain.cpp
 	src/gvt/render/data/domain/reader/ObjReader.cpp
 	src/gvt/render/data/domain/reader/PlyReader.cpp
-	src/gvt/render/data/domain/VolumeDomain.cpp
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
 	src/gvt/render/data/scene/Camera.cpp
+	src/gvt/render/data/scene/gvtCamera.cpp
 	src/gvt/render/data/scene/ColorAccumulator.cpp
 	src/gvt/render/data/scene/Image.cpp
 	src/gvt/render/data/scene/Light.cpp
+	src/gvt/render/data/accel/BVH.cpp
 	)
 
 
@@ -209,14 +254,15 @@ if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.h
+		src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
 		src/gvt/render/adapter/manta/Wrapper.h
 		)
 
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-		src/gvt/render/adapter/manta/algorithm/MantaProcessQueue.cpp
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
+		src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
 		)
 endif(GVT_RENDER_ADAPTER_MANTA)
 
@@ -226,6 +272,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
 		src/gvt/render/adapter/optix/data/Formats.h
 		src/gvt/render/adapter/optix/data/Transforms.h
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
 		)
 
@@ -235,6 +282,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.cpp
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
@@ -246,11 +294,13 @@ if (GVT_RENDER_ADAPTER_EMBREE)
   add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
 	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.h
+		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.h
 		src/gvt/render/adapter/embree/data/Transforms.h
 		src/gvt/render/adapter/embree/Wrapper.h
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.cpp
+		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.cpp
 		)
 endif(GVT_RENDER_ADAPTER_EMBREE)
 
@@ -260,15 +310,12 @@ if (GVT_CORE)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES})
 
-	add_library(gvtCore 
+	add_library(gvtCore STATIC
 		${GVT_CORE_HDRS} 
 		${GVT_CORE_SRCS}
 		)
 
 	target_link_libraries(gvtCore ${GVT_CORE_LIBS})
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtCore PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtCore
 		LIBRARY DESTINATION lib
@@ -321,15 +368,52 @@ if (GVT_RENDER)
 		)
 
 	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtRender PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtRender
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
 		)
 endif(GVT_RENDER)
+
+if (GVT_SIMPLE_APP)
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB1})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
+	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
+	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
+endif(GVT_SIMPLE_APP)
+
+if (GVT_SIMPLE_FILE_LOAD_APP)
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB1})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTSIMPLEFILE_RENDER_SRCS ${GVTSIMPLEFILE_RENDER_SRCS} src/apps/render/SimpleFileLoadApp.cpp)
+	add_executable(gvtFileLoad ${GVTSIMPLEFILE_RENDER_SRCS})
+	target_link_libraries(gvtFileLoad gvtCore gvtRender ${GVTSIMPLEFILE_RENDER_LIBS} )
+endif(GVT_SIMPLE_FILE_LOAD_APP)
 
 if (GVT_GLRENDER_APP)
 	find_package(MPI REQUIRED)
@@ -361,9 +445,6 @@ if (GVT_GLRENDER_APP)
 		)
 
               target_link_libraries(glTracer ${OPENGL_gl_LIBRARY} ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(glTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS glTracer
 		RUNTIME DESTINATION bin
@@ -372,11 +453,23 @@ endif(GVT_GLRENDER_APP)
 
 if (GVT_RENDER_APP)
     find_package(MPI REQUIRED)
-    include_directories(${MPI_INCLUDE_PATH})
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES})
-
+    include_directories(${MPI_INCLUDE_PATH} ${TINYOBJPATH})
+    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES} tinyobjloader)
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      #SET(MPE_LIBRARIES "${MPE_LIB1} ${MPE_LIB2}")
+      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB1})
+      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB2})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
+
     set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${Boost_LIBRARIES})
 
 	if(GVT_RENDER_ADAPTER_OPTIX_PRIME) 
@@ -423,9 +516,6 @@ if (GVT_RENDER_APP)
 		)
 
 	target_link_libraries(gvtTracer ${GVTAPP_RENDER_LIBS} gvtCore gvtRender)
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-		set_target_properties(gvtTracer PROPERTIES COMPILE_FLAGS '-std=c++11')
-	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 
 	install(TARGETS gvtTracer
 		RUNTIME DESTINATION bin

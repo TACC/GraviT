@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 //
 //  Color.h
 //
@@ -17,7 +40,10 @@ namespace gvt {
     namespace render {
         namespace data {
             namespace scene {
-
+                /// base class for color accumulation methods
+                /** base class for color accumulation methods typically used in volume rendering
+                \sa CHat, CTilde
+                */
                 class ColorAccumulator 
                 {
                 public:
@@ -67,13 +93,17 @@ namespace gvt {
                     }
 
                     ColorAccumulator& operator=(const ColorAccumulator&);
+                    /// add color but do not accumulate opacity. To accumulate opacity, use accumulate()
                     void add(const ColorAccumulator&);
+                    /// add color and accumulate opacity. To only add color, use add()
                     virtual void accumulate(const ColorAccumulator&) = 0;
                     bool operator<(const ColorAccumulator&) const;
                     bool operator>(const ColorAccumulator&) const;
+                    /// pack color buffer for communication over MPI
                     int pack(unsigned char* buf);
+                    /// unpack color buffer received from MPI communication
                     void unpack(const unsigned char* buf);
-
+                    /// reset buffer to zeros
                     void clear() 
                     {
                         t = FLT_MAX, rgba[0] = 0.f;
@@ -102,9 +132,12 @@ namespace gvt {
                     const static float ALPHA_MAX;
                 };
 
-                // represents C-Hat, as defined in Levoy 1990
-                // devide rgb by a to get normalized color
-
+                /// color accumulator attenuated by accumulated alpha
+                /** 
+                 devide rgb by a to get normalized color
+                 represents C-Hat, as defined in Levoy 1990
+                 \sa CTilde
+                 */
                 class CHat : public ColorAccumulator 
                 {
                 public:
@@ -127,9 +160,11 @@ namespace gvt {
                     void accumulate(const ColorAccumulator&);
                 };
 
-                // represents C-Tilde, as defined in Blinn 1994, Wittenbrink 1998
-                // stores associated (Blinn) or opacity-weighted (Wittenbrink) color
-
+                /// alternate color accumulator 
+                /** stores associated (Blinn) or opacity-weighted (Wittenbrink) color
+                    represents C-Tilde, as defined in Blinn 1994, Wittenbrink 1998
+                    \sa CHat
+                */
                 class CTilde : public ColorAccumulator 
                 {
                 public:
@@ -209,13 +244,11 @@ namespace gvt {
                 {
                     if (t < c.t) 
                     {
-                        //GVT_DEBUG(DBG_ALWAYS,t << " " << c.t);
-                        return;
+                         return;
                     }
 
                     if(c.t < t) 
                     {
-                        //GVT_DEBUG(DBG_ALWAYS, "new depth: " << t << " " << c.t);
                         t = c.t;
                         rgba[0] = c.rgba[0];
                         rgba[1] = c.rgba[1];
@@ -225,18 +258,9 @@ namespace gvt {
                     
                     if (t == c.t && t != FLT_MAX) 
                     {
-                        //t = c.t; // depth value;
-                        //GVT_DEBUG(DBG_ALWAYS,t << " " << c.t);
-                        //    double one_a = 1. - rgba[3];
-                        //    rgba[0] = rgba[0]*rgba[3] + c.rgba[0]*c.rgba[3]*one_a;
-                        //    rgba[1] = rgba[1]*rgba[3] + c.rgba[1]*c.rgba[3]*one_a;
-                        //    rgba[2] = rgba[2]*rgba[3] + c.rgba[2]*c.rgba[3]*one_a;
-                        //    rgba[3] =         rgba[3] +           c.rgba[3]*one_a;
                         rgba[0] = rgba[0] + c.rgba[0];
                         rgba[1] = rgba[1] + c.rgba[1];
                         rgba[2] = rgba[2] + c.rgba[2];
-                        //rgba[3] =         rgba[3] +           c.rgba[3]*one_a;
-
                     }
                 }
 

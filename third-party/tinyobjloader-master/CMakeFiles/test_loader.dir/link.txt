@@ -1,0 +1,1 @@
+/usr/bin/icpc    -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/test_loader.dir/test.cc.o  -o test_loader  libtinyobjloader.a 

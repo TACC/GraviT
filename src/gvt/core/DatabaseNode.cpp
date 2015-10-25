@@ -1,5 +1,28 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 #include "gvt/core/DatabaseNode.h"
-#include "gvt/core/Context.h"
+#include "gvt/core/CoreContext.h"
 #include "gvt/core/Debug.h"
 
 using namespace gvt::core;
@@ -39,38 +62,32 @@ Variant DatabaseNode::value()
 void DatabaseNode::setUUID(Uuid uuid) 
 {
     p_uuid = uuid;
-    //emit uuidChanged();
 }
 
 void DatabaseNode::setName(String name) 
 {
     p_name = name;
-    //emit nameChanged();
 }
 
 void DatabaseNode::setParentUUID(Uuid parentUUID) 
 {
     p_parent = parentUUID;
-    //emit parentUUIDChanged();
 }
 
 void DatabaseNode::setValue(Variant value) 
 {
     p_value = value;
-    //emit valueChanged();
-    //propagateUpdate();
 }
 
 void DatabaseNode::propagateUpdate()
 {
     DatabaseNode* pn;
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     pn = db.getItem(p_parent);
     Uuid cid = UUID();
     while (pn)
     {
-        //emit pn->childChanged(cid);
         cid = pn->UUID();
         pn = db.getItem(pn->parentUUID());
     }
@@ -78,7 +95,7 @@ void DatabaseNode::propagateUpdate()
 
 Vector<DatabaseNode*> DatabaseNode::getChildren() 
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     return db.getChildren(UUID());
 }
@@ -91,12 +108,10 @@ Vector<DatabaseNode*> DatabaseNode::getChildren()
  *******************/
 
 
-//DBNodeH DBNodeH::errNode();
-//DBNodeH* DBNodeH::errNode = new DBNodeH(String("error"), Uuid(0), Uuid(0), 0);
 
 DatabaseNode& DBNodeH::getNode()
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     DatabaseNode* n = db.getItem(_uuid);
     if (n)
@@ -107,14 +122,12 @@ DatabaseNode& DBNodeH::getNode()
 
 DBNodeH DBNodeH::deRef()
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
-//    DEBUG(value().toUuid().toString().toStdString());
     DatabaseNode& n = getNode();
     DatabaseNode* ref = db.getItem(variant_toUuid(n.value()));
     if (ref && (variant_toUuid(n.value()) != nil_uuid()))
     {
-//        DEBUG("success");
         return DBNodeH(ref->UUID());
     }
     else
@@ -126,11 +139,12 @@ DBNodeH DBNodeH::deRef()
 
 DBNodeH DBNodeH::operator[](const String& key)
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     DatabaseNode* child = db.getChildByName(_uuid, key);
     if (!child)
     {
+       GVT_DEBUG(DBG_ALWAYS,"DBNodeH[] failed to find key \"" << key << "\" for uuid " << uuid_toString(_uuid));
        child = &(ctx->createNode(key).getNode());
    }
    return DBNodeH(child->UUID());
@@ -138,7 +152,7 @@ DBNodeH DBNodeH::operator[](const String& key)
 
 DBNodeH& DBNodeH::operator+=(DBNodeH child)
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     child.setParentUUID(UUID());
     db.addChild(UUID(), &(child.getNode()));
@@ -148,7 +162,6 @@ DBNodeH& DBNodeH::operator+=(DBNodeH child)
 
 DBNodeH& DBNodeH::operator=(Variant val)
 {
-//    DEBUG(p_name.toStdString());
     setValue(val);
     return *this;
 }
@@ -160,10 +173,6 @@ bool DBNodeH::operator==(const Variant val)
 
 DBNodeH::operator bool() const
 {
-//    if (this == errNode)
-//        DEBUG("is errNode");
-//    DEBUG("bool:");
-//    DEBUG(p_uuid.toString().toStdString());
     return (_uuid != nil_uuid());
 }
 
@@ -226,18 +235,16 @@ void DBNodeH::propagateUpdate()
 void DBNodeH::connectValueChanged(const void * receiver, const char* method)
 {
     GVT_DEBUG(DBG_ALWAYS,"gvt::core::DBNodeH::connectValueChanged not implemented");
-    //receiver->connect(&getNode(),SIGNAL(valueChanged()), method);
 }
 
 void DBNodeH::connectChildChanged(const void * receiver,  const char* method)
 {
     GVT_DEBUG(DBG_ALWAYS,"gvt::core::DBNodeH::connectChildChanged not implemented");
-    //receiver->connect(&getNode(),SIGNAL(connectChildChanged()), method);
 }
 
 Vector<DBNodeH> DBNodeH::getChildren() 
 {
-    Context* ctx = Context::singleton();
+    CoreContext* ctx = CoreContext::instance();
     Database& db = *(ctx->database());
     Vector<DatabaseNode*> children = db.getChildren(UUID());
     Vector<DBNodeH> result;

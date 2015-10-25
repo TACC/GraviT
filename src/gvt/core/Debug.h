@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 #ifndef GVT_CORE_DEBUG_H
 #define GVT_CORE_DEBUG_H
 
@@ -7,7 +30,8 @@
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
-#define __FILE_SHORT__ (strstr(__FILE__, "src/") ? strstr(__FILE__, "src/") + 4 : __FILE__)
+#include <cstring>
+#define __FILE_SHORT__ (strstr(__FILE__, "src/") ? std::strstr(__FILE__, "src/") + 4 : __FILE__)
 
 const char * const DBG_COLOR_NORMAL = "\033[0m";
 const char * const DBG_COLOR_RED = "\033[1;31m";
@@ -15,6 +39,7 @@ const char * const DBG_COLOR_GREEN = "\033[1;32m";
 const char * const DBG_COLOR_YELLOW = "\033[1;33m";
 const char * const DBG_COLOR_BLUE = "\033[1;34m";
 const char * const DBG_COLOR_GRAY = DBG_COLOR_NORMAL;//"\033[1;37m";
+
 
 inline void print_trace() {
     char pid_buf[30];
@@ -36,20 +61,32 @@ inline void print_trace() {
     }
 }
 
+/// define GVT_USE_DEBUG to enable inline debugging messages
 #ifdef GVT_USE_DEBUG
 
-enum DEBUG_LEVEL {
-    DBG_NONE,
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::flush;
+
+/// GraviT debug level. 
+/** GraviT debug levels used to grade debug output. 
+If the debug statement level is at or above the set debug level, the statement will print.
+*/
+enum GVT_DEBUG_LEVEL {
+    DBG_NONE, // should never be used in debug statements, set to this to turn off all debugging output
     DBG_ALWAYS,
     DBG_SEVERE,
     DBG_MODERATE,
-    DBG_LOW
+    DBG_LOW,
+    DBG_OFF // used to keep a debug statement in place, but to turn it off, without excessive comments
 };
 
-#define DEBUG_LEVEL DBG_LOW
+/// GraviT debug level, see GVT_DEBUG_LEVEL enum
+#define DEBUG_LEVEL DBG_ALWAYS
 
 // XXX TODO - remove these from source
-#define DEBUG_RANK false
+#define DEBUG_RANK 0
 #define DEBUG(x) 
 #define SUDO_DEBUG(x) 
 // end XXX TODO - remove these from source

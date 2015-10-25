@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 #include <gvt/render/data/scene/Camera.h>
 
 #include <gvt/core/Math.h>
@@ -25,7 +48,7 @@ struct cameraGenerateRays
 
     inline float frand() 
     {
-        return ((float) rand() / RAND_MAX) - 0.5f * 2.0f;
+        return (((float) rand() / RAND_MAX) - 0.5f) * 2.0f;
     }
 
     void operator()() 
@@ -34,14 +57,8 @@ struct cameraGenerateRays
         int depth = cam->depth;
         RayVector& rays = cam->rays;
         Vector4f eye = cam->eye;
-        Vector4f look = Vector4f(0,0,-1,0);//cam->look; // direction to look
+        Vector4f look = cam->look; // direction to look
         Vector4f u = cam->u, v = cam->v; // u and v in the 
-//                    int samples = (cam->trcUpSampling * cam->trcUpSampling);
-//
-//                    GVT::Data::RayVector lrays;
-
-//                    const GVT::Math::Vector4f u = GVT::Math::Vector4f(1, 0, 0, 0);
-//                    const GVT::Math::Vector4f v = GVT::Math::Vector4f(0, 1, 0, 0);
 
         const float divider = cam->trcUpSampling;
         const float offset = 1.0 / divider;
@@ -86,26 +103,15 @@ RayVector& Camera::MakeCameraRays()
     trcUpSampling = 1;
     depth = 0;
     size_t nrays = (trcUpSampling * trcUpSampling) * filmsize[0] * filmsize[1];
-    // rays.reserve(nrays);
     int offset = filmsize[1] / gvt::core::schedule::asyncExec::instance()->numThreads;
     {
         boost::timer::auto_cpu_timer t("Allocate camera rays %t\n");
         rays.resize(nrays);
-        // for(int i = 0; i< nrays; i++) {
-        //     rays.push_back(GVT::Data::ray());
-        // }
     }
     
     {
         boost::timer::auto_cpu_timer t("Generating camera rays %t\n");
         cameraGenerateRays(this, 0, filmsize[1])();
-        // for (int start = 0; start < filmsize[1];) {
-        //     int end = start + offset;
-        //     end = std::min(end, filmsize[1]);
-        //     GVT::Concurrency::asyncExec::instance()->run_task(cameraGenerateRays(this, start, end));
-        //     start = end;
-        // }
-        // GVT::Concurrency::asyncExec::instance()->sync();
     }
 
     GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << nrays);

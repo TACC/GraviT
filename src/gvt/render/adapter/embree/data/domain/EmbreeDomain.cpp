@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 //
 // EmbreeDomain.cpp
 //
@@ -9,7 +32,6 @@
 #include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/embree/data/Transforms.h>
-#include <gvt/render/Attributes.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 
@@ -40,7 +62,7 @@ struct embTriangle { int v0, v1, v2; };
 
 EmbreeDomain::EmbreeDomain(GeometryDomain* domain) : GeometryDomain(*domain)
 {
-    GVT_DEBUG(DBG_ALWAYS, "Converting domain");
+    //GVT_DEBUG(DBG_ALWAYS, "Converting domain");
 
     if(!EmbreeDomain::init) {
         rtcInit(0);
@@ -146,7 +168,7 @@ struct parallelTraceE
             queue.unlock();
 
 
-            // GVT_DEBUG(DBG_ALWAYS, "Got " << localQueue.size() << " rays");
+            // //GVT_DEBUG(DBG_ALWAYS, "Got " << localQueue.size() << " rays");
             while (!localQueue.empty())
             {
                 rayPacket.clear();
@@ -183,16 +205,16 @@ struct parallelTraceE
 
                 rtcIntersect4(valid, scene, ray4);
 
-                // GVT_DEBUG(DBG_ALWAYS,"Process packet");
+                // //GVT_DEBUG(DBG_ALWAYS,"Process packet");
 
                 for (size_t pindex = 0; pindex < rayPacket.size(); pindex++)
                 {
                     if (valid[pindex] && ray4.geomID[pindex] != (int)RTC_INVALID_GEOMETRY_ID)
                     {
-                        // GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
+                        // //GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
                         if (rayPacket[pindex].type == gvt::render::actor::Ray::SHADOW)
                         {
-                            // GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
+                            // //GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
                             continue;
                         }
 
@@ -247,7 +269,7 @@ struct parallelTraceE
                             //gvt::render::data::Color c = dom->getMesh()->mat->shade(shadow_ray, normal, lights[lindex]);
                             shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
                             localQueue.push_back(shadow_ray);
-                            //GVT_DEBUG(DBG_ALWAYS, "SHADE_FACE");
+                            ////GVT_DEBUG(DBG_ALWAYS, "SHADE_FACE");
                         }
 
                         int ndepth = rayPacket[pindex].depth - 1;
@@ -272,14 +294,14 @@ struct parallelTraceE
                         continue;
                     }
                     //counter++;
-                    //GVT_DEBUG(DBG_ALWAYS,"Add to local dispatch");
+                    ////GVT_DEBUG(DBG_ALWAYS,"Add to local dispatch");
                     localDispatch.push_back(rayPacket[pindex]);
                 }
             }
         }
 
 
-        GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
+        //GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
 
         boost::unique_lock<boost::mutex> moved(dom->_outqueue);
         moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
@@ -289,8 +311,8 @@ struct parallelTraceE
 
 void EmbreeDomain::trace(gvt::render::actor::RayVector& rayList, gvt::render::actor::RayVector& moved_rays)
 {
-    GVT_DEBUG(DBG_ALWAYS, "trace<EmbreeDomain>: " << rayList.size());
-    GVT_DEBUG(DBG_ALWAYS, "tracing geometry of domain " << domainID);
+    //GVT_DEBUG(DBG_ALWAYS, "trace<EmbreeDomain>: " << rayList.size());
+    //GVT_DEBUG(DBG_ALWAYS, "tracing geometry of fdomain " << domainID);
     size_t workload = std::max((size_t) 1, (size_t) (rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
     for (size_t rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc)
@@ -304,9 +326,9 @@ void EmbreeDomain::trace(gvt::render::actor::RayVector& rayList, gvt::render::ac
 #ifdef NDEBUG
     std::cout << "Proccessed rays : " << counter << std::endl;
 #else
-    GVT_DEBUG(DBG_ALWAYS, "Proccessed rays : " << counter);
+    //GVT_DEBUG(DBG_ALWAYS, "Proccessed rays : " << counter);
 #endif
-    GVT_DEBUG(DBG_ALWAYS, "Forwarding rays : " << moved_rays.size());
+    //GVT_DEBUG(DBG_ALWAYS, "Forwarding rays : " << moved_rays.size());
     rayList.clear();
 }
 

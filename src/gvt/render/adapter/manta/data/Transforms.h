@@ -1,3 +1,26 @@
+/* ======================================================================================= 
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   All rights reserved.
+                                                                                           
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
+   except in compliance with the License.                                                  
+   A copy of the License is included with this software in the file LICENSE.               
+   If your copy does not contain the License, you may obtain a copy of the License at:     
+                                                                                           
+       http://opensource.org/licenses/BSD-3-Clause                                         
+                                                                                           
+   Unless required by applicable law or agreed to in writing, software distributed under   
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+   KIND, either express or implied.                                                        
+   See the License for the specific language governing permissions and limitations under   
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
 /* 
  * File:   GVT_MANTA.h
  * Author: jbarbosa
@@ -46,6 +69,7 @@ namespace gvt {
 
                     GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
+                    /// return a Manta-compliant 4-float vector
                     template<>
                     struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f > 
                     {
@@ -56,6 +80,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant 4-float vector
                     template<>
                     struct transform_impl<gvt::core::math::Point4f, Manta::Vec4f > 
                     {
@@ -66,6 +91,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant vector
                     template<>
                     struct transform_impl<gvt::core::math::Point4f, Manta::Vector > 
                     {
@@ -76,6 +102,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant vector
                     template<>
                     struct transform_impl<gvt::core::math::Vector4f, Manta::Vector> 
                     {
@@ -86,6 +113,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant Point
                     template<>
                     struct transform_impl<Manta::Vector, gvt::core::math::Point4f > 
                     {
@@ -96,6 +124,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant Vector
                     template<>
                     struct transform_impl<Manta::Vector, gvt::core::math::Vector4f > 
                     {
@@ -107,6 +136,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant ray
                     template<>
                     struct transform_impl<gvt::render::actor::Ray, Manta::Ray> 
                     {
@@ -120,6 +150,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a GraviT-compliant ray
                     template<>
                     struct transform_impl<Manta::Ray, gvt::render::actor::Ray> 
                     {
@@ -132,7 +163,7 @@ namespace gvt {
                         }
                     };
                     
-                    
+                    /// return a Manta-compliant point light
                     template<>
                     struct transform_impl<Manta::PointLight*, gvt::render::data::scene::PointLight* > 
                     {
@@ -173,6 +204,7 @@ namespace gvt {
             //            }
             //        };
 
+                    /// return a GraviT-compliant Mesh
                     template<>
                     struct transform_impl<Manta::Mesh*, gvt::render::data::primitives::Mesh*> 
                     {
@@ -198,6 +230,7 @@ namespace gvt {
                         }
                     };
 
+                    /// return a Manta-compliant Mesh
                     template<>
                     struct transform_impl<gvt::render::data::primitives::Mesh*, Manta::Mesh*> 
                     {
@@ -212,6 +245,11 @@ namespace gvt {
                                 Manta::Vector v0 = gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(mesh->vertices[i]);
                                 m->vertices.push_back(v0);
                             }
+                            for(int i=0; i < mesh->normals.size(); i++)
+                            {
+                                Manta::Vector v0 = gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(mesh->normals[i]);
+                                m->vertexNormals.push_back(v0);
+                            }
                             for (int i = 0; i < mesh->faces.size(); i++) 
                             {
                                 gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
@@ -221,6 +259,9 @@ namespace gvt {
                                 m->vertex_indices.push_back(boost::get<0>(f));
                                 m->vertex_indices.push_back(boost::get<1>(f));
                                 m->vertex_indices.push_back(boost::get<2>(f));
+                                m->normal_indices.push_back(boost::get<0>(f));
+                                m->normal_indices.push_back(boost::get<1>(f));
+                                m->normal_indices.push_back(boost::get<2>(f));
                                 m->face_material.push_back(0);
                                 m->addTriangle(new Manta::KenslerShirleyTriangle());
                             }
