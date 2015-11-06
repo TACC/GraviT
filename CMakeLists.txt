@@ -172,6 +172,8 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/schedule/TaskScheduling.h
 	src/gvt/core/Schedule.h
 	src/gvt/core/Types.h
+	src/gvt/core/Uuid.h
+	src/gvt/core/Variant.h
 	)
 
 
@@ -180,6 +182,8 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 	src/gvt/core/Database.cpp
 	src/gvt/core/DatabaseNode.cpp
 	src/gvt/core/schedule/TaskScheduling.cpp
+	src/gvt/core/Uuid.cpp
+	src/gvt/core/Variant.cpp
 	)
 
 
