@@ -1,26 +1,35 @@
-/* ======================================================================================= 
-   This file is released as part of GraviT - scalable, platform independent ray tracing
+/* =======================================================================================
+   This file is released as part of GraviT - scalable, platform independent ray
+   tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
+   at Austin
    All rights reserved.
-                                                                                           
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
-   except in compliance with the License.                                                  
-   A copy of the License is included with this software in the file LICENSE.               
-   If your copy does not contain the License, you may obtain a copy of the License at:     
-                                                                                           
-       http://opensource.org/licenses/BSD-3-Clause                                         
-                                                                                           
-   Unless required by applicable law or agreed to in writing, software distributed under   
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-   KIND, either express or implied.                                                        
-   See the License for the specific language governing permissions and limitations under   
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use
+   this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the
+   License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+   CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   GraviT is funded in part by the US National Science Foundation under awards
+   ACI-1339863,
    ACI-1339881 and ACI-1339840
-   ======================================================================================= */
+   =======================================================================================
+   */
 #include <algorithm>
 #include <string>
 #include <boost/timer/timer.hpp>
@@ -88,10 +97,8 @@ OptixDomain::OptixDomain(const std::string &filename)
     : GeometryDomain(filename), loaded_(false) {}
 
 OptixDomain::OptixDomain(const OptixDomain &domain)
-    : GeometryDomain(domain),
-      optix_context_(domain.optix_context_),
-      optix_model_(domain.optix_model_),
-      loaded_(false) {}
+    : GeometryDomain(domain), optix_context_(domain.optix_context_),
+      optix_model_(domain.optix_model_), loaded_(false) {}
 
 OptixDomain::OptixDomain(GeometryDomain *domain)
     : GeometryDomain(*domain), loaded_(false) {
@@ -107,11 +114,13 @@ OptixDomain::OptixDomain(const std::string &filename,
 }
 
 bool OptixDomain::load() {
-  if (loaded_) return true;
+  if (loaded_)
+    return true;
 
   // Make sure we load the GVT mesh.
   GVT_ASSERT(GeometryDomain::load(), "Geometry not loaded");
-  if (!GeometryDomain::load()) return false;
+  if (!GeometryDomain::load())
+    return false;
 
   GVT_ASSERT(this->mesh->vertices.size() > 0, "Invalid vertices");
   GVT_ASSERT(this->mesh->faces.size() > 0, "Invalid faces");
@@ -125,7 +134,8 @@ bool OptixDomain::load() {
   // Create an Optix context to use.
   optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-  if (!optix_context_.isValid()) return false;
+  if (!optix_context_.isValid())
+    return false;
 
   std::vector<unsigned> activeDevices;
   int devCount = 0;
@@ -138,7 +148,8 @@ bool OptixDomain::load() {
 
   for (int i = 0; i < devCount; i++) {
     cudaGetDeviceProperties(&prop, i);
-    if (prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
+    if (prop.kernelExecTimeoutEnabled == 0)
+      activeDevices.push_back(i);
   }
 
   if (!activeDevices.size()) {
@@ -167,9 +178,10 @@ bool OptixDomain::load() {
       RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
 
   GVT_ASSERT(vertices_desc.isValid(), "Vertices are not valid");
-  if (!vertices_desc.isValid()) return false;
+  if (!vertices_desc.isValid())
+    return false;
 
-  vertices_desc->setRange(0, vertices.size()/3);
+  vertices_desc->setRange(0, vertices.size() / 3);
   vertices_desc->setStride(sizeof(float) * 3);
 
   // Setup the triangle indices buffer.
@@ -178,22 +190,25 @@ bool OptixDomain::load() {
       RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST, &faces[0]);
 
   GVT_ASSERT(indices_desc.isValid(), "Indices are not valid");
-  if (!indices_desc.isValid()) return false;
+  if (!indices_desc.isValid())
+    return false;
 
-  indices_desc->setRange(0, faces.size()/3);
+  indices_desc->setRange(0, faces.size() / 3);
   indices_desc->setStride(sizeof(int) * 3);
 
   // Create an Optix model.
   optix_model_ = optix_context_->createModel();
 
   GVT_ASSERT(optix_model_.isValid(), "Model is not valid");
-  if (!optix_model_.isValid()) return false;
+  if (!optix_model_.isValid())
+    return false;
 
   optix_model_->setTriangles(indices_desc, vertices_desc);
   optix_model_->update(RTP_MODEL_HINT_ASYNC);
   optix_model_->finish();
 
-  if (!optix_model_.isValid()) return false;
+  if (!optix_model_.isValid())
+    return false;
 
   loaded_ = true;
   return true;
@@ -209,7 +224,8 @@ void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
       this->mesh->generateNormals();
 
     GVT_ASSERT(optix_model_.isValid(), "trace:Model is not valid");
-    if (!optix_model_.isValid()) return;
+    if (!optix_model_.isValid())
+      return;
     RayVector chunk;
     while (!ray_list.empty()) {
       chunk.clear();
@@ -224,8 +240,10 @@ void OptixDomain::trace(RayVector &ray_list, RayVector &moved_rays) {
 void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
                              RayVector &moved_rays) {
   // Create our query.
-  ::optix::prime::Query query = optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
-  if (!query.isValid()) return;
+  ::optix::prime::Query query =
+      optix_model_->createQuery(RTP_QUERY_TYPE_CLOSEST);
+  if (!query.isValid())
+    return;
 
   // Format GVT rays for Optix and give Optix an array of rays.
   std::vector<OptixRay> optix_rays(chunk.size());
@@ -282,7 +300,8 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
   {
     // boost::timer::auto_cpu_timer optix_time("Try to shade: %t\n");
     for (int i = 0; i < chunk.size(); ++i) {
-      if (chunk[i].type == Ray::SHADOW) return;
+      if (chunk[i].type == Ray::SHADOW)
+        return;
       if (chunk[i].type == Ray::SECONDARY) {
         float s = ((hits[i].t > 1.0f) ? 1.0f / hits[i].t : hits[i].t);
         chunk[i].w = chunk[i].w * s;
@@ -299,7 +318,8 @@ void OptixDomain::traceChunk(RayVector &chunk, RayVector &next_list,
 
 void OptixDomain::traceRay(uint32_t triangle_id, float t, float u, float v,
                            Ray &ray, RayVector &rays) {
-  if (ray.type == Ray::SHADOW) return;
+  if (ray.type == Ray::SHADOW)
+    return;
   if (ray.type == Ray::SECONDARY) {
     float s = ((t > 1.0f) ? 1.0f / t : t);
     ray.w = ray.w * s;

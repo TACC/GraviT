@@ -1,26 +1,35 @@
-/* ======================================================================================= 
-   This file is released as part of GraviT - scalable, platform independent ray tracing
+/* =======================================================================================
+   This file is released as part of GraviT - scalable, platform independent ray
+   tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
+   at Austin
    All rights reserved.
-                                                                                           
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
-   except in compliance with the License.                                                  
-   A copy of the License is included with this software in the file LICENSE.               
-   If your copy does not contain the License, you may obtain a copy of the License at:     
-                                                                                           
-       http://opensource.org/licenses/BSD-3-Clause                                         
-                                                                                           
-   Unless required by applicable law or agreed to in writing, software distributed under   
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-   KIND, either express or implied.                                                        
-   See the License for the specific language governing permissions and limitations under   
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use
+   this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the
+   License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+   CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   GraviT is funded in part by the US National Science Foundation under awards
+   ACI-1339863,
    ACI-1339881 and ACI-1339840
-   ======================================================================================= */
+   =======================================================================================
+   */
 //
 // MantaMeshAdapter.h
 //
@@ -61,79 +70,79 @@ namespace manta {
 namespace data {
 
 /// mesh adapter for SCI's Manta ray tracer
-/** this helper class transforms mesh data from the GraviT internal format 
+/** this helper class transforms mesh data from the GraviT internal format
 to the format expected by SCI's Manta ray tracer
 */
-class MantaMeshAdapter : public gvt::render::Adapter
-{
+class MantaMeshAdapter : public gvt::render::Adapter {
 public:
-    // MantaMeshAdapter(gvt::render::data::domain::GeometryDomain* domain);
-    /**
-     * Construct the Manta mesh adapter.  Convert the mesh
-     * at the given node to Manta's format.
-     *
-     * Initializes Manta the first time it is called.
-     */
-    MantaMeshAdapter(gvt::core::DBNodeH node);
+  // MantaMeshAdapter(gvt::render::data::domain::GeometryDomain* domain);
+  /**
+   * Construct the Manta mesh adapter.  Convert the mesh
+   * at the given node to Manta's format.
+   *
+   * Initializes Manta the first time it is called.
+   */
+  MantaMeshAdapter(gvt::core::DBNodeH node);
 
-    // MantaMeshAdapter(std::string filename ="",gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true));
-    // MantaMeshAdapter(const MantaMeshAdapter& other);
- 
-    /**
-     * Release Manta copy of the mesh.
-     */
-    virtual ~MantaMeshAdapter();
+  // MantaMeshAdapter(std::string filename
+  // ="",gvt::core::math::AffineTransformMatrix<float> m =
+  // gvt::core::math::AffineTransformMatrix<float>(true));
+  // MantaMeshAdapter(const MantaMeshAdapter& other);
 
-    virtual bool load();
-    virtual void free();
+  /**
+   * Release Manta copy of the mesh.
+   */
+  virtual ~MantaMeshAdapter();
 
-    Manta::RenderContext*   getRenderContext() { return rContext; }
+  virtual bool load();
+  virtual void free();
 
-    /**
-     * Return the Manta DynBVH acceleration structure.
-     */
-    Manta::DynBVH*          getAccelStruct() { return as; }
+  Manta::RenderContext *getRenderContext() { return rContext; }
 
-    /**
-     * Return pointer to the Manta mesh.
-     */
-    Manta::Mesh*            getMantaMesh() { return meshManta; }
-    
-    /**
-     * Trace rays using the Manta adapter.
-     *
-     * \param rayList incoming rays
-     * \param moved_rays outgoing rays [rays that did not hit anything]
-     * \param instNode instance db node containing dataRef and transforms
-     */
-    virtual void trace(gvt::render::actor::RayVector& rayList,
-                       gvt::render::actor::RayVector& moved_rays,
-                       gvt::core::DBNodeH instNode);
-    // void trace(gvt::render::actor::RayVector& rayList, gvt::render::actor::RayVector& moved_rays);
-    //
-    
+  /**
+   * Return the Manta DynBVH acceleration structure.
+   */
+  Manta::DynBVH *getAccelStruct() { return as; }
+
+  /**
+   * Return pointer to the Manta mesh.
+   */
+  Manta::Mesh *getMantaMesh() { return meshManta; }
+
+  /**
+   * Trace rays using the Manta adapter.
+   *
+   * \param rayList incoming rays
+   * \param moved_rays outgoing rays [rays that did not hit anything]
+   * \param instNode instance db node containing dataRef and transforms
+   */
+  virtual void trace(gvt::render::actor::RayVector &rayList,
+                     gvt::render::actor::RayVector &moved_rays,
+                     gvt::core::DBNodeH instNode);
+  // void trace(gvt::render::actor::RayVector& rayList,
+  // gvt::render::actor::RayVector& moved_rays);
+  //
+
 protected:
-    /**
-     * Pointer to the Manta render context.
-     */
-    Manta::RenderContext* rContext;
+  /**
+   * Pointer to the Manta render context.
+   */
+  Manta::RenderContext *rContext;
 
-    /**
-     * Pointer to the Manta DynBVH acceleration structrue.
-     */
-    Manta::DynBVH* as;
+  /**
+   * Pointer to the Manta DynBVH acceleration structrue.
+   */
+  Manta::DynBVH *as;
 
-    /**
-     * Pointer to the Manta mesh.
-     */
-    Manta::Mesh* meshManta;
+  /**
+   * Pointer to the Manta mesh.
+   */
+  Manta::Mesh *meshManta;
 };
-                        
 }
 }
 }
 }
 }
-
 
 #endif // GVT_RENDER_ADAPTER_MANTA_DATA_DOMAIN_MANTA_DOMAIN_H

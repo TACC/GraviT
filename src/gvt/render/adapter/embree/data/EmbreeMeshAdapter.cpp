@@ -1,26 +1,35 @@
-/* ======================================================================================= 
-   This file is released as part of GraviT - scalable, platform independent ray tracing
+/* =======================================================================================
+   This file is released as part of GraviT - scalable, platform independent ray
+   tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
+   at Austin
    All rights reserved.
-                                                                                           
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
-   except in compliance with the License.                                                  
-   A copy of the License is included with this software in the file LICENSE.               
-   If your copy does not contain the License, you may obtain a copy of the License at:     
-                                                                                           
-       http://opensource.org/licenses/BSD-3-Clause                                         
-                                                                                           
-   Unless required by applicable law or agreed to in writing, software distributed under   
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-   KIND, either express or implied.                                                        
-   See the License for the specific language governing permissions and limitations under   
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use
+   this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the
+   License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+   CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   GraviT is funded in part by the US National Science Foundation under awards
+   ACI-1339863,
    ACI-1339881 and ACI-1339840
-   ======================================================================================= */
+   =======================================================================================
+   */
 //
 // EmbreeMeshAdapter.cpp
 //
@@ -326,7 +335,7 @@ struct embreeParallelTrace {
   void traceShadowRays() {
     RTCScene scene = adapter->getScene();
     RTCRay4 ray4 = {};
-    RTCORE_ALIGN(16) int valid[4] = {0};
+    RTCORE_ALIGN(16) int valid[4] = { 0 };
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
       const size_t localPacketSize = (idx + packetSize > shadowRays.size())
@@ -398,14 +407,16 @@ struct embreeParallelTrace {
    */
   void operator()() {
 #ifdef GVT_USE_DEBUG
-    boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: thread trace time: %w\n");
+    boost::timer::auto_cpu_timer t_functor(
+        "EmbreeMeshAdapter: thread trace time: %w\n");
 #endif
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: started thread");
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
+    auto mesh = gvt::core::variant_toMeshPtr(
+        instNode["meshRef"].deRef()["ptr"].value());
 
     RTCScene scene = adapter->getScene();
     localDispatch.reserve(rayList.size() * 2);
@@ -438,7 +449,7 @@ struct embreeParallelTrace {
       }
 
       RTCRay4 ray4 = {};
-      RTCORE_ALIGN(16) int valid[4] = {0};
+      RTCORE_ALIGN(16) int valid[4] = { 0 };
 
       GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays ["
                                 << workStart << ", " << workEnd << "]");
@@ -545,27 +556,37 @@ struct embreeParallelTrace {
                 }
                 generateShadowRays(r, normal, ray4.primID[pi], mesh);
 
-                 int ndepth = r.depth - 1;
-                 float p = 1.f - (float(rand()) / RAND_MAX);
-                 // replace current ray with generated secondary ray
-                 if (ndepth > 0 && r.w > p)
-                   {
-                    r.domains.clear();
-                    r.type = gvt::render::actor::Ray::SECONDARY;
-                    const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
-                    const float t_secondary = multiplier * r.t;
-                         r.origin = r.origin + r.direction * t_secondary;
+                int ndepth = r.depth - 1;
+                float p = 1.f - (float(rand()) / RAND_MAX);
+                // replace current ray with generated secondary ray
+                if (ndepth > 0 && r.w > p) {
+                  r.domains.clear();
+                  r.type = gvt::render::actor::Ray::SECONDARY;
+                  const float multiplier =
+                      1.0f -
+                      16.0f *
+                          std::numeric_limits<float>::epsilon(); // TODO: move
+                                                                 // out
+                                                                 // somewhere /
+                                                                 // make static
+                  const float t_secondary = multiplier * r.t;
+                  r.origin = r.origin + r.direction * t_secondary;
 
-                    // TODO: remove this dependency on mesh, store material object in the database
-                    //r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                    r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                  // TODO: remove this dependency on mesh, store material object
+                  // in the database
+                  // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                  r.setDirection(
+                      mesh->getMaterial()
+                          ->CosWeightedRandomHemisphereDirection2(normal)
+                          .normalize());
 
-                    r.w = r.w * (r.direction * normal);
-                    r.depth = ndepth;
-                    validRayLeft = true; // we still have a valid ray in the packet to trace
-                  } else {
-                   // secondary ray is terminated, so disable its valid bit
-                    valid[pi] = 0;
+                  r.w = r.w * (r.direction * normal);
+                  r.depth = ndepth;
+                  validRayLeft =
+                      true; // we still have a valid ray in the packet to trace
+                } else {
+                  // secondary ray is terminated, so disable its valid bit
+                  valid[pi] = 0;
                 }
               } else {
                 // ray is valid, but did not hit anything, so add to dispatch
@@ -627,10 +648,11 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   std::atomic<size_t> sharedIdx(0); // shared index into rayList
   const size_t numThreads =
       gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize = std::max(
-      (size_t)8,
-      (size_t)(rayList.size() /
-               (numThreads * 8))); // size of 'chunk' of rays to work on
+  const size_t workSize =
+      std::max((size_t)8,
+               (size_t)(rayList.size() / (numThreads * 8))); // size of 'chunk'
+                                                             // of rays to work
+                                                             // on
 
   GVT_DEBUG(DBG_ALWAYS,
             "EmbreeMeshAdapter: trace: instNode: "
