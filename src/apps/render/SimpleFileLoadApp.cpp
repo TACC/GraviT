@@ -164,8 +164,8 @@ int main(int argc, char **argv) {
   // set image width/height
   gvt::core::DBNodeH filmNode =
       cntxt->createNodeFromType("Film", "film", root.UUID());
-  filmNode["width"] = 512;
-  filmNode["height"] = 512;
+  filmNode["width"] = 4096;
+  filmNode["height"] = 2304;
 
   // TODO: schedule db design could be modified a bit
   gvt::core::DBNodeH schedNode =
@@ -183,9 +183,9 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  // schedNode["adapter"] = gvt::render::adapter::Embree;
+  schedNode["adapter"] = gvt::render::adapter::Optix;
   // schedNode["adapter"] = gvt::render::adapter::Manta;
-  schedNode["adapter"] = adapterType;
+  //schedNode["adapter"] = adapterType;
 
   //
   // start gvt
