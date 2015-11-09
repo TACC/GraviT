@@ -37,7 +37,7 @@ namespace gvt {
 namespace render {
 namespace adapter {
 /// render engine used
-enum RenderType { Volume, Surface, Manta, Optix, Embree, Hybrid };
+enum RenderType { Volume, Surface, Manta, Optix, Embree, Heterogeneous };
 } // namespace adapter
   /// schedule used
 namespace scheduler {

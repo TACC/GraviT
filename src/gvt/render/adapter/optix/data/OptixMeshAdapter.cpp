@@ -716,9 +716,6 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
-  std::cout << "Threads : " << numThreads << " workers : " << numworkers
-            << " work size : " << workSize << std::endl;
-
   for (size_t rc = 0; rc < numworkers; ++rc) {
     gvt::core::schedule::asyncExec::instance()->run_task(
         OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,

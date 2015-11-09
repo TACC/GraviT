@@ -60,6 +60,10 @@
 #include <gvt/render/adapter/optix/Wrapper.h>
 #endif
 
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+#include <gvt/render/adapter/heterogeneous/Wrapper.h>
+#endif
+
 #include <boost/timer/timer.hpp>
 
 namespace gvt {
@@ -194,6 +198,13 @@ public:
 #ifdef GVT_RENDER_ADAPTER_OPTIX
           case gvt::render::adapter::Optix:
             adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(
+                meshNode);
+            break;
+#endif
+
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+          case gvt::render::adapter::Heterogeneous:
+            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(
                 meshNode);
             break;
 #endif

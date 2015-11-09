@@ -61,6 +61,9 @@
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/Wrapper.h>
 #endif
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+#include <gvt/render/adapter/heterogeneous/Wrapper.h>
+#endif
 
 #include <boost/foreach.hpp>
 
@@ -314,6 +317,12 @@ public:
                     new gvt::render::adapter::optix::data::OptixMeshAdapter(
                         meshNode);
                 break;
+#endif
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+          case gvt::render::adapter::Heterogeneous:
+            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(
+                meshNode);
+            break;
 #endif
               default:
                 GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: "

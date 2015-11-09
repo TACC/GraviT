@@ -304,6 +304,16 @@ if (GVT_RENDER_ADAPTER_EMBREE)
 		)
 endif(GVT_RENDER_ADAPTER_EMBREE)
 
+if (GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
+	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		src/gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.h
+		src/gvt/render/adapter/heterogeneous/Wrapper.h
+		)
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+		src/gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.cpp
+		)
+endif(GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
+
 
 if (GVT_CORE)
     find_package(Boost REQUIRED COMPONENTS system)
