@@ -47,13 +47,12 @@ namespace gvt {
          Variant(float);
          Variant(double);
          Variant(bool);
+         Variant(unsigned long long);
          Variant(String);
          Variant(Uuid);
          Variant(gvt::core::math::Vector3f);
          Variant(gvt::core::math::Vector4f);
          Variant(gvt::core::math::Point4f);
-         Variant(gvt::core::math::AffineTransformMatrix<float>*);
-         Variant(gvt::core::math::Matrix3f*);
 
          int toInteger() const;
          long toLong() const;
@@ -62,11 +61,10 @@ namespace gvt {
          bool toBoolean() const; 
          String toString() const;
          Uuid toUuid() const;
+         unsigned long long toULongLong() const;
          gvt::core::math::Vector3f toVector3f() const;
          gvt::core::math::Vector4f toVector4f() const;
          gvt::core::math::Point4f toPoint4f() const;
-         gvt::core::math::AffineTransformMatrix<float>* toAffineTransformMatrixFloat() const;
-         gvt::core::math::Matrix3f* toMatrix3f() const;
 
          bool operator==(const Variant&) const;
          bool operator!=(const Variant&) const;
@@ -79,14 +77,13 @@ namespace gvt {
                         float,
                         double,
                         bool,
+                        unsigned long long,
                         String,
                         Uuid,
                         gvt::core::math::Vector3f,
                         gvt::core::math::Vector4f,
-                        gvt::core::math::Point4f,
-                        gvt::core::math::AffineTransformMatrix<float>*,
-                        gvt::core::math::Matrix3f*,
-                        void*> coreData;
+                        gvt::core::math::Point4f
+                        > coreData;
       };
    }
 }

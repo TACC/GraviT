@@ -33,14 +33,12 @@ Variant::Variant(long l): coreData(l) {}
 Variant::Variant(float f): coreData(f) {}
 Variant::Variant(double d): coreData(d) {}
 Variant::Variant(bool b): coreData(b) {}
+Variant::Variant(unsigned long long ull): coreData(ull) {}
 Variant::Variant(String s): coreData(s) {}
 Variant::Variant(Uuid u): coreData(u) {}
 Variant::Variant(Vector3f v): coreData(v) {}
 Variant::Variant(Vector4f v): coreData(v) {}
 Variant::Variant(Point4f p): coreData(p) {}
-Variant::Variant(AffineTransformMatrix<float>* atm): coreData(atm) {}
-Variant::Variant(Matrix3f* m): coreData(m) {}
-
 
 int Variant::toInteger() const
 { 
@@ -65,6 +63,11 @@ double Variant::toDouble() const
 bool Variant::toBoolean() const
 { 
    return boost::get<bool>(coreData); 
+}
+
+unsigned long long Variant::toULongLong() const
+{
+   return boost::get<unsigned long long>(coreData);
 }
 
 String Variant::toString() const
