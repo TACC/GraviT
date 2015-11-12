@@ -171,6 +171,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/schedule/SchedulerBase.h
 	src/gvt/core/schedule/TaskScheduling.h
 	src/gvt/core/Schedule.h
+	src/gvt/core/String.h
 	src/gvt/core/Types.h
 	src/gvt/core/Uuid.h
 	src/gvt/core/Variant.h
@@ -229,6 +230,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/schedule/HybridScheduler.h
 	src/gvt/render/schedule/ImageScheduler.h
 	src/gvt/render/Schedulers.h
+	src/gvt/render/Variant.h
+	src/gvt/render/Types.h
 	)
 
 
@@ -251,6 +254,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/scene/Image.cpp
 	src/gvt/render/data/scene/Light.cpp
 	src/gvt/render/data/accel/BVH.cpp
+	src/gvt/render/Variant.cpp
 	)
 
 

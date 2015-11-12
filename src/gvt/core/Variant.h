@@ -25,10 +25,12 @@
 #define GVT_CORE_VARIANT_H
 
 #include <gvt/core/Math.h>
-#include <gvt/core/Types.h>
+#include <gvt/core/String.h>
 #include <gvt/core/Uuid.h>
 
 #include <boost/variant.hpp>
+
+#include <ostream>
 
 namespace gvt {
    namespace core {
@@ -39,6 +41,7 @@ namespace gvt {
       class Variant 
       {
       public:
+         Variant();
          Variant(int);
          Variant(long);
          Variant(float);
@@ -52,11 +55,11 @@ namespace gvt {
          Variant(gvt::core::math::AffineTransformMatrix<float>*);
          Variant(gvt::core::math::Matrix3f*);
 
-         int toInt() const;
+         int toInteger() const;
          long toLong() const;
          float toFloat() const;
          double toDouble() const;
-         bool toBool() const; 
+         bool toBoolean() const; 
          String toString() const;
          Uuid toUuid() const;
          gvt::core::math::Vector3f toVector3f() const;
@@ -67,10 +70,8 @@ namespace gvt {
 
          bool operator==(const Variant&) const;
          bool operator!=(const Variant&) const;
-         bool operator>(const Variant&) const;
-         bool operator>=(const Variant&) const;
-         bool operator<(const Variant&) const;
-         bool operator<=(const Variant&) const;
+
+         friend std::ostream& operator<<(std::ostream&, const Variant&);
 
       protected:
          boost::variant<int,
@@ -87,6 +88,11 @@ namespace gvt {
                         gvt::core::math::Matrix3f*,
                         void*> coreData;
       };
+
+      std::ostream& operator<<(std::ostream& os, const Variant& v)
+      {
+         return os << v.coreData;
+      }
    }
 }
 

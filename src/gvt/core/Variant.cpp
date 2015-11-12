@@ -27,6 +27,7 @@
 using namespace gvt::core;
 using namespace gvt::core::math;
 
+Variant::Variant() {}
 Variant::Variant(int i): coreData(i) {}
 Variant::Variant(long l): coreData(l) {}
 Variant::Variant(float f): coreData(f) {}
@@ -41,94 +42,75 @@ Variant::Variant(AffineTransformMatrix<float>* atm): coreData(atm) {}
 Variant::Variant(Matrix3f* m): coreData(m) {}
 
 
-int Variant::toInt()
+int Variant::toInteger() const
 { 
    return boost::get<int>(coreData); 
 }
 
-long Variant::toLong() 
+long Variant::toLong() const
 { 
    return boost::get<long>(coreData); 
 }
 
-float Variant::toFloat() 
+float Variant::toFloat() const
 { 
    return boost::get<float>(coreData); 
 }
 
-double Variant::toDouble() 
+double Variant::toDouble() const
 { 
    return boost::get<double>(coreData); 
 }
 
-bool Variant::toBool() 
+bool Variant::toBoolean() const
 { 
    return boost::get<bool>(coreData); 
 }
 
-String Variant::toString() 
+String Variant::toString() const
 { 
    return boost::get<String>(coreData); 
 }
 
-Uuid Variant::toUuid() 
+Uuid Variant::toUuid() const
 { 
    return boost::get<Uuid>(coreData); 
 }
 
-Vector3f toVector3f() 
+Vector3f Variant::toVector3f() const
 { 
    return boost::get<Vector3f>(coreData); 
 }
 
-Vector4f toVector4f() 
+Vector4f Variant::toVector4f() const
 { 
     return boost::get<Vector4f>(coreData); 
 }
 
-Point4f toPoint4f() 
+Point4f Variant::toPoint4f() const
 { 
    return boost::get<Point4f>(coreData); 
 }
 
-AffineTransformMatrix<float>* toAffineTransformMatrixFloat() 
+AffineTransformMatrix<float>* Variant::toAffineTransformMatrixFloat() const
 { 
    return boost::get<AffineTransformMatrix<float>*>(coreData); 
 }
 
-Matrix3f* toMatrix3f() 
+Matrix3f* Variant::toMatrix3f() const
 { 
    return boost::get<Matrix3f*>(coreData); 
 }
 
 
-bool operator==(const Variant& v) const
+bool Variant::operator==(const Variant& v) const
 {
    return coreData == v.coreData;
 }
 
-bool operator!=(const Variant& v) const
+bool Variant::operator!=(const Variant& v) const 
 {
    return coreData != v.coreData;
 }
 
-bool operator>(const Variant& v) const
-{
-   return coreData > v.coreData;
-}
-
-bool operator>=(const Variant& v) const
-{
-   return coreData >= v.coreData;
-}
-
-bool operator<(const Variant& v) const
-{
-   return coreData < v.coreData;
-}
-
-bool operator<=(const Variant& v) const
-{
-   return coreData <= v.coreData;
-}
 

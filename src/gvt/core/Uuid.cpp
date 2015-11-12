@@ -25,6 +25,7 @@
 #include <gvt/core/Uuid.h>
 
 using namespace gvt::core;
+
 Uuid::Uuid()
 {
 	uuid = boost::uuids::uuid(boost::uuids::random_generator()());
@@ -35,32 +36,38 @@ Uuid::~Uuid()
 
 }
 
-void nullify()
+void Uuid::nullify()
 {
 	uuid = boost::uuids::nil_uuid();
 }
 
-bool isNull()
+bool Uuid::isNull() const
 {
 	return uuid == boost::uuids::nil_uuid();
 }
 
-bool operator==(const Uuid& u)
+String Uuid::toString() const
+{
+	return boost::uuids::to_string(uuid);
+}
+
+bool Uuid::operator==(const Uuid& u) const
 {
 	return uuid == u.uuid;
 }
 
-bool operator!=(const Uuid& u)
+bool Uuid::operator!=(const Uuid& u) const
 {
 	return uuid != u.uuid;
 }
 
-bool operator>(const Uuid& u)
+bool Uuid::operator>(const Uuid& u) const
 {
 	return uuid > u.uuid;
 }
 
-bool operator<(const Uuid& u)
+bool Uuid::operator<(const Uuid& u) const
 {
 	return uuid < u.uuid;
 }
+

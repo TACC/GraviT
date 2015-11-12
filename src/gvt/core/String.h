@@ -21,52 +21,14 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_UUID_H
-#define GVT_CORE_UUID_H
+#ifndef GVT_CORE_STRING_H
+#define GVT_CORE_STRING_H
 
-#include <gvt/core/String.h>
+#include <string>
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+namespace gvt{ 
+namespace core{
+   typedef std::string String;
+}}
 
-#include <ostream>
-
-namespace gvt {
-   namespace core {
-      /// unique identifier used to tag nodes in the context database
-      /**
-      * \sa CoreContext, Database, DatabaseNode
-      */
-      class Uuid
-      {
-      public:
-         Uuid();
-         ~Uuid();
-
-         void nullify();
-         bool isNull() const;
-
-         String toString() const;
-
-         bool operator==(const Uuid&) const;
-         bool operator!=(const Uuid&) const;
-         bool operator>(const Uuid&) const;
-         bool operator<(const Uuid&) const;
-
-         friend std::ostream& operator<<(std::ostream&, const Uuid&);
-
-      protected:
-         boost::uuids::uuid uuid;
-      };
-
-      std::ostream& operator<<(std::ostream& os, const Uuid& u)
-      {
-         return os << u.uuid;
-      }
-   }
-}
-
-// std::ostream& operator<<(std::ostream&, const gvt::core::Uuid&);
-
-#endif // GVT_CORE_UUID_H
+#endif /* GVT_CORE_STRING_H */

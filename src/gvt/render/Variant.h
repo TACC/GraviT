@@ -21,52 +21,61 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_UUID_H
-#define GVT_CORE_UUID_H
 
-#include <gvt/core/String.h>
+#ifndef GVT_RENDER_VARIANT_H
+#define GVT_RENDER_VARIANT_H
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include <gvt/core/Variant.h>
+#include <gvt/render/data/Primitives.h>
 
 #include <ostream>
 
 namespace gvt {
-   namespace core {
-      /// unique identifier used to tag nodes in the context database
+   namespace render {
+      /// mutable container class for rendering-specific datatypes used in the context database
       /**
       * \sa CoreContext, Database, DatabaseNode
       */
-      class Uuid
+      class Variant : public gvt::core::Variant
       {
       public:
-         Uuid();
-         ~Uuid();
+         Variant();
+         Variant(int);
+         Variant(long);
+         Variant(float);
+         Variant(double);
+         Variant(bool);
+         Variant(gvt::core::String);
+         Variant(gvt::core::Uuid);
+         Variant(gvt::core::math::Vector3f);
+         Variant(gvt::core::math::Vector4f);
+         Variant(gvt::core::math::Point4f);
+         Variant(gvt::core::math::AffineTransformMatrix<float>*);
+         Variant(gvt::core::math::Matrix3f*);
+         Variant(gvt::render::data::primitives::Mesh*);
+         Variant(gvt::render::data::primitives::Box3D*);
 
-         void nullify();
-         bool isNull() const;
+         gvt::render::data::primitives::Mesh* toMesh() const;
+         gvt::render::data::primitives::Box3D* toBox3D() const;
 
-         String toString() const;
+         bool operator==(const Variant&) const;
+         bool operator!=(const Variant&) const;
 
-         bool operator==(const Uuid&) const;
-         bool operator!=(const Uuid&) const;
-         bool operator>(const Uuid&) const;
-         bool operator<(const Uuid&) const;
-
-         friend std::ostream& operator<<(std::ostream&, const Uuid&);
+         friend std::ostream& operator<<(std::ostream&, const Variant&);
 
       protected:
-         boost::uuids::uuid uuid;
+         bool hasRenderData;
+         boost::variant<gvt::render::data::primitives::Mesh*,
+                        gvt::render::data::primitives::Box3D*> renderData;
       };
 
-      std::ostream& operator<<(std::ostream& os, const Uuid& u)
+      std::ostream& operator<<(std::ostream& os, const Variant& v)
       {
-         return os << u.uuid;
+         if (v.hasRenderData) os << v.renderData;
+         else os << v.coreData;
+         return os;
       }
    }
 }
 
-// std::ostream& operator<<(std::ostream&, const gvt::core::Uuid&);
-
-#endif // GVT_CORE_UUID_H
+#endif // GVT_RENDER_VARIANT_H
