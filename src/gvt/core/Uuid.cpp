@@ -71,3 +71,12 @@ bool Uuid::operator<(const Uuid& u) const
 	return uuid < u.uuid;
 }
 
+namespace gvt {
+	namespace core {
+      std::ostream& operator<<(std::ostream& os, const Uuid& u)
+      {
+         return os << u.uuid;
+      }
+
+	}
+}

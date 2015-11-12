@@ -113,4 +113,12 @@ bool Variant::operator!=(const Variant& v) const
    return coreData != v.coreData;
 }
 
+namespace gvt {
+   namespace core {
+      std::ostream& operator<<(std::ostream& os, const Variant& v)
+      {
+         return os << v.coreData;
+      }
 
+   }
+}

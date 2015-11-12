@@ -59,11 +59,6 @@ namespace gvt {
       protected:
          boost::uuids::uuid uuid;
       };
-
-      std::ostream& operator<<(std::ostream& os, const Uuid& u)
-      {
-         return os << u.uuid;
-      }
    }
 }
 

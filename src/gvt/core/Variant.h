@@ -88,11 +88,6 @@ namespace gvt {
                         gvt::core::math::Matrix3f*,
                         void*> coreData;
       };
-
-      std::ostream& operator<<(std::ostream& os, const Variant& v)
-      {
-         return os << v.coreData;
-      }
    }
 }
 

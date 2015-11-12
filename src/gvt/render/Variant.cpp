@@ -69,3 +69,13 @@ bool gvt::render::Variant::operator!=(const gvt::render::Variant& v) const
    return hasRenderData ? (renderData != v.renderData) : (coreData != v.coreData);
 }
 
+namespace gvt {
+   namespace render {
+      std::ostream& operator<<(std::ostream& os, const Variant& v)
+      {
+         if (v.hasRenderData) os << v.renderData;
+         else os << v.coreData;
+         return os;
+      }
+   }
+}

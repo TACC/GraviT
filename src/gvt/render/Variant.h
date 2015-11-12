@@ -68,13 +68,6 @@ namespace gvt {
          boost::variant<gvt::render::data::primitives::Mesh*,
                         gvt::render::data::primitives::Box3D*> renderData;
       };
-
-      std::ostream& operator<<(std::ostream& os, const Variant& v)
-      {
-         if (v.hasRenderData) os << v.renderData;
-         else os << v.coreData;
-         return os;
-      }
    }
 }
 
