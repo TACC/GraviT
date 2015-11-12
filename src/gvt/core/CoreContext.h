@@ -64,7 +64,7 @@ public:
       \param parent the uuid of the parent node
       */
   DBNodeH createNode(String name, Variant val = Variant(String("")),
-                     Uuid parent = nil_uuid());
+                     Uuid parent = Uuid::null());
 
   /// create a node of the specified type in the database 
   DBNodeH createNodeFromType(String);
@@ -78,7 +78,7 @@ public:
       \param parent the uuid of the parent node
       */
   DBNodeH createNodeFromType(String type, String name,
-                                     Uuid parent = nil_uuid());
+                                     Uuid parent = Uuid::null());
 protected:
   CoreContext();
   static CoreContext *__singleton;

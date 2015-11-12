@@ -55,6 +55,7 @@ namespace gvt {
          bool operator<(const Uuid&) const;
 
          friend std::ostream& operator<<(std::ostream&, const Uuid&);
+         static Uuid null();
 
       protected:
          boost::uuids::uuid uuid;

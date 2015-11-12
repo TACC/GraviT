@@ -31,7 +31,7 @@ CoreContext* CoreContext::__singleton = nullptr;
 CoreContext::CoreContext()
 {
     __database = new Database();
-    DatabaseNode* root = new DatabaseNode(String("GraviT"),String("GVT ROOT"),make_uuid(),nil_uuid());
+    DatabaseNode* root = new DatabaseNode(String("GraviT"),String("GVT ROOT"),Uuid(),Uuid::null());
     __database->setRoot(root);
     __rootNode = DBNodeH(root->UUID());
 }
@@ -58,7 +58,7 @@ DBNodeH CoreContext::getNode(Uuid node)
 
 DBNodeH CoreContext::createNode(String name, Variant val, Uuid parent)
 {
-    DatabaseNode* np = new DatabaseNode(name, val, make_uuid(), parent);
+    DatabaseNode* np = new DatabaseNode(name, val, Uuid(), parent);
     __database->setItem(np);
     GVT_DEBUG(DBG_LOW,"createNode: " << name << " " << uuid_toString(np->UUID()));
     return DBNodeH(np->UUID());

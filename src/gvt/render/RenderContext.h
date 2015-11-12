@@ -37,8 +37,8 @@ namespace gvt {
 			static void CreateContext();
 			virtual ~RenderContext(); 
 			gvt::core::DBNodeH createNodeFromType(gvt::core::String type, 
-														  gvt::core::String name, 
-														  gvt::core::Uuid parent = gvt::core::nil_uuid());
+													gvt::core::String name, 
+													gvt::core::Uuid parent = gvt::core::Uuid::null());
 			static RenderContext* instance();
 
 		protected:

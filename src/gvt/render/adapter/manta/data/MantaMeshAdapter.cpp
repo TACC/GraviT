@@ -72,7 +72,7 @@ MantaMeshAdapter::MantaMeshAdapter(gvt::core::DBNodeH node) : Adapter(node)
 {
     GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converting mesh node " << gvt::core::uuid_toString(node.UUID()));
 
-    Mesh* mesh = gvt::core::variant_toMeshPtr(node["ptr"].value());
+    Mesh* mesh = (Mesh*)node["ptr"].value().toULongLong();
 
     GVT_ASSERT(mesh, "MantaMeshAdapter: mesh pointer in the database is null");
 
@@ -219,7 +219,7 @@ struct parallelTrace
 
     void operator()() 
     {
-        auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
+        auto mesh = (Mesh*)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
         const size_t maxPacketSize = 64;
 
         Manta::RenderContext& renderContext = *adapter->getRenderContext();
@@ -598,7 +598,7 @@ struct mantaParallelTrace
 
         GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: getting mesh [hack for now]");
         // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals and shading calculations
-        auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
+        auto mesh = (Mesh*)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
         Manta::RenderContext& renderContext = *adapter->getRenderContext();
 
@@ -830,9 +830,9 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::render
 
     // pull out instance transform data
     GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: getting instance transform data");
-    gvt::core::math::AffineTransformMatrix<float> *m = gvt::core::variant_toAffineTransformMatPtr(instNode["mat"].value());
-    gvt::core::math::AffineTransformMatrix<float> *minv = gvt::core::variant_toAffineTransformMatPtr(instNode["matInv"].value());
-    gvt::core::math::Matrix3f *normi = gvt::core::variant_toMatrix3fPtr(instNode["normi"].value());
+    gvt::core::math::AffineTransformMatrix<float> *m = (gvt::core::math::AffineTransformMatrix<float>*)instNode["mat"].value().toULongLong();
+    gvt::core::math::AffineTransformMatrix<float> *minv = (gvt::core::math::AffineTransformMatrix<float>*)instNode["matInv"].value().toULongLong();
+    gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f*)instNode["normi"].value().toULongLong();
 
     //
     // TODO: wrap this db light array -> class light array conversion in some sort of helper function
@@ -841,10 +841,10 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::render
     std::vector<gvt::render::data::scene::Light*> lights;
     lights.reserve(2);
     for(auto lightNode : lightNodes) {
-        auto color = gvt::core::variant_toVector4f(lightNode["color"].value());
+        auto color = lightNode["color"].value().toVector4f();
 
         if(lightNode.name() == std::string("PointLight")) {
-            auto pos = gvt::core::variant_toVector4f(lightNode["position"].value());
+            auto pos = lightNode["position"].value().toVector4f();
             lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
         } else if(lightNode.name() == std::string("AmbientLight")) {
             lights.push_back(new gvt::render::data::scene::AmbientLight(color));

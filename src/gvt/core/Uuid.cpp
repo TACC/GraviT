@@ -26,6 +26,13 @@
 
 using namespace gvt::core;
 
+Uuid Uuid::null()
+{
+   Uuid u;
+   u.nullify();
+   return u;
+}
+
 Uuid::Uuid()
 {
 	uuid = boost::uuids::uuid(boost::uuids::random_generator()());

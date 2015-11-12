@@ -114,7 +114,7 @@ namespace gvt {
                     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
                     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
-                    int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
+                    int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
                     // sort rays into queues
                     FilterRaysLocally();

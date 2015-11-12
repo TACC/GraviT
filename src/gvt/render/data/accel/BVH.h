@@ -75,7 +75,7 @@ namespace gvt {
                         }
                         bool operator()(const gvt::core::DBNodeH inst) const {
                             gvt::core::DBNodeH i2 = inst;
-                            gvt::core::math::Point4f centroid = gvt::core::variant_toPoint4f(i2["centroid"].value());
+                            gvt::core::math::Point4f centroid = i2["centroid"].value().toPoint4f();
                             return (centroid[splitAxis] < splitPoint);
                         }
 

@@ -84,7 +84,7 @@ BVH::Node* BVH::build(gvt::core::Vector<gvt::core::DBNodeH>& sortedInstanceSet,
     // evaluate bounds
     Box3D bbox;
     for (int i=start; i<end; ++i) {
-        Box3D *tmpbb = gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+        Box3D *tmpbb = (Box3D*)instanceSet[i]["bbox"].value().toULongLong();
         bbox.merge(*tmpbb);
     }
 
@@ -173,7 +173,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end)
 
     for (int i=start; i<end; ++i) {
 
-        Box3D refBbox = *gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+        Box3D& refBbox = *(Box3D*)instanceSet[i]["bbox"].value().toULongLong();
 
     	for (int e=0; e<2; ++e) {
 
@@ -183,7 +183,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end)
             int leftCount = 0;
 
             for (int j=start; j<end; ++j) {
-                Box3D bbox = *gvt::core::variant_toBox3DPtr(instanceSet[j]["bbox"].value());
+                Box3D& bbox = *(Box3D*)instanceSet[j]["bbox"].value().toULongLong();
                 if (bbox.centroid()[splitAxis] < edge) {
                     ++leftCount;
                     leftBox.merge(bbox);
@@ -227,9 +227,9 @@ void BVH::trace(const gvt::render::actor::Ray& ray, const Node* node, ClosestHit
         int end = start + instanceCount;
 
         for (int i=start; i<end; ++i) {
-            Box3D *ibbox = gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+            Box3D *ibbox = (Box3D*)instanceSet[i]["bbox"].value().toULongLong();
             if (ibbox->intersectDistance(ray, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
-                int id = gvt::core::variant_toInteger(instanceSet[i]["id"].value());
+                int id = instanceSet[i]["id"].value().toInteger();
                 isect.push_back(gvt::render::actor::isecDom(id, t));
             }
         }

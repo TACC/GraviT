@@ -109,11 +109,11 @@ void MantaRayTracer::RenderImage(std::string imagename = "mpitrace")
 {
     
     boost::timer::auto_cpu_timer t("Total render time: %t\n");
- 	int width = gvt::core::variant_toInteger(root["Film"]["width"].value());   
- 	int height = gvt::core::variant_toInteger(root["Film"]["height"].value());   
+ 	int width = root["Film"]["width"].value().toInteger();   
+ 	int height = root["Film"]["height"].value().toInteger();   
     Image image(width,height, imagename);
     rays = scene->camera.MakeCameraRays();
-	int stype = gvt::core::variant_toInteger(root["Dataset"]["schedule"].value());
+	int stype = root["Dataset"]["schedule"].value().toInteger();
 	if(stype == gvt::render::scheduler::Image) {
     	gvt::render::algorithm::Tracer<ImageScheduler>(rays, image)();  
 	} else if (stype == gvt::render::scheduler::Domain) {

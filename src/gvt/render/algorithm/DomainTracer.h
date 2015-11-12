@@ -163,7 +163,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
     GVT_DEBUG(DBG_ALWAYS,"domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
-    int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
+    int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
     long domain_counter = 0;
 
@@ -357,7 +357,7 @@ class Tracer<gvt::render::schedule::DomainScheduler> : public AbstractTrace {
   // FIXME: update FindNeighbors to use mpiInstanceMap
   virtual void FindNeighbors() {
 	gvt::core::math::Vector3f topo;
-	topo = gvt::core::variant_toVector3f(rootnode["Dataset"]["topology"].value());
+	topo = rootnode["Dataset"]["topology"].value().toVector3f();
     int total = topo[2],
         plane = topo[1],
         row = topo[0];  // XXX TODO:

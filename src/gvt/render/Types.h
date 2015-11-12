@@ -24,8 +24,6 @@
 #ifndef GVT_RENDER_TYPES_H
 #define GVT_RENDER_TYPES_H
 
-#include <gvt/render/Variant.h>
-
 namespace gvt {
 	namespace render {
 		namespace adapter {

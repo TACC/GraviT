@@ -95,8 +95,8 @@ class AbstractTrace {
 
   gvt::render::data::accel::AbstractAccel* acceleration;
 
-  int width = gvt::core::variant_toInteger(rootnode["Film"]["width"].value());
-  int height = gvt::core::variant_toInteger(rootnode["Film"]["height"].value());
+  int width = rootnode["Film"]["width"].value().toInteger();
+  int height = rootnode["Film"]["height"].value().toInteger();
 
   float sample_ratio;
 
@@ -263,7 +263,7 @@ class AbstractTrace {
           if (len2List.empty() && instNode) {
               //instance(?)->marchOut(r);
 
-              gvt::render::data::primitives::Box3D &wBox = *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
+              gvt::render::data::primitives::Box3D &wBox = *(gvt::render::data::primitives::Box3D*)(instNode["bbox"].value().toULongLong());
               float t = FLT_MAX;
               if(wBox.intersectDistance(r,t)) r.origin += r.direction * t;
               while(wBox.intersectDistance(r,t))

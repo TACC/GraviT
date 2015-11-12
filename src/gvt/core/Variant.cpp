@@ -95,17 +95,6 @@ Point4f Variant::toPoint4f() const
    return boost::get<Point4f>(coreData); 
 }
 
-AffineTransformMatrix<float>* Variant::toAffineTransformMatrixFloat() const
-{ 
-   return boost::get<AffineTransformMatrix<float>*>(coreData); 
-}
-
-Matrix3f* Variant::toMatrix3f() const
-{ 
-   return boost::get<Matrix3f*>(coreData); 
-}
-
-
 bool Variant::operator==(const Variant& v) const
 {
    return coreData == v.coreData;

@@ -133,12 +133,12 @@ void Database::print(const Uuid& parent, const int depth, std::ostream& os)
     }
     std::string offset = "";
     for(int i=0; i < depth; i++) offset += "-";
-    os << offset << uuid_toString(pnode->UUID()) << " : " <<  pnode->name() << " : " << pnode->value() << std::endl;
+    os << offset << pnode->UUID().toString() << " : " <<  pnode->name() << " : " << pnode->value() << std::endl;
     offset += "-";
     ChildList children = __tree[parent];
     for(ChildList::iterator it = children.begin(); it != children.end(); ++it) {
         DatabaseNode* node = (*it);
-        os << offset << uuid_toString(node->UUID()) << " : " <<  node->name() << " : " << node->value() << std::endl;
+        os << offset << node->UUID().toString() << " : " <<  node->name() << " : " << node->value() << std::endl;
     }
 }
 
@@ -152,7 +152,7 @@ void Database::printTree(const Uuid& parent, const int depth, std::ostream& os)
     std::string offset = "";
     for(int i=0; i < depth; i++) offset += "-";
     offset += "|";
-    os << offset << uuid_toString(pnode->UUID()) << " : " <<  pnode->name() << " : " << pnode->value() << std::endl;
+    os << offset << pnode->UUID().toString() << " : " <<  pnode->name() << " : " << pnode->value() << std::endl;
     ChildList children = __tree[parent];
     for(ChildList::iterator it = children.begin(); it != children.end(); ++it) {
         DatabaseNode* node = (*it);

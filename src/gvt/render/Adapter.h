@@ -24,7 +24,9 @@
 #ifndef GVT_RENDER_ADAPTER_H
 #define GVT_RENDER_ADAPTER_H
 
-#include "gvt/core/DatabaseNode.h"
+#include <gvt/core/DatabaseNode.h>
+#include <gvt/render/actor/Ray.h>
+
 
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/mutex.hpp>
