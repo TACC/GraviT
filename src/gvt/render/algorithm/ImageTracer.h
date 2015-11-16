@@ -228,6 +228,9 @@ public:
 #endif
           adapter->trace(this->queue[instTarget], moved_rays,
                          instancenodes[instTarget]);
+
+          this->queue[instTarget].clear();
+
           t_trace.stop();
         }
 

@@ -353,6 +353,7 @@ public:
 #ifdef GVT_USE_MPE
             MPE_Log_event(traceend, 0, NULL);
 #endif
+            this->queue[instTarget].clear();
             t_trace.stop();
           }
 

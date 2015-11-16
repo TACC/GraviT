@@ -34,56 +34,87 @@
 #include <thread>
 #include <future>
 #include <mutex>
+#include <cmath>
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::heterogeneous::data;
 using namespace gvt::render::data::primitives;
 using namespace gvt::core::math;
 
-
-HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
-
-   _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(node);
-   _optix = new gvt::render::adapter::optix::data::OptixMeshAdapter(node);
- 
+HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::core::DBNodeH node)
+    : Adapter(node) {
+  _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(node);
+  _optix = new gvt::render::adapter::optix::data::OptixMeshAdapter(node);
 }
 
 HeterogeneousMeshAdapter::~HeterogeneousMeshAdapter() {
-   delete _embree;
-   delete _optix;
+  delete _embree;
+  delete _optix;
 }
 
 void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
-                             gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode) {
+                                     gvt::render::actor::RayVector &moved_rays,
+                                     gvt::core::DBNodeH instNode, size_t begin,
+                                     size_t end) {
 #ifdef GVT_USE_DEBUG
- boost::timer::auto_cpu_timer t_functor("HeterogeneousMeshAdapter: trace time: %w\n");
+  boost::timer::auto_cpu_timer t_functor(
+      "HeterogeneousMeshAdapter: trace time: %w\n");
 #endif
-  
+
   gvt::render::actor::RayVector rEmbree, rOptix;
   gvt::render::actor::RayVector mEmbree, mOptix;
-  std::mutex _lock_moved_rays;
+  std::mutex _lock_rays;
 
-{
-  std::copy(rayList.begin(), rayList.begin() + rayList.size() /2, std::back_inserter(rEmbree));
-  std::copy(rayList.begin() + rayList.size() / 2, rayList.end(), std::back_inserter(rOptix));
-}
+  {
+    const size_t size = rayList.size();
+    const size_t work = std::min( (size_t)(16*1024), size / 2);
+    size_t current = 0;
 
-{
-   std::future<void> ef(std::async([&](){
-      _embree->trace(rEmbree,mEmbree,instNode);
-      std::lock_guard<std::mutex> lock(_lock_moved_rays);
-      std::copy(mEmbree.begin(), mEmbree.end(), std::back_inserter(moved_rays));
-   }));  
-   std::future<void> of(std::async([&](){
-      _optix->trace(rOptix,mOptix,instNode);
-      std::lock_guard<std::mutex> lock(_lock_moved_rays);
-      std::copy(mOptix.begin(), mOptix.end(), std::back_inserter(moved_rays));
-   }));  
-   ef.wait();
-   of.wait();
+    std::atomic<size_t> cput(0), gput(0);
 
-}
+    std::future<void> ef(std::async([&]() {
+      while (current < size) {
+        if (_lock_rays.try_lock()) {
+          size_t start = current;
+          current += work;
+          size_t end = current;
+          _lock_rays.unlock();
 
-  rayList.clear();
+          if(start >= size) continue;
+          if (end >= size)
+            end = size;
+
+          _embree->trace(rayList, moved_rays, instNode, start, end);
+          cput++;
+        }
+      }
+    }));
+
+    std::future<void> of(std::async([&]() {
+      while (current < size) {
+        if (_lock_rays.try_lock()) {
+          size_t start = current;
+          current += work;
+          size_t end = current;
+          _lock_rays.unlock();
+
+          if(start >= size) continue;
+          if (end >= size)
+            end = size;
+
+          _optix->trace(rayList, mOptix, instNode, start, end);
+          gput++;
+        }
+      }
+
+    }));
+    ef.wait();
+    of.wait();
+    moved_rays.insert(moved_rays.end(), std::make_move_iterator(mOptix.begin()),
+                      std::make_move_iterator(mOptix.end()));
+
+    std::cout << "C: " << cput << " G: " << gput << std::endl;
+  }
+
+  // rayList.clear();
 }

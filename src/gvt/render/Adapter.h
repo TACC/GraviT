@@ -69,7 +69,7 @@ public:
    */
   virtual void trace(gvt::render::actor::RayVector &rayList,
                      gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode) = 0;
+                     gvt::core::DBNodeH instNode, size_t begin =0, size_t end=0) = 0;
 
   boost::mutex _inqueue;
   boost::mutex _outqueue;

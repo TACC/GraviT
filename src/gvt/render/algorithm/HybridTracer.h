@@ -231,6 +231,7 @@ public:
           moved_rays.reserve(this->queue[domTarget].size() * 10);
           boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
           dom->trace(this->queue[domTarget], moved_rays);
+                    this->queue[domTarget].clear();
         }
 
         boost::atomic<int> current_ray(0);
