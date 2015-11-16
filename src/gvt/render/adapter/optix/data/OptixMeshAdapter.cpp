@@ -669,11 +669,9 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   const size_t workSize = std::max((size_t)1,std::min((size_t)GVT_OPTIX_PACKET_SIZE,
                                    (size_t)((end-begin) / numThreads)));
 
-  const size_t numworkers = numThreads;
-  /*std::max(
+  const size_t numworkers = std::max(
       (size_t)1,
       std::min((size_t)numThreads, (size_t)((end-begin) / workSize)));
-  */
   GVT_DEBUG(DBG_ALWAYS,
             "OptixMeshAdapter: trace: instNode: "
                 << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
