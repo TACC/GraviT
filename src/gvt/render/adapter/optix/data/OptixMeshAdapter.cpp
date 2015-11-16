@@ -40,7 +40,7 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 
-#include <gvt/core/schedule/TaskScheduling.h>  // used for threads
+#include <gvt/core/schedule/TaskScheduling.h> // used for threads
 
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/optix/data/Transforms.h>
@@ -50,6 +50,7 @@
 
 #include <atomic>
 #include <thread>
+#include <future>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -60,7 +61,7 @@
 #include <optix_prime/optix_primepp.h>
 
 // TODO: add logic for other packet sizes
-#define GVT_OPTIX_PACKET_SIZE 1024
+#define GVT_OPTIX_PACKET_SIZE 4096
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::optix::data;
@@ -97,7 +98,8 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
     for (int i = 0; i < devCount; i++) {
       cudaGetDeviceProperties(&prop, i);
-      if (prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
+      if (prop.kernelExecTimeoutEnabled == 0)
+        activeDevices.push_back(i);
       // Oversubcribe the GPU
       packetSize = prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor;
     }
@@ -223,7 +225,7 @@ struct OptixParallelTrace {
   /**
    * Size of Embree packet
    */
-  size_t packetSize;  // TODO: later make this configurable
+  size_t packetSize; // TODO: later make this configurable
 
   const size_t begin, end;
 
@@ -242,18 +244,10 @@ struct OptixParallelTrace {
       gvt::core::math::Matrix3f *normi,
       std::vector<gvt::render::data::scene::Light *> &lights,
       std::atomic<size_t> &counter, const size_t begin, const size_t end)
-      : adapter(adapter),
-        rayList(rayList),
-        moved_rays(moved_rays),
-        sharedIdx(sharedIdx),
-        workSize(workSize),
-        instNode(instNode),
-        m(m),
-        minv(minv),
-        normi(normi),
-        lights(lights),
-        counter(counter),
-        packetSize(adapter->getPacketSize()), begin(begin), end(end)  {}
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
+        sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
+        minv(minv), normi(normi), lights(lights), counter(counter),
+        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
 
   /**
    * Convert a set of rays from a vector into a prepOptixRays ray packet.
@@ -273,7 +267,7 @@ struct OptixParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * r.origin;  // transform ray to local space
+        const auto origin = (*minv) * r.origin; // transform ray to local space
         const auto direction = (*minv) * r.direction;
         OptixRay optix_ray;
         optix_ray.origin[0] = origin[0];
@@ -339,7 +333,8 @@ struct OptixParallelTrace {
   void traceShadowRays() {
     ::optix::prime::Query query =
         adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
-    if (!query.isValid()) return;
+    if (!query.isValid())
+      return;
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
       const size_t localPacketSize = (idx + packetSize > shadowRays.size())
@@ -438,7 +433,7 @@ struct OptixParallelTrace {
 
     ::optix::prime::Model scene = adapter->getScene();
 
-    localDispatch.reserve( (end-begin) * 2);
+    localDispatch.reserve((end - begin) * 2);
 
     // there is an upper bound on the nubmer of shadow rays generated per embree
     // packet
@@ -534,9 +529,9 @@ struct OptixParallelTrace {
                   const float u = hits[pi].u;
                   const float v = hits[pi].v;
                   const Mesh::FaceToNormals &normals =
-                      mesh->faces_to_normals[triangle_id];  // FIXME: need to
-                                                            // figure out
-                                                            // to store
+                      mesh->faces_to_normals[triangle_id]; // FIXME: need to
+                                                           // figure out
+                                                           // to store
                   // `faces_to_normals`
                   // list
                   const Vector4f &a = mesh->normals[normals.get<0>()];
@@ -583,8 +578,8 @@ struct OptixParallelTrace {
                   const float multiplier =
                       1.0f -
                       16.0f *
-                          std::numeric_limits<float>::epsilon();  // TODO: move
-                                                                  // out
+                          std::numeric_limits<float>::epsilon(); // TODO: move
+                                                                 // out
                   // somewhere /
                   // make static
                   const float t_secondary = multiplier * r.t;
@@ -598,7 +593,7 @@ struct OptixParallelTrace {
                   r.w = r.w * (r.direction * normal);
                   r.depth = ndepth;
                   validRayLeft =
-                      true;  // we still have a valid ray in the packet to trace
+                      true; // we still have a valid ray in the packet to trace
                 } else {
                   valid[pi] = false;
                 }
@@ -623,18 +618,18 @@ struct OptixParallelTrace {
     size_t other_count = 0;
     for (auto &r : localDispatch) {
       switch (r.type) {
-        case gvt::render::actor::Ray::SHADOW:
-          shadow_count++;
-          break;
-        case gvt::render::actor::Ray::PRIMARY:
-          primary_count++;
-          break;
-        case gvt::render::actor::Ray::SECONDARY:
-          secondary_count++;
-          break;
-        default:
-          other_count++;
-          break;
+      case gvt::render::actor::Ray::SHADOW:
+        shadow_count++;
+        break;
+      case gvt::render::actor::Ray::PRIMARY:
+        primary_count++;
+        break;
+      case gvt::render::actor::Ray::SECONDARY:
+        secondary_count++;
+        break;
+      default:
+        other_count++;
+        break;
       }
     }
     GVT_DEBUG(DBG_ALWAYS, "Local dispatch : "
@@ -654,29 +649,28 @@ struct OptixParallelTrace {
 
 void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
                              gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
+                             gvt::core::DBNodeH instNode, size_t _begin,
+                             size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
 
-  if(_end == 0) _end = rayList.size();
+  if (_end == 0)
+    _end = rayList.size();
 
-  this->begin = _begin; this->end = _end;
+  this->begin = _begin;
+  this->end = _end;
 
-  std::atomic<size_t> sharedIdx(begin);  // shared index into rayList
-  const size_t numThreads =
-      gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize = std::max((size_t)1,std::min((size_t)GVT_OPTIX_PACKET_SIZE,
-                                   (size_t)((end-begin) / numThreads)));
+  std::atomic<size_t> sharedIdx(begin); // shared index into rayList
+  const size_t numThreads = std::thread::hardware_concurrency();
+  const size_t workSize =
+      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE,
+                                   (size_t)((end - begin) / numThreads)));
 
-  const size_t numworkers = std::max(
-      (size_t)1,
-      std::min((size_t)numThreads, (size_t)((end-begin) / workSize)));
-  GVT_DEBUG(DBG_ALWAYS,
-            "OptixMeshAdapter: trace: instNode: "
-                << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
-                << end << ", workSize: " << workSize << ", threads: "
-                << gvt::core::schedule::asyncExec::instance()->numThreads);
+  const size_t numworkers =
+      std::max((size_t)1, std::min((size_t)numThreads,
+                                   (size_t)((end - begin) / workSize)));
+
 
   // pull out information out of the database, create local structs that will be
   // passed into the parallel struct
@@ -722,21 +716,23 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
+  std::vector<std::future<void>> _tasks;
+
   for (size_t rc = 0; rc < numworkers; ++rc) {
-    gvt::core::schedule::asyncExec::instance()->run_task(
-        OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-                           instNode, m, minv, normi, lights, counter, begin, end));
+    _tasks.push_back(std::async(std::launch::async, [&]() {
+      OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
+                         instNode, m, minv, normi, lights, counter, begin,
+                         end)();
+    }));
   }
 
-  gvt::core::schedule::asyncExec::instance()->sync();
+  for (auto &t : _tasks)
+    t.wait();
 
-  // serial call example
-  // OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-  // instNode, m, minv, normi, lights, counter)();
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS,
             "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());
 
-  //rayList.clear();
+  // rayList.clear();
 }

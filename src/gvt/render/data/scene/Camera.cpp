@@ -97,22 +97,21 @@ struct cameraGenerateRays {
 };
 
 RayVector &Camera::MakeCameraRays() {
-  trcUpSampling = 1;
-  depth = 0;
-  size_t nrays = (trcUpSampling * trcUpSampling) * filmsize[0] * filmsize[1];
-  int offset =
-      filmsize[1] / gvt::core::schedule::asyncExec::instance()->numThreads;
-  {
-    boost::timer::auto_cpu_timer t("Allocate camera rays %t\n");
-    rays.resize(nrays);
-  }
+  // trcUpSampling = 1;
+  // depth = 0;
+  // size_t nrays = (trcUpSampling * trcUpSampling) * filmsize[0] * filmsize[1];
+  // int offset = filmsize[1] / gvt::core::schedule::asyncExec::instance()->numThreads;
+  // {
+  //   boost::timer::auto_cpu_timer t("Allocate camera rays %t\n");
+  //   rays.resize(nrays);
+  // }
 
-  {
-    boost::timer::auto_cpu_timer t("Generating camera rays %t\n");
-    cameraGenerateRays(this, 0, filmsize[1])();
-  }
+  // {
+  //   boost::timer::auto_cpu_timer t("Generating camera rays %t\n");
+  //   cameraGenerateRays(this, 0, filmsize[1])();
+  // }
 
-  GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << nrays);
-  GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
+  // GVT_DEBUG(DBG_ALWAYS, "EXPECTED PREGENERATING : " << nrays);
+  // GVT_DEBUG(DBG_ALWAYS, "PREGENERATING : " << rays.size());
   return rays;
 }

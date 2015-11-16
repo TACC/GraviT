@@ -51,6 +51,7 @@
 
 #include <atomic>
 #include <thread>
+#include <future>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -337,7 +338,7 @@ struct embreeParallelTrace {
   void traceShadowRays() {
     RTCScene scene = adapter->getScene();
     RTCRay4 ray4 = {};
-    RTCORE_ALIGN(16) int valid[4] = { 0 };
+    RTCORE_ALIGN(16) int valid[4] = {0};
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
       const size_t localPacketSize = (idx + packetSize > shadowRays.size())
@@ -421,7 +422,7 @@ struct embreeParallelTrace {
         instNode["meshRef"].deRef()["ptr"].value());
 
     RTCScene scene = adapter->getScene();
-    localDispatch.reserve((end-begin) * 2);
+    localDispatch.reserve((end - begin) * 2);
 
     // there is an upper bound on the nubmer of shadow rays generated per embree
     // packet
@@ -451,7 +452,7 @@ struct embreeParallelTrace {
       }
 
       RTCRay4 ray4 = {};
-      RTCORE_ALIGN(16) int valid[4] = { 0 };
+      RTCORE_ALIGN(16) int valid[4] = {0};
 
       GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays ["
                                 << workStart << ", " << workEnd << "]");
@@ -643,29 +644,31 @@ struct embreeParallelTrace {
 
 void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
                               gvt::render::actor::RayVector &moved_rays,
-                              gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
+                              gvt::core::DBNodeH instNode, size_t _begin,
+                              size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: trace time: %w\n");
 #endif
 
-  if(_end == 0) _end = rayList.size();
+  if (_end == 0)
+    _end = rayList.size();
 
-  this->begin = _begin; this->end = _end;
+  this->begin = _begin;
+  this->end = _end;
 
   std::atomic<size_t> sharedIdx(begin); // shared index into rayList
-  const size_t numThreads =
-      gvt::core::schedule::asyncExec::instance()->numThreads;
+  const size_t numThreads = std::thread::hardware_concurrency();
   const size_t workSize =
       std::max((size_t)8,
-               (size_t)((end-begin) / (numThreads * 8))); // size of 'chunk'
-                                                             // of rays to work
-                                                             // on
+               (size_t)((end - begin) / (numThreads * 8))); // size of 'chunk'
+                                                            // of rays to work
+                                                            // on
 
-  GVT_DEBUG(DBG_ALWAYS,
-            "EmbreeMeshAdapter: trace: instNode: "
-                << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
-                << end << ", workSize: " << workSize << ", threads: "
-                << gvt::core::schedule::asyncExec::instance()->numThreads);
+  // GVT_DEBUG(DBG_ALWAYS,
+  //           "EmbreeMeshAdapter: trace: instNode: "
+  //               << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
+  //               << end << ", workSize: " << workSize << ", threads: "
+  //               << std::thread::hardware_concurrency());
 
   // pull out information out of the database, create local structs that will be
   // passed into the parallel struct
@@ -711,21 +714,23 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
+  std::vector<std::future<void>> _tasks;
+
   for (size_t rc = 0; rc < numThreads; ++rc) {
-    gvt::core::schedule::asyncExec::instance()->run_task(
-        embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-                            instNode, m, minv, normi, lights, counter, begin, end));
+    _tasks.push_back(std::async(std::launch::async, [&]() {
+      embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
+                          instNode, m, minv, normi, lights, counter, begin,
+                          end)();
+    }));
   }
 
-  gvt::core::schedule::asyncExec::instance()->sync();
+  for (auto &t : _tasks)
+    t.wait();
 
-  // serial call example
-  // embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-  // instNode, m, minv, normi, lights, counter)();
 
   // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS,
             "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
 
-  //rayList.clear();
+  // rayList.clear();
 }
