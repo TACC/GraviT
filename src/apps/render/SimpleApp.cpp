@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
 #endif
 
   //schedNode["adapter"] = adapterType;
-  schedNode["adapter"] = gvt::render::adapter::Optix;
+  schedNode["adapter"] = gvt::render::adapter::Heterogeneous;
 
 
 

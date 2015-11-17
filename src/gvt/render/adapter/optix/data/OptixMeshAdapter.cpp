@@ -43,7 +43,6 @@
 #include <gvt/core/schedule/TaskScheduling.h> // used for threads
 
 #include <gvt/render/actor/Ray.h>
-#include <gvt/render/adapter/optix/data/Transforms.h>
 
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
@@ -61,7 +60,7 @@
 #include <optix_prime/optix_primepp.h>
 
 // TODO: add logic for other packet sizes
-#define GVT_OPTIX_PACKET_SIZE 4096
+#define GVT_OPTIX_PACKET_SIZE 1024
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::optix::data;
@@ -70,11 +69,38 @@ using namespace gvt::core::math;
 
 static std::atomic<size_t> counter(0);
 
-bool OptixMeshAdapter::init = false;
+// bool OptixMeshAdapter::init = false;
+
+struct OptixRay {
+  float origin[3];
+  float t_min;
+  float direction[3];
+  float t_max;
+  friend std::ostream &operator<<(std::ostream &os, const OptixRay &r) {
+    return (os << "ray  o: " << r.origin[0] << ", " << r.origin[1] << ", "
+               << r.origin[2] << " d: " << r.direction[0] << ", "
+               << r.direction[1] << ", " << r.direction[2]);
+  }
+};
+
+/// OptiX hit format
+struct OptixHit {
+  float t;
+  int triangle_id;
+  float u;
+  float v;
+  friend std::ostream &operator<<(std::ostream &os, const OptixHit &oh) {
+    return (os << "hit  t: " << oh.t << " triID: " << oh.triangle_id);
+  }
+};
+
+OptixContext *OptixContext::_singleton = new OptixContext();
 
 OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
-    : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE) {
+    : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE),
+      optix_context_(OptixContext::singleton()->context()) {
   // Get GVT mesh pointer
+  GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
   Mesh *mesh = gvt::core::variant_toMeshPtr(node["ptr"].value());
   GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
@@ -82,8 +108,6 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
   int numTris = mesh->faces.size();
 
   // Create Optix Prime Context
-  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
-  GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
 
   // Use all CUDA devices, if multiple are present ignore the GPU driving the
   // display
@@ -113,17 +137,41 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
   //
   std::vector<float> vertices;
   std::vector<int> faces;
-  for (int i = 0; i < numVerts; i++) {
-    vertices.push_back(mesh->vertices[i][0]);
-    vertices.push_back(mesh->vertices[i][1]);
-    vertices.push_back(mesh->vertices[i][2]);
+
+  vertices.resize(numVerts * 3);
+  faces.resize(numTris * 3);
+
+  const int offset_verts = 100; //numVerts / std::thread::hardware_concurrency();
+
+  std::vector < std::future<void> > _tasks;
+
+  for (int i = 0; i < numVerts; i += offset_verts) {
+    _tasks.push_back(
+        std::async(std::launch::async, [&](const int ii, const int end) {
+          for (int jj = ii; jj < end && jj < numVerts; jj++) {
+            vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+            vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+            vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+          }
+        }, i, i + offset_verts));
   }
-  for (int i = 0; i < numTris; i++) {
-    gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
-    faces.push_back(f.get<0>());
-    faces.push_back(f.get<1>());
-    faces.push_back(f.get<2>());
+
+
+  const int offset_tris = 100; //numTris / std::thread::hardware_concurrency();
+
+  for (int i = 0; i < numTris; i += offset_tris) {
+    _tasks.push_back(
+        std::async(std::launch::async, [&](const int ii, const int end) {
+          for (int jj = ii; jj < end && jj < numTris; jj++) {
+            gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+            faces[jj * 3 + 0] = f.get<0>();
+            faces[jj * 3 + 1] = f.get<1>();
+            faces[jj * 3 + 2] = f.get<2>();
+          }
+        }, i, i + offset_tris));
   }
+
+  for(auto& f : _tasks) f.wait();
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
@@ -663,6 +711,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 
   std::atomic<size_t> sharedIdx(begin); // shared index into rayList
   const size_t numThreads = std::thread::hardware_concurrency();
+  gvt::core::schedule::asyncExec::instance()->numThreads;
   const size_t workSize =
       std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE,
                                    (size_t)((end - begin) / numThreads)));
@@ -670,7 +719,6 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   const size_t numworkers =
       std::max((size_t)1, std::min((size_t)numThreads,
                                    (size_t)((end - begin) / workSize)));
-
 
   // pull out information out of the database, create local structs that will be
   // passed into the parallel struct
@@ -728,7 +776,6 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 
   for (auto &t : _tasks)
     t.wait();
-
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS,

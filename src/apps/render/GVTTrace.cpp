@@ -34,6 +34,7 @@
 //  GVTTrace.C
 //
 
+#if 0
 #include "ConfigFileLoader.h"
 #include "MantaRayTracer.h"
 #include "OptixRayTracer.h"
@@ -125,3 +126,4 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+#endif
