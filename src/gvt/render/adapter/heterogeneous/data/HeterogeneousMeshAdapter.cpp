@@ -67,7 +67,7 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 
   {
     const size_t size = rayList.size();
-    const size_t work = std::min( (size_t)(4096), size / 2);
+      const size_t work = 4096;
     size_t current = 0;
 
     std::atomic<size_t> cput(0), gput(0);
@@ -112,7 +112,7 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
     moved_rays.insert(moved_rays.end(), std::make_move_iterator(mOptix.begin()),
                       std::make_move_iterator(mOptix.end()));
 
-    //std::cout << "C: " << cput.load() << " G: " << gput.load() << std::endl;
+    std::cout << "C: " << cput.load() << " G: " << gput.load() << std::endl;
   }
 
   // rayList.clear();

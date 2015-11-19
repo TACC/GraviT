@@ -60,7 +60,7 @@
 #include <optix_prime/optix_primepp.h>
 
 // TODO: add logic for other packet sizes
-#define GVT_OPTIX_PACKET_SIZE 1024
+#define GVT_OPTIX_PACKET_SIZE 4096
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::optix::data;
