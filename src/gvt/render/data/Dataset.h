@@ -71,8 +71,8 @@ public:
   virtual int size();
   virtual bool intersect(gvt::render::actor::Ray &r,
                          gvt::render::actor::isecDomList &inter);
-  virtual gvt::render::data::domain::AbstractDomain *getDomain(int id);
-  virtual gvt::render::data::scene::Light *getLight(int id);
+  virtual gvt::render::data::domain::AbstractDomain *getDomain(size_t id);
+  virtual gvt::render::data::scene::Light *getLight(size_t id);
   virtual int addDomain(gvt::render::data::domain::AbstractDomain *dom);
   virtual int addLight(gvt::render::data::scene::Light *ls);
   void makeAccel(gvt::render::Attributes &rta);

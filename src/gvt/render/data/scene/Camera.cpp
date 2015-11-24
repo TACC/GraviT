@@ -69,7 +69,7 @@ struct cameraGenerateRays {
     const float buffer_width = cam->getFilmSizeWidth();
     const float buffer_height = cam->getFilmSizeHeight();
     Vector4f dir;
-    for (int j = start; j < end; j++) {
+    for (size_t j = start; j < end; j++) {
       for (int i = 0; i < buffer_width; i++) {
         int idx = j * buffer_width + i;
         for (float off_i = 0; off_i < 1.0; off_i += offset) {

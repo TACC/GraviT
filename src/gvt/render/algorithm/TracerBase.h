@@ -393,7 +393,7 @@ public:
       for (auto &limit : chunks) {
         futures.push_back(std::async(std::launch::async, [&]() {
           // std::pair<int,int> limit = std::make_pair(0,size);
-          for (int i = 1; i < mpi.world_size; ++i) {
+          for (size_t i = 1; i < mpi.world_size; ++i) {
             for (int j = limit.first * 3; j < limit.second * 3; j += 3) {
               int p = i * rgb_buf_size + j;
               // assumes black background, so adding is fine (r==g==b== 0)

@@ -95,7 +95,7 @@ struct SpreadSchedule : public HybridScheduleBase {
 
     // iterate over queued data, find which are already loaded somewhere
     std::vector<int> homeless;
-    for (int i = 0; i < queued.size(); ++i) {
+    for (size_t i = 0; i < queued.size(); ++i) {
       std::map<int, int>::iterator it = data2proc.find(queued[i]);
       if (it != data2proc.end()) {
         newMap[it->second] = it->first;
