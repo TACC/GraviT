@@ -36,6 +36,7 @@
 #include <set>
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/Variant.h>
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
@@ -143,9 +144,11 @@ int main(int argc, char** argv) {
         Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
         // add cone mesh to the database
+        gvt::core::Variant meshvariant(mesh);
+				std::cout << "meshvariant " << meshvariant << std::endl;
         coneMeshNode["file"] = string("/fake/path/to/cone");
-        coneMeshNode["bbox"] = meshbbox;
-        coneMeshNode["ptr"] = mesh;
+        coneMeshNode["bbox"] = (unsigned long long)meshbbox;
+        coneMeshNode["ptr"] = (unsigned long long)mesh;
     }
 
     gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
@@ -192,8 +195,8 @@ int main(int argc, char** argv) {
 
         // add cube mesh to the database
         cubeMeshNode["file"] = string("/fake/path/to/cube");
-        cubeMeshNode["bbox"] = meshbbox;
-        cubeMeshNode["ptr"] = mesh;
+        cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
+        cubeMeshNode["ptr"] = (unsigned long long)mesh;
     }
 
 
@@ -218,16 +221,16 @@ int main(int argc, char** argv) {
             auto normi = new gvt::core::math::Matrix3f();
             *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, i*0.5, j*0.5);
             *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(0.4, 0.4, 0.4);
-            instnode["mat"] = m;
+            instnode["mat"] = (unsigned long long)m;
             *minv = m->inverse();
-            instnode["matInv"] = minv;
+            instnode["matInv"] = (unsigned long long)minv;
             *normi = m->upper33().inverse().transpose();
-            instnode["normi"] = normi;
+            instnode["normi"] = (unsigned long long)normi;
 
             auto il = (*m) * mbox->bounds[0];
             auto ih = (*m) * mbox->bounds[1];
             Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-            instnode["bbox"] = ibox;
+            instnode["bbox"] = (unsigned long long)ibox;
             instnode["centroid"] = ibox->centroid();
         }
     }
@@ -257,8 +260,8 @@ int main(int argc, char** argv) {
 
     // TODO: schedule db design could be modified a bit
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","conesched",root.UUID());
-	schedNode["type"] = gvt::render::scheduler::Image;
-	// schedNode["type"] = gvt::render::scheduler::Domain;
+	//schedNode["type"] = gvt::render::scheduler::Image;
+	 schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
     int adapterType = gvt::render::adapter::Embree;
@@ -274,6 +277,7 @@ int main(int argc, char** argv) {
 
     // end db setup
 
+		cntxt->database()->printTree(root.UUID(),10,std::cout);
 
     // use db to create structs needed by system
 
