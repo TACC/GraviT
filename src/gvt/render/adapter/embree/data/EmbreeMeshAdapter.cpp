@@ -41,7 +41,7 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 
-#include <gvt/core/schedule/TaskScheduling.h> // used for threads
+#include <gvt/core/schedule/TaskScheduling.h>  // used for threads
 
 #include <gvt/render/actor/Ray.h>
 // #include <gvt/render/adapter/embree/data/Transforms.h>
@@ -56,6 +56,9 @@
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
 #include <boost/timer/timer.hpp>
+
+#include <tbb/task_group.h>
+
 
 // TODO: add logic for other packet sizes
 #define GVT_EMBREE_PACKET_SIZE 4
@@ -76,6 +79,14 @@ struct embTriangle {
   int v0, v1, v2;
 };
 
+static unsigned int g_seed;
+inline void fast_srand(int seed) { g_seed = seed; }
+// fastrand routine returns one integer, similar output value range as C lib.
+inline int fastrand() {
+  g_seed = (214013 * g_seed + 2531011);
+  return (g_seed >> 16) & 0x7FFF;
+}
+
 EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node "
                             << gvt::core::uuid_toString(node.UUID()));
@@ -92,18 +103,18 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
   mesh->generateNormals();
 
   switch (GVT_EMBREE_PACKET_SIZE) {
-  case 4:
-    packetSize = RTC_INTERSECT4;
-    break;
-  case 8:
-    packetSize = RTC_INTERSECT8;
-    break;
-  case 16:
-    packetSize = RTC_INTERSECT16;
-    break;
-  default:
-    packetSize = RTC_INTERSECT1;
-    break;
+    case 4:
+      packetSize = RTC_INTERSECT4;
+      break;
+    case 8:
+      packetSize = RTC_INTERSECT8;
+      break;
+    case 16:
+      packetSize = RTC_INTERSECT16;
+      break;
+    default:
+      packetSize = RTC_INTERSECT1;
+      break;
   }
 
   scene = rtcNewScene(RTC_SCENE_STATIC, packetSize);
@@ -217,7 +228,7 @@ struct embreeParallelTrace {
   /**
    * Size of Embree packet
    */
-  const size_t packetSize; // TODO: later make this configurable
+  const size_t packetSize;  // TODO: later make this configurable
 
   const size_t begin, end;
 
@@ -236,10 +247,20 @@ struct embreeParallelTrace {
       gvt::core::math::Matrix3f *normi,
       std::vector<gvt::render::data::scene::Light *> &lights,
       std::atomic<size_t> &counter, const size_t begin, const size_t end)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
-        sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
-        minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
+      : adapter(adapter),
+        rayList(rayList),
+        moved_rays(moved_rays),
+        sharedIdx(sharedIdx),
+        workSize(workSize),
+        instNode(instNode),
+        m(m),
+        minv(minv),
+        normi(normi),
+        lights(lights),
+        counter(counter),
+        packetSize(adapter->getPacketSize()),
+        begin(begin),
+        end(end) {}
 
   /**
    * Convert a set of rays from a vector into a RTCRay4 ray packet.
@@ -269,7 +290,7 @@ struct embreeParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * r.origin; // transform ray to local space
+        const auto origin = (*minv) * r.origin;  // transform ray to local space
         const auto direction = (*minv) * r.direction;
         ray4.orgx[i] = origin[0];
         ray4.orgy[i] = origin[1];
@@ -431,6 +452,21 @@ struct embreeParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
+    fast_srand(begin);
+    // std::random_device rd;
+
+    // //
+    // // Engines 
+    // //
+    // std::mt19937 e2(rd());
+    // //std::knuth_b e2(rd());
+    // //std::default_random_engine e2(rd()) ;
+
+    // //
+    // // Distribtuions
+    // //
+    // std::uniform_real_distribution<> dist(0, 1);
+
     while (sharedIdx < end) {
 #ifdef GVT_USE_DEBUG
 // boost::timer::auto_cpu_timer t_outer_loop("EmbreeMeshAdapter: workSize rays
@@ -519,11 +555,11 @@ struct embreeParallelTrace {
                   const float u = ray4.u[pi];
                   const float v = ray4.v[pi];
                   const Mesh::FaceToNormals &normals =
-                      mesh->faces_to_normals[triangle_id]; // FIXME: need to
-                                                           // figure out
-                                                           // to store
-                                                           // `faces_to_normals`
-                                                           // list
+                      mesh->faces_to_normals[triangle_id];  // FIXME: need to
+                                                            // figure out
+                                                            // to store
+                  // `faces_to_normals`
+                  // list
                   const Vector4f &a = mesh->normals[normals.get<1>()];
                   const Vector4f &b = mesh->normals[normals.get<2>()];
                   const Vector4f &c = mesh->normals[normals.get<0>()];
@@ -560,7 +596,9 @@ struct embreeParallelTrace {
                 generateShadowRays(r, normal, ray4.primID[pi], mesh);
 
                 int ndepth = r.depth - 1;
-                float p = 1.f - (float(rand()) / RAND_MAX);
+
+
+                float p = 1.f - fastrand() / RAND_MAX; //(float(rand()) / RAND_MAX);
                 // replace current ray with generated secondary ray
                 if (ndepth > 0 && r.w > p) {
                   r.domains.clear();
@@ -568,10 +606,10 @@ struct embreeParallelTrace {
                   const float multiplier =
                       1.0f -
                       16.0f *
-                          std::numeric_limits<float>::epsilon(); // TODO: move
-                                                                 // out
-                                                                 // somewhere /
-                                                                 // make static
+                          std::numeric_limits<float>::epsilon();  // TODO: move
+                                                                  // out
+                                                                  // somewhere /
+                                                                  // make static
                   const float t_secondary = multiplier * r.t;
                   r.origin = r.origin + r.direction * t_secondary;
 
@@ -586,7 +624,7 @@ struct embreeParallelTrace {
                   r.w = r.w * (r.direction * normal);
                   r.depth = ndepth;
                   validRayLeft =
-                      true; // we still have a valid ray in the packet to trace
+                      true;  // we still have a valid ray in the packet to trace
                 } else {
                   // secondary ray is terminated, so disable its valid bit
                   valid[pi] = 0;
@@ -613,18 +651,18 @@ struct embreeParallelTrace {
     size_t other_count = 0;
     for (auto &r : localDispatch) {
       switch (r.type) {
-      case gvt::render::actor::Ray::SHADOW:
-        shadow_count++;
-        break;
-      case gvt::render::actor::Ray::PRIMARY:
-        primary_count++;
-        break;
-      case gvt::render::actor::Ray::SECONDARY:
-        secondary_count++;
-        break;
-      default:
-        other_count++;
-        break;
+        case gvt::render::actor::Ray::SHADOW:
+          shadow_count++;
+          break;
+        case gvt::render::actor::Ray::PRIMARY:
+          primary_count++;
+          break;
+        case gvt::render::actor::Ray::SECONDARY:
+          secondary_count++;
+          break;
+        default:
+          other_count++;
+          break;
       }
     }
     GVT_DEBUG(DBG_ALWAYS, "Local dispatch : "
@@ -650,19 +688,18 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: trace time: %w\n");
 #endif
 
-  if (_end == 0)
-    _end = rayList.size();
+  if (_end == 0) _end = rayList.size();
 
   this->begin = _begin;
   this->end = _end;
 
-  std::atomic<size_t> sharedIdx(begin); // shared index into rayList
+  std::atomic<size_t> sharedIdx(begin);  // shared index into rayList
   const size_t numThreads = std::thread::hardware_concurrency();
   const size_t workSize =
       std::max((size_t)8,
-               (size_t)((end - begin) / (numThreads * 8))); // size of 'chunk'
-                                                            // of rays to work
-                                                            // on
+               (size_t)((end - begin) / (numThreads * 8)));  // size of 'chunk'
+                                                             // of rays to work
+                                                             // on
 
   // GVT_DEBUG(DBG_ALWAYS,
   //           "EmbreeMeshAdapter: trace: instNode: "
@@ -714,19 +751,23 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
-  std::vector<std::future<void>> _tasks;
+  // std::vector<std::future<void>> _tasks;
+
+  tbb::task_group g;
 
   for (size_t rc = 0; rc < numThreads; ++rc) {
-    _tasks.push_back(std::async(std::launch::deferred, [&]() {
+    //_tasks.push_back(std::async(std::launch::deferred,
+    g.run([&]() {
       embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
                           instNode, m, minv, normi, lights, counter, begin,
                           end)();
-    }));
+    });
+    //);
   }
 
-  for (auto &t : _tasks)
-    t.wait();
-
+  g.wait();
+  // for (auto &t : _tasks)
+  //   t.wait();
 
   // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS,

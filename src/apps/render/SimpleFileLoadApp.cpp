@@ -167,8 +167,11 @@ int main(int argc, char **argv) {
   // filmNode["width"] = 4096;
   // filmNode["height"] = 2304;
 
-  filmNode["width"] = 1920;
-  filmNode["height"] = 1080;
+  // filmNode["width"] = 1920;
+  // filmNode["height"] = 1080;
+
+  filmNode["width"] = 512;
+  filmNode["height"] = 512;
 
   // TODO: schedule db design could be modified a bit
   gvt::core::DBNodeH schedNode =
@@ -186,7 +189,7 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Heterogeneous;
+  schedNode["adapter"] = adapterType; //gvt::render::adapter::Heterogeneous;
   //
   // start gvt
   //
