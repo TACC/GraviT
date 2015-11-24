@@ -292,8 +292,8 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  //schedNode["adapter"] = adapterType;
-  schedNode["adapter"] = gvt::render::adapter::Heterogeneous;
+  schedNode["adapter"] = adapterType;
+  //schedNode["adapter"] = gvt::render::adapter::Heterogeneous;
 
 
 

@@ -767,7 +767,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   std::vector<std::future<void>> _tasks;
 
   for (size_t rc = 0; rc < numworkers; ++rc) {
-    _tasks.push_back(std::async(std::launch::async, [&]() {
+    _tasks.push_back(std::async(std::launch::deferred, [&]() {
       OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
                          instNode, m, minv, normi, lights, counter, begin,
                          end)();
