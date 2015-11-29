@@ -101,6 +101,11 @@ private:
              ClosestHit &hit, gvt::render::actor::isecDomList &isect,
              int level);
 
+
+  std::vector<gvt::render::data::primitives::Box3D*> instanceSetBB;
+  std::vector<int> instanceSetID;
+
+
 private:
   std::vector<Node *> nodes;
   Node *root;

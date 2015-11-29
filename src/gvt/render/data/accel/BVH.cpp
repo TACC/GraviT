@@ -55,15 +55,28 @@ using namespace gvt::core::math;
 
 BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet)
     : AbstractAccel(instanceSet), root(NULL) {
+
   gvt::core::Vector<gvt::core::DBNodeH> sortedInstanceSet;
+
   root = build(sortedInstanceSet, 0, instanceSet.size(), 0);
 
 #ifdef DEBUG_ACCEL
   assert(this->instanceSet.size() == sortedInstanceSet.size());
 #endif
 
-  this->instanceSet.swap(sortedInstanceSet);
+  // this->instanceSet.swap(sortedInstanceSet);
+  std::swap(this->instanceSet, sortedInstanceSet);
+
+  // std::vector<gvt::render::data::primitives::Box3D*> instanceSetBB;
+  // std::vector<int> instanceSetID;
+
+  for (auto &node : this->instanceSet) {
+    instanceSetBB.push_back(
+        gvt::core::variant_toBox3DPtr(node["bbox"].value()));
+    instanceSetID.push_back(gvt::core::variant_toInteger(node["id"].value()));
+  }
 }
+
 BVH::~BVH() {
   // TODO: better way to manage memory allocation?
   for (int i = 0; i < nodes.size(); ++i) {
@@ -248,11 +261,11 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node,
     int end = start + instanceCount;
 
     for (int i = start; i < end; ++i) {
-      Box3D *ibbox =
-          gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+      Box3D *ibbox = instanceSetBB[i];
       if (ibbox->intersectDistance(ray, t) &&
           (t > gvt::render::actor::Ray::RAY_EPSILON)) {
-        int id = gvt::core::variant_toInteger(instanceSet[i]["id"].value());
+        int id = instanceSetID
+            [i]; // gvt::core::variant_toInteger(instanceSet[i]["id"].value());
         isect.push_back(gvt::render::actor::isecDom(id, t));
       }
     }

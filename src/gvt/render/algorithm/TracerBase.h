@@ -68,7 +68,7 @@
 #include <tbb/tick_count.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
-
+#include <tbb/mutex.h>
 
 namespace gvt {
 namespace render {
@@ -115,10 +115,10 @@ public:
 
   float sample_ratio;
 
-  boost::mutex raymutex;
-  boost::mutex *queue_mutex; // array of mutexes - one per instance
+  tbb::mutex raymutex;
+  tbb::mutex *queue_mutex; // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
-  boost::mutex *colorBuf_mutex; ///< buffer for color accumulation
+  tbb::mutex *colorBuf_mutex; ///< buffer for color accumulation
   GVT_COLOR_ACCUM *colorBuf;
 
   AbstractTrace(gvt::render::actor::RayVector &rays,
@@ -135,8 +135,8 @@ public:
     instancenodes = rootnode["Instances"].getChildren();
     int numInst = instancenodes.size();
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
-    queue_mutex = new boost::mutex[numInst];
-    colorBuf_mutex = new boost::mutex[width];
+    queue_mutex = new tbb::mutex[numInst];
+    colorBuf_mutex = new tbb::mutex[width];
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
 
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
@@ -287,56 +287,62 @@ public:
         (instNode) ? *gvt::core::variant_toBox3DPtr(instNode["bbox"].value())
                    : gvt::render::data::primitives::Box3D();
 
+    // tbb::parallel_for(size_t(0), size_t(rays.size()),
+    //      [&] (size_t index) {
 
-    //tbb::parallel_for(size_t(0), size_t(rays.size()),
-    //      [&] (size_t index) { 
-     
-    //        gvt::render::actor::Ray &r = rays[index];
-    for (gvt::render::actor::Ray &r : rays) {
+    tbb::parallel_for(
+        tbb::blocked_range<gvt::render::actor::RayVector::iterator>(
+            rays.begin(), rays.end()),
+        [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+          //        gvt::render::actor::Ray &r = rays[index];
 
-      // std::cout << "R :" << r.id << std::endl;
-
-      if (domID != -1) {
-        float t = FLT_MAX;
-        if (r.domains.empty() && domBB.intersectDistance(r, t)) {
-          r.origin += r.direction * t;
-        }
-      }
-
-      if (r.domains.empty()) {
-        acceleration->intersect(r, r.domains);
-        boost::sort(r.domains);
-      }
-
-      if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
-        r.domains.erase(r.domains.begin());
-      }
-
-      if (!r.domains.empty()) {
-        
-
-        int firstDomainOnList = (*r.domains.begin());
-        
-        //boost::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
-        
-        r.domains.erase(r.domains.begin());
-
-        queue[firstDomainOnList].push_back(std::move(r));
-
-        //std::cout << "Queued : " << r.id << " in " << firstDomainOnList << std::endl;
-
-      } else if (instNode) {
-        
-        //boost::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-        for (int i = 0; i < 3; i++)
-          colorBuf[r.id].rgba[i] += r.color.rgba[i];
-        colorBuf[r.id].rgba[3] = 1.f;
-        colorBuf[r.id].clamp();
+          std::map<int, gvt::render::actor::RayVector> local_queue;
 
 
-      }
-    }
-    //});
+          for (gvt::render::actor::Ray &r : raysit) {
+            if (domID != -1) {
+              float t = FLT_MAX;
+              if (r.domains.empty() && domBB.intersectDistance(r, t)) {
+                r.origin += r.direction * t;
+              }
+            }
+
+            if (r.domains.empty()) {
+              acceleration->intersect(r, r.domains);
+              boost::sort(r.domains);
+            }
+
+            if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
+              r.domains.erase(r.domains.begin());
+            }
+
+            if (!r.domains.empty()) {
+
+              int firstDomainOnList = (*r.domains.begin());
+              r.domains.erase(r.domains.begin());
+              tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
+              queue[firstDomainOnList].push_back(std::move(r));
+
+            } else if (instNode) {
+
+              tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              for (int i = 0; i < 3; i++)
+                colorBuf[r.id].rgba[i] += r.color.rgba[i];
+              colorBuf[r.id].rgba[3] = 1.f;
+              colorBuf[r.id].clamp();
+            }
+          }
+
+          // for(auto &q : local_queue) {
+          //     const int dom = q.first;
+          //     const size_t size = q.second.size();
+          //     tbb::mutex::scoped_lock sl(queue_mutex[dom]);
+          //     queue[dom].reserve(queue[dom].size() + size);
+          //     std::move(q.second.begin(), q.second.end(), std::back_inserter(queue[dom]));
+          // }
+
+        });
+    rays.clear();
   }
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
