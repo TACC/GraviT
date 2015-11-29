@@ -112,6 +112,10 @@ set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
+find_package(TBB REQUIRED)
+
+include_directories(${TBB_INCLUDE_DIRS})
+
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
@@ -311,7 +315,7 @@ endif(GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
 if (GVT_CORE)
     find_package(Boost REQUIRED COMPONENTS system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES})
+    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
 	add_library(gvtCore STATIC
 		${GVT_CORE_HDRS} 

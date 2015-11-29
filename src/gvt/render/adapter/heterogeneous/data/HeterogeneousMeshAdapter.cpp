@@ -35,6 +35,9 @@
 #include <future>
 #include <mutex>
 #include <cmath>
+#include <atomic>
+
+#include <tbb/task_group.h>
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::heterogeneous::data;
@@ -71,8 +74,13 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
     size_t current = 0;
 
     std::atomic<size_t> cput(0), gput(0);
-
-    std::future<void> of(std::async(std::launch::async,[&]() {
+    tbb::task_group g;
+      
+      
+      
+    //std::future<void> of(std::async(std::launch::async,
+                                    
+    g.run([&]() {
       while (current < size) {
         if (_lock_rays.try_lock()) {
           size_t start = current;
@@ -88,9 +96,12 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
           _optix->trace(rayList, mOptix, instNode, start, end);
         }
       }
-    }));
+    });//);
+      
+      
 
-    std::future<void> ef(std::async(std::launch::async,[&]() {
+    //std::future<void> ef(std::async(std::launch::async,
+    g.run([&]() {
       while (current < size) {
         if (_lock_rays.try_lock()) {
           size_t start = current;
@@ -106,13 +117,14 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
           _embree->trace(rayList, moved_rays, instNode, start, end);
         }
       }
-    }));
-    ef.wait();
-    of.wait();
+    });//);
+//    ef.wait();
+//    of.wait();
+      g.wait();
     moved_rays.insert(moved_rays.end(), std::make_move_iterator(mOptix.begin()),
                       std::make_move_iterator(mOptix.end()));
 
-    //std::cout << "C: " << cput.load() << " G: " << gput.load() << std::endl;
+    std::cout << "C: " << cput.load() << " G: " << gput.load() << std::endl;
   }
 
   // rayList.clear();

@@ -64,6 +64,12 @@
 
 #include <map>
 
+#include <tbb/parallel_for_each.h>
+#include <tbb/tick_count.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+
+
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -145,89 +151,6 @@ public:
   }
 
 #if 0
-  // NOTE: this legacy function is required for hybrid tracer to compile.  eventually
-  // hybrid tracer needs to be updated to use instances
-  //
-  // The new / correct shuffleRays function is after this one.
-
-  /**
-   * Deprecated
-   */
-  virtual void shuffleRays(
-      gvt::render::actor::RayVector& rays,
-      gvt::render::data::domain::AbstractDomain* dom = NULL) {
-
-    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: start");
-    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: rays: " << rays.size());
-
-#ifdef GVT_USE_DEBUG
-    boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
-#endif
-    int nchunks = 1;  // std::thread::hardware_concurrency();
-    int chunk_size = rays.size() / nchunks;
-    std::vector< std::pair<int, int> > chunks;
-    std::vector< std::future<void> > futures;
-    for (int ii = 0; ii < nchunks - 1; ii++) {
-      chunks.push_back(
-          std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-    }
-    int ii = nchunks - 1;
-    chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
-    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: chunks: " << chunks.size());
-
-    for (auto limit : chunks) {
-      // futures.push_back(std::async(std::launch::deferred, [&]() {
-        int chunk = limit.second - limit.first;
-        std::map<int, gvt::render::actor::RayVector> local_queue;
-        gvt::render::actor::RayVector local(chunk);
-        local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
-        GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: looping through local rays: num local: " << local.size());
-        for (gvt::render::actor::Ray& r : local) {
-          gvt::render::actor::isecDomList& len2List = r.domains;
-
-          if (len2List.empty() && dom) dom->marchOut(r);
-
-          if (len2List.empty()) {
-            // intersect the bvh to find the instance hit list
-            acceleration->intersect(r, len2List);
-            boost::sort(len2List);
-          }
-
-          // TODO: alim: figure out new shuffle algorithm, as dom is going to be null right now(?)
-          if (!len2List.empty()) {
-            int firstDomainOnList = (*len2List.begin());
-            len2List.erase(len2List.begin());
-            local_queue[firstDomainOnList].push_back(r);
-
-          } else if (dom) {
-            boost::mutex::scoped_lock fbloc(
-                colorBuf_mutex
-                    [r.id % width]);
-                    //[r.id % gvt::render::Attributes::instance()->view.width]);
-            for (int i = 0; i < 3; i++)
-              colorBuf[r.id].rgba[i] += r.color.rgba[i];
-            colorBuf[r.id].rgba[3] = 1.f;
-            colorBuf[r.id].clamp();
-          }
-        }
-
-        GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle: adding rays to queues num local: " << local_queue.size());
-        for (auto& q : local_queue) {
-          boost::mutex::scoped_lock sl(queue_mutex[q.first]);
-          GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
-                                       << q.first << " width size "
-                                       << queue[q.first].size() << "[" << mpi.rank << "]");
-          queue[q.first]
-              .insert(queue[q.first].end(), q.second.begin(), q.second.end());
-        }
-      // }));
-    }
-    rays.clear();
-    //for (auto& f : futures) f.wait();
-    GVT_DEBUG(DBG_ALWAYS,"["<< mpi.rank << "] Shuffle exit");
-  }
-#endif
-
   /**
    * Given a queue of rays, intersects them against the accel structure
    * to find out what instance they will hit next
@@ -244,8 +167,8 @@ public:
 #endif
     int nchunks = 1; // std::thread::hardware_concurrency();
     int chunk_size = rays.size() / nchunks;
-    std::vector<std::pair<int, int> > chunks;
-    std::vector<std::future<void> > futures;
+    std::vector<std::pair<int, int>> chunks;
+    std::vector<std::future<void>> futures;
     for (int ii = 0; ii < nchunks - 1; ii++) {
       chunks.push_back(
           std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -255,78 +178,165 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank
                               << "] Shuffle: chunks: " << chunks.size());
 
+    int idnode = (instNode)
+                     ? gvt::core::variant_toInteger(instNode["id"].value())
+                     : 0xFFFFFFFF;
+    gvt::render::data::primitives::Box3D &wBox =
+        *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
+
     for (auto limit : chunks) {
-      // futures.push_back(std::async(std::launch::deferred, [&]() {
-      int chunk = limit.second - limit.first;
-      std::map<int, gvt::render::actor::RayVector> local_queue;
-      gvt::render::actor::RayVector local(chunk);
-      local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
-      GVT_DEBUG(DBG_ALWAYS,
-                "[" << mpi.rank
-                    << "] Shuffle: looping through local rays: num local: "
-                    << local.size());
-      // go through the local list of rays and stash them in
-      // local_queue[dom] where dom is the first "domain" the
-      // ray intersects.
-      for (gvt::render::actor::Ray &r : local) {
-        gvt::render::actor::isecDomList &len2List = r.domains;
+      futures.push_back(std::async(std::launch::deferred, [&]() {
+        int chunk = limit.second - limit.first;
+        std::map<int, gvt::render::actor::RayVector> local_queue;
+        gvt::render::actor::RayVector local(chunk);
+        local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
+        GVT_DEBUG(DBG_ALWAYS,
+                  "[" << mpi.rank
+                      << "] Shuffle: looping through local rays: num local: "
+                      << local.size());
+        // go through the local list of rays and stash them in
+        // local_queue[dom] where dom is the first "domain" the
+        // ray intersects.
 
-        if (len2List.empty() && instNode) {
-          // instance(?)->marchOut(r);
+        int idnode = (instNode)
+                         ? gvt::core::variant_toInteger(instNode["id"].value())
+                         : 0xFFFFFFFF;
+        gvt::render::data::primitives::Box3D &wBox =
+            *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
 
-          gvt::render::data::primitives::Box3D &wBox =
-              *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
-          float t = FLT_MAX;
-          if (wBox.intersectDistance(r, t))
-            r.origin += r.direction * t;
-          while (wBox.intersectDistance(r, t)) {
-            r.origin += r.direction * t;
+        for (gvt::render::actor::Ray &r : local) {
+          gvt::render::actor::isecDomList &len2List = r.domains;
+
+          if (len2List.empty() && instNode) {
+            //   // instance(?)->marchOut(r);
+
+            float t = FLT_MAX;
+            if (wBox.intersectDistance(r, t))
+              r.origin += r.direction * t;
+            //   while (wBox.intersectDistance(r, t)) {
+            //     r.origin += r.direction * t;
+            //     r.origin += r.direction *
+            //     gvt::render::actor::Ray::RAY_EPSILON;
+            //   }
             r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
           }
-          r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
+
+          if (len2List.empty()) {
+            // intersect the bvh to find the instance hit list
+            acceleration->intersect(r, len2List);
+            boost::sort(len2List);
+          }
+
+          if (!len2List.empty() && (int)(*len2List.begin()) == idnode) {
+            len2List.erase(len2List.begin());
+          }
+
+          // TODO: alim: figure out new shuffle algorithm, as adapter is going
+          // to
+          // be null right now(?)
+          if (!len2List.empty()) {
+            int firstDomainOnList = (*len2List.begin());
+            len2List.erase(len2List.begin());
+            local_queue[firstDomainOnList].push_back(r);
+          } else if (instNode) {
+            boost::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+            for (int i = 0; i < 3; i++)
+              colorBuf[r.id].rgba[i] += r.color.rgba[i];
+            colorBuf[r.id].rgba[3] = 1.f;
+            colorBuf[r.id].clamp();
+          }
         }
 
-        if (len2List.empty()) {
-          // intersect the bvh to find the instance hit list
-          acceleration->intersect(r, len2List);
-          boost::sort(len2List);
+        GVT_DEBUG(DBG_ALWAYS,
+                  "[" << mpi.rank
+                      << "] Shuffle: adding rays to queues num local: "
+                      << local_queue.size());
+        for (auto &q : local_queue) {
+          boost::mutex::scoped_lock sl(queue_mutex[q.first]);
+          GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
+                                       << q.first << " width size "
+                                       << queue[q.first].size() << "["
+                                       << mpi.rank << "]");
+          queue[q.first].insert(queue[q.first].end(), q.second.begin(),
+                                q.second.end());
         }
-
-        // TODO: alim: figure out new shuffle algorithm, as adapter is going to
-        // be null right now(?)
-        if (!len2List.empty()) {
-          int firstDomainOnList = (*len2List.begin());
-          len2List.erase(len2List.begin());
-          local_queue[firstDomainOnList].push_back(r);
-
-        } else if (instNode) {
-          boost::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-          //[r.id % gvt::render::Attributes::instance()->view.width]);
-          for (int i = 0; i < 3; i++)
-            colorBuf[r.id].rgba[i] += r.color.rgba[i];
-          colorBuf[r.id].rgba[3] = 1.f;
-          colorBuf[r.id].clamp();
-        }
-      }
-
-      GVT_DEBUG(DBG_ALWAYS,
-                "[" << mpi.rank
-                    << "] Shuffle: adding rays to queues num local: "
-                    << local_queue.size());
-      for (auto &q : local_queue) {
-        boost::mutex::scoped_lock sl(queue_mutex[q.first]);
-        GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
-                                     << q.first << " width size "
-                                     << queue[q.first].size() << "[" << mpi.rank
-                                     << "]");
-        queue[q.first].insert(queue[q.first].end(), q.second.begin(),
-                              q.second.end());
-      }
-      // }));
+      }));
     }
+    for (auto &f : futures)
+      f.wait();
     rays.clear();
-    // for (auto& f : futures) f.wait();
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle exit");
+  }
+#endif
+
+  /**
+   * Given a queue of rays, intersects them against the accel structure
+   * to find out what instance they will hit next
+   */
+  virtual void shuffleRays(gvt::render::actor::RayVector &rays,
+                           gvt::core::DBNodeH instNode) {
+
+    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
+    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank
+                              << "] Shuffle: rays: " << rays.size());
+
+    const size_t raycount = rays.size();
+    const int domID =
+        (instNode) ? gvt::core::variant_toInteger(instNode["id"].value()) : -1;
+    const gvt::render::data::primitives::Box3D domBB =
+        (instNode) ? *gvt::core::variant_toBox3DPtr(instNode["bbox"].value())
+                   : gvt::render::data::primitives::Box3D();
+
+
+    //tbb::parallel_for(size_t(0), size_t(rays.size()),
+    //      [&] (size_t index) { 
+     
+    //        gvt::render::actor::Ray &r = rays[index];
+    for (gvt::render::actor::Ray &r : rays) {
+
+      // std::cout << "R :" << r.id << std::endl;
+
+      if (domID != -1) {
+        float t = FLT_MAX;
+        if (r.domains.empty() && domBB.intersectDistance(r, t)) {
+          r.origin += r.direction * t;
+        }
+      }
+
+      if (r.domains.empty()) {
+        acceleration->intersect(r, r.domains);
+        boost::sort(r.domains);
+      }
+
+      if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
+        r.domains.erase(r.domains.begin());
+      }
+
+      if (!r.domains.empty()) {
+        
+
+        int firstDomainOnList = (*r.domains.begin());
+        
+        //boost::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
+        
+        r.domains.erase(r.domains.begin());
+
+        queue[firstDomainOnList].push_back(std::move(r));
+
+        //std::cout << "Queued : " << r.id << " in " << firstDomainOnList << std::endl;
+
+      } else if (instNode) {
+        
+        //boost::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+        for (int i = 0; i < 3; i++)
+          colorBuf[r.id].rgba[i] += r.color.rgba[i];
+        colorBuf[r.id].rgba[3] = 1.f;
+        colorBuf[r.id].clamp();
+
+
+      }
+    }
+    //});
   }
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
@@ -336,8 +346,8 @@ public:
 
     int nchunks = std::thread::hardware_concurrency() * 2;
     int chunk_size = size / nchunks;
-    std::vector<std::pair<int, int> > chunks;
-    std::vector<std::future<void> > futures;
+    std::vector<std::pair<int, int>> chunks;
+    std::vector<std::future<void>> futures;
     for (int ii = 0; ii < nchunks - 1; ii++) {
       chunks.push_back(
           std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -381,8 +391,8 @@ public:
     if (mpi.root()) {
       int nchunks = std::thread::hardware_concurrency() * 2;
       int chunk_size = size / nchunks;
-      std::vector<std::pair<int, int> > chunks(nchunks);
-      std::vector<std::future<void> > futures;
+      std::vector<std::pair<int, int>> chunks(nchunks);
+      std::vector<std::future<void>> futures;
       for (int ii = 0; ii < nchunks - 1; ii++) {
         chunks.push_back(
             std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
@@ -447,7 +457,7 @@ public:
  *
  */
 template <template <typename> class BSCHEDULER, class ISCHEDULER>
-class Tracer<BSCHEDULER<ISCHEDULER> > : public AbstractTrace {
+class Tracer<BSCHEDULER<ISCHEDULER>> : public AbstractTrace {
 public:
   Tracer(gvt::render::actor::RayVector &rays,
          gvt::render::data::scene::Image &image)
