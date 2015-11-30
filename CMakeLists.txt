@@ -268,6 +268,7 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
 		)
+
 endif(GVT_RENDER_ADAPTER_MANTA)
 
 

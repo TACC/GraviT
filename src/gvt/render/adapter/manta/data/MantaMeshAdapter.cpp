@@ -515,7 +515,7 @@ struct mantaParallelTrace {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
       const Point4f origin = r.origin + r.direction * r.t;
-      const Vector4f dir = light->position - origin;
+      Vector4f dir = light->position - origin;
       const float t_max = dir.length();
       shadowRays.push_back(
           Ray(origin, dir.normalize(), r.w, Ray::SHADOW, r.depth));
@@ -872,7 +872,7 @@ struct mantaParallelTrace {
 // gvt::render::actor::RayVector& moved_rays)
 void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
                              gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode) {
+                             gvt::core::DBNodeH instNode,  size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: trace time: %w\n");
 #endif

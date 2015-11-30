@@ -52,9 +52,9 @@
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
 
-#ifdef GVT_RENDER_ADAPTER_MANTA
+//#ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/Wrapper.h>
-#endif
+//#endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/Wrapper.h>
