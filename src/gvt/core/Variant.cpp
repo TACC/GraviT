@@ -102,7 +102,7 @@ bool Variant::operator==(const Variant& v) const
 
 bool Variant::operator!=(const Variant& v) const 
 {
-   return coreData != v.coreData;
+   return !(coreData == v.coreData);
 }
 
 namespace gvt {
