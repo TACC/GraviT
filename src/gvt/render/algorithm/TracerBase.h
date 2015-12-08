@@ -339,18 +339,35 @@ public:
               [](const std::map<int, gvt::render::actor::RayVector>::value_type
                      &pair) { return pair.first; });
 
-          for (auto &q : local_queue) {
-            const int dom = q.first;
-            const size_t size = q.second.size();
-            tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-            // queue[dom].reserve(queue[dom].size() + size);
-            queue[dom].insert(queue[dom].end(),
-                              std::make_move_iterator(q.second.begin()),
-                              std::make_move_iterator(q.second.end()));
+          while(!_doms.empty()) {
 
-            // std::move(q.second.begin(), q.second.end(),
-            // std::back_inserter(queue[dom]));
+              int dom = _doms.front();
+              _doms.erase(_doms.begin());
+              if(queue_mutex[dom].try_lock()) {
+                queue[dom].insert(queue[dom].end(),
+                              std::make_move_iterator(local_queue[dom].begin()),
+                              std::make_move_iterator(local_queue[dom].end()));
+                queue_mutex[dom].unlock();
+              } else {
+                _doms.push_back(dom);
+              }
+
+
           }
+
+
+          // for (auto &q : local_queue) {
+          //   const int dom = q.first;
+          //   const size_t size = q.second.size();
+          //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
+          //   // queue[dom].reserve(queue[dom].size() + size);
+          //   queue[dom].insert(queue[dom].end(),
+          //                     std::make_move_iterator(q.second.begin()),
+          //                     std::make_move_iterator(q.second.end()));
+
+          //   // std::move(q.second.begin(), q.second.end(),
+          //   // std::back_inserter(queue[dom]));
+          // }
 
         });
     rays.clear();
