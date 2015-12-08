@@ -293,11 +293,11 @@ public:
     tbb::parallel_for(
         tbb::blocked_range<gvt::render::actor::RayVector::iterator>(
             rays.begin(), rays.end()),
-        [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+        [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator>
+                raysit) {
           //        gvt::render::actor::Ray &r = rays[index];
 
           std::map<int, gvt::render::actor::RayVector> local_queue;
-
 
           for (gvt::render::actor::Ray &r : raysit) {
             if (domID != -1) {
@@ -320,7 +320,7 @@ public:
 
               int firstDomainOnList = (*r.domains.begin());
               r.domains.erase(r.domains.begin());
-              //tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
+              // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
               local_queue[firstDomainOnList].push_back(r);
 
             } else if (instNode) {
@@ -333,19 +333,27 @@ public:
             }
           }
 
-          for(auto &q : local_queue) {
-              const int dom = q.first;
-              const size_t size = q.second.size();
-              tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-              //queue[dom].reserve(queue[dom].size() + size);
-              queue[dom].insert(queue[dom].end(),std::make_move_iterator(q.second.begin()),
-                      std::make_move_iterator(q.second.end()));
+          std::vector<int> _doms;
+          std::transform(
+              local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
+              [](const std::map<int, gvt::render::actor::RayVector>::value_type
+                     &pair) { return pair.first; });
 
-              //std::move(q.second.begin(), q.second.end(), std::back_inserter(queue[dom]));
+          for (auto &q : local_queue) {
+            const int dom = q.first;
+            const size_t size = q.second.size();
+            tbb::mutex::scoped_lock sl(queue_mutex[dom]);
+            // queue[dom].reserve(queue[dom].size() + size);
+            queue[dom].insert(queue[dom].end(),
+                              std::make_move_iterator(q.second.begin()),
+                              std::make_move_iterator(q.second.end()));
+
+            // std::move(q.second.begin(), q.second.end(),
+            // std::back_inserter(queue[dom]));
           }
 
-         });
-        rays.clear();
+        });
+    rays.clear();
   }
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
