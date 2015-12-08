@@ -320,8 +320,8 @@ public:
 
               int firstDomainOnList = (*r.domains.begin());
               r.domains.erase(r.domains.begin());
-              tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
-              queue[firstDomainOnList].push_back(std::move(r));
+              //tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
+              local_queue[firstDomainOnList].push_back(r);
 
             } else if (instNode) {
 
@@ -333,16 +333,19 @@ public:
             }
           }
 
-          // for(auto &q : local_queue) {
-          //     const int dom = q.first;
-          //     const size_t size = q.second.size();
-          //     tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-          //     queue[dom].reserve(queue[dom].size() + size);
-          //     std::move(q.second.begin(), q.second.end(), std::back_inserter(queue[dom]));
-          // }
+          for(auto &q : local_queue) {
+              const int dom = q.first;
+              const size_t size = q.second.size();
+              tbb::mutex::scoped_lock sl(queue_mutex[dom]);
+              //queue[dom].reserve(queue[dom].size() + size);
+              queue[dom].insert(queue[dom].end(),std::make_move_iterator(q.second.begin()),
+                      std::make_move_iterator(q.second.end()));
 
-        });
-    rays.clear();
+              //std::move(q.second.begin(), q.second.end(), std::back_inserter(queue[dom]));
+          }
+
+         });
+        rays.clear();
   }
 
   virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
