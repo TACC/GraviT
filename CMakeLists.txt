@@ -113,6 +113,10 @@ set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
+find_package(TBB REQUIRED)
+
+include_directories(${TBB_INCLUDE_DIRS})
+
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
@@ -271,6 +275,7 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
 		)
+
 endif(GVT_RENDER_ADAPTER_MANTA)
 
 
@@ -284,15 +289,11 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
-#		src/gvt/render/adapter/optix/data/Transforms.cu
-#                src/gvt/render/adapter/optix/data/domain/CudaHelpers.cu
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.cpp
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
 		)
 endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
@@ -300,22 +301,29 @@ endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 if (GVT_RENDER_ADAPTER_EMBREE)
   add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
 	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.h
 		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.h
-		src/gvt/render/adapter/embree/data/Transforms.h
 		src/gvt/render/adapter/embree/Wrapper.h
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.cpp
 		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.cpp
 		)
 endif(GVT_RENDER_ADAPTER_EMBREE)
+
+if (GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
+	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		src/gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.h
+		src/gvt/render/adapter/heterogeneous/Wrapper.h
+		)
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+		src/gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.cpp
+		)
+endif(GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
 if (GVT_CORE)
     find_package(Boost REQUIRED COMPONENTS system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES})
+    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
 	add_library(gvtCore STATIC
 		${GVT_CORE_HDRS} 
@@ -480,73 +488,3 @@ if (GVT_GLRENDER_APP)
 		)
 endif(GVT_GLRENDER_APP)
 
-if (GVT_RENDER_APP)
-    find_package(MPI REQUIRED)
-    include_directories(${MPI_INCLUDE_PATH} ${TINYOBJPATH})
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES} tinyobjloader)
-  if (GVT_MPE)
-    if (DEFINED ENV{MPEHOME})
-      set(MPE_HOME_DIR $ENV{MPEHOME})
-      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
-      include_directories(${MPE_INCLUDE_DIR})
-      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
-      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
-      #SET(MPE_LIBRARIES "${MPE_LIB1} ${MPE_LIB2}")
-      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB1})
-      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB2})
-    endif(DEFINED ENV{MPEHOME})
-  endif (GVT_MPE)
-    find_package(Boost REQUIRED COMPONENTS thread timer system)
-    include_directories(${Boost_INCLUDE_DIRS})
-
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${Boost_LIBRARIES})
-
-	if(GVT_RENDER_ADAPTER_OPTIX_PRIME) 
-		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-			src/apps/render/ConfigFileLoader.h
-			src/apps/render/OptixRayTracer.h
-			)
-
-		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-			src/apps/render/ConfigFileLoader.cpp
-			src/apps/render/GVTTrace.cpp
-			src/apps/render/OptixRayTracer.cpp
-			)
-	endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
-	if(GVT_RENDER_ADAPTER_MANTA)
-		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-			src/apps/render/ConfigFileLoader.h
-			src/apps/render/MantaRayTracer.h
-			)
-
-		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-			src/apps/render/ConfigFileLoader.cpp
-			src/apps/render/GVTTrace.cpp
-			src/apps/render/MantaRayTracer.cpp
-			)
-        endif(GVT_RENDER_ADAPTER_MANTA)
-
-	if(GVT_RENDER_ADAPTER_EMBREE)
-		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-			src/apps/render/ConfigFileLoader.h
-			src/apps/render/EmbreeRayTracer.h
-			)
-
-		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-			src/apps/render/ConfigFileLoader.cpp
-			src/apps/render/GVTTrace.cpp
-			src/apps/render/EmbreeRayTracer.cpp
-			)
-        endif(GVT_RENDER_ADAPTER_EMBREE)
-
-	add_executable(gvtTracer
-		${GVTAPP_RENDER_HDRS}
-		${GVTAPP_RENDER_SRCS}
-		)
-
-	target_link_libraries(gvtTracer ${GVTAPP_RENDER_LIBS} gvtCore gvtRender)
-
-	install(TARGETS gvtTracer
-		RUNTIME DESTINATION bin
-		)
-endif(GVT_RENDER_APP)

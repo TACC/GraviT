@@ -39,7 +39,6 @@
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
-#include <ply.h>
 
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
@@ -67,6 +66,8 @@
 #include <iostream>
 #include <math.h>
 #include <stdio.h>
+#include <ply.h>
+
 
 using namespace std;
 using namespace gvt::render;
@@ -255,7 +256,7 @@ int main(int argc, char** argv) {
     GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-	schedNode["adapter"] = adapterType;
+	schedNode["adapter"] = gvt::render::adapter::Embree;
 
     // end db setup
 
