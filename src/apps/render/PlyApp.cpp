@@ -122,7 +122,8 @@ int main(int argc, char** argv) {
 	char txt[16];
 	std::string temp;
 	std::string filename,filepath,rootdir;
-	rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
+	//rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
+	rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
 	//filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
 	//myfile = fopen(filename.c_str(),"r");
 	MPI_Init(&argc, &argv);
@@ -243,8 +244,8 @@ int main(int argc, char** argv) {
 	filmNode["height"] = 2000;
 
 	gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule","Enzosched",root.UUID());
-	//schedNode["type"] = gvt::render::scheduler::Image;
-	schedNode["type"] = gvt::render::scheduler::Domain;
+	schedNode["type"] = gvt::render::scheduler::Image;
+	//schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
     int adapterType = gvt::render::adapter::Embree;
