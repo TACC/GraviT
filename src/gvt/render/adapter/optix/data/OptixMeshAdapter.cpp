@@ -1,26 +1,35 @@
-/* ======================================================================================= 
-   This file is released as part of GraviT - scalable, platform independent ray tracing
+/* =======================================================================================
+   This file is released as part of GraviT - scalable, platform independent ray
+   tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
+   at Austin
    All rights reserved.
-                                                                                           
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
-   except in compliance with the License.                                                  
-   A copy of the License is included with this software in the file LICENSE.               
-   If your copy does not contain the License, you may obtain a copy of the License at:     
-                                                                                           
-       http://opensource.org/licenses/BSD-3-Clause                                         
-                                                                                           
-   Unless required by applicable law or agreed to in writing, software distributed under   
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-   KIND, either express or implied.                                                        
-   See the License for the specific language governing permissions and limitations under   
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use
+   this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the
+   License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+   CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   GraviT is funded in part by the US National Science Foundation under awards
+   ACI-1339863,
    ACI-1339881 and ACI-1339840
-   ======================================================================================= */
+   =======================================================================================
+   */
 //
 // OptixMeshAdapter.cpp
 //
@@ -34,13 +43,13 @@
 #include <gvt/core/schedule/TaskScheduling.h> // used for threads
 
 #include <gvt/render/actor/Ray.h>
-#include <gvt/render/adapter/optix/data/Transforms.h>
 
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 
 #include <atomic>
 #include <thread>
+#include <future>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -60,12 +69,38 @@ using namespace gvt::core::math;
 
 static std::atomic<size_t> counter(0);
 
-bool OptixMeshAdapter::init = false;
+// bool OptixMeshAdapter::init = false;
+
+struct OptixRay {
+  float origin[3];
+  float t_min;
+  float direction[3];
+  float t_max;
+  friend std::ostream &operator<<(std::ostream &os, const OptixRay &r) {
+    return (os << "ray  o: " << r.origin[0] << ", " << r.origin[1] << ", "
+               << r.origin[2] << " d: " << r.direction[0] << ", "
+               << r.direction[1] << ", " << r.direction[2]);
+  }
+};
+
+/// OptiX hit format
+struct OptixHit {
+  float t;
+  int triangle_id;
+  float u;
+  float v;
+  friend std::ostream &operator<<(std::ostream &os, const OptixHit &oh) {
+    return (os << "hit  t: " << oh.t << " triID: " << oh.triangle_id);
+  }
+};
+
+OptixContext *OptixContext::_singleton = new OptixContext();
 
 OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
-    : Adapter(node), packetSize(4096) {
-
+    : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE),
+      optix_context_(OptixContext::singleton()->context()) {
   // Get GVT mesh pointer
+  GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
   Mesh *mesh = gvt::core::variant_toMeshPtr(node["ptr"].value());
   GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
@@ -73,8 +108,6 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
   int numTris = mesh->faces.size();
 
   // Create Optix Prime Context
-  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
-  GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
 
   // Use all CUDA devices, if multiple are present ignore the GPU driving the
   // display
@@ -104,17 +137,41 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
   //
   std::vector<float> vertices;
   std::vector<int> faces;
-  for (int i = 0; i < numVerts; i++) {
-    vertices.push_back(mesh->vertices[i][0]);
-    vertices.push_back(mesh->vertices[i][1]);
-    vertices.push_back(mesh->vertices[i][2]);
+
+  vertices.resize(numVerts * 3);
+  faces.resize(numTris * 3);
+
+  const int offset_verts = 100; //numVerts / std::thread::hardware_concurrency();
+
+  std::vector < std::future<void> > _tasks;
+
+  for (int i = 0; i < numVerts; i += offset_verts) {
+    _tasks.push_back(
+        std::async(std::launch::async, [&](const int ii, const int end) {
+          for (int jj = ii; jj < end && jj < numVerts; jj++) {
+            vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+            vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+            vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+          }
+        }, i, i + offset_verts));
   }
-  for (int i = 0; i < numTris; i++) {
-    gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
-    faces.push_back(f.get<0>());
-    faces.push_back(f.get<1>());
-    faces.push_back(f.get<2>());
+
+
+  const int offset_tris = 100; //numTris / std::thread::hardware_concurrency();
+
+  for (int i = 0; i < numTris; i += offset_tris) {
+    _tasks.push_back(
+        std::async(std::launch::async, [&](const int ii, const int end) {
+          for (int jj = ii; jj < end && jj < numTris; jj++) {
+            gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+            faces[jj * 3 + 0] = f.get<0>();
+            faces[jj * 3 + 1] = f.get<1>();
+            faces[jj * 3 + 2] = f.get<2>();
+          }
+        }, i, i + offset_tris));
   }
+
+  for(auto& f : _tasks) f.wait();
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
@@ -218,6 +275,8 @@ struct OptixParallelTrace {
    */
   size_t packetSize; // TODO: later make this configurable
 
+  const size_t begin, end;
+
   /**
    * Construct a OptixParallelTrace struct with information needed for the
    * thread
@@ -232,11 +291,11 @@ struct OptixParallelTrace {
       gvt::core::math::AffineTransformMatrix<float> *minv,
       gvt::core::math::Matrix3f *normi,
       std::vector<gvt::render::data::scene::Light *> &lights,
-      std::atomic<size_t> &counter)
+      std::atomic<size_t> &counter, const size_t begin, const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
         sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
         minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(adapter->getPacketSize()) {}
+        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
 
   /**
    * Convert a set of rays from a vector into a prepOptixRays ray packet.
@@ -253,7 +312,6 @@ struct OptixParallelTrace {
                      const bool resetValid, const int localPacketSize,
                      const gvt::render::actor::RayVector &rays,
                      const size_t startIdx) {
-
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
@@ -321,7 +379,6 @@ struct OptixParallelTrace {
    * to the dispatch queue.
    */
   void traceShadowRays() {
-
     ::optix::prime::Query query =
         adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
     if (!query.isValid())
@@ -424,14 +481,14 @@ struct OptixParallelTrace {
 
     ::optix::prime::Model scene = adapter->getScene();
 
-    localDispatch.reserve(rayList.size() * 2);
+    localDispatch.reserve((end - begin) * 2);
 
     // there is an upper bound on the nubmer of shadow rays generated per embree
     // packet
     // its embree_packetSize * lights.size()
     shadowRays.reserve(packetSize * lights.size());
 
-    while (sharedIdx < rayList.size()) {
+    while (sharedIdx < end) {
 #ifdef GVT_USE_DEBUG
 // boost::timer::auto_cpu_timer t_outer_loop("OptixMeshAdapter: workSize rays
 // traced: %w\n");
@@ -441,14 +498,14 @@ struct OptixParallelTrace {
       size_t workStart = sharedIdx.fetch_add(workSize);
 
       // have to double check that we got the last valid chunk range
-      if (workStart > rayList.size()) {
+      if (workStart > end) {
         break;
       }
 
       // calculate the end work range
       size_t workEnd = workStart + workSize;
-      if (workEnd > rayList.size()) {
-        workEnd = rayList.size();
+      if (workEnd > end) {
+        workEnd = end;
       }
 
       for (size_t localIdx = workStart; localIdx < workEnd;
@@ -640,24 +697,28 @@ struct OptixParallelTrace {
 
 void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
                              gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode) {
+                             gvt::core::DBNodeH instNode, size_t _begin,
+                             size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
-  std::atomic<size_t> sharedIdx(0); // shared index into rayList
-  const size_t numThreads =
-      gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize = std::max(
-      (size_t)8, (size_t)(rayList.size() / (numThreads * 8))); // size of
-                                                               // 'chunk' of
-                                                               // rays to work
-                                                               // on
 
-  GVT_DEBUG(DBG_ALWAYS,
-            "OptixMeshAdapter: trace: instNode: "
-                << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
-                << rayList.size() << ", workSize: " << workSize << ", threads: "
-                << gvt::core::schedule::asyncExec::instance()->numThreads);
+  if (_end == 0)
+    _end = rayList.size();
+
+  this->begin = _begin;
+  this->end = _end;
+
+  std::atomic<size_t> sharedIdx(begin); // shared index into rayList
+  const size_t numThreads = std::thread::hardware_concurrency();
+  gvt::core::schedule::asyncExec::instance()->numThreads;
+  const size_t workSize =
+      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE,
+                                   (size_t)((end - begin) / numThreads)));
+
+  const size_t numworkers =
+      std::max((size_t)1, std::min((size_t)numThreads,
+                                   (size_t)((end - begin) / workSize)));
 
   // pull out information out of the database, create local structs that will be
   // passed into the parallel struct
@@ -703,21 +764,22 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
-  for (size_t rc = 0; rc < numThreads; ++rc) {
-    gvt::core::schedule::asyncExec::instance()->run_task(
-        OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-                           instNode, m, minv, normi, lights, counter));
+  std::vector<std::future<void>> _tasks;
+
+  for (size_t rc = 0; rc < numworkers; ++rc) {
+    _tasks.push_back(std::async(std::launch::deferred, [&]() {
+      OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
+                         instNode, m, minv, normi, lights, counter, begin,
+                         end)();
+    }));
   }
 
-  gvt::core::schedule::asyncExec::instance()->sync();
-
-  // serial call example
-  // OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-  // instNode, m, minv, normi, lights, counter)();
+  for (auto &t : _tasks)
+    t.wait();
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS,
             "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());
 
-  rayList.clear();
+  // rayList.clear();
 }
