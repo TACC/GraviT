@@ -41,7 +41,7 @@ namespace gvt {
       class Uuid
       {
       public:
-         Uuid: uuid(gen()) {}
+         void uuid(gen())
 //         Uuid();
 //         ~Uuid();
 
@@ -56,37 +56,37 @@ namespace gvt {
 //         bool operator<(const Uuid&) const;
 //
 
-          void Uuid::nullify()
+          void nullify()
           {
             uuid = boost::uuids::nil_uuid();
           }
 
-          bool Uuid::isNull() const
+          bool isNull() const
           {
             return uuid == boost::uuids::nil_uuid();
           }
 
-          String Uuid::toString() const
+          String toString() const
           {
             return boost::uuids::to_string(uuid);
           }
 
-          bool Uuid::operator==(const Uuid& u) const
+          bool Uuid operator==(const Uuid& u) const
           {
             return uuid == u.uuid;
           }
 
-          bool Uuid::operator!=(const Uuid& u) const
+          bool Uuid operator!=(const Uuid& u) const
           {
             return uuid != u.uuid;
           }
 
-          bool Uuid::operator>(const Uuid& u) const
+          bool Uuid operator>(const Uuid& u) const
           {
             return uuid > u.uuid;
           }
 
-          bool Uuid::operator<(const Uuid& u) const
+          bool Uuid operator<(const Uuid& u) const
           {
             return uuid < u.uuid;
           }
