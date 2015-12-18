@@ -43,20 +43,20 @@ Uuid::~Uuid()
 
 }
 
-void Uuid::nullify()
-{
-	uuid = boost::uuids::nil_uuid();
-}
-
-bool Uuid::isNull() const
-{
-	return uuid == boost::uuids::nil_uuid();
-}
-
-String Uuid::toString() const
-{
-	return boost::uuids::to_string(uuid);
-}
+//void Uuid::nullify()
+//{
+//	uuid = boost::uuids::nil_uuid();
+//}
+//
+//bool Uuid::isNull() const
+//{
+//	return uuid == boost::uuids::nil_uuid();
+//}
+//
+//String Uuid::toString() const
+//{
+//	return boost::uuids::to_string(uuid);
+//}
 
 //bool Uuid::operator==(const Uuid& u) const
 //{

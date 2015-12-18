@@ -54,29 +54,41 @@ namespace gvt {
          Uuid();
          ~Uuid();
 
-         void nullify();
-         bool isNull() const;
+//         void nullify();
+//         bool isNull() const;
+//
+//         String toString() const;
 
-         String toString() const;
+         void nullify()
+            {
+              uuid = boost::uuids::nil_uuid();
+            }
 
-//         bool operator==(const Uuid&) const;
+         bool isNull() const
+          {
+            return uuid == boost::uuids::nil_uuid();
+          }
+
+         String toString() const
+           {
+             return boost::uuids::to_string(uuid);
+           }
+
+
           bool operator==(const Uuid& u) const
            {
              return uuid == u.uuid;
            }
-         //bool operator!=(const Uuid&) const;
          bool operator!=(const Uuid& u) const
            {
              return uuid != u.uuid;
            }
 
-//         bool operator>(const Uuid&) const;
          bool operator>(const Uuid& u) const
             {
               return uuid > u.uuid;
             }
 
-//         bool operator<(const Uuid&) const;
          bool operator<(const Uuid& u) const
             {
               return uuid < u.uuid;
