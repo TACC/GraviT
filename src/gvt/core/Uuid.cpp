@@ -26,53 +26,53 @@
 
 using namespace gvt::core;
 
-Uuid Uuid::null() // why is this even here....
+Uuid Uuid::null()
 {
    Uuid u;
    u.nullify();
    return u;
 }
 
-//Uuid::Uuid()
-//{
-//	uuid = boost::uuids::uuid(boost::uuids::random_generator()());
-//}
+Uuid::Uuid()
+{
+	uuid = boost::uuids::uuid(boost::uuids::random_generator()());
+}
 
-//Uuid::~Uuid()
-//{
-//
-//}
+Uuid::~Uuid()
+{
 
-//void Uuid::nullify()
-//{
-//	uuid = boost::uuids::nil_uuid();
-//}
-//
-//bool Uuid::isNull() const
-//{
-//	return uuid == boost::uuids::nil_uuid();
-//}
-//
-//String Uuid::toString() const
-//{
-//	return boost::uuids::to_string(uuid);
-//}
-//
+}
+
+void Uuid::nullify()
+{
+	uuid = boost::uuids::nil_uuid();
+}
+
+bool Uuid::isNull() const
+{
+	return uuid == boost::uuids::nil_uuid();
+}
+
+String Uuid::toString() const
+{
+	return boost::uuids::to_string(uuid);
+}
+
 //bool Uuid::operator==(const Uuid& u) const
 //{
 //	return uuid == u.uuid;
 //}
-//
+
 //bool Uuid::operator!=(const Uuid& u) const
 //{
 //	return uuid != u.uuid;
 //}
-//
+
 //bool Uuid::operator>(const Uuid& u) const
 //{
 //	return uuid > u.uuid;
 //}
-//
+
 //bool Uuid::operator<(const Uuid& u) const
 //{
 //	return uuid < u.uuid;

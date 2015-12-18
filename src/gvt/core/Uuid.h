@@ -41,9 +41,18 @@ namespace gvt {
       class Uuid
       {
       public:
-         void uuid(gen())
-//         Uuid();
-//         ~Uuid();
+//        Uuid()
+//          {
+//            //uuid = boost::uuids::uuid(boost::uuids::random_generator()());
+//            uuid = gen();
+//          }
+//        ~Uuid()
+//          {
+//
+//          }
+
+         Uuid();
+         ~Uuid();
 
          void nullify();
          bool isNull() const;
@@ -51,56 +60,37 @@ namespace gvt {
          String toString() const;
 
 //         bool operator==(const Uuid&) const;
-//         bool operator!=(const Uuid&) const;
+          bool operator==(const Uuid& u) const
+           {
+             return uuid == u.uuid;
+           }
+         //bool operator!=(const Uuid&) const;
+         bool operator!=(const Uuid& u) const
+           {
+             return uuid != u.uuid;
+           }
+
 //         bool operator>(const Uuid&) const;
+         bool operator>(const Uuid& u) const
+            {
+              return uuid > u.uuid;
+            }
+
 //         bool operator<(const Uuid&) const;
-//
+         bool operator<(const Uuid& u) const
+            {
+              return uuid < u.uuid;
+            }
 
-          void nullify()
-          {
-            uuid = boost::uuids::nil_uuid();
-          }
-
-          bool isNull() const
-          {
-            return uuid == boost::uuids::nil_uuid();
-          }
-
-          String toString() const
-          {
-            return boost::uuids::to_string(uuid);
-          }
-
-          bool Uuid operator==(const Uuid& u) const
-          {
-            return uuid == u.uuid;
-          }
-
-          bool Uuid operator!=(const Uuid& u) const
-          {
-            return uuid != u.uuid;
-          }
-
-          bool Uuid operator>(const Uuid& u) const
-          {
-            return uuid > u.uuid;
-          }
-
-          bool Uuid operator<(const Uuid& u) const
-          {
-            return uuid < u.uuid;
-          }
-
-
-      private:
-
-         static const boost::uuids::random_generator gen;
 
          friend std::ostream& operator<<(std::ostream&, const Uuid&);
          static Uuid null();
 
       protected:
          boost::uuids::uuid uuid;
+
+//      private:
+//        static const boost::uuids::random_generator gen;
       };
    }
 }
