@@ -23,6 +23,9 @@
    ======================================================================================= */
 
 #include <gvt/core/Uuid.h>
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
 
 using namespace gvt::core;
 
@@ -35,7 +38,13 @@ Uuid Uuid::null()
 
 Uuid::Uuid()
 {
+#ifdef __USE_TAU
+	TAU_START("UUid.cpp::boost::uuids::uuid(boost::uuids::random_generator()())");
+#endif
 	uuid = boost::uuids::uuid(boost::uuids::random_generator()());
+#ifdef __USE_TAU
+	TAU_START("UUid.cpp::boost::uuids::uuid(boost::uuids::random_generator()())");
+#endif
 }
 
 Uuid::~Uuid()

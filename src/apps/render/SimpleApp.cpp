@@ -82,9 +82,9 @@ void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char** argv) {
 
-#ifdef __USE_TAU
-	TAU_START("gvtSimple::main");
-#endif
+//#ifdef __USE_TAU
+//	TAU_START("gvtSimple::main");
+//#endif
 
 	MPI_Init(&argc, &argv);
 	MPI_Pcontrol(0);
@@ -401,7 +401,7 @@ void test_bvh(gvtPerspectiveCamera &mycamera) {
 #endif
 
     cout << "--------------\n\n" << endl;
-#ifdef __USE_TAU
-	TAU_STOP("gvtSimple::main");
-#endif
+//#ifdef __USE_TAU
+//	TAU_STOP("gvtSimple::main");
+//#endif
 }
