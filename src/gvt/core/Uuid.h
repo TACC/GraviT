@@ -41,18 +41,15 @@ namespace gvt {
       class Uuid
       {
       public:
-//        Uuid()
-//          {
+        Uuid()
+	:uuid( gen())
+          {
 //            //uuid = boost::uuids::uuid(boost::uuids::random_generator()());
-//            uuid = gen();
-//          }
+          }
 //        ~Uuid()
 //          {
 //
 //          }
-
-         Uuid();
-         ~Uuid();
 
 //         void nullify();
 //         bool isNull() const;
@@ -101,8 +98,8 @@ namespace gvt {
       protected:
          boost::uuids::uuid uuid;
 
-//      private:
-//        static const boost::uuids::random_generator gen;
+      private:
+        static boost::uuids::random_generator gen;
       };
    }
 }

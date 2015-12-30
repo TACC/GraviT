@@ -29,6 +29,9 @@
 
 using namespace gvt::core;
 
+  boost::uuids::random_generator Uuid::gen ;
+
+
 Uuid Uuid::null()
 {
    Uuid u;
@@ -36,7 +39,7 @@ Uuid Uuid::null()
    return u;
 }
 
-Uuid::Uuid()
+/*Uuid::Uuid()
 {
 #ifdef __USE_TAU
 	TAU_START("UUid.cpp::boost::uuids::uuid(boost::uuids::random_generator()())");
@@ -45,12 +48,12 @@ Uuid::Uuid()
 #ifdef __USE_TAU
 	TAU_START("UUid.cpp::boost::uuids::uuid(boost::uuids::random_generator()())");
 #endif
-}
+}*/
 
-Uuid::~Uuid()
+/*Uuid::~Uuid()
 {
 
-}
+}*/
 
 //void Uuid::nullify()
 //{
