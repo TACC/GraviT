@@ -31,64 +31,12 @@ using namespace gvt::core;
 
   boost::uuids::random_generator Uuid::gen ;
 
-
 Uuid Uuid::null()
 {
    Uuid u;
    u.nullify();
    return u;
 }
-
-/*Uuid::Uuid()
-{
-#ifdef __USE_TAU
-	TAU_START("UUid.cpp::boost::uuids::uuid(boost::uuids::random_generator()())");
-#endif
-	uuid = boost::uuids::uuid(boost::uuids::random_generator()());
-#ifdef __USE_TAU
-	TAU_START("UUid.cpp::boost::uuids::uuid(boost::uuids::random_generator()())");
-#endif
-}*/
-
-/*Uuid::~Uuid()
-{
-
-}*/
-
-//void Uuid::nullify()
-//{
-//	uuid = boost::uuids::nil_uuid();
-//}
-//
-//bool Uuid::isNull() const
-//{
-//	return uuid == boost::uuids::nil_uuid();
-//}
-//
-//String Uuid::toString() const
-//{
-//	return boost::uuids::to_string(uuid);
-//}
-
-//bool Uuid::operator==(const Uuid& u) const
-//{
-//	return uuid == u.uuid;
-//}
-
-//bool Uuid::operator!=(const Uuid& u) const
-//{
-//	return uuid != u.uuid;
-//}
-
-//bool Uuid::operator>(const Uuid& u) const
-//{
-//	return uuid > u.uuid;
-//}
-
-//bool Uuid::operator<(const Uuid& u) const
-//{
-//	return uuid < u.uuid;
-//}
 
 namespace gvt {
 	namespace core {

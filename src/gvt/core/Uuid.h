@@ -42,19 +42,10 @@ namespace gvt {
       {
       public:
         Uuid()
-	:uuid( gen())
-          {
-//            //uuid = boost::uuids::uuid(boost::uuids::random_generator()());
-          }
-//        ~Uuid()
-//          {
-//
-//          }
+	        :uuid( gen())
+            {
+            }
 
-//         void nullify();
-//         bool isNull() const;
-//
-//         String toString() const;
 
          void nullify()
             {
@@ -103,7 +94,4 @@ namespace gvt {
       };
    }
 }
-
-// std::ostream& operator<<(std::ostream&, const gvt::core::Uuid&);
-
 #endif // GVT_CORE_UUID_H
