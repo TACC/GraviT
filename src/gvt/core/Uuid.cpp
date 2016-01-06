@@ -23,9 +23,6 @@
    ======================================================================================= */
 
 #include <gvt/core/Uuid.h>
-#ifdef __USE_TAU
-#include <TAU.h>
-#endif
 
 using namespace gvt::core;
 
