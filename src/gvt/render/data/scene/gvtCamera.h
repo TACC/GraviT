@@ -3,12 +3,10 @@
    tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
    If your copy does not contain the License, you may obtain a copy of the
@@ -16,13 +14,10 @@
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
    GraviT is funded in part by the US National Science Foundation under awards
@@ -100,8 +95,7 @@ public:
    *  camera coordinate system with unit vectors, u, v, and w is constructed.
    * From this the camera
    *  to world transformation and its inverse are constructed. */
-  void lookAt(gvt::core::math::Point4f eye, gvt::core::math::Point4f focus,
-              gvt::core::math::Vector4f up);
+  void lookAt(gvt::core::math::Point4f eye, gvt::core::math::Point4f focus, gvt::core::math::Vector4f up);
 
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
@@ -111,21 +105,20 @@ public:
 
 protected:
   gvt::core::math::AffineTransformMatrix<float> cam2wrld; //!< transform from
-                                                          //!camera to world
-                                                          //!coords
+  //! camera to world
+  //! coords
   gvt::core::math::AffineTransformMatrix<float> wrld2cam; //!< transform from
-                                                          //!world to camera
-                                                          //!coords
-  gvt::core::math::Point4f eye_point; //!< camera location in world coordinates
-  gvt::core::math::Point4f focal_point;     //!< camera focal point in world
-                                            //!coordinates
+  //! world to camera
+  //! coords
+  gvt::core::math::Point4f eye_point;   //!< camera location in world coordinates
+  gvt::core::math::Point4f focal_point; //!< camera focal point in world
+  //! coordinates
   gvt::core::math::Vector4f up_vector;      //!< vector pointing "up".
   gvt::core::math::Vector4f view_direction; //!< direction camera is looking.
-                                            //!generally focal - eye pt.
-  int filmsize[2]; //!< image size dimensions in pixels. filmsize[0] = width.
-  int depth; //!< legacy variable from previous cameras. Initializes ray depth
-  gvt::core::math::Vector4f u, v,
-      w; //!< unit basis vectors for camera space in world coords.
+  //! generally focal - eye pt.
+  int filmsize[2];                   //!< image size dimensions in pixels. filmsize[0] = width.
+  int depth;                         //!< legacy variable from previous cameras. Initializes ray depth
+  gvt::core::math::Vector4f u, v, w; //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
   //
   void buildTransform(); //!< Build the transformation matrix and inverse
@@ -155,7 +148,7 @@ public:
 
 protected:
   float field_of_view; //!< Angle subtended by the film plane height from
-                       //!eye_point
+  //! eye_point
 };
 
 } // scene

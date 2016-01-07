@@ -3,12 +3,10 @@
    tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
    If your copy does not contain the License, you may obtain a copy of the
@@ -16,13 +14,10 @@
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
    GraviT is funded in part by the US National Science Foundation under awards
@@ -78,10 +73,8 @@ subsequent processing steps, increasing data loads
 */
 struct LoadManySchedule : public HybridScheduleBase {
 
-  LoadManySchedule(int *newMap, int &size, int *map_size_buf,
-                   int **map_recv_bufs, int *data_send_buf)
-      : HybridScheduleBase(newMap, size, map_size_buf, map_recv_bufs,
-                           data_send_buf) {}
+  LoadManySchedule(int *newMap, int &size, int *map_size_buf, int **map_recv_bufs, int *data_send_buf)
+      : HybridScheduleBase(newMap, size, map_size_buf, map_recv_bufs, data_send_buf) {}
 
   virtual ~LoadManySchedule() {}
 
@@ -100,23 +93,20 @@ struct LoadManySchedule : public HybridScheduleBase {
         // we want to reset the map to only one proc per domain unless pending
         // rays demand more
         data2proc[map_recv_bufs[s][0]] = data2proc[map_recv_bufs[s][0]] + s;
-        GVT_DEBUG(DBG_LOW, "    noting currently " << s << " -> "
-                                                   << map_recv_bufs[s][0]);
+        GVT_DEBUG(DBG_LOW, "    noting currently " << s << " -> " << map_recv_bufs[s][0]);
 
         // add ray counts
         for (int d = 1; d < map_size_buf[s]; d += 2) {
           data2size[map_recv_bufs[s][d]] += map_recv_bufs[s][d + 1];
-          GVT_DEBUG(DBG_LOW, "        "
-                                 << s << " has " << map_recv_bufs[s][d + 1]
-                                 << " rays for data " << map_recv_bufs[s][d]);
+          GVT_DEBUG(DBG_LOW, "        " << s << " has " << map_recv_bufs[s][d + 1] << " rays for data "
+                                        << map_recv_bufs[s][d]);
         }
       }
     }
 
     // convert data2size into size2data,
     // use data id to pseudo-uniqueify, since only need ordering
-    for (std::map<int, int>::iterator it = data2size.begin();
-         it != data2size.end(); ++it) {
+    for (std::map<int, int>::iterator it = data2size.begin(); it != data2size.end(); ++it) {
       size2data[(it->second << 7) + it->first] = it->first;
     }
 
@@ -126,19 +116,15 @@ struct LoadManySchedule : public HybridScheduleBase {
     // list
     std::vector<int> bloated;
     std::list<int> floaters;
-    for (std::map<int, int>::iterator s2dit = size2data.begin();
-         s2dit != size2data.end(); ++s2dit) {
+    for (std::map<int, int>::iterator s2dit = size2data.begin(); s2dit != size2data.end(); ++s2dit) {
       std::map<int, int>::iterator d2pit = data2proc.find(s2dit->second);
       if (d2pit != data2proc.end()) {
         newMap[d2pit->second] = d2pit->first;
-        GVT_DEBUG(DBG_LOW, "    adding " << d2pit->second << " -> "
-                                         << d2pit->first << " to map");
+        GVT_DEBUG(DBG_LOW, "    adding " << d2pit->second << " -> " << d2pit->first << " to map");
       }
 
       bloated.push_back(s2dit->second);
-      GVT_DEBUG(DBG_LOW, "    noting domain " << s2dit->second
-                                              << " is bloated with size "
-                                              << s2dit->first);
+      GVT_DEBUG(DBG_LOW, "    noting domain " << s2dit->second << " is bloated with size " << s2dit->first);
     }
 
 // iterate over newMap, fill as many procs as possible with data
@@ -187,10 +173,8 @@ struct LoadManySchedule : public HybridScheduleBase {
       }
     }
 
-    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "new map size is " << size
-                                      << std::endl;
-                   for (int i = 0; i < size; ++i) std::cerr
-                   << "    " << i << " -> " << newMap[i] << std::endl;);
+    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "new map size is " << size << std::endl;
+                   for (int i = 0; i < size; ++i) std::cerr << "    " << i << " -> " << newMap[i] << std::endl;);
   }
 };
 }

@@ -210,8 +210,7 @@ int main(int argc, char *argv[]) {
   rta.schedule = gvt::render::Attributes::Image;
   rta.render_type = gvt::render::Attributes::Manta;
 
-  Image image(scene->camera.getFilmSizeWidth(),
-              scene->camera.getFilmSizeHeight(), "spoot");
+  Image image(scene->camera.getFilmSizeWidth(), scene->camera.getFilmSizeHeight(), "spoot");
   imageptr = &image;
   imagebuffer = image.GetBuffer();
   width = rta.view.width;

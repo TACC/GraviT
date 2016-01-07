@@ -78,10 +78,10 @@ public:
   * but are not limited to
   * Manta, Optix, and Embree.
   */
-  int domain_type = 0; /* default Manta domain */
-  /**  data member that indicates the type of scheduler to use. The default
-   * scheduler is the Image scheduler
-  */
+  int domain_type = 0;    /* default Manta domain */
+                          /**  data member that indicates the type of scheduler to use. The default
+                           * scheduler is the Image scheduler
+                          */
   int scheduler_type = 0; /* default Image scheduler */
   /**  data member that indicates the type of acceleration structure to use. The
   default scheduler is without acceleration.

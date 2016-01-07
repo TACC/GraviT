@@ -3,12 +3,10 @@
    tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
    If your copy does not contain the License, you may obtain a copy of the
@@ -16,13 +14,10 @@
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
    GraviT is funded in part by the US National Science Foundation under awards
@@ -54,8 +49,7 @@ namespace render {
 namespace data {
 namespace domain {
 namespace reader {
-std::vector<std::string> split(const std::string &s, char delim,
-                               std::vector<std::string> &elems) {
+std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
   std::stringstream ss(s);
   std::string item;
   while (std::getline(ss, item, delim)) {
@@ -70,7 +64,7 @@ std::vector<std::string> split(const std::string &s, char delim,
 }
 }
 } // namespace reader} namespace domain} namespace data} namespace render}
-  // namespace gvt}
+// namespace gvt}
 
 ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
 
@@ -115,26 +109,23 @@ void ObjReader::parseVertex(std::string line) {
   std::vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing vertex");
-  objMesh->addVertex(Point4f(std::atof(elems[1].c_str()),
-                             std::atof(elems[2].c_str()),
-                             std::atof(elems[3].c_str()), 1.0f));
+  objMesh->addVertex(
+      Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
 }
 
 void ObjReader::parseVertexNormal(std::string line) {
   std::vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing vertex normal");
-  objMesh->addNormal(Vector4f(std::atof(elems[1].c_str()),
-                              std::atof(elems[2].c_str()),
-                              std::atof(elems[3].c_str()), 1.0f));
+  objMesh->addNormal(
+      Vector4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
 }
 
 void ObjReader::parseVertexTexture(std::string line) {
   std::vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 3, "Error parsing texture map");
-  objMesh->addTexUV(
-      Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), 0, 0));
+  objMesh->addTexUV(Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), 0, 0));
 }
 
 void ObjReader::parseFace(std::string line) {

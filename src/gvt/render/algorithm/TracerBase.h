@@ -3,12 +3,10 @@
    tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
    If your copy does not contain the License, you may obtain a copy of the
@@ -16,13 +14,10 @@
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
    GraviT is funded in part by the US National Science Foundation under awards
@@ -116,16 +111,14 @@ public:
   float sample_ratio;
 
   tbb::mutex raymutex;
-  tbb::mutex *queue_mutex; // array of mutexes - one per instance
+  tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
-  tbb::mutex *colorBuf_mutex; ///< buffer for color accumulation
+  tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
   GVT_COLOR_ACCUM *colorBuf;
 
-  AbstractTrace(gvt::render::actor::RayVector &rays,
-                gvt::render::data::scene::Image &image)
+  AbstractTrace(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image)
       : rays(rays), image(image) {
-    GVT_DEBUG(DBG_ALWAYS,
-              "initializing abstract trace: num rays: " << rays.size());
+    GVT_DEBUG(DBG_ALWAYS, "initializing abstract trace: num rays: " << rays.size());
     colorBuf = new GVT_COLOR_ACCUM[width * height];
 
     // TODO: alim: this queue is on the number of domains in the dataset
@@ -273,103 +266,92 @@ public:
    * Given a queue of rays, intersects them against the accel structure
    * to find out what instance they will hit next
    */
-  virtual void shuffleRays(gvt::render::actor::RayVector &rays,
-                           gvt::core::DBNodeH instNode) {
+  virtual void shuffleRays(gvt::render::actor::RayVector &rays, gvt::core::DBNodeH instNode) {
 
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank
-                              << "] Shuffle: rays: " << rays.size());
+    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     const size_t raycount = rays.size();
-    const int domID =
-        (instNode) ? gvt::core::variant_toInteger(instNode["id"].value()) : -1;
+    const int domID = (instNode) ? gvt::core::variant_toInteger(instNode["id"].value()) : -1;
     const gvt::render::data::primitives::Box3D domBB =
-        (instNode) ? *gvt::core::variant_toBox3DPtr(instNode["bbox"].value())
-                   : gvt::render::data::primitives::Box3D();
+        (instNode) ? *gvt::core::variant_toBox3DPtr(instNode["bbox"].value()) : gvt::render::data::primitives::Box3D();
 
     // tbb::parallel_for(size_t(0), size_t(rays.size()),
     //      [&] (size_t index) {
 
-    tbb::parallel_for(
-        tbb::blocked_range<gvt::render::actor::RayVector::iterator>(
-            rays.begin(), rays.end()),
-        [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator>
-                raysit) {
-          //        gvt::render::actor::Ray &r = rays[index];
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
+                      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+                        //        gvt::render::actor::Ray &r = rays[index];
 
-          std::map<int, gvt::render::actor::RayVector> local_queue;
+                        std::map<int, gvt::render::actor::RayVector> local_queue;
 
-          for (gvt::render::actor::Ray &r : raysit) {
-            if (domID != -1) {
-              float t = FLT_MAX;
-              if (r.domains.empty() && domBB.intersectDistance(r, t)) {
-                r.origin += r.direction * t;
-              }
-            }
+                        for (gvt::render::actor::Ray &r : raysit) {
+                          if (domID != -1) {
+                            float t = FLT_MAX;
+                            if (r.domains.empty() && domBB.intersectDistance(r, t)) {
+                              r.origin += r.direction * t;
+                            }
+                          }
 
-            if (r.domains.empty()) {
-              acceleration->intersect(r, r.domains);
-              boost::sort(r.domains);
-            }
+                          if (r.domains.empty()) {
+                            acceleration->intersect(r, r.domains);
+                            boost::sort(r.domains);
+                          }
 
-            if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
-              r.domains.erase(r.domains.begin());
-            }
+                          if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
+                            r.domains.erase(r.domains.begin());
+                          }
 
-            if (!r.domains.empty()) {
+                          if (!r.domains.empty()) {
 
-              int firstDomainOnList = (*r.domains.begin());
-              r.domains.erase(r.domains.begin());
-              // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
-              local_queue[firstDomainOnList].push_back(r);
+                            int firstDomainOnList = (*r.domains.begin());
+                            r.domains.erase(r.domains.begin());
+                            // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
+                            local_queue[firstDomainOnList].push_back(r);
 
-            } else if (instNode) {
+                          } else if (instNode) {
 
-              tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-              for (int i = 0; i < 3; i++)
-                colorBuf[r.id].rgba[i] += r.color.rgba[i];
-              colorBuf[r.id].rgba[3] = 1.f;
-              colorBuf[r.id].clamp();
-            }
-          }
+                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                            for (int i = 0; i < 3; i++)
+                              colorBuf[r.id].rgba[i] += r.color.rgba[i];
+                            colorBuf[r.id].rgba[3] = 1.f;
+                            colorBuf[r.id].clamp();
+                          }
+                        }
 
-          std::vector<int> _doms;
-          std::transform(
-              local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
-              [](const std::map<int, gvt::render::actor::RayVector>::value_type
-                     &pair) { return pair.first; });
+                        std::vector<int> _doms;
+                        std::transform(local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
+                                       [](const std::map<int, gvt::render::actor::RayVector>::value_type &pair) {
+                                         return pair.first;
+                                       });
 
-          while(!_doms.empty()) {
+                        while (!_doms.empty()) {
 
-              int dom = _doms.front();
-              _doms.erase(_doms.begin());
-              if(queue_mutex[dom].try_lock()) {
-                queue[dom].insert(queue[dom].end(),
-                              std::make_move_iterator(local_queue[dom].begin()),
-                              std::make_move_iterator(local_queue[dom].end()));
-                queue_mutex[dom].unlock();
-              } else {
-                _doms.push_back(dom);
-              }
+                          int dom = _doms.front();
+                          _doms.erase(_doms.begin());
+                          if (queue_mutex[dom].try_lock()) {
+                            queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
+                                              std::make_move_iterator(local_queue[dom].end()));
+                            queue_mutex[dom].unlock();
+                          } else {
+                            _doms.push_back(dom);
+                          }
+                        }
 
+                        // for (auto &q : local_queue) {
+                        //   const int dom = q.first;
+                        //   const size_t size = q.second.size();
+                        //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
+                        //   // queue[dom].reserve(queue[dom].size() + size);
+                        //   queue[dom].insert(queue[dom].end(),
+                        //                     std::make_move_iterator(q.second.begin()),
+                        //                     std::make_move_iterator(q.second.end()));
 
-          }
+                        //   // std::move(q.second.begin(), q.second.end(),
+                        //   // std::back_inserter(queue[dom]));
+                        // }
 
-
-          // for (auto &q : local_queue) {
-          //   const int dom = q.first;
-          //   const size_t size = q.second.size();
-          //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-          //   // queue[dom].reserve(queue[dom].size() + size);
-          //   queue[dom].insert(queue[dom].end(),
-          //                     std::make_move_iterator(q.second.begin()),
-          //                     std::make_move_iterator(q.second.end()));
-
-          //   // std::move(q.second.begin(), q.second.end(),
-          //   // std::back_inserter(queue[dom]));
-          // }
-
-        });
+                      });
     rays.clear();
   }
 
@@ -380,11 +362,10 @@ public:
 
     int nchunks = std::thread::hardware_concurrency() * 2;
     int chunk_size = size / nchunks;
-    std::vector<std::pair<int, int>> chunks;
-    std::vector<std::future<void>> futures;
+    std::vector<std::pair<int, int> > chunks;
+    std::vector<std::future<void> > futures;
     for (int ii = 0; ii < nchunks - 1; ii++) {
-      chunks.push_back(
-          std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
+      chunks.push_back(std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
     }
     int ii = nchunks - 1;
     chunks.push_back(std::make_pair(ii * chunk_size, size));
@@ -416,20 +397,17 @@ public:
 
     int rgb_buf_size = 3 * size;
 
-    unsigned char *bufs =
-        mpi.root() ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
+    unsigned char *bufs = mpi.root() ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
 
     // MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size,
-               MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
     if (mpi.root()) {
       int nchunks = std::thread::hardware_concurrency() * 2;
       int chunk_size = size / nchunks;
-      std::vector<std::pair<int, int>> chunks(nchunks);
-      std::vector<std::future<void>> futures;
+      std::vector<std::pair<int, int> > chunks(nchunks);
+      std::vector<std::future<void> > futures;
       for (int ii = 0; ii < nchunks - 1; ii++) {
-        chunks.push_back(
-            std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
+        chunks.push_back(std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
       }
       int ii = nchunks - 1;
       chunks.push_back(std::make_pair(ii * chunk_size, size));
@@ -470,9 +448,7 @@ public:
  */
 template <class BSCHEDULER> class Tracer : public AbstractTrace {
 public:
-  Tracer(gvt::render::actor::RayVector &rays,
-         gvt::render::data::scene::Image &image)
-      : AbstractTrace(rays, image) {}
+  Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {}
 
   virtual ~Tracer() {}
 };
@@ -491,11 +467,9 @@ public:
  *
  */
 template <template <typename> class BSCHEDULER, class ISCHEDULER>
-class Tracer<BSCHEDULER<ISCHEDULER>> : public AbstractTrace {
+class Tracer<BSCHEDULER<ISCHEDULER> > : public AbstractTrace {
 public:
-  Tracer(gvt::render::actor::RayVector &rays,
-         gvt::render::data::scene::Image &image)
-      : AbstractTrace(rays, image) {}
+  Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {}
 
   virtual ~Tracer() {}
 };

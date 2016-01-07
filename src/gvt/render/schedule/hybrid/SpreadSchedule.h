@@ -3,12 +3,10 @@
    tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
    If your copy does not contain the License, you may obtain a copy of the
@@ -16,13 +14,10 @@
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
    GraviT is funded in part by the US National Science Foundation under awards
@@ -64,10 +59,8 @@ it, incurring excess ray sends
     */
 struct SpreadSchedule : public HybridScheduleBase {
 
-  SpreadSchedule(int *newMap, int &size, int *map_size_buf, int **map_recv_bufs,
-                 int *data_send_buf)
-      : HybridScheduleBase(newMap, size, map_size_buf, map_recv_bufs,
-                           data_send_buf) {}
+  SpreadSchedule(int *newMap, int &size, int *map_size_buf, int **map_recv_bufs, int *data_send_buf)
+      : HybridScheduleBase(newMap, size, map_size_buf, map_recv_bufs, data_send_buf) {}
 
   virtual ~SpreadSchedule() {}
 
@@ -83,8 +76,7 @@ struct SpreadSchedule : public HybridScheduleBase {
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
         // add currently loaded data
-        data2proc[map_recv_bufs[s][0]] =
-            s; // this will evict previous entries, that's okay (I think)
+        data2proc[map_recv_bufs[s][0]] = s; // this will evict previous entries, that's okay (I think)
         GVT_DEBUG(DBG_LOW, "    noting " << map_recv_bufs[s][0] << " -> " << s);
 
         // add queued data
@@ -99,8 +91,7 @@ struct SpreadSchedule : public HybridScheduleBase {
       std::map<int, int>::iterator it = data2proc.find(queued[i]);
       if (it != data2proc.end()) {
         newMap[it->second] = it->first;
-        GVT_DEBUG(DBG_LOW, "    adding " << it->second << " -> " << it->first
-                                         << " to map");
+        GVT_DEBUG(DBG_LOW, "    adding " << it->second << " -> " << it->first << " to map");
       } else {
         homeless.push_back(queued[i]);
         GVT_DEBUG(DBG_LOW, "    noting " << queued[i] << " is homeless");
@@ -111,8 +102,7 @@ struct SpreadSchedule : public HybridScheduleBase {
     // could be dupes in the homeless list, so keep track of what's added
     for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
       if (newMap[i] < 0) {
-        while (!homeless.empty() &&
-               data2proc.find(homeless.back()) != data2proc.end())
+        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end())
           homeless.pop_back();
         if (!homeless.empty()) {
           newMap[i] = homeless.back();
@@ -122,10 +112,8 @@ struct SpreadSchedule : public HybridScheduleBase {
       }
     }
 
-    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "new map size is " << size
-                                      << std::endl;
-                   for (int i = 0; i < size; ++i) std::cerr
-                   << "    " << i << " -> " << newMap[i] << std::endl;);
+    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "new map size is " << size << std::endl;
+                   for (int i = 0; i < size; ++i) std::cerr << "    " << i << " -> " << newMap[i] << std::endl;);
   }
 };
 }
