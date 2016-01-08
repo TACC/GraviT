@@ -792,7 +792,7 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
       std::max((size_t)1, (size_t)(rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
   GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: trace: instNode: "
-                            << gvt::core::uuid_toString(instNode.UUID()) << ", rays: " << rayList.size()
+                            << instNode.UUID().toString() << ", rays: " << rayList.size()
                             << ", workSize: " << workSize
                             << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
 

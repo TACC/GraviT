@@ -59,8 +59,8 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   // std::vector<int> instanceSetID;
 
   for (auto &node : this->instanceSet) {
-    instanceSetBB.push_back(gvt::core::variant_toBox3DPtr(node["bbox"].value()));
-    instanceSetID.push_back(gvt::core::variant_toInteger(node["id"].value()));
+    instanceSetBB.push_back((Box3D*)node["bbox"].value().toULongLong());
+    instanceSetID.push_back(node["id"].value().toInteger());
   }
 }
 
@@ -128,9 +128,9 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
   std::cout << "\n";
 #else
   for (int i = start; i < end; ++i) {
-    gvt::core::math::Point4f centroid = gvt::core::variant_toPoint4f(instanceSet[i]["centroid"].value());
+    gvt::core::math::Point4f centroid = instanceSet[i]["centroid"].value().toPoint4f();
     bool lessThan = (centroid[splitAxis] < splitPoint);
-    int id = gvt::core::variant_toInteger(instanceSet[i]["id"].value());
+    int id = instanceSet[i]["id"].value().toInteger();
     std::cout << "[Lvl" << level << "][SP:" << splitPoint << "][" << i << "][id:" << id
               << "][centroid: " << centroid[splitAxis] << "][isLess: " << lessThan << "]\t";
   }

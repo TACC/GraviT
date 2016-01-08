@@ -73,20 +73,20 @@ void Database::removeItem(Uuid uuid) {
     }
     children = &__tree[cnode->parentUUID()];
     GVT_DEBUG_CODE(DBG_LOW, for (it = children->begin(); it != children->end(); it++) std::cerr
-                                << "tree item: " << uuid_toString((*it)->UUID()) << std::endl;);
+                                << "tree item: " << (*it)->UUID().toString() << std::endl;);
     for (it = children->begin(); it != children->end(); ++it) {
       if ((*it)->UUID() == uuid)
         break;
     }
     Uuid puid = cnode->parentUUID();
     GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " "
-                                                                 << uuid_toString((*it)->UUID()));
+                                                                 << (*it)->UUID().toString());
     if (it != children->end())
       children->erase(it);
     __nodes.erase(uuid);
     delete cnode;
   } else {
-    GVT_DEBUG(DBG_MODERATE, "ERROR: Could not find item to remove from database : " << uuid_toString(uuid));
+    GVT_DEBUG(DBG_MODERATE, "ERROR: Could not find item to remove from database : " << uuid.toString());
   }
 }
 
@@ -103,7 +103,7 @@ void Database::print(const Uuid &parent, const int depth, std::ostream &os) {
 
   DatabaseNode *pnode = this->getItem(parent);
   if (!pnode) {
-    GVT_DEBUG(DBG_MODERATE, "Database::print - node not found: " << uuid_toString(parent));
+    GVT_DEBUG(DBG_MODERATE, "Database::print - node not found: " << parent.toString());
     return;
   }
   std::string offset = "";
@@ -121,7 +121,7 @@ void Database::print(const Uuid &parent, const int depth, std::ostream &os) {
 void Database::printTree(const Uuid &parent, const int depth, std::ostream &os) {
   DatabaseNode *pnode = this->getItem(parent);
   if (!pnode) {
-    GVT_DEBUG(DBG_ALWAYS, "Database::printTree - node not found: " << uuid_toString(parent));
+    GVT_DEBUG(DBG_ALWAYS, "Database::printTree - node not found: " << parent.toString());
     return;
   }
   std::string offset = "";

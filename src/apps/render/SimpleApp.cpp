@@ -109,12 +109,7 @@ int main(int argc, char **argv) {
 
   // mix of cones and cubes
 
-<<<<<<< HEAD
   // TODO: maybe rename to 'Data' - as it can store different types of data [mesh, volume, lines]
-=======
-  // TODO: maybe rename to 'Data' - as it can store different types of data
-  // [mesh, volume, lines]
->>>>>>> dev
   gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
 
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
@@ -152,17 +147,11 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
     // add cone mesh to the database
-<<<<<<< HEAD
     gvt::core::Variant meshvariant(mesh);
     std::cout << "meshvariant " << meshvariant << std::endl;
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
-=======
-    coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = meshbbox;
-    coneMeshNode["ptr"] = mesh;
->>>>>>> dev
   }
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
@@ -209,13 +198,8 @@ int main(int argc, char **argv) {
 
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
-<<<<<<< HEAD
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
     cubeMeshNode["ptr"] = (unsigned long long)mesh;
-=======
-    cubeMeshNode["bbox"] = meshbbox;
-    cubeMeshNode["ptr"] = mesh;
->>>>>>> dev
   }
 
   gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
@@ -227,16 +211,9 @@ int main(int argc, char **argv) {
   for (int i = ii[0]; i < ii[1]; i++) {
     for (int j = jj[0]; j < jj[1]; j++) {
       gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-<<<<<<< HEAD
       // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
       gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
       Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-=======
-      // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode :
-      // cubeMeshNode;
-      gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
-      Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
->>>>>>> dev
 
       instnode["id"] = instId++;
       instnode["meshRef"] = meshNode.UUID();
@@ -246,28 +223,16 @@ int main(int argc, char **argv) {
       auto normi = new gvt::core::math::Matrix3f();
       *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, i * 0.5, j * 0.5);
       *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(0.4, 0.4, 0.4);
-<<<<<<< HEAD
       instnode["mat"] = (unsigned long long)m;
       *minv = m->inverse();
       instnode["matInv"] = (unsigned long long)minv;
       *normi = m->upper33().inverse().transpose();
       instnode["normi"] = (unsigned long long)normi;
-=======
-      instnode["mat"] = m;
-      *minv = m->inverse();
-      instnode["matInv"] = minv;
-      *normi = m->upper33().inverse().transpose();
-      instnode["normi"] = normi;
->>>>>>> dev
 
       auto il = (*m) * mbox->bounds[0];
       auto ih = (*m) * mbox->bounds[1];
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-<<<<<<< HEAD
       instnode["bbox"] = (unsigned long long)ibox;
-=======
-      instnode["bbox"] = ibox;
->>>>>>> dev
       instnode["centroid"] = ibox->centroid();
     }
   }
@@ -279,12 +244,7 @@ int main(int argc, char **argv) {
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
   // second light just for fun
-<<<<<<< HEAD
   // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-=======
-  // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight",
-  // "conelight", lightNodes.UUID());
->>>>>>> dev
   // lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
   // lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
 
@@ -300,13 +260,8 @@ int main(int argc, char **argv) {
 
   // TODO: schedule db design could be modified a bit
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "conesched", root.UUID());
-<<<<<<< HEAD
-  // schedNode["type"] = gvt::render::scheduler::Image;
-  schedNode["type"] = gvt::render::scheduler::Domain;
-=======
   schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
->>>>>>> dev
+  //schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -314,7 +269,6 @@ int main(int argc, char **argv) {
   int adapterType = gvt::render::adapter::Manta;
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
-<<<<<<< HEAD
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
@@ -324,22 +278,11 @@ int main(int argc, char **argv) {
   // end db setup
 
   cntxt->database()->printTree(root.UUID(), 10, std::cout);
-=======
-#else
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
-#endif
-
-  schedNode["adapter"] = gvt::render::adapter::Embree;
-  // schedNode["adapter"] = gvt::render::adapter::Heterogeneous;
-
-  // end db setup
->>>>>>> dev
 
   // use db to create structs needed by system
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-<<<<<<< HEAD
   Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
   Point4f focus = camNode["focus"].value().toPoint4f();
   float fov = camNode["fov"].value().toFloat();
@@ -347,16 +290,6 @@ int main(int argc, char **argv) {
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
-=======
-  Point4f cameraposition = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-  float fov = gvt::core::variant_toFloat(camNode["fov"].value());
-  Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
-  mycamera.lookAt(cameraposition, focus, up);
-  mycamera.setFOV(fov);
-  mycamera.setFilmsize(gvt::core::variant_toInteger(filmNode["width"].value()),
-                       gvt::core::variant_toInteger(filmNode["height"].value()));
->>>>>>> dev
 
 #ifdef GVT_USE_MPE
   MPE_Log_event(readend, 0, NULL);
@@ -367,11 +300,7 @@ int main(int argc, char **argv) {
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
 
-<<<<<<< HEAD
   int schedType = root["Schedule"]["type"].value().toInteger();
-=======
-  int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
->>>>>>> dev
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;

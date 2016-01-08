@@ -644,7 +644,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
 
   // GVT_DEBUG(DBG_ALWAYS,
   //           "EmbreeMeshAdapter: trace: instNode: "
-  //               << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
+  //               << instNode.UUID().toString() << ", rays: "
   //               << end << ", workSize: " << workSize << ", threads: "
   //               << std::thread::hardware_concurrency());
 

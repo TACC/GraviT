@@ -32,13 +32,13 @@ int main(int argc, char **argv) {
   Context &ctx = *Context::singleton();
   Database &db = *ctx.database();
 
-  GVT_DEBUG(DBG_ALWAYS, "Created database with root node uuid " << uuid_toString(ctx.getRootNode().UUID()));
+  GVT_DEBUG(DBG_ALWAYS, "Created database with root node uuid " << ctx.getRootNode().UUID().toString());
 
   DBNodeH session = ctx.createNodeFromType(String("Session"), ctx.getRootNode().UUID());
   DBNodeH renderable = ctx.createNodeFromType(String("Renderable3DGrid"), ctx.getRootNode().UUID());
 
-  GVT_DEBUG(DBG_ALWAYS, "Created session with node uuid " << uuid_toString(session.UUID()));
-  GVT_DEBUG(DBG_ALWAYS, "Created renderable with node uuid " << uuid_toString(renderable.UUID()));
+  GVT_DEBUG(DBG_ALWAYS, "Created session with node uuid " << session.UUID().toString());
+  GVT_DEBUG(DBG_ALWAYS, "Created renderable with node uuid " << renderable.UUID().toString());
 
   session["foo"] = String("foo");
   renderable["bar"] = 5;

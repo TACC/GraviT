@@ -214,7 +214,7 @@ int main(int argc, char **argv) {
     // add instance
     gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
     gvt::core::DBNodeH meshNode = EnzoMeshNode;
-    Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+    Box3D *mbox = (Box3D*)meshNode["bbox"].value().toULongLong();
     instnode["id"] = k;
     instnode["meshRef"] = meshNode.UUID();
     auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
@@ -270,14 +270,14 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-  float fov = gvt::core::variant_toFloat(camNode["fov"].value());
-  Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+  float fov = camNode["fov"].value().toFloat();
+  Vector4f up = camNode["upVector"].value().toVector4f();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(gvt::core::variant_toInteger(filmNode["width"].value()),
-                       gvt::core::variant_toInteger(filmNode["height"].value()));
+  mycamera.setFilmsize(filmNode["width"].value().toInteger(),
+                       filmNode["height"].value().toInteger());
 
 #ifdef GVT_USE_MPE
   MPE_Log_event(readend, 0, NULL);
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
 
-  int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
+  int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;

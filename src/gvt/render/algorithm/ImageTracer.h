@@ -147,7 +147,7 @@ public:
         if (it != adapterCache.end()) {
           adapter = it->second;
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache["
-                                    << gvt::core::uuid_toString(meshNode.UUID()) << "], " << (void *)adapter);
+                                    << meshNode.UUID().toString() << "], " << (void *)adapter);
         }
         if (!adapter) {
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
