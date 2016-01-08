@@ -21,11 +21,12 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
+
 #ifndef GVT_RENDER_ADAPTER_EMBREE_WRAPPER_H
 #define GVT_RENDER_ADAPTER_EMBREE_WRAPPER_H
 
-#include <gvt/render/adapter/embree/data/Transforms.h>
-#include <gvt/render/adapter/embree/data/domain/EmbreeDomain.h>
+// #include <gvt/render/adapter/embree/data/Transforms.h>
+// #include <gvt/render/adapter/embree/data/domain/EmbreeDomain.h>
 #include <gvt/render/adapter/embree/data/EmbreeMeshAdapter.h>
 #include <gvt/render/data/Dataset.h>
 

@@ -42,10 +42,10 @@ namespace data {
 namespace domain {
 namespace reader {
 /// GVT ObjReader - file reader for files in Wavefront .obj format
-/** This class contains methods for parsing and reading files in .obj format. The data in the file consists of vertex
- * and face specifications
- * as well as normals, textures, and material specifications. The data is stored in a gvt Mesh object for processing by
- * the gvt software.
+/** This class contains methods for parsing and reading files in .obj format.
+ * The data in the file consists of vertex and face specifications
+ * as well as normals, textures, and material specifications. The data is stored
+ * in a gvt Mesh object for processing by the gvt software.
 *
 */
 class ObjReader {

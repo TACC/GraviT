@@ -155,10 +155,11 @@ void Box3D::expand(Point4f &v) {
 bool Box3D::intersectDistance(const Ray &ray, float &t) const {
 
   float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
-  float t2 = (bounds[1].x - ray.origin.x) * ray.inverseDirection.x;
+
   float t3 = (bounds[0].y - ray.origin.y) * ray.inverseDirection.y;
-  float t4 = (bounds[1].y - ray.origin.y) * ray.inverseDirection.y;
   float t5 = (bounds[0].z - ray.origin.z) * ray.inverseDirection.z;
+  float t2 = (bounds[1].x - ray.origin.x) * ray.inverseDirection.x;
+  float t4 = (bounds[1].y - ray.origin.y) * ray.inverseDirection.y;
   float t6 = (bounds[1].z - ray.origin.z) * ray.inverseDirection.z;
 
   float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));

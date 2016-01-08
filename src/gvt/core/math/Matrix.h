@@ -58,7 +58,6 @@ template <class T> class Matrix3;
 template <class T> class AffineTransformMatrix;
 
 //==========[ class Matrix3 ]=====================================================
-
 template <class T> class Matrix3 {
   //---[ Private Variable Declarations ]-----------------
 public:

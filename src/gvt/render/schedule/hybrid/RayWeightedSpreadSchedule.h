@@ -39,8 +39,9 @@ namespace schedule {
 namespace hybrid {
 /// hybrid schedule that distributes requested data across available processes, sorted by number of pending rays
 /** This schedule allocates requested domains that have high ray demand to availalbe processes,
- where a process is 'available' if none of its loaded data is currently requested by any ray. This takes the
- SpreadSchedule logic and sorts the homeless domains by number of pending rays before assigning to available processes.
+ where a process is 'available' if none of its loaded data is currently requested by any ray. 
+ This takes the SpreadSchedule logic and sorts the homeless domains by number of pending rays 
+ before assigning to available processes.
 
 This schedule has the following issues:
     - processes may remain idle if there are fewer requested domains than processes
@@ -66,8 +67,9 @@ struct RayWeightedSpreadSchedule : public HybridScheduleBase {
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
         // add currently loaded data
-        data2proc[map_recv_bufs[s][0]] =
-            s; // this will evict previous entries. that's okay since we don't want to dup data
+        data2proc[map_recv_bufs[s][0]] = s; // this will evict previous entries.
+                                            // that's okay since we don't want
+                                            // to dup data
         GVT_DEBUG(DBG_LOW, "    noting currently " << s << " -> " << map_recv_bufs[s][0]);
 
         // add ray counts

@@ -44,9 +44,10 @@ and loads multiple copies of that data in order to balance ray load across multi
 
 The current implementation is not particularly successful at this. Issues include:
     - data loads typically occur at remote processes, incurring data send costs
-    - demand detection algorith needs improvement, particularly ray demand threshold over which additional data is
-loaded
-    - eviction logic could be improved: at present the algorithm prefers to keep loaded data if even one ray needs it
+    - demand detection algorith needs improvement, particularly ray demand threshold over 
+    which additional data isloaded
+    - eviction logic could be improved: at present the algorithm prefers to keep loaded data 
+    if even one ray needs it
 */
 struct AdaptiveSendSchedule : public HybridScheduleBase {
 
@@ -100,8 +101,9 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
           for (int i = 0; i < pdit->second; ++i) {
             GVT_DEBUG(DBG_LOW, "            adding " << cur_data2procs[pdit->first][i] << " to zero-priority pool at "
                                                      << i);
-            zero_priority[i].push_back(
-                cur_data2procs[pdit->first][i]); // push proc id onto stack, let map sort into use-first order
+            zero_priority[i].push_back(cur_data2procs[pdit->first][i]); // push proc id onto stack, let
+                                                                        // map sort into use-first
+                                                                        // order
           }
           avail += pdit->second;
           GVT_DEBUG(DBG_LOW, "        adding " << pdit->second << " zero-priority procs to available pool, is now "

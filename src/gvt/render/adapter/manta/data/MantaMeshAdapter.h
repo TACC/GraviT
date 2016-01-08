@@ -107,8 +107,9 @@ public:
    * \param instNode instance db node containing dataRef and transforms
    */
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode);
-  // void trace(gvt::render::actor::RayVector& rayList, gvt::render::actor::RayVector& moved_rays);
+                     gvt::core::DBNodeH instNode, size_t _begin = 0, size_t _end = 0);
+  // void trace(gvt::render::actor::RayVector& rayList,
+  // gvt::render::actor::RayVector& moved_rays);
   //
 
 protected:

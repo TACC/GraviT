@@ -31,8 +31,8 @@
 #ifndef GVT_RENDER_ADAPTER_OPTIX_WRAPPER_H
 #define GVT_RENDER_ADAPTER_OPTIX_WRAPPER_H
 
-#include <gvt/render/adapter/optix/data/Transforms.h>
-#include <gvt/render/adapter/optix/data/domain/OptixDomain.h>
+// #include <gvt/render/adapter/optix/data/Transforms.h>
+// #include <gvt/render/adapter/optix/data/domain/OptixDomain.h>
 #include <gvt/render/adapter/optix/data/OptixMeshAdapter.h>
 
 /// single include for all OptiX-specific headers

@@ -1,5 +1,10 @@
 /* =======================================================================================
+<<<<<<< HEAD
    This file is released as part of GraviT - scalable, platform independent ray tracing
+=======
+   This file is released as part of GraviT - scalable, platform independent ray
+   tracing
+>>>>>>> dev
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -8,7 +13,12 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
+<<<<<<< HEAD
    If your copy does not contain the License, you may obtain a copy of the License at:
+=======
+   If your copy does not contain the License, you may obtain a copy of the
+   License at:
+>>>>>>> dev
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -18,9 +28,15 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
+<<<<<<< HEAD
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
+=======
+   GraviT is funded in part by the US National Science Foundation under awards
+   ACI-1339863,
+>>>>>>> dev
    ACI-1339881 and ACI-1339840
-   ======================================================================================= */
+   =======================================================================================
+   */
 //
 //  Color.h
 //
@@ -86,7 +102,12 @@ public:
   }
 
   ColorAccumulator &operator=(const ColorAccumulator &);
+<<<<<<< HEAD
   /// add color but do not accumulate opacity. To accumulate opacity, use accumulate()
+=======
+  /// add color but do not accumulate opacity. To accumulate opacity, use
+  /// accumulate()
+>>>>>>> dev
   void add(const ColorAccumulator &);
   /// add color and accumulate opacity. To only add color, use add()
   virtual void accumulate(const ColorAccumulator &) = 0;
@@ -225,7 +246,12 @@ inline void CHat::accumulate(const ColorAccumulator &c) {
   }
 }
 
+<<<<<<< HEAD
 // composite the color c into this color, as described in blinn 1994, wittenbrink 1998
+=======
+// composite the color c into this color, as described in blinn 1994,
+// wittenbrink 1998
+>>>>>>> dev
 
 inline void CTilde::accumulate(const ColorAccumulator &c) {
   t = c.t; // depth value;

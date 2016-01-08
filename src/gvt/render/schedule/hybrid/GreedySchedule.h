@@ -39,14 +39,16 @@ namespace render {
 namespace schedule {
 namespace hybrid {
 /// hybrid schedule that distributes currently requested data across all processes with no sorting
-/** This schedule simply allocates requested domains to processes, regardless of number of pending rays
-or previously loaded data.
+/** This schedule simply allocates requested domains to processes, regardless of number of pending 
+rays or previously loaded data.
 
 This schedule has the following issues:
-    - domains with large ids tend to get starved, since the greedy loop iterates from small id to large id
+    - domains with large ids tend to get starved, since the greedy loop iterates from small id to 
+    large id
     - a new allocation may move already-loaded data to another process, incurring excess data loads
     - processes may remain idle if there are fewer requested domains than processes
-    - a domain can be assigned to a process that does not have rays queued for it, incurring excess ray sends
+    - a domain can be assigned to a process that does not have rays queued for it, incurring excess 
+    ray sends
 
     \sa LoadAnyOnceSchedule, SpreadSchedule
     */

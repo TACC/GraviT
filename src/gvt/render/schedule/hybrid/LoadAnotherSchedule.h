@@ -26,9 +26,9 @@
  * Author: pnav
  *
  * if a domain has a bunch of rays, add the domain to an empty process.
- * this starts with the adaptive LoadOnce schedule and removes the check about whether a domain is already loaded
- * so at present, it adds the domain to a process that has the most rays pending, which might or might not be a domain
- * already loaded
+ * this starts with the adaptive LoadOnce schedule and removes the check about whether a 
+ * domain is already loaded so at present, it adds the domain to a process that has the most 
+ * rays pending, which might or might not be a domain already loaded
  *
  * Created on February 4, 2014, 3:41 PM
  */
@@ -44,9 +44,10 @@ namespace render {
 namespace schedule {
 namespace hybrid {
 /// hybrid schedule that attempts to load additional copies of domains that have high demand
-/** This schedule attempts to load domains that have high ray demand to any available processes, where
-a process is 'available' if none of its loaded data is currently requested by any ray. This follows the
-same logic as the LoadOnce schedule, but without the check as to whether the data is already loaded.
+/** This schedule attempts to load domains that have high ray demand to any available processes, 
+where a process is 'available' if none of its loaded data is currently requested by any ray. This 
+follows the same logic as the LoadOnce schedule, but without the check as to whether the data is 
+already loaded.
 
 \sa LoadOnceSchedule, LoadAnyOnceSchedule, LoadManySchedule
 */
@@ -68,8 +69,9 @@ struct LoadAnotherSchedule : public HybridScheduleBase {
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
         // add currently loaded data
-        data2proc[map_recv_bufs[s][0]] =
-            s; // this will evict previous entries. that's okay since we don't want to dup data (here)
+        data2proc[map_recv_bufs[s][0]] = s; // this will evict previous entries.
+                                            // that's okay since we don't want
+                                            // to dup data (here)
         GVT_DEBUG(DBG_LOW, "    noting currently " << s << " -> " << map_recv_bufs[s][0]);
 
         // add ray counts

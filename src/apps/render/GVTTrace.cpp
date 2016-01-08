@@ -25,6 +25,7 @@
 //  GVTTrace.C
 //
 
+#if 0
 #include "ConfigFileLoader.h"
 #include "MantaRayTracer.h"
 #include "OptixRayTracer.h"
@@ -108,10 +109,16 @@ int main(int argc, char **argv) {
   }
 #endif
 
+<<<<<<< HEAD
   GVT_ASSERT(domain_choosen, "The requested domain type is not available, please recompile");
+=======
+  GVT_ASSERT(domain_choosen,
+             "The requested domain type is not available, please recompile");
+>>>>>>> dev
 
   if (MPI::COMM_WORLD.Get_size() > 1)
     MPI_Finalize();
 
   return 0;
 }
+#endif

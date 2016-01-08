@@ -107,7 +107,7 @@ public:
                                                       0.f, 0.f, 0.f, 0.f, 1.f)
             .transpose();
     update();
-    const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
+    // const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
   }
 
   void setFOV(double fov) {

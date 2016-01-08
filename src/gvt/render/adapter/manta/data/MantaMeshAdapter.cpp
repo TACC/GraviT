@@ -69,7 +69,7 @@ static boost::atomic<size_t> counter_b(0);
 
 // MantaMeshAdapter::MantaMeshAdapter(GeometryDomain* domain) : GeometryDomain(*domain)
 MantaMeshAdapter::MantaMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converting mesh node " << gvt::core::uuid_toString(node.UUID()));
+  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converting mesh node " << node.UUID().toString());
 
   Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
 
@@ -261,7 +261,6 @@ struct parallelTrace {
             //                                GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SHADOW) {
               //                                    GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
-
               continue;
             }
 
@@ -772,9 +771,10 @@ struct mantaParallelTrace {
   }
 };
 
-// void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList, gvt::render::actor::RayVector& moved_rays)
+// void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList,
+// gvt::render::actor::RayVector& moved_rays)
 void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode) {
+                             gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: trace time: %w\n");
 #endif
@@ -785,8 +785,9 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
 
   std::atomic<size_t> sharedIdx(0); // shared index into rayList
   const size_t numThreads = gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize =
-      std::max((size_t)8, (size_t)(rayList.size() / (numThreads * 8))); // size of 'chunk' of rays to work on
+  const size_t workSize = std::max((size_t)8, (size_t)(rayList.size() / (numThreads * 8))); // size of 'chunk'
+                                                                                            // of rays to work
+                                                                                            // on
   const size_t workload =
       std::max((size_t)1, (size_t)(rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 

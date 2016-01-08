@@ -52,8 +52,18 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   assert(this->instanceSet.size() == sortedInstanceSet.size());
 #endif
 
-  this->instanceSet.swap(sortedInstanceSet);
+  // this->instanceSet.swap(sortedInstanceSet);
+  std::swap(this->instanceSet, sortedInstanceSet);
+
+  // std::vector<gvt::render::data::primitives::Box3D*> instanceSetBB;
+  // std::vector<int> instanceSetID;
+
+  for (auto &node : this->instanceSet) {
+    instanceSetBB.push_back(gvt::core::variant_toBox3DPtr(node["bbox"].value()));
+    instanceSetID.push_back(gvt::core::variant_toInteger(node["id"].value()));
+  }
 }
+
 BVH::~BVH() {
   // TODO: better way to manage memory allocation?
   for (int i = 0; i < nodes.size(); ++i) {
@@ -199,7 +209,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
       }
     }
   }
-  return 0.0f;
+  return splitPoint;
 }
 
 void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit &hit,
@@ -225,9 +235,9 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit
     int end = start + instanceCount;
 
     for (int i = start; i < end; ++i) {
-      Box3D *ibbox = (Box3D *)instanceSet[i]["bbox"].value().toULongLong();
+      Box3D *ibbox = instanceSetBB[i];
       if (ibbox->intersectDistance(ray, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
-        int id = instanceSet[i]["id"].value().toInteger();
+        int id = instanceSetID[i]; // gvt::core::variant_toInteger(instanceSet[i]["id"].value());
         isect.push_back(gvt::render::actor::isecDom(id, t));
       }
     }

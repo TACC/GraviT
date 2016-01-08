@@ -38,9 +38,10 @@ namespace render {
 namespace schedule {
 namespace hybrid {
 /// hybrid schedule that attempts to load domains that have high demand
-/** This schedule attempts to load domains that have high ray demand to any available processes, where
-a process is 'available' if none of its loaded data is currently requested by any ray. This schedule checks
-whether the domain is already loaded at a process, and if so, does not load it again.
+/** This schedule attempts to load domains that have high ray demand to any available processes, 
+where a process is 'available' if none of its loaded data is currently requested by any ray. 
+This schedule checks whether the domain is already loaded at a process, and if so, 
+does not load it again.
 
 \sa LoadAnotherSchedule, LoadAnyOnceSchedule, LoadManySchedule
 */
@@ -62,8 +63,9 @@ struct LoadOnceSchedule : public HybridScheduleBase {
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
         // add currently loaded data
-        data2proc[map_recv_bufs[s][0]] =
-            s; // this will evict previous entries. that's okay since we don't want to dup data
+        data2proc[map_recv_bufs[s][0]] = s; // this will evict previous entries.
+                                            // that's okay since we don't want
+                                            // to dup data
         GVT_DEBUG(DBG_LOW, "    noting currently " << s << " -> " << map_recv_bufs[s][0]);
 
         // add ray counts

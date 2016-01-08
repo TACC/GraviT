@@ -47,11 +47,12 @@ namespace algorithm {
 
 /// work scheduler that adapts between Image and Domain scheduling based on render state
 /**
-  The Hybrid scheduler strives to combine the advantages of Image and Domain scheduling to achieve
-  performant work balance across the system for the entire render process. The initial schedule divides
-  rays across processes, similar to the Image scheduler, then operates according to the heuristics defined
-  in the gvt::render::schedule::hybrid classes. These typically seek to maintain loaded domains in-core so long
-  as there are rays that need the domain's data.
+  The Hybrid scheduler strives to combine the advantages of Image and Domain scheduling 
+  to achieve performant work balance across the system for the entire render process. The 
+  initial schedule divides rays across processes, similar to the Image scheduler, then 
+  operates according to the heuristics defined in the gvt::render::schedule::hybrid classes. 
+  These typically seek to maintain loaded domains in-core so long as there are rays that need 
+  the domain's data.
 
   This scheduler can become unbalanced depending on the characteristics of the schedule heuristics.
 
@@ -189,6 +190,7 @@ public:
           moved_rays.reserve(this->queue[domTarget].size() * 10);
           boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
           dom->trace(this->queue[domTarget], moved_rays);
+          this->queue[domTarget].clear();
         }
 
         boost::atomic<int> current_ray(0);

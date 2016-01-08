@@ -37,8 +37,8 @@ namespace schedule {
 namespace hybrid {
 /// base for hybrid schedules
 /**
-\sa AdaptiveSendSchedule, GreedySchedule, LoadAnotherSchedule, LoadAnyOnceSchedule, LoadManySchedule, LoadOnceSchedule,
-RayWeightedSpreadSchedule, SpreadSchedule
+\sa AdaptiveSendSchedule, GreedySchedule, LoadAnotherSchedule, LoadAnyOnceSchedule, LoadManySchedule, 
+LoadOnceSchedule, RayWeightedSpreadSchedule, SpreadSchedule
 */
 struct HybridScheduleBase {
 

@@ -21,8 +21,8 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef Magnum_Math_Unit_h
-#define Magnum_Math_Unit_h
+#ifndef Math_Unit_h
+#define Math_Unit_h
 /*
     This file is part of Magnum.
 

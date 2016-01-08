@@ -166,7 +166,6 @@ void DBNodeH::setParentUUID(Uuid parentUUID) {
 
 void DBNodeH::setValue(Variant value) {
   DatabaseNode &n = getNode();
-  // std::cout << "variant value is " << value << std::endl;
   n.setValue(value);
 }
 

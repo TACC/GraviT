@@ -21,7 +21,6 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/Attributes.h>
 #include <gvt/render/data/accel/BVH.h>
@@ -61,12 +60,13 @@ bool Dataset::intersect(Ray &r, isecDomList &inter) {
   return false;
 }
 
-AbstractDomain *Dataset::getDomain(int id) {
+
+AbstractDomain *Dataset::getDomain(size_t id) {
   GVT_ASSERT_BACKTRACE(id < domainSet.size(), "Getting domain outside bound");
   return domainSet[id];
 }
 
-Light *Dataset::getLight(int id) {
+Light *Dataset::getLight(size_t id) {
   GVT_ASSERT_BACKTRACE(id < lightSet.size(), "Getting light source outside bound");
   return lightSet[id];
 }

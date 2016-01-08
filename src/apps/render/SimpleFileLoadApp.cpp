@@ -104,7 +104,11 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
   gvt::core::DBNodeH meshNode = bunnyMeshNode;
+<<<<<<< HEAD
   Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+=======
+  Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+>>>>>>> dev
 
   instnode["id"] = 0; // unique id per instance
   instnode["meshRef"] = meshNode.UUID();
@@ -144,6 +148,15 @@ int main(int argc, char **argv) {
 
   // set image width/height
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
+<<<<<<< HEAD
+=======
+  // filmNode["width"] = 4096;
+  // filmNode["height"] = 2304;
+
+  // filmNode["width"] = 1920;
+  // filmNode["height"] = 1080;
+
+>>>>>>> dev
   filmNode["width"] = 512;
   filmNode["height"] = 512;
 
@@ -158,6 +171,7 @@ int main(int argc, char **argv) {
   int adapterType = gvt::render::adapter::Manta;
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
+<<<<<<< HEAD
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
@@ -166,6 +180,13 @@ int main(int argc, char **argv) {
   // schedNode["adapter"] = gvt::render::adapter::Manta;
   schedNode["adapter"] = adapterType;
 
+=======
+#else
+  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+#endif
+
+  schedNode["adapter"] = gvt::render::adapter::Embree;
+>>>>>>> dev
   //
   // start gvt
   //
@@ -175,6 +196,7 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
+<<<<<<< HEAD
   Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
   Point4f focus = camNode["focus"].value().toPoint4f();
   float fov = camNode["fov"].value().toFloat();
@@ -182,6 +204,16 @@ int main(int argc, char **argv) {
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
+=======
+  Point4f cameraposition = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
+  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
+  float fov = gvt::core::variant_toFloat(camNode["fov"].value());
+  Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  mycamera.lookAt(cameraposition, focus, up);
+  mycamera.setFOV(fov);
+  mycamera.setFilmsize(gvt::core::variant_toInteger(filmNode["width"].value()),
+                       gvt::core::variant_toInteger(filmNode["height"].value()));
+>>>>>>> dev
 
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "bunny");
@@ -189,7 +221,11 @@ int main(int argc, char **argv) {
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
 
+<<<<<<< HEAD
   int schedType = root["Schedule"]["type"].value().toInteger();
+=======
+  int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
+>>>>>>> dev
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;

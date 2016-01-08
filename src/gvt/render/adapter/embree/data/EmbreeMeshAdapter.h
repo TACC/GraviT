@@ -21,6 +21,7 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
+
 #ifndef GVT_RENDER_ADAPTER_EMBREE_DATA_EMBREE_MESH_ADAPTER_H
 #define GVT_RENDER_ADAPTER_EMBREE_DATA_EMBREE_MESH_ADAPTER_H
 
@@ -81,7 +82,7 @@ public:
    * \param instNode instance db node containing dataRef and transforms
    */
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode);
+                     gvt::core::DBNodeH instNode, size_t _begin = 0, size_t _end = 0);
 
 protected:
   /**
@@ -105,6 +106,8 @@ protected:
    * Handle to the Embree triangle mesh.
    */
   unsigned geomId;
+
+  size_t begin, end;
 };
 }
 }

@@ -245,9 +245,9 @@ public:
   //---[ Normalization ]-----------------------
 
   void normalize() {
-    double len = length();
-    n[0] /= len;
-    n[1] /= len;
+    double len = 1. / length();
+    n[0] *= len;
+    n[1] *= len;
   }
 
   //---[ Zero Test ]---------------------------
@@ -404,10 +404,10 @@ public:
   //---[ Normalization ]-----------------------
 
   Vector3<T> normalize() {
-    double len = length();
-    n[0] /= len;
-    n[1] /= len;
-    n[2] /= len;
+    double len = 1. / length();
+    n[0] *= len;
+    n[1] *= len;
+    n[2] *= len;
     return (*this);
   }
 
@@ -624,11 +624,11 @@ public:
   //---[ Normalization ]-----------------------
 
   Vector4<T> normalize() {
-    double len = length();
-    n[0] /= len;
-    n[1] /= len;
-    n[2] /= len;
-    n[3] /= len;
+    double len = 1. / length();
+    n[0] *= len;
+    n[1] *= len;
+    n[2] *= len;
+    n[3] *= len;
     return (*this);
   }
 
@@ -825,10 +825,10 @@ template <class T> double Vector<T>::length2() const {
 template <class T> double Vector<T>::length() const { return sqrt(length2()); }
 
 template <class T> void Vector<T>::normalize() {
-  double len = length();
+  double len = 1. / length();
 
   for (int i = 0; i < numElements; i++)
-    n[i] /= len;
+    n[i] *= len;
 }
 
 template <class T> bool Vector<T>::isZero() {

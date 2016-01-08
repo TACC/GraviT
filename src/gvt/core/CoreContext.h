@@ -32,7 +32,8 @@ namespace gvt {
 namespace core {
 /// context base class for GraviT internal state
 /** base class for GraviT internal state.
-The context contains the object-store database and helper methods to create and manage the internal state.
+The context contains the object-store database and helper methods to create and
+manage the internal state.
 */
 class CoreContext {
 public:

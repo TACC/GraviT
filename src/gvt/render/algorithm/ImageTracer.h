@@ -43,12 +43,16 @@
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
 
-#ifdef GVT_RENDER_ADAPTER_MANTA
+//#ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/Wrapper.h>
-#endif
+//#endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/Wrapper.h>
+#endif
+
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+#include <gvt/render/adapter/heterogeneous/Wrapper.h>
 #endif
 
 #include <boost/timer/timer.hpp>
@@ -58,9 +62,10 @@ namespace render {
 namespace algorithm {
 /// work scheduler that strives to keep rays resident and load data domains as needed
 /**
-  The Image scheduler strives to schedule work such that rays remain resident on their initial process
-  and domains are loaded as necessary to retire those rays. Rays are never sent to other processes.
-  Domains can be loaded at multiple processes, depending on the requirements of the rays at each process.
+  The Image scheduler strives to schedule work such that rays remain resident on their 
+  initial process and domains are loaded as necessary to retire those rays. Rays are never 
+  sent to other processes. Domains can be loaded at multiple processes, depending on the 
+  requirements of the rays at each process.
 
   This scheduler can become unbalanced when:
    - certain rays require more time to process than others
@@ -162,6 +167,12 @@ public:
             adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
             break;
 #endif
+
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+          case gvt::render::adapter::Heterogeneous:
+            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(meshNode);
+            break;
+#endif
           default:
             GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
           }
@@ -180,6 +191,9 @@ public:
           boost::timer::auto_cpu_timer t("Tracing rays in adapter: %w\n");
 #endif
           adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
+
+          this->queue[instTarget].clear();
+
           t_trace.stop();
         }
 

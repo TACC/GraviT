@@ -38,6 +38,23 @@ namespace adapter {
 namespace optix {
 namespace data {
 
+struct OptixContext {
+
+  OptixContext() { optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA); }
+
+  static OptixContext *singleton() {
+    if (!_singleton) {
+      _singleton = new OptixContext();
+    }
+    return _singleton;
+  };
+
+  ::optix::prime::Context &context() { return optix_context_; }
+
+  static OptixContext *_singleton;
+  ::optix::prime::Context optix_context_;
+};
+
 class OptixMeshAdapter : public gvt::render::Adapter {
 public:
   /**
@@ -79,7 +96,7 @@ public:
    * \param instNode instance db node containing dataRef and transforms
    */
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode);
+                     gvt::core::DBNodeH instNode, size_t _begin = 0, size_t _end = 0);
 
 protected:
   /**
@@ -115,6 +132,8 @@ protected:
    * Handle to the Embree triangle mesh.
    */
   unsigned geomId;
+
+  size_t begin, end;
 };
 }
 }
