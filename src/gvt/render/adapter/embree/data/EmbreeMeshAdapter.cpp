@@ -37,7 +37,8 @@
 
 #include <gvt/render/actor/Ray.h>
 // #include <gvt/render/adapter/embree/data/Transforms.h>
-
+#include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 

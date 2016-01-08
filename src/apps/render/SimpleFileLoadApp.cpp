@@ -164,6 +164,9 @@ int main(int argc, char **argv) {
   int adapterType = gvt::render::adapter::Manta;
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
+#else
+  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+#endif
 
   schedNode["adapter"] = adapterType;
   //
