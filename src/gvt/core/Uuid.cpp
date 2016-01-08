@@ -26,21 +26,16 @@
 
 using namespace gvt::core;
 
-  boost::uuids::random_generator Uuid::gen ;
+boost::uuids::random_generator Uuid::gen;
 
-Uuid Uuid::null()
-{
-   Uuid u;
-   u.nullify();
-   return u;
+Uuid Uuid::null() {
+  Uuid u;
+  u.nullify();
+  return u;
 }
 
 namespace gvt {
-	namespace core {
-      std::ostream& operator<<(std::ostream& os, const Uuid& u)
-      {
-         return os << u.uuid;
-      }
-
-	}
+namespace core {
+std::ostream &operator<<(std::ostream &os, const Uuid &u) { return os << u.uuid; }
+}
 }

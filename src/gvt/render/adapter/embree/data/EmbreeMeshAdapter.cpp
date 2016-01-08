@@ -1,24 +1,24 @@
-/* ======================================================================================= 
+/* =======================================================================================
    This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
-                                                                                           
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
-   except in compliance with the License.                                                  
-   A copy of the License is included with this software in the file LICENSE.               
-   If your copy does not contain the License, you may obtain a copy of the License at:     
-                                                                                           
-       http://opensource.org/licenses/BSD-3-Clause                                         
-                                                                                           
-   Unless required by applicable law or agreed to in writing, software distributed under   
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-   KIND, either express or implied.                                                        
-   See the License for the specific language governing permissions and limitations under   
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 //
@@ -67,15 +67,14 @@ struct embTriangle {
 };
 
 EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
-  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node "
-                            << node.UUID().toString());
+  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
 
   if (!EmbreeMeshAdapter::init) {
     rtcInit(0);
     EmbreeMeshAdapter::init = true;
   }
 
-  Mesh *mesh = (Mesh*)node["ptr"].value().toULongLong();
+  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
 
   GVT_ASSERT(mesh, "EmbreeMeshAdapter: mesh pointer in the database is null");
 
@@ -103,8 +102,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
 
   geomId = rtcNewTriangleMesh(scene, RTC_GEOMETRY_STATIC, numTris, numVerts);
 
-  embVertex *vertices =
-      (embVertex *)rtcMapBuffer(scene, geomId, RTC_VERTEX_BUFFER);
+  embVertex *vertices = (embVertex *)rtcMapBuffer(scene, geomId, RTC_VERTEX_BUFFER);
   for (int i = 0; i < numVerts; i++) {
     vertices[i].x = mesh->vertices[i][0];
     vertices[i].y = mesh->vertices[i][1];
@@ -112,8 +110,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
   }
   rtcUnmapBuffer(scene, geomId, RTC_VERTEX_BUFFER);
 
-  embTriangle *triangles =
-      (embTriangle *)rtcMapBuffer(scene, geomId, RTC_INDEX_BUFFER);
+  embTriangle *triangles = (embTriangle *)rtcMapBuffer(scene, geomId, RTC_INDEX_BUFFER);
   for (int i = 0; i < numTris; i++) {
     gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
     triangles[i].v0 = f.get<0>();
@@ -214,19 +211,14 @@ struct embreeParallelTrace {
    * thread
    * to do its tracing
    */
-  embreeParallelTrace(
-      gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter,
-      gvt::render::actor::RayVector &rayList,
-      gvt::render::actor::RayVector &moved_rays, std::atomic<size_t> &sharedIdx,
-      const size_t workSize, gvt::core::DBNodeH instNode,
-      gvt::core::math::AffineTransformMatrix<float> *m,
-      gvt::core::math::AffineTransformMatrix<float> *minv,
-      gvt::core::math::Matrix3f *normi,
-      std::vector<gvt::render::data::scene::Light *> &lights,
-      std::atomic<size_t> &counter)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
-        sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
-        minv(minv), normi(normi), lights(lights), counter(counter),
+  embreeParallelTrace(gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter,
+                      gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
+                      std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode,
+                      gvt::core::math::AffineTransformMatrix<float> *m,
+                      gvt::core::math::AffineTransformMatrix<float> *minv, gvt::core::math::Matrix3f *normi,
+                      std::vector<gvt::render::data::scene::Light *> &lights, std::atomic<size_t> &counter)
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
+        instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
         packetSize(adapter->getPacketSize()) {}
 
   /**
@@ -240,8 +232,7 @@ struct embreeParallelTrace {
    * \param rays          vector of rays to read from
    * \param startIdx      starting point to read from in `rays`
    */
-  void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid,
-                   const int localPacketSize,
+  void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid, const int localPacketSize,
                    gvt::render::actor::RayVector &rays, const size_t startIdx) {
     // reset valid to match the number of active rays in the packet
     if (resetValid) {
@@ -284,8 +275,7 @@ struct embreeParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r,
-                          const gvt::core::math::Vector4f &normal, int primID,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal, int primID,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
@@ -293,8 +283,7 @@ struct embreeParallelTrace {
       // triangle.
       // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
       // Using about 8 * ULP(t).
-      const float multiplier =
-          1.0f - 16.0f * std::numeric_limits<float>::epsilon();
+      const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
       const float t_shadow = multiplier * r.t;
 
       const Point4f origin = r.origin + r.direction * t_shadow;
@@ -302,8 +291,7 @@ struct embreeParallelTrace {
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
-      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w,
-                               Ray::SHADOW, r.depth));
+      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
 
       Ray &shadow_ray = shadowRays.back();
       shadow_ray.t = r.t;
@@ -311,8 +299,7 @@ struct embreeParallelTrace {
       shadow_ray.t_max = t_max;
 
       // FIXME: remove dependency on mesh->shadeFace
-      gvt::render::data::Color c =
-          mesh->shadeFace(primID, shadow_ray, normal, light);
+      gvt::render::data::Color c = mesh->shadeFace(primID, shadow_ray, normal, light);
       // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
       // normal, lights[lindex]);
       shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
@@ -326,12 +313,10 @@ struct embreeParallelTrace {
   void traceShadowRays() {
     RTCScene scene = adapter->getScene();
     RTCRay4 ray4 = {};
-    RTCORE_ALIGN(16) int valid[4] = {0};
+    RTCORE_ALIGN(16) int valid[4] = { 0 };
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
-      const size_t localPacketSize = (idx + packetSize > shadowRays.size())
-                                         ? (shadowRays.size() - idx)
-                                         : packetSize;
+      const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
 
       // create a shadow packet and trace with rtcOccluded
       prepRTCRay4(ray4, valid, true, localPacketSize, shadowRays, idx);
@@ -405,7 +390,7 @@ struct embreeParallelTrace {
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = (Mesh*)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
+    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
     RTCScene scene = adapter->getScene();
     localDispatch.reserve(rayList.size() * 2);
@@ -438,17 +423,13 @@ struct embreeParallelTrace {
       }
 
       RTCRay4 ray4 = {};
-      RTCORE_ALIGN(16) int valid[4] = {0};
+      RTCORE_ALIGN(16) int valid[4] = { 0 };
 
-      GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays ["
-                                << workStart << ", " << workEnd << "]");
-      for (size_t localIdx = workStart; localIdx < workEnd;
-           localIdx += packetSize) {
+      GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays [" << workStart << ", " << workEnd << "]");
+      for (size_t localIdx = workStart; localIdx < workEnd; localIdx += packetSize) {
         // this is the local packet size. this might be less than the main
         // packetSize due to uneven amount of rays
-        const size_t localPacketSize = (localIdx + packetSize > workEnd)
-                                           ? (workEnd - localIdx)
-                                           : packetSize;
+        const size_t localPacketSize = (localIdx + packetSize > workEnd) ? (workEnd - localIdx) : packetSize;
 
         // trace a packet of rays, then keep tracing the generated secondary
         // rays to completion
@@ -465,8 +446,7 @@ struct embreeParallelTrace {
         while (validRayLeft) {
           validRayLeft = false;
 
-          prepRTCRay4(ray4, valid, resetValid, localPacketSize, rayList,
-                      localIdx);
+          prepRTCRay4(ray4, valid, resetValid, localPacketSize, rayList, localIdx);
           rtcIntersect4(valid, scene, ray4);
           resetValid = false;
 
@@ -504,19 +484,17 @@ struct embreeParallelTrace {
 #ifndef FLAT_SHADING
                   const float u = ray4.u[pi];
                   const float v = ray4.v[pi];
-                  const Mesh::FaceToNormals &normals =
-                      mesh->faces_to_normals[triangle_id]; // FIXME: need to
-                                                           // figure out
-                                                           // to store
-                                                           // `faces_to_normals`
-                                                           // list
+                  const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // FIXME: need to
+                                                                                            // figure out
+                                                                                            // to store
+                                                                                            // `faces_to_normals`
+                                                                                            // list
                   const Vector4f &a = mesh->normals[normals.get<1>()];
                   const Vector4f &b = mesh->normals[normals.get<2>()];
                   const Vector4f &c = mesh->normals[normals.get<0>()];
                   manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                  manualNormal =
-                      (*normi) * (gvt::core::math::Vector3f)manualNormal;
+                  manualNormal = (*normi) * (gvt::core::math::Vector3f)manualNormal;
                   manualNormal.normalize();
 #else
                   int I = mesh->faces[triangle_id].get<0>();
@@ -545,27 +523,27 @@ struct embreeParallelTrace {
                 }
                 generateShadowRays(r, normal, ray4.primID[pi], mesh);
 
-                 int ndepth = r.depth - 1;
-                 float p = 1.f - (float(rand()) / RAND_MAX);
-                 // replace current ray with generated secondary ray
-                 if (ndepth > 0 && r.w > p)
-                   {
-                    r.domains.clear();
-                    r.type = gvt::render::actor::Ray::SECONDARY;
-                    const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
-                    const float t_secondary = multiplier * r.t;
-                         r.origin = r.origin + r.direction * t_secondary;
+                int ndepth = r.depth - 1;
+                float p = 1.f - (float(rand()) / RAND_MAX);
+                // replace current ray with generated secondary ray
+                if (ndepth > 0 && r.w > p) {
+                  r.domains.clear();
+                  r.type = gvt::render::actor::Ray::SECONDARY;
+                  const float multiplier =
+                      1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
+                  const float t_secondary = multiplier * r.t;
+                  r.origin = r.origin + r.direction * t_secondary;
 
-                    // TODO: remove this dependency on mesh, store material object in the database
-                    //r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                    r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                  // TODO: remove this dependency on mesh, store material object in the database
+                  // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                  r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
 
-                    r.w = r.w * (r.direction * normal);
-                    r.depth = ndepth;
-                    validRayLeft = true; // we still have a valid ray in the packet to trace
-                  } else {
-                   // secondary ray is terminated, so disable its valid bit
-                    valid[pi] = 0;
+                  r.w = r.w * (r.direction * normal);
+                  r.depth = ndepth;
+                  validRayLeft = true; // we still have a valid ray in the packet to trace
+                } else {
+                  // secondary ray is terminated, so disable its valid bit
+                  valid[pi] = 0;
                 }
               } else {
                 // ray is valid, but did not hit anything, so add to dispatch
@@ -603,40 +581,32 @@ struct embreeParallelTrace {
         break;
       }
     }
-    GVT_DEBUG(DBG_ALWAYS, "Local dispatch : "
-                              << localDispatch.size() << ", types: primary: "
-                              << primary_count << ", shadow: " << shadow_count
-                              << ", secondary: " << secondary_count
-                              << ", other: " << other_count);
+    GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size() << ", types: primary: " << primary_count
+                                              << ", shadow: " << shadow_count << ", secondary: " << secondary_count
+                                              << ", other: " << other_count);
 #endif
 
     // copy localDispatch rays to outgoing rays queue
     boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
-    moved_rays.insert(moved_rays.end(), localDispatch.begin(),
-                      localDispatch.end());
+    moved_rays.insert(moved_rays.end(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }
 };
 
-void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
-                              gvt::render::actor::RayVector &moved_rays,
+void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                               gvt::core::DBNodeH instNode) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: trace time: %w\n");
 #endif
   std::atomic<size_t> sharedIdx(0); // shared index into rayList
-  const size_t numThreads =
-      gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize = std::max(
-      (size_t)8,
-      (size_t)(rayList.size() /
-               (numThreads * 8))); // size of 'chunk' of rays to work on
+  const size_t numThreads = gvt::core::schedule::asyncExec::instance()->numThreads;
+  const size_t workSize = std::max((size_t)8,
+                                   (size_t)(rayList.size() / (numThreads * 8))); // size of 'chunk' of rays to work on
 
-  GVT_DEBUG(DBG_ALWAYS,
-            "EmbreeMeshAdapter: trace: instNode: "
-                << gvt::core::uuid_toString(instNode.UUID()) << ", rays: "
-                << rayList.size() << ", workSize: " << workSize << ", threads: "
-                << gvt::core::schedule::asyncExec::instance()->numThreads);
+  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: trace: instNode: "
+                            << gvt::core::uuid_toString(instNode.UUID()) << ", rays: " << rayList.size()
+                            << ", workSize: " << workSize
+                            << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
 
   // pull out information out of the database, create local structs that will be
   // passed into the parallel struct
@@ -645,11 +615,10 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // pull out instance transform data
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting instance transform data");
   gvt::core::math::AffineTransformMatrix<float> *m =
-      (gvt::core::math::AffineTransformMatrix<float>*)instNode["mat"].value().toULongLong();
+      (gvt::core::math::AffineTransformMatrix<float> *)instNode["mat"].value().toULongLong();
   gvt::core::math::AffineTransformMatrix<float> *minv =
-      (gvt::core::math::AffineTransformMatrix<float>*)instNode["matInv"].value().toULongLong();
-  gvt::core::math::Matrix3f *normi =
-      (gvt::core::math::Matrix3f*)instNode["normi"].value().toULongLong();
+      (gvt::core::math::AffineTransformMatrix<float> *)instNode["matInv"].value().toULongLong();
+  gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f *)instNode["normi"].value().toULongLong();
 
   //
   // TODO: wrap this db light array -> class light array conversion in some sort
@@ -669,10 +638,8 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));
     }
   }
-  GVT_DEBUG(DBG_ALWAYS,
-            "EmbreeMeshAdapter: converted "
-                << lightNodes.size()
-                << " light nodes into structs: size: " << lights.size());
+  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converted " << lightNodes.size()
+                                                        << " light nodes into structs: size: " << lights.size());
   // end `convertLights`
   //
 
@@ -684,8 +651,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 
   for (size_t rc = 0; rc < numThreads; ++rc) {
     gvt::core::schedule::asyncExec::instance()->run_task(
-        embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-                            instNode, m, minv, normi, lights, counter));
+        embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights, counter));
   }
 
   gvt::core::schedule::asyncExec::instance()->sync();
@@ -695,8 +661,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // instNode, m, minv, normi, lights, counter)();
 
   // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Processed rays: " << counter);
-  GVT_DEBUG(DBG_ALWAYS,
-            "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
+  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
 
   rayList.clear();
 }

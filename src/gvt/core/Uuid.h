@@ -33,65 +33,37 @@
 #include <ostream>
 
 namespace gvt {
-   namespace core {
-      /// unique identifier used to tag nodes in the context database
-      /**
-      * \sa CoreContext, Database, DatabaseNode
-      */
-      class Uuid
-      {
-      public:
-        Uuid()
-	        :uuid( gen())
-            {
-            }
+namespace core {
+/// unique identifier used to tag nodes in the context database
+/**
+* \sa CoreContext, Database, DatabaseNode
+*/
+class Uuid {
+public:
+  Uuid() : uuid(gen()) {}
 
+  void nullify() { uuid = boost::uuids::nil_uuid(); }
 
-         void nullify()
-            {
-              uuid = boost::uuids::nil_uuid();
-            }
+  bool isNull() const { return uuid == boost::uuids::nil_uuid(); }
 
-         bool isNull() const
-          {
-            return uuid == boost::uuids::nil_uuid();
-          }
+  String toString() const { return boost::uuids::to_string(uuid); }
 
-         String toString() const
-           {
-             return boost::uuids::to_string(uuid);
-           }
+  bool operator==(const Uuid &u) const { return uuid == u.uuid; }
+  bool operator!=(const Uuid &u) const { return uuid != u.uuid; }
 
+  bool operator>(const Uuid &u) const { return uuid > u.uuid; }
 
-          bool operator==(const Uuid& u) const
-           {
-             return uuid == u.uuid;
-           }
-         bool operator!=(const Uuid& u) const
-           {
-             return uuid != u.uuid;
-           }
+  bool operator<(const Uuid &u) const { return uuid < u.uuid; }
 
-         bool operator>(const Uuid& u) const
-            {
-              return uuid > u.uuid;
-            }
+  friend std::ostream &operator<<(std::ostream &, const Uuid &);
+  static Uuid null();
 
-         bool operator<(const Uuid& u) const
-            {
-              return uuid < u.uuid;
-            }
+protected:
+  boost::uuids::uuid uuid;
 
-
-         friend std::ostream& operator<<(std::ostream&, const Uuid&);
-         static Uuid null();
-
-      protected:
-         boost::uuids::uuid uuid;
-
-      private:
-        static boost::uuids::random_generator gen;
-      };
-   }
+private:
+  static boost::uuids::random_generator gen;
+};
+}
 }
 #endif // GVT_CORE_UUID_H
