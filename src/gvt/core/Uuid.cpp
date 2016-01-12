@@ -21,12 +21,21 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_ACTOR_H
-#define GVT_CORE_ACTOR_H
 
-/// placeholder base for actors
-/** placeholder base for actors, which operate on data.
-For example, rays, particles, etc.
-*/
+#include <gvt/core/Uuid.h>
 
-#endif // GVT_CORE_ACTOR_H
+using namespace gvt::core;
+
+boost::uuids::random_generator Uuid::gen;
+
+Uuid Uuid::null() {
+  Uuid u;
+  u.nullify();
+  return u;
+}
+
+namespace gvt {
+namespace core {
+std::ostream &operator<<(std::ostream &os, const Uuid &u) { return os << u.uuid; }
+}
+}

@@ -21,24 +21,60 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_TYPES_H
-#define GVT_CORE_TYPES_H
+#ifndef GVT_CORE_VARIANT_H
+#define GVT_CORE_VARIANT_H
 
 #include <gvt/core/Math.h>
 #include <gvt/core/String.h>
 #include <gvt/core/Uuid.h>
-#include <gvt/core/Variant.h>
 
-#include <boost/container/allocator.hpp>
-#include <boost/container/map.hpp>
-#include <boost/container/vector.hpp>
-#include <string>
+#include <boost/variant.hpp>
+
+#include <ostream>
 
 namespace gvt {
 namespace core {
-template <class T> using Vector = boost::container::vector<T>;
-template <class K, class V> using Map = boost::container::map<K, V>;
+/// mutable container class for datatypes used in the context database
+/**
+* \sa CoreContext, Database, DatabaseNode
+*/
+class Variant {
+public:
+  Variant();
+  Variant(int);
+  Variant(long);
+  Variant(float);
+  Variant(double);
+  Variant(bool);
+  Variant(unsigned long long);
+  Variant(String);
+  Variant(Uuid);
+  Variant(gvt::core::math::Vector3f);
+  Variant(gvt::core::math::Vector4f);
+  Variant(gvt::core::math::Point4f);
+
+  int toInteger() const;
+  long toLong() const;
+  float toFloat() const;
+  double toDouble() const;
+  bool toBoolean() const;
+  String toString() const;
+  Uuid toUuid() const;
+  unsigned long long toULongLong() const;
+  gvt::core::math::Vector3f toVector3f() const;
+  gvt::core::math::Vector4f toVector4f() const;
+  gvt::core::math::Point4f toPoint4f() const;
+
+  bool operator==(const Variant &) const;
+  bool operator!=(const Variant &) const;
+
+  friend std::ostream &operator<<(std::ostream &, const Variant &);
+
+protected:
+  boost::variant<int, long, float, double, bool, unsigned long long, String, Uuid, gvt::core::math::Vector3f,
+                 gvt::core::math::Vector4f, gvt::core::math::Point4f> coreData;
+};
 }
 }
 
-#endif // GVT_CORE_TYPES_H
+#endif // GVT_CORE_VARIANT_H

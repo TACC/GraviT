@@ -1,51 +1,38 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 #include "gvt/core/DatabaseNode.h"
 #include "gvt/core/CoreContext.h"
 #include "gvt/core/Debug.h"
 
 using namespace gvt::core;
 
-DatabaseNode *DatabaseNode::errNode = new DatabaseNode(
-    String("error"), String("error"), Uuid(nil_uuid()), Uuid(nil_uuid()));
+DatabaseNode *DatabaseNode::errNode = new DatabaseNode(String("error"), String("error"), Uuid::null(), Uuid::null());
 
-DatabaseNode::DatabaseNode(String name, Variant value, Uuid uuid,
-                           Uuid parentUUID)
+DatabaseNode::DatabaseNode(String name, Variant value, Uuid uuid, Uuid parentUUID)
     : p_uuid(uuid), p_name(name), p_value(value), p_parent(parentUUID) {}
 
-DatabaseNode::operator bool() const {
-  return (p_uuid != Uuid(nil_uuid())) && (p_parent != Uuid(nil_uuid()));
-}
+DatabaseNode::operator bool() const { return (!p_uuid.isNull() && !p_parent.isNull()); }
 
 Uuid DatabaseNode::UUID() { return p_uuid; }
 
@@ -87,6 +74,8 @@ Vector<DatabaseNode *> DatabaseNode::getChildren() {
 
  *******************/
 
+DBNodeH::DBNodeH(Uuid uuid) : _uuid(uuid) {}
+
 DatabaseNode &DBNodeH::getNode() {
   CoreContext *ctx = CoreContext::instance();
   Database &db = *(ctx->database());
@@ -101,12 +90,11 @@ DBNodeH DBNodeH::deRef() {
   CoreContext *ctx = CoreContext::instance();
   Database &db = *(ctx->database());
   DatabaseNode &n = getNode();
-  DatabaseNode *ref = db.getItem(variant_toUuid(n.value()));
-  if (ref && (variant_toUuid(n.value()) != nil_uuid())) {
+  DatabaseNode *ref = db.getItem(n.value().toUuid());
+  if (ref && !n.value().toUuid().isNull()) {
     return DBNodeH(ref->UUID());
   } else {
-    GVT_DEBUG(DBG_SEVERE, "DBNodeH deRef failed for uuid "
-                              << uuid_toString(_uuid));
+    GVT_DEBUG(DBG_SEVERE, "DBNodeH deRef failed for uuid " << _uuid.toString());
     return DBNodeH();
   }
 }
@@ -116,8 +104,7 @@ DBNodeH DBNodeH::operator[](const String &key) {
   Database &db = *(ctx->database());
   DatabaseNode *child = db.getChildByName(_uuid, key);
   if (!child) {
-    GVT_DEBUG(DBG_ALWAYS, "DBNodeH[] failed to find key \""
-                              << key << "\" for uuid " << uuid_toString(_uuid));
+    GVT_DEBUG(DBG_ALWAYS, "DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
     child = &(ctx->createNode(key).getNode());
   }
   return DBNodeH(child->UUID());
@@ -139,7 +126,7 @@ DBNodeH &DBNodeH::operator=(Variant val) {
 
 bool DBNodeH::operator==(const Variant val) { return value() == val; }
 
-DBNodeH::operator bool() const { return (_uuid != nil_uuid()); }
+DBNodeH::operator bool() const { return !_uuid.isNull(); }
 
 Uuid DBNodeH::UUID() {
   DatabaseNode &n = getNode();
@@ -188,13 +175,11 @@ void DBNodeH::propagateUpdate() {
 }
 
 void DBNodeH::connectValueChanged(const void *receiver, const char *method) {
-  GVT_DEBUG(DBG_ALWAYS,
-            "gvt::core::DBNodeH::connectValueChanged not implemented");
+  GVT_DEBUG(DBG_ALWAYS, "gvt::core::DBNodeH::connectValueChanged not implemented");
 }
 
 void DBNodeH::connectChildChanged(const void *receiver, const char *method) {
-  GVT_DEBUG(DBG_ALWAYS,
-            "gvt::core::DBNodeH::connectChildChanged not implemented");
+  GVT_DEBUG(DBG_ALWAYS, "gvt::core::DBNodeH::connectChildChanged not implemented");
 }
 
 Vector<DBNodeH> DBNodeH::getChildren() {

@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   Ray.cpp
  * Author: jbarbosa
@@ -48,8 +39,7 @@ using namespace gvt::render::actor;
 
 const float Ray::RAY_EPSILON = 1.e-6;
 
-Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type,
-         int depth)
+Ray::Ray(Point4f origin, Vector4f direction, float contribution, RayType type, int depth)
     : type(type), w(contribution), depth(depth) {
 
   this->origin = origin;
@@ -108,14 +98,12 @@ Ray::Ray(const unsigned char *buf) {
   int domain_size = *((int *)buf);
   buf += sizeof(int);
   for (int i = 0; i < domain_size; ++i, buf += sizeof(isecDom)) {
-    domains.push_back(
-        isecDom(*(int *)buf, *(float *)((int *)buf + sizeof(int))));
+    domains.push_back(isecDom(*(int *)buf, *(float *)((int *)buf + sizeof(int))));
   }
 }
 
 int Ray::packedSize() {
-  int total_size =
-      origin.packedSize() + direction.packedSize() + color.packedSize();
+  int total_size = origin.packedSize() + direction.packedSize() + color.packedSize();
   total_size += 4 * sizeof(int) + 2 * sizeof(double);
   total_size += domains.size() * (sizeof(float) + sizeof(int));
   // total_size += sizeof (isecDom) * domains.size();
@@ -151,8 +139,7 @@ int Ray::pack(unsigned char *buffer) {
   }
 
   if (packedSize() != (buf - buf0)) {
-    std::cout << " error in pack " << buf - buf0 << " " << packedSize()
-              << std::endl;
+    std::cout << " error in pack " << buf - buf0 << " " << packedSize() << std::endl;
     exit(0);
   }
   return packedSize();
@@ -170,10 +157,6 @@ void Ray::setDirection(Vector4f dir) {
   }
 }
 
-void Ray::setDirection(double *dir) {
-  setDirection(Vector4f(dir[0], dir[1], dir[2], dir[3]));
-}
+void Ray::setDirection(double *dir) { setDirection(Vector4f(dir[0], dir[1], dir[2], dir[3])); }
 
-void Ray::setDirection(float *dir) {
-  setDirection(Vector4f(dir[0], dir[1], dir[2], dir[3]));
-}
+void Ray::setDirection(float *dir) { setDirection(Vector4f(dir[0], dir[1], dir[2], dir[3])); }

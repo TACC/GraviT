@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   Material.h
  * Author: jbarbosa
@@ -60,19 +51,15 @@ public:
   Material(const Material &orig);
   virtual ~Material();
 
-  virtual gvt::core::math::Vector4f
-  shade(const gvt::render::actor::Ray &ray,
-        const gvt::core::math::Vector4f &sufaceNormal,
-        const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector
-  ao(const gvt::render::actor::Ray &ray,
-     const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector
-  secondary(const gvt::render::actor::Ray &ray,
-            const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
+                                          const gvt::core::math::Vector4f &sufaceNormal,
+                                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
+                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray,
+                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
 
-  gvt::core::math::Vector4f
-  CosWeightedRandomHemisphereDirection2(gvt::core::math::Vector4f n) {
+  gvt::core::math::Vector4f CosWeightedRandomHemisphereDirection2(gvt::core::math::Vector4f n) {
     float Xi1 = (float)rand() / (float)RAND_MAX;
     float Xi2 = (float)rand() / (float)RAND_MAX;
 
@@ -108,16 +95,13 @@ public:
   Lambert(const Lambert &orig);
   virtual ~Lambert();
 
-  virtual gvt::core::math::Vector4f
-  shade(const gvt::render::actor::Ray &ray,
-        const gvt::core::math::Vector4f &sufaceNormal,
-        const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector
-  ao(const gvt::render::actor::Ray &ray,
-     const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector
-  secundary(const gvt::render::actor::Ray &ray,
-            const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
+                                          const gvt::core::math::Vector4f &sufaceNormal,
+                                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
+                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
+                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
 
 protected:
   gvt::core::math::Vector4f kd;
@@ -126,21 +110,17 @@ protected:
 class Phong : public Material {
 public:
   Phong(const gvt::core::math::Vector4f &kd = gvt::core::math::Vector4f(),
-        const gvt::core::math::Vector4f &ks = gvt::core::math::Vector4f(),
-        const float &alpha = 1.f);
+        const gvt::core::math::Vector4f &ks = gvt::core::math::Vector4f(), const float &alpha = 1.f);
   Phong(const Phong &orig);
   virtual ~Phong();
 
-  virtual gvt::core::math::Vector4f
-  shade(const gvt::render::actor::Ray &ray,
-        const gvt::core::math::Vector4f &sufaceNormal,
-        const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector
-  ao(const gvt::render::actor::Ray &ray,
-     const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector
-  secundary(const gvt::render::actor::Ray &ray,
-            const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
+                                          const gvt::core::math::Vector4f &sufaceNormal,
+                                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
+                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
+                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
 
 protected:
   gvt::core::math::Vector4f kd;
@@ -151,21 +131,17 @@ protected:
 class BlinnPhong : public Material {
 public:
   BlinnPhong(const gvt::core::math::Vector4f &kd = gvt::core::math::Vector4f(),
-             const gvt::core::math::Vector4f &ks = gvt::core::math::Vector4f(),
-             const float &alpha = 1.f);
+             const gvt::core::math::Vector4f &ks = gvt::core::math::Vector4f(), const float &alpha = 1.f);
   BlinnPhong(const BlinnPhong &orig);
   virtual ~BlinnPhong();
 
-  virtual gvt::core::math::Vector4f
-  shade(const gvt::render::actor::Ray &ray,
-        const gvt::core::math::Vector4f &sufaceNormal,
-        const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector
-  ao(const gvt::render::actor::Ray &ray,
-     const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector
-  secundary(const gvt::render::actor::Ray &ray,
-            const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
+                                          const gvt::core::math::Vector4f &sufaceNormal,
+                                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
+                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
+                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
 
 protected:
   gvt::core::math::Vector4f kd;

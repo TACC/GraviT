@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   ConfigFileLoader.cpp
  * Author: jbarbosa
@@ -58,8 +49,7 @@ namespace render {
   \param delim a char delimiter
   \param elems a string vector on which the substrings are placed
 */
-std::vector<std::string> split(const std::string &s, char delim,
-                               std::vector<std::string> &elems) {
+std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
   std::stringstream ss(s);
   std::string item;
   while (std::getline(ss, item, delim)) {
@@ -97,8 +87,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       continue;
 
     if (elems[0] == "F") {
-      scene.camera.setFilmSize(std::atoi(elems[1].c_str()),
-                               std::atoi(elems[2].c_str()));
+      scene.camera.setFilmSize(std::atoi(elems[1].c_str()), std::atoi(elems[2].c_str()));
     } else if (elems[0] == "C") {
       gvt::core::math::Vector4f pos, look, up, focus;
       float fov = std::atof(elems[10].c_str()) * M_PI / 180.0;
@@ -117,8 +106,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
       scene.camera.setLook(pos, look, up);
       scene.camera.setFOV(fov);
-      scene.camera.setAspectRatio((float)scene.camera.filmsize[0] /
-                                  (float)scene.camera.filmsize[1]);
+      scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
 
     } else if (elems[0] == "G") {
       GVT_DEBUG(DBG_ALWAYS, "Geometry file" << elems[1]);
@@ -130,8 +118,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         gvt::render::data::primitives::Mesh *mesh;
 
-        std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator
-            meshIt = scene.objMeshes.find(elems[1]);
+        std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = scene.objMeshes.find(elems[1]);
 
         if (meshIt != scene.objMeshes.end()) {
           mesh = meshIt->second;
@@ -141,8 +128,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
           scene.objMeshes[elems[1]] = mesh;
         }
 
-        scene.domainSet.push_back(
-            domain = new gvt::render::data::domain::GeometryDomain(mesh));
+        scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
 
         gvt::core::math::Vector4f t;
         t[0] = std::atof(elems[2].c_str());
@@ -188,8 +174,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       color[1] = std::atof(elems[5].c_str());
       color[2] = std::atof(elems[6].c_str());
       color[3] = 1.f;
-      scene.lightSet.push_back(
-          new gvt::render::data::scene::PointLight(pos, color));
+      scene.lightSet.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (elems[0] == "LA") {
       gvt::core::math::Vector4f pos[2], color;
       pos[0][0] = std::atof(elems[1].c_str());

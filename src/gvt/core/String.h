@@ -21,12 +21,15 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_ACTOR_H
-#define GVT_CORE_ACTOR_H
+#ifndef GVT_CORE_STRING_H
+#define GVT_CORE_STRING_H
 
-/// placeholder base for actors
-/** placeholder base for actors, which operate on data.
-For example, rays, particles, etc.
-*/
+#include <string>
 
-#endif // GVT_CORE_ACTOR_H
+namespace gvt {
+namespace core {
+typedef std::string String;
+}
+}
+
+#endif /* GVT_CORE_STRING_H */

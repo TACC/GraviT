@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <boost/timer/timer.hpp>
 
@@ -61,16 +52,14 @@ gvtCameraBase::gvtCameraBase(const gvtCameraBase &cam) {
   filmsize[1] = cam.filmsize[1];
 }
 float gvtCameraBase::frand() { return ((float)rand()) * INVRAND_MAX; }
-void gvtCameraBase::SetCamera(gvt::render::actor::RayVector &rayvect,
-                              float rate) {
+void gvtCameraBase::SetCamera(gvt::render::actor::RayVector &rayvect, float rate) {
   rays = rayvect;
   rate = rate;
 }
 void gvtCameraBase::buildTransform() {
   //
   // Find the u, v, and w unit basis vectors for the camera coordinate system.
-  // These vectors are in world coordinates and are considered attached to the
-  // camera.
+  // These vectors are in world coordinates and are considered attached to the camera.
   // Calculate the w vector that points from the camera to the focal point.
   // Normalize it.
   //
@@ -90,11 +79,9 @@ void gvtCameraBase::buildTransform() {
   u[3] = 0.0;
   u = u.normalize();
   //
-  // The up vector input may not have been orthogonal to the viewing direction
-  // w.
+  // The up vector input may not have been orthogonal to the viewing direction w.
   // Recalculate an up vector perpendicular to both the view direction w and the
-  // horizontal direction up. The new up vector will be the cross product of w
-  // and u
+  // horizontal direction up. The new up vector will be the cross product of w and u
   //
   up_vector[0] = w[1] * u[2] - u[1] * w[2];
   up_vector[1] = w[2] * u[0] - u[2] * w[0];
@@ -154,8 +141,7 @@ void gvtCameraBase::lookAt(Point4f eye, Point4f focus, Vector4f up) {
 // gvt::render::actor::RayVector gvtCameraBase::AllocateCameraRays() {
 void gvtCameraBase::AllocateCameraRays() {
 #ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t(
-      "gvtCameraBase::AllocateCameraRays: time: %w\n");
+  boost::timer::auto_cpu_timer t("gvtCameraBase::AllocateCameraRays: time: %w\n");
 #endif
   depth = 0;
   size_t nrays = filmsize[0] * filmsize[1];
@@ -166,16 +152,14 @@ gvtCameraBase::~gvtCameraBase() {}
 
 // Perspective camera methods
 gvtPerspectiveCamera::gvtPerspectiveCamera() { field_of_view = 30.0; }
-gvtPerspectiveCamera::gvtPerspectiveCamera(const gvtPerspectiveCamera &cam)
-    : gvtCameraBase(cam) {
+gvtPerspectiveCamera::gvtPerspectiveCamera(const gvtPerspectiveCamera &cam) : gvtCameraBase(cam) {
   field_of_view = cam.field_of_view;
 }
 gvtPerspectiveCamera::~gvtPerspectiveCamera() {}
 // gvt::render::actor::RayVector gvtPerspectiveCamera::generateRays() {
 void gvtPerspectiveCamera::generateRays() {
 #ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t(
-      "gvtPerspectiveCamera::generateRays: time: %w\n");
+  boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
 #endif
   // Generate rays direction in camera space and transform to world space.
   int buffer_width = filmsize[0];
@@ -185,10 +169,8 @@ void gvtPerspectiveCamera::generateRays() {
   float x, y;
   // these basis directions are scaled by the aspect ratio and
   // the field of view.
-  Vector4f camera_vert_basis_vector =
-      Vector4f(0, 1, 0, 0) * tan(field_of_view * 0.5);
-  Vector4f camera_horiz_basis_vector =
-      Vector4f(1, 0, 0, 0) * tan(field_of_view * 0.5) * aspectRatio;
+  Vector4f camera_vert_basis_vector = Vector4f(0, 1, 0, 0) * tan(field_of_view * 0.5);
+  Vector4f camera_horiz_basis_vector = Vector4f(1, 0, 0, 0) * tan(field_of_view * 0.5) * aspectRatio;
   Vector4f camera_normal_basis_vector = Vector4f(0, 0, 1, 0);
   Vector4f camera_space_ray_direction;
   for (j = 0; j < buffer_height; j++)
@@ -204,9 +186,8 @@ void gvtPerspectiveCamera::generateRays() {
       x = 2.0 * float(i) / float(buffer_width - 1) - 1.0;
       y = 2.0 * float(j) / float(buffer_height - 1) - 1.0;
       // calculate ray direction in camera space;
-      camera_space_ray_direction = camera_normal_basis_vector +
-                                   x * camera_horiz_basis_vector +
-                                   y * camera_vert_basis_vector;
+      camera_space_ray_direction =
+          camera_normal_basis_vector + x * camera_horiz_basis_vector + y * camera_vert_basis_vector;
       // transform ray to world coordinate space;
       ray.setDirection(cam2wrld * camera_space_ray_direction.normalize());
       ray.depth = depth;

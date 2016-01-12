@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   Ray.h
  * Author: jbarbosa
@@ -68,12 +59,10 @@ typedef struct intersection {
   operator int() { return domain; }
   /// return the distance to the intersection point
   operator float() { return d; }
-  friend inline bool operator==(const intersection &lhs,
-                                const intersection &rhs) {
+  friend inline bool operator==(const intersection &lhs, const intersection &rhs) {
     return (lhs.d == rhs.d) && (lhs.d == rhs.d);
   }
-  friend inline bool operator<(const intersection &lhs,
-                               const intersection &rhs) {
+  friend inline bool operator<(const intersection &lhs, const intersection &rhs) {
     return (lhs.d < rhs.d) || ((lhs.d == rhs.d) && (lhs.domain < rhs.domain));
   }
 
@@ -86,16 +75,14 @@ public:
   /// ray type
   /** ray type enumeration
    - PRIMARY - a camera or eye ray
-   - SHADOW - a ray that tests visibility from a light source to an intersection
-   point
+   - SHADOW - a ray that tests visibility from a light source to an intersection point
    - SECONDARY - all other rays
    */
   enum RayType { PRIMARY, SHADOW, SECONDARY };
 
   Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
-      gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0,
-                                                                      0),
-      float contribution = 1.f, RayType type = PRIMARY, int depth = 10);
+      gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), float contribution = 1.f,
+      RayType type = PRIMARY, int depth = 10);
   Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
   Ray(const Ray &orig);
   Ray(const unsigned char *buf);
@@ -109,8 +96,7 @@ public:
   /// returns size in bytes for the ray information to be sent via MPI
   int packedSize();
 
-  /// packs the ray information onto the given buffer and returns the number of
-  /// bytes packed
+  /// packs the ray information onto the given buffer and returns the number of bytes packed
   int pack(unsigned char *buffer);
 
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
