@@ -70,9 +70,9 @@ namespace algorithm {
 /// work scheduler that strives to keep domains loaded and send rays
 /**
   The Domain scheduler strives to schedule work such that loaded domains remain loaded
-  and rays are sent to the process that contains the loaded domain (or is responsible 
-  for loading the domain). A domain is loaded in at most one process at any time. If 
-  there are sufficent processes to load all domains, the entire render will proceed 
+  and rays are sent to the process that contains the loaded domain (or is responsible
+  for loading the domain). A domain is loaded in at most one process at any time. If
+  there are sufficent processes to load all domains, the entire render will proceed
   in-core.
 
   This scheduler can become unbalanced when:
@@ -141,7 +141,7 @@ public:
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx
                                 << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
 
-      GVT_ASSERT(dataIdx != (size_t)-1, "domain scheduler: could not find data node");
+      GVT_ASSERT(dataIdx != (size_t) - 1, "domain scheduler: could not find data node");
       mpiInstanceMap[instancenodes[i].UUID()] = mpiNode;
     }
   }
@@ -606,8 +606,8 @@ public:
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] " << n << " inbound[2*n] " << inbound[2 * n] << std::endl);
       if (inbound[2 * n] > 0) {
         GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: adding " << inbound[2 * n] << " rays (" << inbound[2 * n + 1]
-                                  << " B) from " << n << std::endl
-                                  << "    recv buf: " << (long)recv_buf[n] << std::endl);
+                                  << " B) from " << n << std::endl << "    recv buf: " << (long)recv_buf[n]
+                                  << std::endl);
         int ptr = 0;
         while (ptr < inbound[2 * n + 1]) {
           int q_number = *((int *)(recv_buf[n] + ptr)); // bds get queue number

@@ -59,7 +59,7 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   // std::vector<int> instanceSetID;
 
   for (auto &node : this->instanceSet) {
-    instanceSetBB.push_back((Box3D*)node["bbox"].value().toULongLong());
+    instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
     instanceSetID.push_back(node["id"].value().toInteger());
   }
 }

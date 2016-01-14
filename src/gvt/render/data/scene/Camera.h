@@ -89,8 +89,7 @@ public:
     const gvt::core::math::Vector3f &y = upDir; // where the y axis should end up
     gvt::core::math::Vector3f x = y ^ z;        // lah,
     m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
-                                                      0.f, 0.f, 0.f, 0.f, 1.f)
-            .transpose();
+                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
     update();
   }
 
@@ -104,8 +103,7 @@ public:
     const gvt::core::math::Vector3f y = upDir;                    // where the y axis should end up
     gvt::core::math::Vector3f x = (y ^ z).normalize();            // lah,
     m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
-                                                      0.f, 0.f, 0.f, 0.f, 1.f)
-            .transpose();
+                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
     update();
     // const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
   }

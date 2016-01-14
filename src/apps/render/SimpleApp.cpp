@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
   // TODO: schedule db design could be modified a bit
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "conesched", root.UUID());
   schedNode["type"] = gvt::render::scheduler::Image;
-  //schedNode["type"] = gvt::render::scheduler::Domain;
+// schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;

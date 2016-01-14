@@ -214,7 +214,7 @@ int main(int argc, char **argv) {
     // add instance
     gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
     gvt::core::DBNodeH meshNode = EnzoMeshNode;
-    Box3D *mbox = (Box3D*)meshNode["bbox"].value().toULongLong();
+    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
     instnode["id"] = k;
     instnode["meshRef"] = meshNode.UUID();
     auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
@@ -276,8 +276,7 @@ int main(int argc, char **argv) {
   Vector4f up = camNode["upVector"].value().toVector4f();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(filmNode["width"].value().toInteger(),
-                       filmNode["height"].value().toInteger());
+  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
 #ifdef GVT_USE_MPE
   MPE_Log_event(readend, 0, NULL);

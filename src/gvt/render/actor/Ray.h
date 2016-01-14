@@ -78,7 +78,11 @@ public:
    - SHADOW - a ray that tests visibility from a light source to an intersection point
    - SECONDARY - all other rays
    */
-  enum RayType { PRIMARY, SHADOW, SECONDARY };
+  enum RayType {
+    PRIMARY,
+    SHADOW,
+    SECONDARY
+  };
 
   Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
       gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), float contribution = 1.f,

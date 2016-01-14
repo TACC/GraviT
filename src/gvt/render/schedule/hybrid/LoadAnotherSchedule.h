@@ -26,8 +26,8 @@
  * Author: pnav
  *
  * if a domain has a bunch of rays, add the domain to an empty process.
- * this starts with the adaptive LoadOnce schedule and removes the check about whether a 
- * domain is already loaded so at present, it adds the domain to a process that has the most 
+ * this starts with the adaptive LoadOnce schedule and removes the check about whether a
+ * domain is already loaded so at present, it adds the domain to a process that has the most
  * rays pending, which might or might not be a domain already loaded
  *
  * Created on February 4, 2014, 3:41 PM
@@ -44,9 +44,9 @@ namespace render {
 namespace schedule {
 namespace hybrid {
 /// hybrid schedule that attempts to load additional copies of domains that have high demand
-/** This schedule attempts to load domains that have high ray demand to any available processes, 
-where a process is 'available' if none of its loaded data is currently requested by any ray. This 
-follows the same logic as the LoadOnce schedule, but without the check as to whether the data is 
+/** This schedule attempts to load domains that have high ray demand to any available processes,
+where a process is 'available' if none of its loaded data is currently requested by any ray. This
+follows the same logic as the LoadOnce schedule, but without the check as to whether the data is
 already loaded.
 
 \sa LoadOnceSchedule, LoadAnyOnceSchedule, LoadManySchedule

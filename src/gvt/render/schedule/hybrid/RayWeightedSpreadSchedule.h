@@ -39,8 +39,8 @@ namespace schedule {
 namespace hybrid {
 /// hybrid schedule that distributes requested data across available processes, sorted by number of pending rays
 /** This schedule allocates requested domains that have high ray demand to availalbe processes,
- where a process is 'available' if none of its loaded data is currently requested by any ray. 
- This takes the SpreadSchedule logic and sorts the homeless domains by number of pending rays 
+ where a process is 'available' if none of its loaded data is currently requested by any ray.
+ This takes the SpreadSchedule logic and sorts the homeless domains by number of pending rays
  before assigning to available processes.
 
 This schedule has the following issues:

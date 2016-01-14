@@ -79,8 +79,7 @@ void Database::removeItem(Uuid uuid) {
         break;
     }
     Uuid puid = cnode->parentUUID();
-    GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " "
-                                                                 << (*it)->UUID().toString());
+    GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " " << (*it)->UUID().toString());
     if (it != children->end())
       children->erase(it);
     __nodes.erase(uuid);

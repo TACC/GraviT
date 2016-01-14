@@ -50,7 +50,10 @@ note that aspects of GraviT will use thread-based parallelism independent of thi
 
 \sa COMM_SIDEDNESS_ENUM
 */
-enum PARALLEL_ENUM { NOTPARALLEL, PARALLEL_MPI };
+enum PARALLEL_ENUM {
+  NOTPARALLEL,
+  PARALLEL_MPI
+};
 
 /// MPI communication type used in process parallel mode
 /** communication type used during process parallel mode

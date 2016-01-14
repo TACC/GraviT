@@ -41,7 +41,9 @@ namespace scene {
 */
 class Image {
 public:
-  enum ImageFormat { PPM };
+  enum ImageFormat {
+    PPM
+  };
 
   Image(int w, int h, std::string fn = "gvt_image", ImageFormat f = PPM)
       : width(w), height(h), filename(fn), format(f) {

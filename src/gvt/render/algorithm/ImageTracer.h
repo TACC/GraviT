@@ -62,9 +62,9 @@ namespace render {
 namespace algorithm {
 /// work scheduler that strives to keep rays resident and load data domains as needed
 /**
-  The Image scheduler strives to schedule work such that rays remain resident on their 
-  initial process and domains are loaded as necessary to retire those rays. Rays are never 
-  sent to other processes. Domains can be loaded at multiple processes, depending on the 
+  The Image scheduler strives to schedule work such that rays remain resident on their
+  initial process and domains are loaded as necessary to retire those rays. Rays are never
+  sent to other processes. Domains can be loaded at multiple processes, depending on the
   requirements of the rays at each process.
 
   This scheduler can become unbalanced when:
@@ -146,8 +146,8 @@ public:
         auto it = adapterCache.find(meshNode.UUID());
         if (it != adapterCache.end()) {
           adapter = it->second;
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache["
-                                    << meshNode.UUID().toString() << "], " << (void *)adapter);
+          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
+                                                                             << (void *)adapter);
         }
         if (!adapter) {
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");

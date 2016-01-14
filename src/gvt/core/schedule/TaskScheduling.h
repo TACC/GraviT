@@ -79,7 +79,8 @@ public:
 
     try {
       threads_.join_all();
-    } catch (...) {
+    }
+    catch (...) {
     }
   }
 
@@ -126,7 +127,8 @@ private:
         lock.unlock();
         try {
           task();
-        } catch (...) {
+        }
+        catch (...) {
         }
         wcounter--;
       }

@@ -26,9 +26,9 @@
  * Author: pnav
  *
  * if a domain has a bunch of rays, add the domain to an empty process.
- * this starts with the adaptive LoadOnce schedule and removes the check about whether 
- * a domain is already loaded and clears the map so at present, it adds the domain to a process 
- * that has the most rays pending, which might or might not be a domain already loaded, and it 
+ * this starts with the adaptive LoadOnce schedule and removes the check about whether
+ * a domain is already loaded and clears the map so at present, it adds the domain to a process
+ * that has the most rays pending, which might or might not be a domain already loaded, and it
  * loads it anywhere, regardless of whether what might have been loaded on the process previously
  *
  * TODO: starts at proc 0 each time, might get better balance if jiggle the start point
@@ -46,13 +46,13 @@ namespace render {
 namespace schedule {
 namespace hybrid {
 /// hybrid schedule that attempts to load the domains that have highest demand to
-/** This schedule attempts to load domains that have high ray demand to all processes. This 
-proceeds greedily without regard to whether or where data is already loaded. This is similar 
-to the Greedy schedule, but the requested domains are sorted by number of pending rays before 
+/** This schedule attempts to load domains that have high ray demand to all processes. This
+proceeds greedily without regard to whether or where data is already loaded. This is similar
+to the Greedy schedule, but the requested domains are sorted by number of pending rays before
 assignment. Thus, the domain with the most pending rays is always included in the process set.
 
 This schedule has the following issues:
-    - domains are assigned to processes without regard to current domain assignments, which can 
+    - domains are assigned to processes without regard to current domain assignments, which can
     incur extra data loads
     - domains are assigned without regard to current ray locations, which can incur extra ray sends
 
