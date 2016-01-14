@@ -36,10 +36,7 @@ namespace render {
 namespace data {
 namespace scene {
 
-enum CAMERA_TYPE {
-  C_ORTHOGRAPHIC,
-  C_PERSPECTIVE
-};
+enum CAMERA_TYPE { C_ORTHOGRAPHIC, C_PERSPECTIVE };
 }
 }
 }

@@ -28,14 +28,7 @@ namespace gvt {
 namespace render {
 namespace adapter {
 /// render engine used
-enum RenderType {
-  Volume,
-  Surface,
-  Manta,
-  Optix,
-  Embree,
-  Heterogeneous
-};
+enum RenderType { Volume, Surface, Manta, Optix, Embree, Heterogeneous };
 } // namespace adapter
 /// schedule used
 
@@ -53,10 +46,7 @@ enum ScheduleType {
 
 /// top-level acceleration structure to organize domains within GraviT
 namespace accelerator {
-enum AccelType {
-  NoAccel,
-  BVH
-};
+enum AccelType { NoAccel, BVH };
 } // namespace accelerator
 
 } // namespace render

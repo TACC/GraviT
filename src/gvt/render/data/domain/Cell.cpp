@@ -113,8 +113,8 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
   for (int i = 0; i < 2; ++i) {
     switch (axis[i]) {
     case 0: {
-      float pt[2] = {((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1],
-                     ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
+      float pt[2] = { ((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1],
+                      ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
       if (i == 0)
         if (swap[i])
           faces.push_back(Face(t[i], pt[0], pt[1], data[1], data[3], data[5], data[7]));
@@ -126,8 +126,8 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
         faces.push_back(Face(t[i], pt[0], pt[1], data[1], data[3], data[5], data[7]));
     } break;
     case 1: {
-      float pt[2] = {((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
-                     ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
+      float pt[2] = { ((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
+                      ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
       if (i == 0)
         if (swap[i])
           faces.push_back(Face(t[i], pt[0], pt[1], data[2], data[3], data[6], data[7]));
@@ -139,8 +139,8 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
         faces.push_back(Face(t[i], pt[0], pt[1], data[2], data[3], data[6], data[7]));
     } break;
     case 2: {
-      float pt[2] = {((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
-                     ((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1] };
+      float pt[2] = { ((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
+                      ((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1] };
       if (i == 0)
         if (swap[i])
           faces.push_back(Face(t[i], pt[0], pt[1], data[4], data[5], data[6], data[7]));
