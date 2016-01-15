@@ -4,8 +4,8 @@ AccessModifierOffset: -2
 AlignEscapedNewlinesLeft: false
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: true
-AllowShortFunctionsOnASingleLine: true
+#AllowShortBlocksOnASingleLine: true
+#AllowShortFunctionsOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakBeforeMultilineStrings: false
@@ -22,7 +22,7 @@ ContinuationIndentWidth: 4
 Cpp11BracedListStyle: false
 DerivePointerBinding: false
 ExperimentalAutoDetectBinPacking: false
-ForEachMacros(BOOST_FOREACH) # not 3.4 compatible
+# ForEachMacros(BOOST_FOREACH) # not 3.4 compatible
 IndentCaseLabels: false
 IndentFunctionDeclarationAfterType: false
 IndentWidth:     2
