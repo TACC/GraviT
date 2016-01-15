@@ -211,6 +211,5 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-  if (MPI::COMM_WORLD.Get_size() > 1)
-    MPI_Finalize();
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }

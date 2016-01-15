@@ -79,7 +79,8 @@ public:
 
     try {
       threads_.join_all();
-    } catch (...) {
+    }
+    catch (...) {
     }
   }
 
@@ -87,8 +88,7 @@ public:
    * Retrieve an instance to the thread pool singleton.
    */
   static asyncExec *instance() {
-    if (!_sinstance)
-      _sinstance = new asyncExec();
+    if (!_sinstance) _sinstance = new asyncExec();
     return _sinstance;
   }
 
@@ -118,15 +118,15 @@ private:
       while (tasks_.empty() && running_) {
         condition_.wait(lock);
       }
-      if (!running_)
-        break;
+      if (!running_) break;
       {
         boost::function<void()> task = tasks_.front();
         tasks_.pop();
         lock.unlock();
         try {
           task();
-        } catch (...) {
+        }
+        catch (...) {
         }
         wcounter--;
       }

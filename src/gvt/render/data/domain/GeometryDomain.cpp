@@ -37,8 +37,7 @@ using namespace gvt::render::data::scene;
 using namespace gvt::core::math;
 
 void GeometryDomain::free() {
-  if (!isLoaded)
-    return;
+  if (!isLoaded) return;
   for (int i = lights.size() - 1; i >= 0; i--) {
     delete lights[i];
     lights.pop_back();
@@ -51,8 +50,7 @@ void GeometryDomain::free() {
 }
 
 bool GeometryDomain::load() {
-  if (isLoaded)
-    return true;
+  if (isLoaded) return true;
   GVT_ASSERT(filename == "", "No filename");
   {
     GVT_DEBUG(DBG_LOW, "GeometryDomain::load() loading ply file");

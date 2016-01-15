@@ -320,8 +320,7 @@ int main(int argc, char **argv) {
   MPE_Log_sync_clocks();
 // MPE_Finish_log("gvtSimplelog");
 #endif
-  if (MPI::COMM_WORLD.Get_size() > 1)
-    MPI_Finalize();
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 
 // bvh intersection list test

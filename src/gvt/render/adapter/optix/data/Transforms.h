@@ -50,7 +50,7 @@ GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
     /// transform GraviT-compliant rays to OptiX-compliant rays using CUDA
     std::vector<OptixRay>
-    convertRaysToOptix(const gvt::render::actor::RayVector &rays);
+convertRaysToOptix(const gvt::render::actor::RayVector &rays);
 
 /// transform GraviT-compliant rays to OptiX-compliant rays using CUDA
 template <> struct transform_impl<gvt::render::actor::RayVector, std::vector<OptixRay> > {

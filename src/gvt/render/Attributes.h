@@ -75,7 +75,12 @@ public:
     float farPlane;
   };
 
-  enum RenderType { Volume, Surface, Manta, Optix };
+  enum RenderType {
+    Volume,
+    Surface,
+    Manta,
+    Optix
+  };
 
   enum ScheduleType {
     Image,
@@ -90,15 +95,17 @@ public:
     LoadMany
   };
 
-  enum AccelType { NoAccel, BVH };
+  enum AccelType {
+    NoAccel,
+    BVH
+  };
 
   Attributes();
   Attributes(std::string &, View &, RenderType, ScheduleType, float, float, float *);
   ~Attributes();
 
   static Attributes *instance() {
-    if (!rta)
-      rta = new Attributes();
+    if (!rta) rta = new Attributes();
     return rta;
   }
 

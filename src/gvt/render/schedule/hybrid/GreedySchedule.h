@@ -60,8 +60,7 @@ struct GreedySchedule : public HybridScheduleBase {
   virtual ~GreedySchedule() {}
 
   virtual void operator()() {
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, int> data2proc;
     for (int s = 0; s < size; ++s) {

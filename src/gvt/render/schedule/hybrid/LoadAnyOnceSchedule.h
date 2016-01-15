@@ -67,8 +67,7 @@ struct LoadAnyOnceSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in LoadAnyOnce schedule");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1; // clear map
+    for (int i = 0; i < size; ++i) newMap[i] = -1; // clear map
 
     std::map<int, int> data2proc;
     std::map<int, int> data2size;

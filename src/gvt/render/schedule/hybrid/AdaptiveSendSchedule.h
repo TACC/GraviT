@@ -58,8 +58,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in AdaptiveSend scheduler");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, std::vector<int> > cur_data2procs;
     std::map<int, std::vector<int> > send_data;
@@ -258,8 +257,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
       // could be dupes in the homeless list, so keep track of what's added
       for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
         if (newMap[i] < 0) {
-          while (!homeless.empty() && cur_data2procs.find(homeless.back()) != cur_data2procs.end())
-            homeless.pop_back();
+          while (!homeless.empty() && cur_data2procs.find(homeless.back()) != cur_data2procs.end()) homeless.pop_back();
           if (!homeless.empty()) {
             newMap[i] = homeless.back();
             cur_data2procs[newMap[i]].push_back(i);

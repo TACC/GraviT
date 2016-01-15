@@ -124,10 +124,8 @@ public:
 
       if (mpi.rank == 0) {
         not_done = 0;
-        for (int i = 0; i < mpi.world_size; ++i)
-          not_done += empties[i];
-        for (int i = 0; i < mpi.world_size; ++i)
-          empties[i] = not_done;
+        for (int i = 0; i < mpi.world_size; ++i) not_done += empties[i];
+        for (int i = 0; i < mpi.world_size; ++i) empties[i] = not_done;
       }
 
       MPI_Scatter(empties, 1, MPI_INT, &not_done, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -158,8 +156,7 @@ public:
         GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << mpi.rank << ": Getting domain " << domTarget << std::endl);
 
         if (domTarget != lastDomain)
-          if (dom != NULL)
-            dom->free();
+          if (dom != NULL) dom->free();
 
         // register the dataset so it doesn't get deleted
         // if we build a lightmap
@@ -250,8 +247,7 @@ public:
     if (mpi.rank == 0) {
       GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) {
         std::cerr << mpi.rank << ": map_size_buf:";
-        for (int i = 0; i < mpi.world_size; ++i)
-          std::cerr << map_size_buf[i] << " ";
+        for (int i = 0; i < mpi.world_size; ++i) std::cerr << map_size_buf[i] << " ";
         std::cerr << std::endl;
       });
       // add self
@@ -306,16 +302,14 @@ public:
       GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << mpi.rank << ": making new data map" << std::endl);
       data_send_buf = new int[mpi.world_size];
       newMap = new int[mpi.world_size];
-      for (int i = 0; i < mpi.world_size; ++i)
-        data_send_buf[i] = -1;
+      for (int i = 0; i < mpi.world_size; ++i) data_send_buf[i] = -1;
 
       SCHEDULER(newMap, mpi.world_size, map_size_buf, map_recv_bufs, data_send_buf)();
     }
 
     // send new map to procs
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << mpi.rank << ": sending new data map" << std::endl);
-    for (int i = 0; i < 2 * mpi.world_size; ++i)
-      reqs[i] = MPI_REQUEST_NULL;
+    for (int i = 0; i < 2 * mpi.world_size; ++i) reqs[i] = MPI_REQUEST_NULL;
     tag = tag + 1;
     if (mpi.rank == 0) {
       for (int s = 1; s < mpi.world_size; ++s) {
@@ -332,8 +326,7 @@ public:
     // update data map and domains-to-send
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << mpi.rank << ": updating local data map" << std::endl);
     for (int i = 0; i < mpi.world_size; ++i) {
-      if (i == mpi.rank)
-        continue;
+      if (i == mpi.rank) continue;
 
       GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << "    considering " << i << " -> " << newMap[i] << std::endl);
       if (newMap[i] != newMap[mpi.rank] && this->queue.find(newMap[i]) != this->queue.end()) {
@@ -353,8 +346,7 @@ public:
 
     // send dataset to procs
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << mpi.rank << ": sending dataset send buf" << std::endl);
-    for (int i = 0; i < 2 * mpi.world_size; ++i)
-      reqs[i] = MPI_REQUEST_NULL;
+    for (int i = 0; i < 2 * mpi.world_size; ++i) reqs[i] = MPI_REQUEST_NULL;
     tag = tag + 1;
     if (mpi.rank == 0) {
       for (int s = 1; s < mpi.world_size; ++s) {
@@ -368,8 +360,7 @@ public:
     MPI_Waitall(2 * mpi.world_size, reqs, stat);
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << mpi.rank << ": sync" << std::endl);
 
-    for (int i = 0; i < 2 * mpi.world_size; ++i)
-      reqs[i] = MPI_REQUEST_NULL;
+    for (int i = 0; i < 2 * mpi.world_size; ++i) reqs[i] = MPI_REQUEST_NULL;
 // if the value for this proc >= 0, then receive from value proc
 // if this proc in a value, send to that index (may be more than one)
 #ifdef SEND_DOMS
@@ -383,8 +374,7 @@ public:
 
     // figure out if we're sending to anyone
     for (int i = 0; i < size; ++i)
-      if (data_send_buf[i] == rank)
-        sendto.push_back(i);
+      if (data_send_buf[i] == rank) sendto.push_back(i);
 
     dom_char_send = new char *[sendto.size()];
     tag = tag + 1;
@@ -400,8 +390,7 @@ public:
         GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << "    must swap datasets.  Had " << domTarget
                                                           << " but need to send " << newMap[rank] << std::endl);
         // bugger! gotta load the data then send to the rest
-        if (dom != NULL)
-          dom->UnRegister(NULL);
+        if (dom != NULL) dom->UnRegister(NULL);
         dom = rta.dataset.GetDomain(newMap[rank]);
         dom_mailbox = dom; // so we don't call GetDomain() again
         dom->Register(NULL);
@@ -422,8 +411,7 @@ public:
         std::cerr << "    done.  " << dom->GetNumberOfCells() << " cells, char length " << dom_char_send_len
                   << " starting at " << (void *)dom_char_send[0] << std::endl;
         std::cerr << "        first 10 chars: ";
-        for (int i = 0; i < 10; ++i)
-          std::cerr << (int)dom_char_send[0][i] << " ";
+        for (int i = 0; i < 10; ++i) std::cerr << (int)dom_char_send[0][i] << " ";
         std::cerr << std::endl;
       });
 
@@ -435,8 +423,7 @@ public:
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << rank << ": sync" << std::endl);
 
     tag = tag + 1;
-    for (int i = 0; i < 2 * size; ++i)
-      reqs[i] = MPI_REQUEST_NULL;
+    for (int i = 0; i < 2 * size; ++i) reqs[i] = MPI_REQUEST_NULL;
     // now send and receive the data itself
     if (data_send_buf[rank] >= 0) {
       GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << rank << ": receiving dataset " << newMap[rank]
@@ -452,8 +439,7 @@ public:
         memcpy(dom_char_send[i], dom_char_send[0], dom_char_send_len);
         GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) {
           std::cerr << "        copy " << i << " first 10 chars: ";
-          for (int ii = 0; ii < 10; ++ii)
-            std::cerr << (int)dom_char_send[i][ii] << " ";
+          for (int ii = 0; ii < 10; ++ii) std::cerr << (int)dom_char_send[i][ii] << " ";
           std::cerr << std::endl;
         });
       }
@@ -470,8 +456,7 @@ public:
       GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << rank << ": unserializing new dataset" << std::endl);
       GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) {
         std::cerr << "        first 10 chars: ";
-        for (int i = 0; i < 10; ++i)
-          std::cerr << (int)dom_char_recv[i] << " ";
+        for (int i = 0; i < 10; ++i) std::cerr << (int)dom_char_recv[i] << " ";
         std::cerr << std::endl;
       });
 #if 0
@@ -537,8 +522,7 @@ public:
     GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) {
       std::cerr << mpi.rank << ": sent target info" << std::endl;
       std::cerr << mpi.rank << ": inbound ";
-      for (int i = 0; i < mpi.world_size; ++i)
-        std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
+      for (int i = 0; i < mpi.world_size; ++i) std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
       std::cerr << std::endl << mpi.rank << ": outbound ";
       for (int i = 0; i < mpi.world_size; ++i)
         std::cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
@@ -562,8 +546,7 @@ public:
     }
 
     // now send and receive rays (and associated color buffers)
-    for (int i = 0; i < 2 * mpi.world_size; ++i)
-      reqs[i] = MPI_REQUEST_NULL;
+    for (int i = 0; i < 2 * mpi.world_size; ++i) reqs[i] = MPI_REQUEST_NULL;
     tag = tag + 1;
     for (int i = 0, j = 0; i < mpi.world_size; ++i, j += 2) {
       if (inbound[j] > 0) {
@@ -629,11 +612,9 @@ public:
       delete[] recv_buf[i];
     }
     if (map_recv_bufs != NULL)
-      for (int i = 0; i < mpi.world_size; ++i)
-        delete[] map_recv_bufs[i];
+      for (int i = 0; i < mpi.world_size; ++i) delete[] map_recv_bufs[i];
 #ifdef SEND_DOMS
-    for (int i = 0; i < sendto.size(); ++i)
-      delete[] dom_char_send[i];
+    for (int i = 0; i < sendto.size(); ++i) delete[] dom_char_send[i];
 #endif
     delete[] send_buf;
     delete[] recv_buf;

@@ -62,8 +62,7 @@ struct SpreadSchedule : public HybridScheduleBase {
 
     GVT_DEBUG(DBG_LOW, "in spread schedule");
 
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, int> data2proc;
     std::vector<int> queued;
@@ -74,8 +73,7 @@ struct SpreadSchedule : public HybridScheduleBase {
         GVT_DEBUG(DBG_LOW, "    noting " << map_recv_bufs[s][0] << " -> " << s);
 
         // add queued data
-        for (int d = 1; d < map_size_buf[s]; d += 2)
-          queued.push_back(map_recv_bufs[s][d]);
+        for (int d = 1; d < map_size_buf[s]; d += 2) queued.push_back(map_recv_bufs[s][d]);
       }
     }
 
@@ -96,8 +94,7 @@ struct SpreadSchedule : public HybridScheduleBase {
     // could be dupes in the homeless list, so keep track of what's added
     for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
       if (newMap[i] < 0) {
-        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end())
-          homeless.pop_back();
+        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end()) homeless.pop_back();
         if (!homeless.empty()) {
           newMap[i] = homeless.back();
           data2proc[newMap[i]] = i;

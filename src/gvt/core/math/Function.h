@@ -68,15 +68,13 @@ template <class T> inline T lerpInverted(T a, T b, T lerp) { return (lerp - a) /
 
 template <std::size_t size, class T> inline Vector<size, T> min(const Vector<size, T> &a, const Vector<size, T> &b) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = std::min(a[i], b[i]);
+  for (std::size_t i = 0; i != size; ++i) out[i] = std::min(a[i], b[i]);
   return out;
 }
 
 template <std::size_t size, class T> Vector<size, T> max(const Vector<size, T> &a, const Vector<size, T> &b) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = std::max(a[i], b[i]);
+  for (std::size_t i = 0; i != size; ++i) out[i] = std::max(a[i], b[i]);
   return out;
 }
 
@@ -84,58 +82,49 @@ template <std::size_t size, class T>
 std::pair<Vector<size, T>, Vector<size, T> > minmax(const Vector<size, T> &a, const Vector<size, T> &b) {
   std::pair<Vector<size, T>, Vector<size, T> > out(a, b);
   for (std::size_t i = 0; i != size; ++i)
-    if (out.first[i] > out.second[i])
-      std::swap(out.first[i], out.second[i]);
+    if (out.first[i] > out.second[i]) std::swap(out.first[i], out.second[i]);
   return out;
 }
 
 template <class T> inline T sign(const T &scalar) {
-  if (scalar > T(0))
-    return T(1);
-  if (scalar < T(0))
-    return T(-1);
+  if (scalar > T(0)) return T(1);
+  if (scalar < T(0)) return T(-1);
   return T(0);
 }
 
 template <std::size_t size, class T> Vector<size, T> sign(const Vector<size, T> &a) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = sign(a[i]);
+  for (std::size_t i = 0; i != size; ++i) out[i] = sign(a[i]);
   return out;
 }
 
 template <std::size_t size, class T> Vector<size, T> abs(const Vector<size, T> &a) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = std::abs(a[i]);
+  for (std::size_t i = 0; i != size; ++i) out[i] = std::abs(a[i]);
   return out;
 }
 
 template <std::size_t size, class T> Vector<size, T> floor(const Vector<size, T> &a) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = std::floor(a[i]);
+  for (std::size_t i = 0; i != size; ++i) out[i] = std::floor(a[i]);
   return out;
 }
 
 template <std::size_t size, class T> Vector<size, T> ceil(const Vector<size, T> &a) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = std::ceil(a[i]);
+  for (std::size_t i = 0; i != size; ++i) out[i] = std::ceil(a[i]);
   return out;
 }
 
 template <std::size_t size, class T> Vector<size, T> sqrt(const Vector<size, T> &a) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = T(std::sqrt(a[i]));
+  for (std::size_t i = 0; i != size; ++i) out[i] = T(std::sqrt(a[i]));
   return out;
 }
 
 template <std::size_t size, class T> Vector<size, T> clamp(const Vector<size, T> &value, T min, T max) {
   Vector<size, T> out;
-  for (std::size_t i = 0; i != size; ++i)
-    out[i] = clamp(value[i], min, max);
+  for (std::size_t i = 0; i != size; ++i) out[i] = clamp(value[i], min, max);
   return out;
 }
 

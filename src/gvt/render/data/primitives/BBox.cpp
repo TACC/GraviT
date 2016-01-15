@@ -33,39 +33,28 @@ using namespace gvt::render::actor;
 using namespace gvt::render::data::primitives;
 
 int inline GetIntersection(float fDst1, float fDst2, Point4f P1, Point4f P2, Point4f &Hit) {
-  if ((fDst1 * fDst2) >= 0.0f)
-    return 0;
-  if (fDst1 == fDst2)
-    return 0;
+  if ((fDst1 * fDst2) >= 0.0f) return 0;
+  if (fDst1 == fDst2) return 0;
   Hit = P1 + (P2 - P1) * (-fDst1 / (fDst2 - fDst1));
   return 1;
 }
 
 int inline InBox(Point4f Hit, Point4f B1, Point4f B2, const int Axis) {
-  if (Axis == 1 && Hit.z > B1.z && Hit.z < B2.z && Hit.y > B1.y && Hit.y < B2.y)
-    return 1;
-  if (Axis == 2 && Hit.z > B1.z && Hit.z < B2.z && Hit.x > B1.x && Hit.x < B2.x)
-    return 1;
-  if (Axis == 3 && Hit.x > B1.x && Hit.x < B2.x && Hit.y > B1.y && Hit.y < B2.y)
-    return 1;
+  if (Axis == 1 && Hit.z > B1.z && Hit.z < B2.z && Hit.y > B1.y && Hit.y < B2.y) return 1;
+  if (Axis == 2 && Hit.z > B1.z && Hit.z < B2.z && Hit.x > B1.x && Hit.x < B2.x) return 1;
+  if (Axis == 3 && Hit.x > B1.x && Hit.x < B2.x && Hit.y > B1.y && Hit.y < B2.y) return 1;
   return 0;
 }
 
 // returns true if line (L1, L2) intersects with the box (B1, B2)
 // returns intersection point in Hit
 int inline CheckLineBox(Point4f B1, Point4f B2, Point4f L1, Point4f L2, Point4f &Hit) {
-  if (L2.x < B1.x && L1.x < B1.x)
-    return false;
-  if (L2.x > B2.x && L1.x > B2.x)
-    return false;
-  if (L2.y < B1.y && L1.y < B1.y)
-    return false;
-  if (L2.y > B2.y && L1.y > B2.y)
-    return false;
-  if (L2.z < B1.z && L1.z < B1.z)
-    return false;
-  if (L2.z > B2.z && L1.z > B2.z)
-    return false;
+  if (L2.x < B1.x && L1.x < B1.x) return false;
+  if (L2.x > B2.x && L1.x > B2.x) return false;
+  if (L2.y < B1.y && L1.y < B1.y) return false;
+  if (L2.y > B2.y && L1.y > B2.y) return false;
+  if (L2.z < B1.z && L1.z < B1.z) return false;
+  if (L2.z > B2.z && L1.z > B2.z) return false;
   if (L1.x > B1.x && L1.x < B2.x && L1.y > B1.y && L1.y < B2.y && L1.z > B1.z && L1.z < B2.z) {
     Hit = L1;
     return true;
@@ -121,14 +110,11 @@ bool Box3D::inBox(const Point4f &origin) const {
   bool TT[3];
 
   TT[0] = ((bounds[0].x - origin.x) <= FLT_EPSILON && (bounds[1].x - origin.x) >= -FLT_EPSILON);
-  if (!TT[0])
-    return false;
+  if (!TT[0]) return false;
   TT[1] = ((bounds[0].y - origin.y) <= FLT_EPSILON && (bounds[1].y - origin.y) >= -FLT_EPSILON);
-  if (!TT[0])
-    return false;
+  if (!TT[0]) return false;
   TT[2] = ((bounds[0].z - origin.z) <= FLT_EPSILON && (bounds[1].z - origin.z) >= -FLT_EPSILON);
-  if (!TT[0])
-    return false;
+  if (!TT[0]) return false;
   return (TT[0] && TT[1] && TT[2]);
 }
 
@@ -165,8 +151,7 @@ bool Box3D::intersectDistance(const Ray &ray, float &t) const {
   float tmin = fmaxf(fmaxf(fminf(t1, t2), fminf(t3, t4)), fminf(t5, t6));
   float tmax = fminf(fminf(fmaxf(t1, t2), fmaxf(t3, t4)), fmaxf(t5, t6));
 
-  if (tmax < 0 || tmin > tmax)
-    return false;
+  if (tmax < 0 || tmin > tmax) return false;
 
   t = (tmin > 0) ? t = tmin : tmax;
 

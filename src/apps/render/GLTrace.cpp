@@ -139,13 +139,11 @@ void keyboard(unsigned char key, int x, int y) {
   switch (key) {
   case ESCAPE:
     MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, master, MPI_COMM_WORLD);
-    if (MPI::COMM_WORLD.Get_size() > 1)
-      MPI_Finalize();
+    if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
     exit(0);
   case 'q':
     MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, master, MPI_COMM_WORLD);
-    if (MPI::COMM_WORLD.Get_size() > 1)
-      MPI_Finalize();
+    if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
     exit(0);
   default:
     // dont do anything
@@ -173,8 +171,7 @@ int main(int argc, char *argv[]) {
     filename = argv[1];
   } else {
     cerr << " application requires input config file" << endl;
-    if (MPI::COMM_WORLD.Get_size() > 1)
-      MPI_Finalize();
+    if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
     exit(1);
   }
 
@@ -191,7 +188,7 @@ int main(int argc, char *argv[]) {
   gvt::render::Attributes &rta = *(gvt::render::Attributes::instance());
   rta.dataset = new gvt::render::data::Dataset();
 
-  BOOST_FOREACH (AbstractDomain *dom, scene->domainSet) {
+  BOOST_FOREACH(AbstractDomain * dom, scene->domainSet) {
     GeometryDomain *d = (GeometryDomain *)dom;
     d->setLights(scene->lightSet);
     rta.dataset->addDomain(new MantaDomain(d));

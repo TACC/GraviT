@@ -74,8 +74,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
     std::string line;
     std::getline(file, line);
 
-    if (line.find("#") == 0)
-      continue;
+    if (line.find("#") == 0) continue;
 
     if (line.find("v") == 0) {
       parseVertex(line);
@@ -95,8 +94,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
     }
   }
 
-  if (computeNormals)
-    objMesh->generateNormals();
+  if (computeNormals) objMesh->generateNormals();
   objMesh->computeBoundingBox();
 }
 

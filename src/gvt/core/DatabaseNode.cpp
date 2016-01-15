@@ -187,7 +187,6 @@ Vector<DBNodeH> DBNodeH::getChildren() {
   Database &db = *(ctx->database());
   Vector<DatabaseNode *> children = db.getChildren(UUID());
   Vector<DBNodeH> result;
-  for (int i = 0; i < children.size(); i++)
-    result.push_back(DBNodeH(children[i]->UUID()));
+  for (int i = 0; i < children.size(); i++) result.push_back(DBNodeH(children[i]->UUID()));
   return result;
 }

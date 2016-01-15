@@ -108,8 +108,7 @@ public:
 
   void clamp() {
     for (int i = 0; i < 4; i++) {
-      if (rgba[i] > 1.f)
-        rgba[i] = 1.f;
+      if (rgba[i] > 1.f) rgba[i] = 1.f;
     }
   }
 
@@ -162,8 +161,7 @@ public:
 };
 
 inline ColorAccumulator &ColorAccumulator::operator=(const ColorAccumulator &c) {
-  if (this == &c)
-    return *this;
+  if (this == &c) return *this;
 
   t = c.t;
   rgba[0] = c.rgba[0];
