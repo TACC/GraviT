@@ -132,9 +132,11 @@ public:
   }
 
   virtual ~AbstractTrace() {};
+  // clang-format off
   virtual void operator()(void) {
     GVT_ASSERT_BACKTRACE(0, "Not supported");
   };
+  // clang-format on
 
   virtual void FilterRaysLocally(void) {
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
@@ -278,6 +280,7 @@ public:
     // tbb::parallel_for(size_t(0), size_t(rays.size()),
     //      [&] (size_t index) {
 
+// clang-format off
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       //        gvt::render::actor::Ray &r = rays[index];
@@ -347,6 +350,7 @@ public:
       //   // std::back_inserter(queue[dom]));
       // }
     });
+// clang-format on
     rays.clear();
   }
 

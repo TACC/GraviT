@@ -36,10 +36,12 @@ namespace render {
 namespace data {
 namespace scene {
 
+// clang-format off
 enum CAMERA_TYPE {
   C_ORTHOGRAPHIC,
   C_PERSPECTIVE
 };
+// clang-format on
 }
 }
 }

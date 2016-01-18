@@ -41,9 +41,11 @@ namespace scene {
 */
 class Image {
 public:
+  // clang-format off
   enum ImageFormat {
     PPM
   };
+  // clang-format on
 
   Image(int w, int h, std::string fn = "gvt_image", ImageFormat f = PPM)
       : width(w), height(h), filename(fn), format(f) {

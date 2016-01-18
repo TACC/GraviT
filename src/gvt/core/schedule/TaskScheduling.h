@@ -76,12 +76,13 @@ public:
       running_ = false;
       condition_.notify_all();
     }
-
+// clang-format off
     try {
       threads_.join_all();
     }
     catch (...) {
     }
+    // clang-format on
   }
 
   /**
@@ -123,11 +124,13 @@ private:
         boost::function<void()> task = tasks_.front();
         tasks_.pop();
         lock.unlock();
+// clang-format off
         try {
           task();
         }
         catch (...) {
         }
+        // clang-format on
         wcounter--;
       }
     }

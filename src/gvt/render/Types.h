@@ -24,6 +24,8 @@
 #ifndef GVT_RENDER_TYPES_H
 #define GVT_RENDER_TYPES_H
 
+// clang-format off
+
 namespace gvt {
 namespace render {
 namespace adapter {
@@ -37,9 +39,9 @@ enum RenderType {
   Heterogeneous
 };
 } // namespace adapter
-/// schedule used
 
 namespace scheduler {
+/// schedule used
 enum ScheduleType {
   Image,
   Domain,
@@ -51,8 +53,8 @@ enum ScheduleType {
 };
 } // namespace scheduler
 
-/// top-level acceleration structure to organize domains within GraviT
 namespace accelerator {
+/// top-level acceleration structure to organize domains within GraviT
 enum AccelType {
   NoAccel,
   BVH
@@ -61,4 +63,7 @@ enum AccelType {
 
 } // namespace render
 } // namespace gvt
+
+// clang-format on
+
 #endif // GVT_RENDER_TYPES_H

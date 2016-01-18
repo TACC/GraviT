@@ -141,7 +141,7 @@ public:
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx
                                 << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
 
-      GVT_ASSERT(dataIdx != (size_t) - 1, "domain scheduler: could not find data node");
+      GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
       mpiInstanceMap[instancenodes[i].UUID()] = mpiNode;
     }
   }
@@ -572,9 +572,11 @@ public:
     for (int n = 0; n < mpi.world_size; ++n) { // bds loop over all
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] " << n << " inbound[2*n] " << inbound[2 * n] << std::endl);
       if (inbound[2 * n] > 0) {
+        // clang-format off
         GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: adding " << inbound[2 * n] << " rays (" << inbound[2 * n + 1]
                                   << " B) from " << n << std::endl << "    recv buf: " << (long)recv_buf[n]
                                   << std::endl);
+        // clang-format on
         int ptr = 0;
         while (ptr < inbound[2 * n + 1]) {
           int q_number = *((int *)(recv_buf[n] + ptr)); // bds get queue number
