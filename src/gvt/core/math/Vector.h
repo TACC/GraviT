@@ -419,10 +419,11 @@ public:
   }
 
   //---[ Zero Test ]---------------------------
-
+// clang-format off
   bool isZero() {
     return ((n[0] == 0 && n[1] == 0 && n[2] == 0) ? true : false);
   };
+// clang-format on
 
   void zeroElements() { memset(n, 0, sizeof(T) * 3); }
 
