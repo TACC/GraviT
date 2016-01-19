@@ -106,8 +106,9 @@ public:
     focus = lookAt;
     gvt::core::math::Vector3f z = -(lookAt - eyePos).normalize(); // this is where the z axis should end up
     const gvt::core::math::Vector3f y = upDir;                    // where the y axis should end up
-    gvt::core::math::Vector3f x = (y ^ z).normalize();            // lah,
-  // clang-format off
+    gvt::core::math::Vector3f x = (y ^ z).normalize();            
+
+    // clang-format off
     m = gvt::core::math::AffineTransformMatrix<float>(
       x[0], x[1], x[2], 0.f, 
       y[0], y[1], y[2], 0.f, 

@@ -628,8 +628,7 @@ struct mantaParallelTrace {
           for (size_t pi = 0; pi < localPacketSize; ++pi) {
             auto &r = rayList[localIdx + pi];
 
-            if (valid[pi] && mRays.wasHit(pi))
-            {
+            if (valid[pi] && mRays.wasHit(pi)) {
               // shadow ray hit something, so it should be dropped
               if (r.type == gvt::render::actor::Ray::SHADOW) {
                 continue;
