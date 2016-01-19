@@ -63,12 +63,12 @@ public:
   ConfigFileLoader(const ConfigFileLoader &orig);
   virtual ~ConfigFileLoader();
 
-// clang-format off
+  // clang-format off
   enum AccelType {
     NoAccel,
     BVH
   };
-// clang-format on
+  // clang-format on
 
   /** gvt render dataset member function that contains all the scene data,
   cameras, lights, objects etc.

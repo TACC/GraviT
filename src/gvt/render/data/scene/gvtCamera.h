@@ -94,7 +94,7 @@ public:
   gvt::core::math::Vector4f getUpVector() {
     return up_vector;
   };
-// clang-format on
+  // clang-format on
 
 protected:
   gvt::core::math::AffineTransformMatrix<float> cam2wrld; //!< transform from camera to world coords

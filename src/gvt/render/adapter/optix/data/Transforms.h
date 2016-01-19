@@ -48,9 +48,10 @@ namespace data {
 
 GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
-// clang-format off
-/// transform GraviT-compliant rays to OptiX-compliant rays using CUDA
-std::vector<OptixRay> convertRaysToOptix(const gvt::render::actor::RayVector &rays);
+    // clang-format off
+    /// transform GraviT-compliant rays to OptiX-compliant rays using CUDA
+    std::vector<OptixRay>
+convertRaysToOptix(const gvt::render::actor::RayVector &rays);
 // clang-format on
 
 /// transform GraviT-compliant rays to OptiX-compliant rays using CUDA

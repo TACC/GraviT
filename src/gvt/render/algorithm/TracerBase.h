@@ -132,7 +132,7 @@ public:
   }
 
   // clang-format off
-  virtual ~AbstractTrace(){};
+  virtual ~AbstractTrace() {};
   virtual void operator()(void) {
     GVT_ASSERT_BACKTRACE(0, "Not supported");
   };

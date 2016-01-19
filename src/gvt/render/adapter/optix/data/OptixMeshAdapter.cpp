@@ -132,11 +132,9 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
   std::vector<std::future<void> > _tasks;
 
-// clang-format off
+  // clang-format off
   for (int i = 0; i < numVerts; i += offset_verts) {
-    _tasks.push_back(
-      std::async(std::launch::async, 
-        [&](const int ii, const int end) {
+    _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
                                                       for (int jj = ii; jj < end && jj < numVerts; jj++) {
                                                         vertices[jj * 3 + 0] = mesh->vertices[jj][0];
                                                         vertices[jj * 3 + 1] = mesh->vertices[jj][1];
@@ -145,15 +143,13 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
                                                     },
                                 i, i + offset_verts));
   }
-// clang-format on
+  // clang-format on
 
   const int offset_tris = 100; // numTris / std::thread::hardware_concurrency();
 
-// clang-format off
+  // clang-format off
   for (int i = 0; i < numTris; i += offset_tris) {
-    _tasks.push_back(
-      std::async(std::launch::async, 
-        [&](const int ii, const int end) {
+    _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
                                                       for (int jj = ii; jj < end && jj < numTris; jj++) {
                                                         gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
                                                         faces[jj * 3 + 0] = f.get<0>();
@@ -163,8 +159,8 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
                                                     },
                                 i, i + offset_tris));
   }
-// clang-format on
-  
+  // clang-format on
+
   for (auto &f : _tasks) f.wait();
 
   // Create and setup vertex buffer

@@ -78,7 +78,7 @@ public:
    - SHADOW - a ray that tests visibility from a light source to an intersection point
    - SECONDARY - all other rays
    */
-   // clang-format off
+  // clang-format off
   enum RayType {
     PRIMARY,
     SHADOW,

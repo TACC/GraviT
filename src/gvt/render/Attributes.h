@@ -75,14 +75,14 @@ public:
     float farPlane;
   };
 
-// clang-format off
+  // clang-format off
   enum RenderType {
     Volume,
     Surface,
     Manta,
     Optix
   };
-// clang-format on
+  // clang-format on
 
   enum ScheduleType {
     Image,
@@ -97,7 +97,7 @@ public:
     LoadMany
   };
 
-// clang-format off
+  // clang-format off
   enum AccelType {
     NoAccel,
     BVH

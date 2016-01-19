@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
   gvt::render::Attributes &rta = *(gvt::render::Attributes::instance());
   rta.dataset = new gvt::render::data::Dataset();
 
-// clang-format off
+  // clang-format off
   BOOST_FOREACH(AbstractDomain * dom, scene->domainSet) {
     GeometryDomain *d = (GeometryDomain *)dom;
     d->setLights(scene->lightSet);
