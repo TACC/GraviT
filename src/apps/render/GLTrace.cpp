@@ -114,29 +114,43 @@ inline double WallClockTime() {
 #endif
 }
 
-void Translate(Point4f& eye, Point4f& focus,const Point4f &t) {
+void Translate(Point4f& eye, Point4f& focus,const float k) {
+
+  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+
+  Vector4f w = focus - eye; //Cam direction
+  Vector4f move_dir; // Cross(w,v)
+
+  move_dir[0] = w[1] * v[2] - w[2] * v[1];
+  move_dir[1] = w[2] * v[0] - w[0] * v[2];
+  move_dir[2] = w[0] * v[1] - w[1] * v[0];
+  move_dir[3] = 0.0;
+  move_dir = move_dir.normalize();
+
+  Vector4f t = k*move_dir;
   eye += t;
   focus += t;
+
 }
 
 void  TranslateLeft(Point4f& eye, Point4f& focus, const float k) {
-  Point4f t = Point4f(-k, 0, 0,0);
-  Translate(eye,focus, t);
+  Translate(eye,focus, -k);
 }
 
 void  TranslateRight(Point4f& eye, Point4f& focus, const float k) {
-  Point4f t = Point4f(k, 0, 0,0);
-  Translate(eye,focus, t);
+  Translate(eye,focus, k);
 }
 
 void  TranslateForward(Point4f& eye, Point4f& focus, const float k) {
   Point4f t = k *(focus - eye);
-  Translate(eye,focus, t);
+  eye += t;
+  focus += t;
 }
 
 void  TranslateBackward(Point4f& eye, Point4f& focus, const float k) {
   Point4f t = -k *(focus - eye);
-  Translate(eye,focus, t);
+  eye += t;
+  focus += t;
 }
 
 void Rotate(Point4f& eye, Point4f& focus,
@@ -161,30 +175,85 @@ void Rotate(Point4f& eye, Point4f& focus,
 }
 
 void RotateLeft(Point4f& eye, Point4f& focus, float angle) {
-  Rotate( eye, focus,angle, Point4f(0, 1, 0,0));
+
+  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+
+  Vector4f w = focus - eye; //Cam direction
+  Vector4f move_dir_x; // Cross(w,v)
+  Vector4f move_dir_y;// Cross(move_dir_x,w)
+
+  move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
+  move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
+  move_dir_x[2] = w[0] * v[1] - w[1] * v[0];
+  move_dir_x[3] = 0.0;
+  move_dir_x = move_dir_x.normalize();
+
+  move_dir_y[0] = move_dir_x[1] * w[2] - move_dir_x[2] * w[1];
+  move_dir_y[1] = move_dir_x[2] * w[0] - move_dir_x[0] * w[2];
+  move_dir_y[2] = move_dir_x[0] * w[1] - move_dir_x[1] * w[0];
+  move_dir_y[3] = 0.0;
+  move_dir_y = move_dir_y.normalize();
+
+
+  Rotate( eye, focus,angle,move_dir_y);
 }
 
 void RotateRight(Point4f& eye, Point4f& focus, float angle) {
+
+  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+
+  Vector4f w = focus - eye; //Cam direction
+  Vector4f move_dir_x; // Cross(w,v)
+  Vector4f move_dir_y;// Cross(move_dir_x,w)
+
+  move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
+  move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
+  move_dir_x[2] = w[0] * v[1] - w[1] * v[0];
+  move_dir_x[3] = 0.0;
+  move_dir_x = move_dir_x.normalize();
+
+  move_dir_y[0] = move_dir_x[1] * w[2] - move_dir_x[2] * w[1];
+  move_dir_y[1] = move_dir_x[2] * w[0] - move_dir_x[0] * w[2];
+  move_dir_y[2] = move_dir_x[0] * w[1] - move_dir_x[1] * w[0];
+  move_dir_y[3] = 0.0;
+  move_dir_y = move_dir_y.normalize();
+
   Rotate( eye, focus,-angle, Point4f(0, 1, 0,0));
 }
 
 void RotateUp(Point4f& eye, Point4f& focus, float angle) {
-  Rotate( eye, focus, angle, Point4f(1, 0, 0,0));
+
+  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+
+  Vector4f w = focus - eye; //Cam direction
+  Vector4f move_dir; // Cross(w,v)
+
+  move_dir[0] = w[1] * v[2] - w[2] * v[1];
+  move_dir[1] = w[2] * v[0] - w[0] * v[2];
+  move_dir[2] = w[0] * v[1] - w[1] * v[0];
+  move_dir[3] = 0.0;
+  move_dir = move_dir.normalize();
+
+  Rotate( eye, focus, angle, move_dir);
 }
 
 void RotateDown(Point4f& eye, Point4f& focus, float angle) {
-  Rotate( eye, focus, -angle, Point4f(1, 0, 0,0));
+  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+
+  Vector4f w = focus - eye; //Cam direction
+  Vector4f move_dir; // Cross(w,v)
+
+  move_dir[0] = w[1] * v[2] - w[2] * v[1];
+  move_dir[1] = w[2] * v[0] - w[0] * v[2];
+  move_dir[2] = w[0] * v[1] - w[1] * v[0];
+  move_dir[3] = 0.0;
+  move_dir = move_dir.normalize();
+
+  Rotate( eye, focus, -angle, move_dir);
 }
 
 void UpdateCamera(Point4f focus, Point4f eye1)
 {
-  Point4f eye_o = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus_o = gvt::core::variant_toPoint4f(camNode["focus"].value());
-
-  cout << "old eye : " << eye_o[0] << " "<< eye_o[1] << " "<< eye_o[2] << endl;
-  cout << "new eye : " << eye1[0] << " "<< eye1[1] << " "<< eye1[2] << endl;
-  cout << "old focus : " << focus_o[0] << " "<< focus_o[1] << " "<< focus_o[2] << endl;
-  cout << "new focus : " << focus[0] << " "<< focus[1] << " "<< focus[2] << endl;
 
   camNode["eyePoint"] = eye1;
   camNode["focus"] = focus;
@@ -764,6 +833,114 @@ void ConfigSceneCubeCone(){
   filmNode["height"] = 512;
 }
 
+void ConfigSceneCone(){
+
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes =
+      cntxt->createNodeFromType("Data", "Data", root.UUID());
+
+  gvt::core::DBNodeH coneMeshNode =
+      cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
+
+  {
+    Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 0.5, 1.0)));
+    int numPoints = 7;
+    Point4f points[7];
+    points[0] = Point4f(0.5, 0.0, 0.0, 1.0);
+    points[1] = Point4f(-0.5, 0.5, 0.0, 1.0);
+    points[2] = Point4f(-0.5, 0.25, 0.433013, 1.0);
+    points[3] = Point4f(-0.5, -0.25, 0.43013, 1.0);
+    points[4] = Point4f(-0.5, -0.5, 0.0, 1.0);
+    points[5] = Point4f(-0.5, -0.25, -0.433013, 1.0);
+    points[6] = Point4f(-0.5, 0.25, -0.433013, 1.0);
+
+    for (int i = 0; i < numPoints; i++) {
+        mesh->addVertex(points[i]);
+      }
+    mesh->addFace(1, 2, 3);
+    mesh->addFace(1, 3, 4);
+    mesh->addFace(1, 4, 5);
+    mesh->addFace(1, 5, 6);
+    mesh->addFace(1, 6, 7);
+    mesh->addFace(1, 7, 2);
+    mesh->generateNormals();
+
+    // calculate bbox
+    Point4f lower = points[0], upper = points[0];
+    for (int i = 1; i < numPoints; i++) {
+        for (int j = 0; j < 3; j++) {
+            lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
+            upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+          }
+      }
+    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+
+    // add cone mesh to the database
+    coneMeshNode["file"] = string("/fake/path/to/cone");
+    coneMeshNode["bbox"] = meshbbox;
+    coneMeshNode["ptr"] = mesh;
+  }
+
+  gvt::core::DBNodeH instNodes =
+      cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+
+
+  gvt::core::DBNodeH instnode =
+      cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+
+  gvt::core::DBNodeH meshNode = coneMeshNode;
+
+  Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+
+  instnode["id"] = 0;
+  instnode["meshRef"] = meshNode.UUID();
+
+  auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
+  auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
+  auto normi = new gvt::core::math::Matrix3f();
+  //          *m =
+  //              *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(
+  //                0.0, i * 0.5, j * 0.5);
+  //          *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(
+  //                0.4, 0.4, 0.4);
+
+  instnode["mat"] = m;
+  *minv = m->inverse();
+  instnode["matInv"] = minv;
+  *normi = m->upper33().inverse().transpose();
+  instnode["normi"] = normi;
+
+  auto il = (*m) * mbox->bounds[0];
+  auto ih = (*m) * mbox->bounds[1];
+  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+  instnode["bbox"] = ibox;
+  instnode["centroid"] = ibox->centroid();
+
+
+  // add lights, camera, and film to the database
+  gvt::core::DBNodeH lightNodes =
+      cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+  gvt::core::DBNodeH lightNode =
+      cntxt->createNodeFromType("PointLight", "PointLight", lightNodes.UUID());
+  lightNode["position"] = Vector4f(1.0, 0.0, 0.0, 0.0);
+  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+
+  gvt::core::DBNodeH _camNode =
+      cntxt->createNodeFromType("Camera", "Camera", root.UUID());
+  _camNode["eyePoint"] = Point4f(4.0, 0.0, 0.0, 1.0);
+  _camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
+  _camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
+
+  gvt::core::DBNodeH filmNode =
+      cntxt->createNodeFromType("Film", "Film", root.UUID());
+  filmNode["width"] = 512;
+  filmNode["height"] = 512;
+}
+
+
 int main(int argc, char *argv[]) {
   unsigned char action;
   // mpi initialization
@@ -792,8 +969,9 @@ int main(int argc, char *argv[]) {
       exit(0);
     }
 
-  ConfigSceneFromFile(filename);
-  //ConfigSceneCubeCone();
+  //ConfigSceneFromFile(filename);
+  ConfigSceneCubeCone();
+  //ConfigSceneCone();
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
 

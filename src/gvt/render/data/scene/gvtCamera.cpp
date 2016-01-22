@@ -82,13 +82,25 @@ void gvtCameraBase::buildTransform() {
   v = up_vector.normalize();
   //
   // U direction is the cross product of the camera up vector and the W vector
-  // (left hand camera coord system)
   //
+  //
+#ifdef LEFT_HAND_CAMERA
   u[0] = v[1] * w[2] - v[2] * w[1];
   u[1] = v[2] * w[0] - v[0] * w[2];
   u[2] = v[0] * w[1] - v[1] * w[0];
   u[3] = 0.0;
   u = u.normalize();
+
+#endif
+
+#ifdef RIGHT_HAND_CAMERA
+  u[0] = w[1] * v[2] - w[2] * v[1];
+  u[1] = w[2] * v[0] - w[0] * v[2];
+  u[2] = w[0] * v[1] - w[1] * v[0];
+  u[3] = 0.0;
+  u = u.normalize();
+#endif
+
   //
   // The up vector input may not have been orthogonal to the viewing direction
   // w.
@@ -96,11 +108,22 @@ void gvtCameraBase::buildTransform() {
   // horizontal direction up. The new up vector will be the cross product of w
   // and u
   //
+#ifdef LEFT_HAND_CAMERA
   up_vector[0] = w[1] * u[2] - u[1] * w[2];
   up_vector[1] = w[2] * u[0] - u[2] * w[0];
   up_vector[2] = w[0] * u[1] - u[0] * w[1];
   up_vector[3] = 0.0;
   v = up_vector.normalize();
+#endif
+
+#ifdef RIGHT_HAND_CAMERA
+  up_vector[0] = u[1] * w[2] - w[1] * u[2];
+  up_vector[1] = u[2] * w[0] - w[2] * u[0];
+  up_vector[2] = u[0] * w[1] - w[0] * u[1];
+  up_vector[3] = 0.0;
+  v = up_vector.normalize();
+#endif
+
   //
   // last column in the camera to world transformation matrix is the eye_point.
   //
