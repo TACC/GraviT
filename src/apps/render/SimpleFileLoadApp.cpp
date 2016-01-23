@@ -95,8 +95,8 @@ int main(int argc, char **argv) {
 
     // add bunny mesh to the database
     bunnyMeshNode["file"] = string("../data/geom/bunny.obj");
-    bunnyMeshNode["bbox"] = meshbbox;
-    bunnyMeshNode["ptr"] = mesh;
+    bunnyMeshNode["bbox"] = (unsigned long long)meshbbox;
+    bunnyMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
   // create the instance
@@ -116,17 +116,17 @@ int main(int argc, char **argv) {
   auto normi = new gvt::core::math::Matrix3f();
   *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, 0.0, 0.0);
   *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(scale, scale, scale);
-  instnode["mat"] = m;
+  instnode["mat"] = (unsigned long long)m;
   *minv = m->inverse();
-  instnode["matInv"] = minv;
+  instnode["matInv"] = (unsigned long long)minv;
   *normi = m->upper33().inverse().transpose();
-  instnode["normi"] = normi;
+  instnode["normi"] = (unsigned long long)normi;
 
   // transform mesh bounding box
   auto il = (*m) * mbox->bounds[0];
   auto ih = (*m) * mbox->bounds[1];
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-  instnode["bbox"] = ibox;
+  instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
 
   // add a light

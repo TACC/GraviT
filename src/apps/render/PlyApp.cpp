@@ -122,8 +122,8 @@ int main(int argc, char **argv) {
   char txt[16];
   std::string temp;
   std::string filename, filepath, rootdir;
-  // rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
-  rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
+  rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
+  // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
   // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
   // myfile = fopen(filename.c_str(),"r");
   MPI_Init(&argc, &argv);
@@ -207,9 +207,9 @@ int main(int argc, char **argv) {
       mesh->generateNormals();
       // add Enzo mesh to the database
       // EnzoMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
-      EnzoMeshNode["file"] = filepath;
-      EnzoMeshNode["bbox"] = meshbbox;
-      EnzoMeshNode["ptr"] = mesh;
+      EnzoMeshNode["file"] = string(filepath);
+      EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
+      EnzoMeshNode["ptr"] = (unsigned long long)mesh;
     }
     // add instance
     gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
@@ -220,15 +220,15 @@ int main(int argc, char **argv) {
     auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
     auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
     auto normi = new gvt::core::math::Matrix3f();
-    instnode["mat"] = m;
+    instnode["mat"] = (unsigned long long)m;
     *minv = m->inverse();
-    instnode["matInv"] = minv;
+    instnode["matInv"] = (unsigned long long)minv;
     *normi = m->upper33().inverse().transpose();
-    instnode["normi"] = normi;
+    instnode["normi"] = (unsigned long long)normi;
     auto il = (*m) * mbox->bounds[0];
     auto ih = (*m) * mbox->bounds[1];
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    instnode["bbox"] = ibox;
+    instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
   }
 
