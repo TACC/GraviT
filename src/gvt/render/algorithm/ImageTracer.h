@@ -106,9 +106,12 @@ public:
   }
 
   virtual void operator()() {
-    boost::timer::cpu_timer t_sched;
-    t_sched.start();
+    boost::timer::cpu_timer t_frame;
+    t_frame.start();
     boost::timer::cpu_timer t_trace;
+    boost::timer::cpu_timer t_sort;
+    boost::timer::cpu_timer t_shuffle;
+    
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
@@ -128,6 +131,7 @@ public:
       instTarget = -1;
       instTargetCount = 0;
 
+      t_sort.resume();
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: selecting next instance, num queues: " << this->queue.size());
       for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
            ++q) {
@@ -136,6 +140,7 @@ public:
           instTarget = q->first;
         }
       }
+      t_sort.stop();
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
       if (instTarget >= 0) {
@@ -200,16 +205,20 @@ public:
         }
 
         GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
+        t_shuffle.resume();
         shuffleRays(moved_rays, instancenodes[instTarget]);
         moved_rays.clear();
+        t_shuffle.stop();
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
     this->gatherFramebuffers(this->rays.size());
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+    std::cout << "image scheduler: select time: " << t_sort.format();
     std::cout << "image scheduler: trace time: " << t_trace.format();
-    std::cout << "image scheduler: sched time: " << t_sched.format();
+    std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
+    std::cout << "image scheduler: frame time: " << t_frame.format();
   }
 };
 }

@@ -932,8 +932,8 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  // ConfigSceneFromFile(filename);
-  ConfigSceneCubeCone();
+  ConfigSceneFromFile(filename);
+  // ConfigSceneCubeCone();
   // ConfigSceneCone();
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
