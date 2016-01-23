@@ -53,6 +53,7 @@
 
 #include <mpi.h>
 
+#include <deque>
 #include <map>
 
 #include <tbb/parallel_for_each.h>
@@ -288,10 +289,10 @@ public:
       std::map<int, gvt::render::actor::RayVector> local_queue;
 
       for (gvt::render::actor::Ray &r : raysit) {
-        if (domID != -1) {
-          float t = FLT_MAX;
-          if (r.domains.empty() && domBB.intersectDistance(r, t)) {
-            r.origin += r.direction * t;
+        if (domID >= 0 && r.domains.empty()) {
+          float tmin,tmax; // = FLT_MAX;
+          if (domBB.intersectDistance(r, tmin,tmax)) {
+            r.origin += r.direction * tmax;
           }
         }
 
@@ -320,14 +321,15 @@ public:
         }
       }
 
-      std::vector<int> _doms;
+      std::deque<int> _doms;
       std::transform(local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
                      [](const std::map<int, gvt::render::actor::RayVector>::value_type &pair) { return pair.first; });
 
       while (!_doms.empty()) {
 
         int dom = _doms.front();
-        _doms.erase(_doms.begin());
+        //_doms.erase(_doms.begin());
+        _doms.pop_front();
         if (queue_mutex[dom].try_lock()) {
           queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
                             std::make_move_iterator(local_queue[dom].end()));

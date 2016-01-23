@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
   char txt[16];
   std::string temp;
   std::string filename, filepath, rootdir;
-  rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
+  rootdir = "/home/jbarbosa/r/EnzoPlyData/";
   // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
   // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
   // myfile = fopen(filename.c_str(),"r");
@@ -245,8 +245,8 @@ int main(int argc, char **argv) {
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
-  filmNode["width"] = 2000;
-  filmNode["height"] = 2000;
+  filmNode["width"] = 1900;
+  filmNode["height"] = 1080;
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
   schedNode["type"] = gvt::render::scheduler::Image;
@@ -291,10 +291,12 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    for (int z = 0; z < 1; z++) {
+    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
+    for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
-      gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
+      myimage.clear();
+      tracer();
     }
     break;
   }

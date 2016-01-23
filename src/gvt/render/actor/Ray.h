@@ -68,7 +68,7 @@ typedef struct intersection {
 
 } isecDom;
 
-typedef boost::container::vector<isecDom> isecDomList;
+typedef std::vector<isecDom> isecDomList;
 
 class Ray {
 public:

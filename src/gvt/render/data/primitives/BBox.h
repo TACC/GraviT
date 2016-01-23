@@ -55,6 +55,7 @@ public:
   bool inBox(const gvt::core::math::Point4f &r) const;
   gvt::core::math::Point4f getHitpoint(const gvt::render::actor::Ray &r) const;
   bool intersectDistance(const gvt::render::actor::Ray &r, float &t) const;
+  bool intersectDistance(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
   void expand(gvt::core::math::Point4f &v);
   int wideRangingBoxDir() const;
