@@ -37,6 +37,10 @@ namespace render {
 namespace data {
 namespace scene {
 
+#define RIGHT_HAND_CAMERA // OpenGL Standard
+//#define LEFT_HAND_CAMERA
+
+
 /// gvtCameraBase - A base class for GraviT cameras.
 /** The base class contains all the methods and variables common
  *  to all cameras in GraviT. The camera class maintains all the camera state. It
