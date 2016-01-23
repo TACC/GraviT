@@ -168,6 +168,8 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
+
+    clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
     long domain_counter = 0;

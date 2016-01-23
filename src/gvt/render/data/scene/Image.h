@@ -81,7 +81,9 @@ public:
   unsigned char *GetBuffer() { return rgb; }
 
   void Write();
-  void clear() { std::memset(rgb,0,sizeof(char)*3*width * height); }
+  void clear() { 
+    std::memset(rgb,0,sizeof(char) * 3 * width * height); 
+  }
 
   ~Image() { delete[] rgb; }
 

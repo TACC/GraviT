@@ -115,6 +115,8 @@ public:
     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
+    clearBuffer();
+
     // sort rays into queues
     FilterRaysLocally();
 

@@ -168,6 +168,7 @@ void gvtCameraBase::AllocateCameraRays() {
 #endif
   depth = 0;
   size_t nrays = filmsize[0] * filmsize[1];
+  rays.clear();
   rays.resize(nrays);
   // return rays;
 }
