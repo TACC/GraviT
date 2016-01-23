@@ -105,7 +105,7 @@ inline double WallClockTime() {
 
 void Translate(Point4f &eye, Point4f &focus, const float k) {
 
-  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Vector4f v = camNode["upVector"].value().toVector4f();
 
   Vector4f w = focus - eye; // Cam direction
   Vector4f move_dir;        // Cross(w,v)
@@ -156,7 +156,7 @@ void Rotate(Point4f &eye, Point4f &focus, const float angle, const Point4f &axis
 
 void RotateLeft(Point4f &eye, Point4f &focus, float angle) {
 
-  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Vector4f v = camNode["upVector"].value().toVector4f();
 
   Vector4f w = focus - eye; // Cam direction
   Vector4f move_dir_x;      // Cross(w,v)
@@ -179,7 +179,7 @@ void RotateLeft(Point4f &eye, Point4f &focus, float angle) {
 
 void RotateRight(Point4f &eye, Point4f &focus, float angle) {
 
-  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Vector4f v = camNode["upVector"].value().toVector4f();
 
   Vector4f w = focus - eye; // Cam direction
   Vector4f move_dir_x;      // Cross(w,v)
@@ -202,7 +202,7 @@ void RotateRight(Point4f &eye, Point4f &focus, float angle) {
 
 void RotateUp(Point4f &eye, Point4f &focus, float angle) {
 
-  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Vector4f v = camNode["upVector"].value().toVector4f();
 
   Vector4f w = focus - eye; // Cam direction
   Vector4f move_dir;        // Cross(w,v)
@@ -217,7 +217,7 @@ void RotateUp(Point4f &eye, Point4f &focus, float angle) {
 }
 
 void RotateDown(Point4f &eye, Point4f &focus, float angle) {
-  Vector4f v = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Vector4f v = camNode["upVector"].value().toVector4f();
 
   Vector4f w = focus - eye; // Cam direction
   Vector4f move_dir;        // Cross(w,v)
@@ -238,7 +238,7 @@ void UpdateCamera(Point4f focus, Point4f eye1) {
 
   if (renderMode == BVH_RENDER_MODE) {
 
-    Point4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+    Vector4f up = camNode["upVector"].value().toVector4f();
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -270,8 +270,8 @@ static void mouseFunc(int button, int state, int x, int y) {
 
 static void motionFunc(int x, int y) {
 
-  Point4f eye1 = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
+  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
 
   const double minInterval = 0.2;
   if (mouseButton0) {
@@ -326,9 +326,9 @@ void reshape(int w, int h) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    Point4f eye1 = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-    Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-    Point4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+    Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+    Point4f focus = camNode["focus"].value().toPoint4f();
+    Vector4f up = camNode["upVector"].value().toVector4f();
 
     gluLookAt(eye1[0], eye1[1], eye1[2], focus[0], focus[1], focus[2], up[0], up[1], up[2]);
   }
@@ -359,7 +359,7 @@ void RenderBVH() {
   glMatrixMode(GL_MODELVIEW);
 
   for (gvt::core::DBNodeH instance : rootNode["Instances"].getChildren()) {
-    Box3D *bbox = gvt::core::variant_toBox3DPtr(instance["bbox"].value());
+    Box3D *bbox = (Box3D *)instance["bbox"].value().toULongLong();
     drawWireBox(*bbox);
   }
 
@@ -376,17 +376,18 @@ void Render() {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-  Point4f cameraposition = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
+  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+  Vector4f up = camNode["upVector"].value().toVector4f();
 
-  float fov = gvt::core::variant_toFloat(camNode["fov"].value());
+
+  float fov = camNode["fov"].value().toFloat();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(gvt::core::variant_toInteger(filmNode["width"].value()),
-                       gvt::core::variant_toInteger(filmNode["height"].value()));
+  mycamera.setFilmsize(filmNode["width"].value().toInteger(),
+                       filmNode["height"].value().toInteger());
 
-  int schedType = gvt::core::variant_toInteger(rootNode["Schedule"]["type"].value());
+  int schedType = rootNode["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
@@ -442,8 +443,10 @@ void dispfunc(void) {
 
 void specialkey(int key, int x, int y) {
 
-  Point4f eye1 = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
+
+  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+
 
   switch (key) {
   case GLUT_KEY_LEFT: // translate camera left
@@ -489,9 +492,9 @@ void UpdateRenderMode() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    Point4f eye1 = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-    Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-    Point4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+    Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+    Point4f focus = camNode["focus"].value().toPoint4f();
+    Vector4f up = camNode["upVector"].value().toVector4f();
 
     gluLookAt(eye1[0], eye1[1], eye1[2], focus[0], focus[1], focus[2], up[0], up[1], up[2]);
   }
@@ -499,8 +502,8 @@ void UpdateRenderMode() {
 
 void keyboard(unsigned char key, int x, int y) {
 
-  Point4f eye1 = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
+  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
 
   switch (key) {
   case ESCAPE:
@@ -563,26 +566,26 @@ void ConfigSceneFromFile(string filename) {
     meshNode["file"] = filename;
     // mesh->computeBoundingBox();
     gvt::render::data::primitives::Box3D *bbox = mesh->getBoundingBox();
-    meshNode["bbox"] = bbox;
-    meshNode["ptr"] = mesh;
+    meshNode["bbox"] = (unsigned long long)bbox;
+    meshNode["ptr"] = (unsigned long long)mesh;
 
     // add instance
     gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-    Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
     instnode["id"] = i;
     instnode["meshRef"] = meshNode.UUID();
     auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
     auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
     auto normi = new gvt::core::math::Matrix3f();
-    instnode["mat"] = m;
+    instnode["mat"] = (unsigned long long)m;
     *minv = m->inverse();
-    instnode["matInv"] = minv;
+    instnode["matInv"] = (unsigned long long)minv;
     *normi = m->upper33().inverse().transpose();
-    instnode["normi"] = normi;
+    instnode["normi"] = (unsigned long long)normi;
     auto il = (*m) * mbox->bounds[0];
     auto ih = (*m) * mbox->bounds[1];
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    instnode["bbox"] = ibox;
+    instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
   }
 
@@ -654,8 +657,8 @@ void ConfigSceneCubeCone() {
 
     // add cone mesh to the database
     coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = meshbbox;
-    coneMeshNode["ptr"] = mesh;
+    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
+    coneMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
@@ -702,8 +705,8 @@ void ConfigSceneCubeCone() {
 
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
-    cubeMeshNode["bbox"] = meshbbox;
-    cubeMeshNode["ptr"] = mesh;
+    cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
+    cubeMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
   gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
@@ -719,7 +722,7 @@ void ConfigSceneCubeCone() {
       // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode :
       // cubeMeshNode;
       gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
-      Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
 
       instnode["id"] = instId++;
       instnode["meshRef"] = meshNode.UUID();
@@ -730,16 +733,16 @@ void ConfigSceneCubeCone() {
       *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, i * 0.5, j * 0.5);
       *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(0.4, 0.4, 0.4);
 
-      instnode["mat"] = m;
+      instnode["mat"] = (unsigned long long)m;
       *minv = m->inverse();
-      instnode["matInv"] = minv;
+      instnode["matInv"] = (unsigned long long)minv;
       *normi = m->upper33().inverse().transpose();
-      instnode["normi"] = normi;
+      instnode["normi"] = (unsigned long long)normi;
 
       auto il = (*m) * mbox->bounds[0];
       auto ih = (*m) * mbox->bounds[1];
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-      instnode["bbox"] = ibox;
+      instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
     }
   }
@@ -812,8 +815,8 @@ void ConfigSceneCone() {
 
     // add cone mesh to the database
     coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = meshbbox;
-    coneMeshNode["ptr"] = mesh;
+    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
+    coneMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
   gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
@@ -822,7 +825,7 @@ void ConfigSceneCone() {
 
   gvt::core::DBNodeH meshNode = coneMeshNode;
 
-  Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
 
   instnode["id"] = 0;
   instnode["meshRef"] = meshNode.UUID();
@@ -838,16 +841,16 @@ void ConfigSceneCone() {
   //          gvt::core::math::AffineTransformMatrix<float>::createScale(
   //                0.4, 0.4, 0.4);
 
-  instnode["mat"] = m;
+  instnode["mat"] = (unsigned long long)m;
   *minv = m->inverse();
-  instnode["matInv"] = minv;
+  instnode["matInv"] = (unsigned long long)minv;
   *normi = m->upper33().inverse().transpose();
-  instnode["normi"] = normi;
+  instnode["normi"] = (unsigned long long)normi;
 
   auto il = (*m) * mbox->bounds[0];
   auto ih = (*m) * mbox->bounds[1];
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-  instnode["bbox"] = ibox;
+  instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
 
   // add lights, camera, and film to the database
@@ -894,8 +897,8 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  // ConfigSceneFromFile(filename);
-  ConfigSceneCubeCone();
+   ConfigSceneFromFile(filename);
+  //ConfigSceneCubeCone();
   // ConfigSceneCone();
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
@@ -903,7 +906,7 @@ int main(int argc, char *argv[]) {
   // TODO: schedule db design could be modified a bit
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Schedule", root.UUID());
   schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
+  //schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -918,8 +921,8 @@ int main(int argc, char *argv[]) {
   schedNode["adapter"] = adapterType;
 
   camNode = root["Camera"];
-  width = gvt::core::variant_toInteger(root["Film"]["width"].value());
-  height = gvt::core::variant_toInteger(root["Film"]["height"].value());
+  width = root["Film"]["width"].value().toInteger();
+  height = root["Film"]["height"].value().toInteger();
 
   Image image(width, height, "spoot");
 
@@ -964,9 +967,9 @@ int main(int argc, char *argv[]) {
       glMatrixMode(GL_MODELVIEW);
       glLoadIdentity();
 
-      Point4f eye1 = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-      Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-      Point4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+      Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+      Point4f focus = camNode["focus"].value().toPoint4f();
+      Vector4f up = camNode["upVector"].value().toVector4f();
 
       gluLookAt(eye1[0], eye1[1], eye1[2], focus[0], focus[1], focus[2], up[0], up[1], up[2]);
     }
