@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 //
 // OptixMeshAdapter.cpp
 //
@@ -43,7 +34,8 @@
 #include <gvt/core/schedule/TaskScheduling.h> // used for threads
 
 #include <gvt/render/actor/Ray.h>
-
+#include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 
@@ -77,9 +69,8 @@ struct OptixRay {
   float direction[3];
   float t_max;
   friend std::ostream &operator<<(std::ostream &os, const OptixRay &r) {
-    return (os << "ray  o: " << r.origin[0] << ", " << r.origin[1] << ", "
-               << r.origin[2] << " d: " << r.direction[0] << ", "
-               << r.direction[1] << ", " << r.direction[2]);
+    return (os << "ray  o: " << r.origin[0] << ", " << r.origin[1] << ", " << r.origin[2] << " d: " << r.direction[0]
+               << ", " << r.direction[1] << ", " << r.direction[2]);
   }
 };
 
@@ -97,11 +88,10 @@ struct OptixHit {
 OptixContext *OptixContext::_singleton = new OptixContext();
 
 OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
-    : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE),
-      optix_context_(OptixContext::singleton()->context()) {
+    : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(OptixContext::singleton()->context()) {
   // Get GVT mesh pointer
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-  Mesh *mesh = gvt::core::variant_toMeshPtr(node["ptr"].value());
+  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
   GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
   int numVerts = mesh->vertices.size();
@@ -116,14 +106,11 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
     int devCount = 0;
     cudaDeviceProp prop;
     cudaGetDeviceCount(&devCount);
-    GVT_ASSERT(
-        devCount,
-        "You choose optix render, but no cuda capable devices are present");
+    GVT_ASSERT(devCount, "You choose optix render, but no cuda capable devices are present");
 
     for (int i = 0; i < devCount; i++) {
       cudaGetDeviceProperties(&prop, i);
-      if (prop.kernelExecTimeoutEnabled == 0)
-        activeDevices.push_back(i);
+      if (prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
       // Oversubcribe the GPU
       packetSize = prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor;
     }
@@ -141,42 +128,44 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
   vertices.resize(numVerts * 3);
   faces.resize(numTris * 3);
 
-  const int offset_verts = 100; //numVerts / std::thread::hardware_concurrency();
+  const int offset_verts = 100; // numVerts / std::thread::hardware_concurrency();
 
-  std::vector < std::future<void> > _tasks;
+  std::vector<std::future<void> > _tasks;
 
+  // clang-format off
   for (int i = 0; i < numVerts; i += offset_verts) {
-    _tasks.push_back(
-        std::async(std::launch::async, [&](const int ii, const int end) {
-          for (int jj = ii; jj < end && jj < numVerts; jj++) {
-            vertices[jj * 3 + 0] = mesh->vertices[jj][0];
-            vertices[jj * 3 + 1] = mesh->vertices[jj][1];
-            vertices[jj * 3 + 2] = mesh->vertices[jj][2];
-          }
-        }, i, i + offset_verts));
+    _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
+                                                      for (int jj = ii; jj < end && jj < numVerts; jj++) {
+                                                        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+                                                        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+                                                        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+                                                      }
+                                                    },
+                                i, i + offset_verts));
   }
+  // clang-format on
 
+  const int offset_tris = 100; // numTris / std::thread::hardware_concurrency();
 
-  const int offset_tris = 100; //numTris / std::thread::hardware_concurrency();
-
+  // clang-format off
   for (int i = 0; i < numTris; i += offset_tris) {
-    _tasks.push_back(
-        std::async(std::launch::async, [&](const int ii, const int end) {
-          for (int jj = ii; jj < end && jj < numTris; jj++) {
-            gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
-            faces[jj * 3 + 0] = f.get<0>();
-            faces[jj * 3 + 1] = f.get<1>();
-            faces[jj * 3 + 2] = f.get<2>();
-          }
-        }, i, i + offset_tris));
+    _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
+                                                      for (int jj = ii; jj < end && jj < numTris; jj++) {
+                                                        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+                                                        faces[jj * 3 + 0] = f.get<0>();
+                                                        faces[jj * 3 + 1] = f.get<1>();
+                                                        faces[jj * 3 + 2] = f.get<2>();
+                                                      }
+                                                    },
+                                i, i + offset_tris));
   }
+  // clang-format on
 
-  for(auto& f : _tasks) f.wait();
+  for (auto &f : _tasks) f.wait();
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
-  vertices_desc = optix_context_->createBufferDesc(
-      RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
+  vertices_desc = optix_context_->createBufferDesc(RTP_BUFFER_FORMAT_VERTEX_FLOAT3, RTP_BUFFER_TYPE_HOST, &vertices[0]);
 
   GVT_ASSERT(vertices_desc.isValid(), "Vertices are not valid");
   vertices_desc->setRange(0, vertices.size() / 3);
@@ -184,8 +173,7 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
   // Create and setup triangle buffer
   ::optix::prime::BufferDesc indices_desc;
-  indices_desc = optix_context_->createBufferDesc(
-      RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST, &faces[0]);
+  indices_desc = optix_context_->createBufferDesc(RTP_BUFFER_FORMAT_INDICES_INT3, RTP_BUFFER_TYPE_HOST, &faces[0]);
 
   GVT_ASSERT(indices_desc.isValid(), "Indices are not valid");
   indices_desc->setRange(0, faces.size() / 3);
@@ -282,19 +270,15 @@ struct OptixParallelTrace {
    * thread
    * to do its tracing
    */
-  OptixParallelTrace(
-      gvt::render::adapter::optix::data::OptixMeshAdapter *adapter,
-      gvt::render::actor::RayVector &rayList,
-      gvt::render::actor::RayVector &moved_rays, std::atomic<size_t> &sharedIdx,
-      const size_t workSize, gvt::core::DBNodeH instNode,
-      gvt::core::math::AffineTransformMatrix<float> *m,
-      gvt::core::math::AffineTransformMatrix<float> *minv,
-      gvt::core::math::Matrix3f *normi,
-      std::vector<gvt::render::data::scene::Light *> &lights,
-      std::atomic<size_t> &counter, const size_t begin, const size_t end)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
-        sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
-        minv(minv), normi(normi), lights(lights), counter(counter),
+  OptixParallelTrace(gvt::render::adapter::optix::data::OptixMeshAdapter *adapter,
+                     gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
+                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode,
+                     gvt::core::math::AffineTransformMatrix<float> *m,
+                     gvt::core::math::AffineTransformMatrix<float> *minv, gvt::core::math::Matrix3f *normi,
+                     std::vector<gvt::render::data::scene::Light *> &lights, std::atomic<size_t> &counter,
+                     const size_t begin, const size_t end)
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
+        instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
         packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
 
   /**
@@ -308,10 +292,8 @@ struct OptixParallelTrace {
    * \param rays          vector of rays to read from
    * \param startIdx      starting point to read from in `rays`
    */
-  void prepOptixRays(std::vector<OptixRay> &optixrays, std::vector<bool> &valid,
-                     const bool resetValid, const int localPacketSize,
-                     const gvt::render::actor::RayVector &rays,
-                     const size_t startIdx) {
+  void prepOptixRays(std::vector<OptixRay> &optixrays, std::vector<bool> &valid, const bool resetValid,
+                     const int localPacketSize, const gvt::render::actor::RayVector &rays, const size_t startIdx) {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
@@ -339,8 +321,7 @@ struct OptixParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r,
-                          const gvt::core::math::Vector4f &normal, int primID,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal, int primID,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
@@ -348,8 +329,7 @@ struct OptixParallelTrace {
       // triangle.
       // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
       // Using about 8 * ULP(t).
-      const float multiplier =
-          1.0f - 16.0f * std::numeric_limits<float>::epsilon();
+      const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
       const float t_shadow = multiplier * r.t;
 
       const Point4f origin = r.origin + r.direction * t_shadow;
@@ -357,8 +337,7 @@ struct OptixParallelTrace {
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
-      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w,
-                               Ray::SHADOW, r.depth));
+      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
 
       Ray &shadow_ray = shadowRays.back();
       shadow_ray.t = r.t;
@@ -366,8 +345,7 @@ struct OptixParallelTrace {
       shadow_ray.t_max = t_max;
 
       // FIXME: remove dependency on mesh->shadeFace
-      gvt::render::data::Color c =
-          mesh->shadeFace(primID, shadow_ray, normal, light);
+      gvt::render::data::Color c = mesh->shadeFace(primID, shadow_ray, normal, light);
       // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
       // normal, lights[lindex]);
       shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
@@ -379,15 +357,11 @@ struct OptixParallelTrace {
    * to the dispatch queue.
    */
   void traceShadowRays() {
-    ::optix::prime::Query query =
-        adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
-    if (!query.isValid())
-      return;
+    ::optix::prime::Query query = adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
+    if (!query.isValid()) return;
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
-      const size_t localPacketSize = (idx + packetSize > shadowRays.size())
-                                         ? (shadowRays.size() - idx)
-                                         : packetSize;
+      const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
       std::vector<OptixRay> optix_rays(localPacketSize);
       std::vector<OptixHit> hits(localPacketSize);
 
@@ -396,13 +370,11 @@ struct OptixParallelTrace {
 
       prepOptixRays(optix_rays, valid, true, localPacketSize, shadowRays, idx);
 
-      query->setRays(optix_rays.size(),
-                     RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
-                     RTP_BUFFER_TYPE_HOST, &optix_rays[0]);
+      query->setRays(optix_rays.size(), RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX, RTP_BUFFER_TYPE_HOST,
+                     &optix_rays[0]);
 
       // Create and pass hit results in an Optix friendly format.
-      query->setHits(hits.size(), RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V,
-                     RTP_BUFFER_TYPE_HOST, &hits[0]);
+      query->setHits(hits.size(), RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V, RTP_BUFFER_TYPE_HOST, &hits[0]);
 
       // Execute our query and wait for it to finish.
       query->execute(RTP_QUERY_HINT_ASYNC);
@@ -470,14 +442,12 @@ struct OptixParallelTrace {
    */
   void operator()() {
 #ifdef GVT_USE_DEBUG
-    boost::timer::auto_cpu_timer t_functor(
-        "OptixMeshAdapter: thread trace time: %w\n");
+    boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: thread trace time: %w\n");
 #endif
 
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = gvt::core::variant_toMeshPtr(
-        instNode["meshRef"].deRef()["ptr"].value());
+    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
     ::optix::prime::Model scene = adapter->getScene();
 
@@ -508,13 +478,10 @@ struct OptixParallelTrace {
         workEnd = end;
       }
 
-      for (size_t localIdx = workStart; localIdx < workEnd;
-           localIdx += packetSize) {
+      for (size_t localIdx = workStart; localIdx < workEnd; localIdx += packetSize) {
         // this is the local packet size. this might be less than the main
         // packetSize due to uneven amount of rays
-        const size_t localPacketSize = (localIdx + packetSize > workEnd)
-                                           ? (workEnd - localIdx)
-                                           : packetSize;
+        const size_t localPacketSize = (localIdx + packetSize > workEnd) ? (workEnd - localIdx) : packetSize;
 
         // trace a packet of rays, then keep tracing the generated secondary
         // rays to completion
@@ -538,18 +505,14 @@ struct OptixParallelTrace {
         while (validRayLeft) {
           validRayLeft = false;
 
-          prepOptixRays(optix_rays, valid, false, localPacketSize, rayList,
-                        localIdx);
-          ::optix::prime::Query query =
-              adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
+          prepOptixRays(optix_rays, valid, false, localPacketSize, rayList, localIdx);
+          ::optix::prime::Query query = adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
 
-          query->setRays(optix_rays.size(),
-                         RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
-                         RTP_BUFFER_TYPE_HOST, &optix_rays[0]);
+          query->setRays(optix_rays.size(), RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX, RTP_BUFFER_TYPE_HOST,
+                         &optix_rays[0]);
 
           // Create and pass hit results in an Optix friendly format.
-          query->setHits(hits.size(), RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V,
-                         RTP_BUFFER_TYPE_HOST, &hits[0]);
+          query->setHits(hits.size(), RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V, RTP_BUFFER_TYPE_HOST, &hits[0]);
 
           // Execute our query and wait faor it to finish.
           query->execute(RTP_QUERY_HINT_ASYNC);
@@ -576,10 +539,9 @@ struct OptixParallelTrace {
 #ifndef FLAT_SHADING
                   const float u = hits[pi].u;
                   const float v = hits[pi].v;
-                  const Mesh::FaceToNormals &normals =
-                      mesh->faces_to_normals[triangle_id]; // FIXME: need to
-                                                           // figure out
-                                                           // to store
+                  const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // FIXME: need to
+                                                                                            // figure out
+                                                                                            // to store
                   // `faces_to_normals`
                   // list
                   const Vector4f &a = mesh->normals[normals.get<0>()];
@@ -587,8 +549,7 @@ struct OptixParallelTrace {
                   const Vector4f &c = mesh->normals[normals.get<2>()];
                   manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                  manualNormal =
-                      (*normi) * (gvt::core::math::Vector3f)manualNormal;
+                  manualNormal = (*normi) * (gvt::core::math::Vector3f)manualNormal;
                   manualNormal.normalize();
 #else
                   int I = mesh->faces[triangle_id].get<0>();
@@ -623,25 +584,18 @@ struct OptixParallelTrace {
                 if (ndepth > 0 && r.w > p) {
                   r.domains.clear();
                   r.type = gvt::render::actor::Ray::SECONDARY;
-                  const float multiplier =
-                      1.0f -
-                      16.0f *
-                          std::numeric_limits<float>::epsilon(); // TODO: move
-                                                                 // out
+                  const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move
+                                                                                                 // out
                   // somewhere /
                   // make static
                   const float t_secondary = multiplier * r.t;
                   r.origin = r.origin + r.direction * t_secondary;
 
-                  r.setDirection(
-                      mesh->getMaterial()
-                          ->CosWeightedRandomHemisphereDirection2(normal)
-                          .normalize());
+                  r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
 
                   r.w = r.w * (r.direction * normal);
                   r.depth = ndepth;
-                  validRayLeft =
-                      true; // we still have a valid ray in the packet to trace
+                  validRayLeft = true; // we still have a valid ray in the packet to trace
                 } else {
                   valid[pi] = false;
                 }
@@ -680,31 +634,25 @@ struct OptixParallelTrace {
         break;
       }
     }
-    GVT_DEBUG(DBG_ALWAYS, "Local dispatch : "
-                              << localDispatch.size() << ", types: primary: "
-                              << primary_count << ", shadow: " << shadow_count
-                              << ", secondary: " << secondary_count
-                              << ", other: " << other_count);
+    GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size() << ", types: primary: " << primary_count
+                                              << ", shadow: " << shadow_count << ", secondary: " << secondary_count
+                                              << ", other: " << other_count);
 #endif
 
     // copy localDispatch rays to outgoing rays queue
     boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
-    moved_rays.insert(moved_rays.end(), localDispatch.begin(),
-                      localDispatch.end());
+    moved_rays.insert(moved_rays.end(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }
 };
 
-void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
-                             gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode, size_t _begin,
-                             size_t _end) {
+void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
+                             gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
 
-  if (_end == 0)
-    _end = rayList.size();
+  if (_end == 0) _end = rayList.size();
 
   this->begin = _begin;
   this->end = _end;
@@ -713,12 +661,9 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   const size_t numThreads = std::thread::hardware_concurrency();
   gvt::core::schedule::asyncExec::instance()->numThreads;
   const size_t workSize =
-      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE,
-                                   (size_t)((end - begin) / numThreads)));
+      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE, (size_t)((end - begin) / numThreads)));
 
-  const size_t numworkers =
-      std::max((size_t)1, std::min((size_t)numThreads,
-                                   (size_t)((end - begin) / workSize)));
+  const size_t numworkers = std::max((size_t)1, std::min((size_t)numThreads, (size_t)((end - begin) / workSize)));
 
   // pull out information out of the database, create local structs that will be
   // passed into the parallel struct
@@ -727,11 +672,10 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // pull out instance transform data
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: getting instance transform data");
   gvt::core::math::AffineTransformMatrix<float> *m =
-      gvt::core::variant_toAffineTransformMatPtr(instNode["mat"].value());
+      (gvt::core::math::AffineTransformMatrix<float> *)instNode["mat"].value().toULongLong();
   gvt::core::math::AffineTransformMatrix<float> *minv =
-      gvt::core::variant_toAffineTransformMatPtr(instNode["matInv"].value());
-  gvt::core::math::Matrix3f *normi =
-      gvt::core::variant_toMatrix3fPtr(instNode["normi"].value());
+      (gvt::core::math::AffineTransformMatrix<float> *)instNode["matInv"].value().toULongLong();
+  gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f *)instNode["normi"].value().toULongLong();
 
   //
   // TODO: wrap this db light array -> class light array conversion in some sort
@@ -742,19 +686,17 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   std::vector<gvt::render::data::scene::Light *> lights;
   lights.reserve(2);
   for (auto lightNode : lightNodes) {
-    auto color = gvt::core::variant_toVector4f(lightNode["color"].value());
+    auto color = lightNode["color"].value().toVector4f();
 
     if (lightNode.name() == std::string("PointLight")) {
-      auto pos = gvt::core::variant_toVector4f(lightNode["position"].value());
+      auto pos = lightNode["position"].value().toVector4f();
       lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));
     }
   }
-  GVT_DEBUG(DBG_ALWAYS,
-            "OptixMeshAdapter: converted "
-                << lightNodes.size()
-                << " light nodes into structs: size: " << lights.size());
+  GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: converted " << lightNodes.size()
+                                                       << " light nodes into structs: size: " << lights.size());
   // end `convertLights`
   //
 
@@ -764,22 +706,19 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
-  std::vector<std::future<void>> _tasks;
+  std::vector<std::future<void> > _tasks;
 
   for (size_t rc = 0; rc < numworkers; ++rc) {
     _tasks.push_back(std::async(std::launch::deferred, [&]() {
-      OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize,
-                         instNode, m, minv, normi, lights, counter, begin,
-                         end)();
+      OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights, counter,
+                         begin, end)();
     }));
   }
 
-  for (auto &t : _tasks)
-    t.wait();
+  for (auto &t : _tasks) t.wait();
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
-  GVT_DEBUG(DBG_ALWAYS,
-            "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());
+  GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());
 
   // rayList.clear();
 }

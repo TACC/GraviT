@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   Matrix.h
  * Author: jbarbosa
@@ -66,9 +57,7 @@ template <class T> class Vector4;
 template <class T> class Matrix3;
 template <class T> class AffineTransformMatrix;
 
-//==========[ class Matrix3
-//]=====================================================
-
+//==========[ class Matrix3 ]=====================================================
 template <class T> class Matrix3 {
   //---[ Private Variable Declarations ]-----------------
 public:
@@ -164,9 +153,7 @@ public:
 
   //---[ Ordering Methods ]------------------------------
 
-  Matrix3<T> transpose() const {
-    return Matrix3<T>(n[0], n[3], n[6], n[1], n[4], n[7], n[2], n[5], n[8]);
-  }
+  Matrix3<T> transpose() const { return Matrix3<T>(n[0], n[3], n[6], n[1], n[4], n[7], n[2], n[5], n[8]); }
 
   double trace() const { return n[0] + n[4] + n[8]; }
 
@@ -204,8 +191,7 @@ public:
     {
       i1 = j; // Row with largest pivot candidate
       for (i = j + 1; i < 3; i++) {
-        if (std::abs(a[i][j]) > std::abs(a[i1][j]))
-          i1 = i;
+        if (std::abs(a[i][j]) > std::abs(a[i1][j])) i1 = i;
 
         // Swap rows i1 and j in a and b to put pivot on diagonal
         for (i = 0; i < 3; i++) {
@@ -237,34 +223,23 @@ public:
   //---[ Friend Methods ]--------------------------------
 
   template <class U> friend Matrix3<T> operator-(const Matrix3<T> &a);
-  template <class U>
-  friend Matrix3<T> operator+(const Matrix3<T> &a, const Matrix3<T> &b);
-  template <class U>
-  friend Matrix3<T> operator-(const Matrix3<T> &a, const Matrix3<T> &b);
-  template <class U>
-  friend Matrix3<T> operator*(const Matrix3<T> &a, const Matrix3<T> &b);
-  template <class U>
-  friend Matrix3<T> operator*(const Matrix3<T> &a, const double d);
-  template <class U>
-  friend Matrix3<T> operator*(const double d, const Matrix3<T> &a);
-  template <class U>
-  friend Matrix3<T> operator/(const Matrix3<T> &a, const double d);
-  template <class U>
-  friend bool operator==(const Matrix3<T> &a, const Matrix3<T> &b);
-  template <class U>
-  friend bool operator!=(const Matrix3<T> &a, const Matrix3<T> &b);
-  template <class U>
-  friend std::ostream &operator<<(std::ostream &os, const Matrix3<T> &m);
-  template <class U>
-  friend std::istream &operator>>(std::istream &is, Matrix3<T> &m);
+  template <class U> friend Matrix3<T> operator+(const Matrix3<T> &a, const Matrix3<T> &b);
+  template <class U> friend Matrix3<T> operator-(const Matrix3<T> &a, const Matrix3<T> &b);
+  template <class U> friend Matrix3<T> operator*(const Matrix3<T> &a, const Matrix3<T> &b);
+  template <class U> friend Matrix3<T> operator*(const Matrix3<T> &a, const double d);
+  template <class U> friend Matrix3<T> operator*(const double d, const Matrix3<T> &a);
+  template <class U> friend Matrix3<T> operator/(const Matrix3<T> &a, const double d);
+  template <class U> friend bool operator==(const Matrix3<T> &a, const Matrix3<T> &b);
+  template <class U> friend bool operator!=(const Matrix3<T> &a, const Matrix3<T> &b);
+  template <class U> friend std::ostream &operator<<(std::ostream &os, const Matrix3<T> &m);
+  template <class U> friend std::istream &operator>>(std::istream &is, Matrix3<T> &m);
 };
 
 typedef Matrix3<int> Matrix3i;
 typedef Matrix3<float> Matrix3f;
 typedef Matrix3<double> Matrix3d;
 
-//==========[ class Matrix4
-//]=====================================================
+//==========[ class Matrix4 ]=====================================================
 
 template <class T> class AffineTransformMatrix {
   //---[ Private Variable Declarations ]-----------------
@@ -273,10 +248,8 @@ public:
   T n[16];
 
   bool isZero() {
-    return n[0] == 0 && n[1] == 0 && n[2] == 0 && n[3] == 0 && n[4] == 0 &&
-           n[5] == 0 && n[6] == 0 && n[7] == 0 && n[8] == 0 && n[9] == 0 &&
-           n[10] == 0 && n[11] == 0 && n[12] == 0 && n[13] == 0 && n[14] == 0 &&
-           n[15] == 0;
+    return n[0] == 0 && n[1] == 0 && n[2] == 0 && n[3] == 0 && n[4] == 0 && n[5] == 0 && n[6] == 0 && n[7] == 0 &&
+           n[8] == 0 && n[9] == 0 && n[10] == 0 && n[11] == 0 && n[12] == 0 && n[13] == 0 && n[14] == 0 && n[15] == 0;
   }
 
   //---[ Constructors ]----------------------------------
@@ -291,8 +264,8 @@ public:
     }
   }
 
-  AffineTransformMatrix(T n0, T n1, T n2, T n3, T n4, T n5, T n6, T n7, T n8,
-                        T n9, T n10, T n11, T n12, T n13, T n14, T n15) {
+  AffineTransformMatrix(T n0, T n1, T n2, T n3, T n4, T n5, T n6, T n7, T n8, T n9, T n10, T n11, T n12, T n13, T n14,
+                        T n15) {
     n[0] = n0;
     n[1] = n1;
     n[2] = n2;
@@ -311,12 +284,9 @@ public:
     n[15] = n15;
   }
 
-  AffineTransformMatrix(const AffineTransformMatrix<T> &m) {
-    memcpy(n, m.n, 16 * sizeof(T));
-  }
+  AffineTransformMatrix(const AffineTransformMatrix<T> &m) { memcpy(n, m.n, 16 * sizeof(T)); }
 
-  AffineTransformMatrix(const Vector4<T> &v0, const Vector4<T> &v1,
-                        const Vector4<T> &v2, const Vector4<T> &v3) {
+  AffineTransformMatrix(const Vector4<T> &v0, const Vector4<T> &v1, const Vector4<T> &v2, const Vector4<T> &v3) {
     n[0] = v0[0];
     n[1] = v0[1];
     n[2] = v0[2];
@@ -431,9 +401,8 @@ public:
   //---[ Ordering Methods ]------------------------------
 
   AffineTransformMatrix<T> transpose() const {
-    return AffineTransformMatrix<T>(n[0], n[4], n[8], n[12], n[1], n[5], n[9],
-                                    n[13], n[2], n[6], n[10], n[14], n[3], n[7],
-                                    n[11], n[15]);
+    return AffineTransformMatrix<T>(n[0], n[4], n[8], n[12], n[1], n[5], n[9], n[13], n[2], n[6], n[10], n[14], n[3],
+                                    n[7], n[11], n[15]);
   }
 
   double trace() const { return n[0] + n[5] + n[10] + n[15]; }
@@ -480,26 +449,21 @@ public:
 
   //---[ Transformation Matrixrices ]-----------------------
 
-  static AffineTransformMatrix<T> createRotation(T angle, float x, float y,
-                                                 float z);
+  static AffineTransformMatrix<T> createRotation(T angle, float x, float y, float z);
   static AffineTransformMatrix<T> createTranslation(T x, T y, T z);
   static AffineTransformMatrix<T> createScale(T sx, T sy, T sz);
   static AffineTransformMatrix<T> createShear(T shx, T shy, T shz);
 
   //---[ Conversion ]------------------------------------
 
-  Matrix3<T> upper33() {
-    return Matrix3<T>(n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10]);
-  }
+  Matrix3<T> upper33() { return Matrix3<T>(n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10]); }
 
   //---[ Inversion ]-------------------------------------
 
-  AffineTransformMatrix<T>
-  inverse() const // Gauss-Jordan elimination with partial pivoting
+  AffineTransformMatrix<T> inverse() const // Gauss-Jordan elimination with partial pivoting
   {
-    AffineTransformMatrix<T> a(
-        *this);                 // As a evolves from original mat into identity
-    AffineTransformMatrix<T> b; // b evolves from identity into inverse(a)
+    AffineTransformMatrix<T> a(*this); // As a evolves from original mat into identity
+    AffineTransformMatrix<T> b;        // b evolves from identity into inverse(a)
     int i, j, i1;
 
     // Loop over cols of a from left to right, eliminating above and below diag
@@ -507,8 +471,7 @@ public:
     {
       i1 = j; // Row with largest pivot candidate
       for (i = j + 1; i < 4; i++) {
-        if (std::abs(a[i][j]) > std::abs(a[i1][j]))
-          i1 = i;
+        if (std::abs(a[i][j]) > std::abs(a[i1][j])) i1 = i;
       }
 
       // Swap rows i1 and j in a and b to put pivot on diagonal
@@ -539,55 +502,32 @@ public:
 
   //---[ Friend Methods ]--------------------------------
 
+  template <class U> friend AffineTransformMatrix<T> operator-(const AffineTransformMatrix<T> &a);
   template <class U>
-  friend AffineTransformMatrix<T> operator-(const AffineTransformMatrix<T> &a);
+  friend AffineTransformMatrix<T> operator+(const AffineTransformMatrix<T> &a, const AffineTransformMatrix<T> &b);
   template <class U>
-  friend AffineTransformMatrix<T> operator+(const AffineTransformMatrix<T> &a,
-                                            const AffineTransformMatrix<T> &b);
+  friend AffineTransformMatrix<T> operator-(const AffineTransformMatrix<T> &a, const AffineTransformMatrix<T> &b);
   template <class U>
-  friend AffineTransformMatrix<T> operator-(const AffineTransformMatrix<T> &a,
-                                            const AffineTransformMatrix<T> &b);
-  template <class U>
-  friend AffineTransformMatrix<T> operator*(const AffineTransformMatrix<T> &a,
-                                            const AffineTransformMatrix<T> &b);
-  template <class U>
-  friend AffineTransformMatrix<T> operator*(const AffineTransformMatrix<T> &a,
-                                            const double d);
-  template <class U>
-  friend AffineTransformMatrix<T> operator*(const double d,
-                                            const AffineTransformMatrix<T> &a);
-  template <class U>
-  friend Vector3<T> operator*(const AffineTransformMatrix<T> &a,
-                              const Vector3<T> &b);
-  template <class U>
-  friend AffineTransformMatrix<T> operator/(const AffineTransformMatrix<T> &a,
-                                            const double d);
-  template <class U>
-  friend bool operator==(const AffineTransformMatrix<T> &a,
-                         const AffineTransformMatrix<T> &b);
-  template <class U>
-  friend bool operator!=(const AffineTransformMatrix<T> &a,
-                         const AffineTransformMatrix<T> &b);
-  template <class U>
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const AffineTransformMatrix<T> &m);
-  template <class U>
-  friend std::istream &operator>>(std::istream &is,
-                                  AffineTransformMatrix<T> &m);
+  friend AffineTransformMatrix<T> operator*(const AffineTransformMatrix<T> &a, const AffineTransformMatrix<T> &b);
+  template <class U> friend AffineTransformMatrix<T> operator*(const AffineTransformMatrix<T> &a, const double d);
+  template <class U> friend AffineTransformMatrix<T> operator*(const double d, const AffineTransformMatrix<T> &a);
+  template <class U> friend Vector3<T> operator*(const AffineTransformMatrix<T> &a, const Vector3<T> &b);
+  template <class U> friend AffineTransformMatrix<T> operator/(const AffineTransformMatrix<T> &a, const double d);
+  template <class U> friend bool operator==(const AffineTransformMatrix<T> &a, const AffineTransformMatrix<T> &b);
+  template <class U> friend bool operator!=(const AffineTransformMatrix<T> &a, const AffineTransformMatrix<T> &b);
+  template <class U> friend std::ostream &operator<<(std::ostream &os, const AffineTransformMatrix<T> &m);
+  template <class U> friend std::istream &operator>>(std::istream &is, AffineTransformMatrix<T> &m);
 };
 
 typedef AffineTransformMatrix<int> Matrix4i;
 typedef AffineTransformMatrix<float> Matrix4f;
 typedef AffineTransformMatrix<double> Matrix4d;
 
-//==========[ Inline Method Definitions (Matrixrix)
-//]=============================
+//==========[ Inline Method Definitions (Matrixrix) ]=============================
 
-template <class T>
-inline Matrix3<T> Matrix3<T>::createRotation(T angle, float x, float y) {
+template <class T> inline Matrix3<T> Matrix3<T>::createRotation(T angle, float x, float y) {
   Matrix3<T> rot;
-  GVT_DEBUG(DBG_ALWAYS,
-            "unimplemented matrix command createRotation(angle,x,y)");
+  GVT_DEBUG(DBG_ALWAYS, "unimplemented matrix command createRotation(angle,x,y)");
   return rot;
 }
 
@@ -610,75 +550,58 @@ template <class T> inline Matrix3<T> Matrix3<T>::createShear(T shx, T shy) {
 }
 
 template <class T> inline Matrix3<T> operator-(const Matrix3<T> &a) {
-  return Matrix3<T>(-a.n[0], -a.n[1], -a.n[2], -a.n[3], -a.n[4], -a.n[5],
-                    -a.n[6], -a.n[7], -a.n[8]);
+  return Matrix3<T>(-a.n[0], -a.n[1], -a.n[2], -a.n[3], -a.n[4], -a.n[5], -a.n[6], -a.n[7], -a.n[8]);
+}
+
+template <class T> inline Matrix3<T> operator+(const Matrix3<T> &a, const Matrix3<T> &b) {
+  return Matrix3<T>(a.n[0] + b.n[0], a.n[1] + b.n[1], a.n[2] + b.n[2], a.n[3] + b.n[3], a.n[4] + b.n[4],
+                    a.n[5] + b.n[5], a.n[6] + b.n[6], a.n[7] + b.n[7], a.n[8] + b.n[8]);
+}
+
+template <class T> inline Matrix3<T> operator-(const Matrix3<T> &a, const Matrix3<T> &b) {
+  return Matrix3<T>(a.n[0] - b.n[0], a.n[1] - b.n[1], a.n[2] - b.n[2], a.n[3] - b.n[3], a.n[4] - b.n[4],
+                    a.n[5] - b.n[5], a.n[6] - b.n[6], a.n[7] - b.n[7], a.n[8] - b.n[8]);
+}
+
+template <class T> inline Matrix3<T> operator*(const Matrix3<T> &a, const Matrix3<T> &b) {
+  return Matrix3<T>(
+      a.n[0] * b.n[0] + a.n[1] * b.n[3] + a.n[2] * b.n[6], a.n[0] * b.n[1] + a.n[1] * b.n[4] + a.n[2] * b.n[7],
+      a.n[0] * b.n[2] + a.n[1] * b.n[5] + a.n[2] * b.n[8], a.n[3] * b.n[0] + a.n[4] * b.n[3] + a.n[5] * b.n[6],
+      a.n[3] * b.n[1] + a.n[4] * b.n[4] + a.n[5] * b.n[7], a.n[3] * b.n[2] + a.n[4] * b.n[5] + a.n[5] * b.n[8],
+      a.n[6] * b.n[0] + a.n[7] * b.n[3] + a.n[8] * b.n[6], a.n[6] * b.n[1] + a.n[7] * b.n[4] + a.n[8] * b.n[7],
+      a.n[6] * b.n[2] + a.n[7] * b.n[5] + a.n[8] * b.n[8]);
+}
+
+template <class T> inline Matrix3<T> operator*(const Matrix3<T> &a, const double d) {
+  return Matrix3<T>(a.n[0] * d, a.n[1] * d, a.n[2] * d, a.n[3] * d, a.n[4] * d, a.n[5] * d, a.n[6] * d, a.n[7] * d,
+                    a.n[8] * d);
+}
+
+template <class T> inline Matrix3<T> operator*(const double d, const Matrix3<T> &a) {
+  return Matrix3<T>(a.n[0] * d, a.n[1] * d, a.n[2] * d, a.n[3] * d, a.n[4] * d, a.n[5] * d, a.n[6] * d, a.n[7] * d,
+                    a.n[8] * d);
+}
+
+template <class T> inline Matrix3<T> operator/(const Matrix3<T> &a, const double d) {
+  return Matrix3<T>(a.n[0] / d, a.n[1] / d, a.n[2] / d, a.n[3] / d, a.n[4] / d, a.n[5] / d, a.n[6] / d, a.n[7] / d,
+                    a.n[8] / d);
 }
 
 template <class T>
-inline Matrix3<T> operator+(const Matrix3<T> &a, const Matrix3<T> &b) {
-  return Matrix3<T>(a.n[0] + b.n[0], a.n[1] + b.n[1], a.n[2] + b.n[2],
-                    a.n[3] + b.n[3], a.n[4] + b.n[4], a.n[5] + b.n[5],
-                    a.n[6] + b.n[6], a.n[7] + b.n[7], a.n[8] + b.n[8]);
-}
-
-template <class T>
-inline Matrix3<T> operator-(const Matrix3<T> &a, const Matrix3<T> &b) {
-  return Matrix3<T>(a.n[0] - b.n[0], a.n[1] - b.n[1], a.n[2] - b.n[2],
-                    a.n[3] - b.n[3], a.n[4] - b.n[4], a.n[5] - b.n[5],
-                    a.n[6] - b.n[6], a.n[7] - b.n[7], a.n[8] - b.n[8]);
-}
-
-template <class T>
-inline Matrix3<T> operator*(const Matrix3<T> &a, const Matrix3<T> &b) {
-  return Matrix3<T>(a.n[0] * b.n[0] + a.n[1] * b.n[3] + a.n[2] * b.n[6],
-                    a.n[0] * b.n[1] + a.n[1] * b.n[4] + a.n[2] * b.n[7],
-                    a.n[0] * b.n[2] + a.n[1] * b.n[5] + a.n[2] * b.n[8],
-                    a.n[3] * b.n[0] + a.n[4] * b.n[3] + a.n[5] * b.n[6],
-                    a.n[3] * b.n[1] + a.n[4] * b.n[4] + a.n[5] * b.n[7],
-                    a.n[3] * b.n[2] + a.n[4] * b.n[5] + a.n[5] * b.n[8],
-                    a.n[6] * b.n[0] + a.n[7] * b.n[3] + a.n[8] * b.n[6],
-                    a.n[6] * b.n[1] + a.n[7] * b.n[4] + a.n[8] * b.n[7],
-                    a.n[6] * b.n[2] + a.n[7] * b.n[5] + a.n[8] * b.n[8]);
-}
-
-template <class T>
-inline Matrix3<T> operator*(const Matrix3<T> &a, const double d) {
-  return Matrix3<T>(a.n[0] * d, a.n[1] * d, a.n[2] * d, a.n[3] * d, a.n[4] * d,
-                    a.n[5] * d, a.n[6] * d, a.n[7] * d, a.n[8] * d);
-}
-
-template <class T>
-inline Matrix3<T> operator*(const double d, const Matrix3<T> &a) {
-  return Matrix3<T>(a.n[0] * d, a.n[1] * d, a.n[2] * d, a.n[3] * d, a.n[4] * d,
-                    a.n[5] * d, a.n[6] * d, a.n[7] * d, a.n[8] * d);
-}
-
-template <class T>
-inline Matrix3<T> operator/(const Matrix3<T> &a, const double d) {
-  return Matrix3<T>(a.n[0] / d, a.n[1] / d, a.n[2] / d, a.n[3] / d, a.n[4] / d,
-                    a.n[5] / d, a.n[6] / d, a.n[7] / d, a.n[8] / d);
-}
-
-template <class T>
-inline AffineTransformMatrix<T>
-AffineTransformMatrix<T>::createRotation(T angle, float x, float y, float z) {
+inline AffineTransformMatrix<T> AffineTransformMatrix<T>::createRotation(T angle, float x, float y, float z) {
   double c = cos(angle);
   double s = sin(angle);
   double t = 1.0 - c;
 
   Vector3<T> a(x, y, z);
   a.normalize();
-  return AffineTransformMatrix<T>(
-      t * a[0] * a[0] + c, t * a[0] * a[1] - s * a[2],
-      t * a[0] * a[2] + s * a[1], 0.0, t * a[0] * a[1] + s * a[2],
-      t * a[1] * a[1] + c, t * a[1] * a[2] - s * a[0], 0.0,
-      t * a[0] * a[2] - s * a[1], t * a[1] * a[2] + s * a[0],
-      t * a[2] * a[2] + c, 0.0, 0.0, 0.0, 0.0, 1.0);
+  return AffineTransformMatrix<T>(t * a[0] * a[0] + c, t * a[0] * a[1] - s * a[2], t * a[0] * a[2] + s * a[1], 0.0,
+                                  t * a[0] * a[1] + s * a[2], t * a[1] * a[1] + c, t * a[1] * a[2] - s * a[0], 0.0,
+                                  t * a[0] * a[2] - s * a[1], t * a[1] * a[2] + s * a[0], t * a[2] * a[2] + c, 0.0, 0.0,
+                                  0.0, 0.0, 1.0);
 }
 
-template <class T>
-inline AffineTransformMatrix<T>
-AffineTransformMatrix<T>::createTranslation(T x, T y, T z) {
+template <class T> inline AffineTransformMatrix<T> AffineTransformMatrix<T>::createTranslation(T x, T y, T z) {
   AffineTransformMatrix<T> trans;
 
   trans[0][3] = x;
@@ -688,9 +611,7 @@ AffineTransformMatrix<T>::createTranslation(T x, T y, T z) {
   return trans;
 }
 
-template <class T>
-inline AffineTransformMatrix<T>
-AffineTransformMatrix<T>::createScale(T sx, T sy, T sz) {
+template <class T> inline AffineTransformMatrix<T> AffineTransformMatrix<T>::createScale(T sx, T sy, T sz) {
   AffineTransformMatrix<T> scale;
   scale[0][0] = sx;
   scale[1][1] = sy;
@@ -699,12 +620,9 @@ AffineTransformMatrix<T>::createScale(T sx, T sy, T sz) {
   return scale;
 }
 
-template <class T>
-inline AffineTransformMatrix<T>
-AffineTransformMatrix<T>::createShear(T shx, T shy, T shz) {
+template <class T> inline AffineTransformMatrix<T> AffineTransformMatrix<T>::createShear(T shx, T shy, T shz) {
   AffineTransformMatrix<T> shear;
-  GVT_DEBUG(DBG_ALWAYS,
-            "unimplemented matrix command createShear(shx,shy,shz)");
+  GVT_DEBUG(DBG_ALWAYS, "unimplemented matrix command createShear(shx,shy,shz)");
   return shear;
 }
 
@@ -733,8 +651,7 @@ template <class T> inline void makeDiagonal(AffineTransformMatrix<T> &m, T k) {
   m[3][3] = k;
 }
 
-template <class T>
-inline void makeHScale(AffineTransformMatrix<T> &m, T sx, T sy, T sz) {
+template <class T> inline void makeHScale(AffineTransformMatrix<T> &m, T sx, T sy, T sz) {
   m[0][0] = sx;
   m[0][1] = 0.0;
   m[0][2] = 0.0;
@@ -753,13 +670,11 @@ inline void makeHScale(AffineTransformMatrix<T> &m, T sx, T sy, T sz) {
   m[3][3] = 1.0;
 }
 
-template <class T>
-inline void makeHScale(AffineTransformMatrix<T> &m, const Vector3<T> &v) {
+template <class T> inline void makeHScale(AffineTransformMatrix<T> &m, const Vector3<T> &v) {
   makeHScale(m, v[0], v[1], v[2]);
 }
 
-template <class T>
-inline void makeHTrans(AffineTransformMatrix<T> &m, T tx, T ty, T tz) {
+template <class T> inline void makeHTrans(AffineTransformMatrix<T> &m, T tx, T ty, T tz) {
   m[0][0] = 1.0;
   m[0][1] = 0.0;
   m[0][2] = 0.0;
@@ -778,13 +693,11 @@ inline void makeHTrans(AffineTransformMatrix<T> &m, T tx, T ty, T tz) {
   m[3][3] = 1.0;
 }
 
-template <class T>
-inline void makeHTrans(AffineTransformMatrix<T> &m, const Vector3<T> &v) {
+template <class T> inline void makeHTrans(AffineTransformMatrix<T> &m, const Vector3<T> &v) {
   makeHTrans(m, v[0], v[1], v[2]);
 }
 
-template <class T>
-inline void makeHRotX(AffineTransformMatrix<T> &m, T thetaX) {
+template <class T> inline void makeHRotX(AffineTransformMatrix<T> &m, T thetaX) {
   T cosT = (T)cos(thetaX);
   T sinT = (T)sin(thetaX);
 
@@ -806,8 +719,7 @@ inline void makeHRotX(AffineTransformMatrix<T> &m, T thetaX) {
   m[3][3] = 1.0;
 }
 
-template <class T>
-inline void makeHRotY(AffineTransformMatrix<T> &m, T thetaY) {
+template <class T> inline void makeHRotY(AffineTransformMatrix<T> &m, T thetaY) {
   T cosT = (T)cos(thetaY);
   T sinT = (T)sin(thetaY);
 
@@ -829,8 +741,7 @@ inline void makeHRotY(AffineTransformMatrix<T> &m, T thetaY) {
   m[3][3] = 1.0;
 }
 
-template <class T>
-inline void makeHRotZ(AffineTransformMatrix<T> &m, T thetaZ) {
+template <class T> inline void makeHRotZ(AffineTransformMatrix<T> &m, T thetaZ) {
   T cosT = (T)cos(thetaZ);
   T sinT = (T)sin(thetaZ);
 

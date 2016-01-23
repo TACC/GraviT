@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 //
 //  Attributes.C
 //
@@ -38,19 +29,19 @@
 
 using namespace gvt::render;
 
-#define HACK_TRANSFER_FUNC                                                     \
-  transfer_func = new unsigned char[4 * 256];                                  \
-  for (int i = 0; i < 128; ++i) {                                              \
-    transfer_func[4 * i + 0] = 0;                                              \
-    transfer_func[4 * i + 1] = 2 * i;                                          \
-    transfer_func[4 * i + 2] = 255 - 2 * i;                                    \
-    transfer_func[4 * i + 3] = i;                                              \
-  }                                                                            \
-  for (int i = 0; i < 128; ++i) {                                              \
-    transfer_func[128 + 4 * i + 0] = 2 * i;                                    \
-    transfer_func[128 + 4 * i + 1] = 255 - 2 * i;                              \
-    transfer_func[128 + 4 * i + 2] = 0;                                        \
-    transfer_func[128 + 4 * i + 3] = 2 * i;                                    \
+#define HACK_TRANSFER_FUNC                                                                                             \
+  transfer_func = new unsigned char[4 * 256];                                                                          \
+  for (int i = 0; i < 128; ++i) {                                                                                      \
+    transfer_func[4 * i + 0] = 0;                                                                                      \
+    transfer_func[4 * i + 1] = 2 * i;                                                                                  \
+    transfer_func[4 * i + 2] = 255 - 2 * i;                                                                            \
+    transfer_func[4 * i + 3] = i;                                                                                      \
+  }                                                                                                                    \
+  for (int i = 0; i < 128; ++i) {                                                                                      \
+    transfer_func[128 + 4 * i + 0] = 2 * i;                                                                            \
+    transfer_func[128 + 4 * i + 1] = 255 - 2 * i;                                                                      \
+    transfer_func[128 + 4 * i + 2] = 0;                                                                                \
+    transfer_func[128 + 4 * i + 3] = 2 * i;                                                                            \
   }
 
 Attributes *Attributes::rta = NULL;
@@ -67,11 +58,9 @@ Attributes::Attributes() {
   do_lighting = false;
 }
 
-Attributes::Attributes(std::string &datafile_, View &view_,
-                       RenderType rt = Volume, ScheduleType st = Image,
+Attributes::Attributes(std::string &datafile_, View &view_, RenderType rt = Volume, ScheduleType st = Image,
                        float rate = 1.f, float ratio = 1.f, float *topo = NULL)
-    : view(view_), render_type(rt), schedule(st), sample_rate(rate),
-      sample_ratio(ratio) {
+    : view(view_), render_type(rt), schedule(st), sample_rate(rate), sample_ratio(ratio) {
   if (rta != NULL) {
     delete rta;
   }
@@ -91,10 +80,8 @@ namespace gvt {
 namespace render {
 std::ostream &operator<<(std::ostream &os, Attributes::View const &vi) {
   os << vi.width << " x " << vi.height << ", " << vi.view_angle << " angle\n";
-  os << "camera: " << vi.camera[0] << " " << vi.camera[1] << " " << vi.camera[2]
-     << "\n";
-  os << " focus: " << vi.focus[0] << " " << vi.focus[1] << " " << vi.focus[2]
-     << "\n";
+  os << "camera: " << vi.camera[0] << " " << vi.camera[1] << " " << vi.camera[2] << "\n";
+  os << " focus: " << vi.focus[0] << " " << vi.focus[1] << " " << vi.focus[2] << "\n";
   os << "    up: " << vi.up[0] << " " << vi.up[1] << " " << vi.up[2] << "\n";
 
   return os;
@@ -183,8 +170,7 @@ std::istream &operator>>(std::istream &is, Attributes &rta) {
   } else if (rt.find("Manta") != std::string::npos) {
     rta.render_type = Attributes::Manta;
   } else {
-    GVT_DEBUG(DBG_ALWAYS, "Unknown render type '" << rt
-                                                  << "', defaulting to Volume");
+    GVT_DEBUG(DBG_ALWAYS, "Unknown render type '" << rt << "', defaulting to Volume");
     rta.render_type = Attributes::Volume;
   }
 
@@ -211,8 +197,7 @@ std::istream &operator>>(std::istream &is, Attributes &rta) {
   else if (sch.find("LoadMany") != std::string::npos)
     rta.schedule = Attributes::LoadMany;
   else {
-    GVT_DEBUG(DBG_ALWAYS, "Unknown schedule '" << sch
-                                               << "', defaulting to Image");
+    GVT_DEBUG(DBG_ALWAYS, "Unknown schedule '" << sch << "', defaulting to Image");
     rta.schedule = Attributes::Image;
   }
 

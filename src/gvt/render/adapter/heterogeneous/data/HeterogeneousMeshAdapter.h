@@ -3,12 +3,10 @@
    tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
    If your copy does not contain the License, you may obtain a copy of the
@@ -16,13 +14,10 @@
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
    GraviT is funded in part by the US National Science Foundation under awards
@@ -32,7 +27,6 @@
    */
 #ifndef GVT_RENDER_ADAPTER_HETEROGENEOUS_DATA_MESH_ADAPTER_H
 #define GVT_RENDER_ADAPTER_HETEROGENEOUS_DATA_MESH_ADAPTER_H
-
 
 #include <gvt/render/adapter/embree/Wrapper.h>
 #include <gvt/render/adapter/optix/Wrapper.h>
@@ -61,7 +55,7 @@ public:
   /**
    * Return the Embree scene handle;
    */
-  void getScene() const { }
+  void getScene() const {}
 
   /**
    * Return the geometry id.
@@ -84,15 +78,12 @@ public:
    * \param moved_rays outgoing rays [rays that did not hit anything]
    * \param instNode instance db node containing dataRef and transforms
    */
-  virtual void trace(gvt::render::actor::RayVector &rayList,
-                     gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode, size_t begin=0, size_t end=0);
+  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
+                     gvt::core::DBNodeH instNode, size_t begin = 0, size_t end = 0);
 
 protected:
-
-  gvt::render::adapter::embree::data::EmbreeMeshAdapter* _embree;
-  gvt::render::adapter::optix::data::OptixMeshAdapter* _optix;
-
+  gvt::render::adapter::embree::data::EmbreeMeshAdapter *_embree;
+  gvt::render::adapter::optix::data::OptixMeshAdapter *_optix;
 };
 }
 }

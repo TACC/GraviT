@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 #ifndef GVT_RENDER_DATA_SCENE_CAMERA_H
 #define GVT_RENDER_DATA_SCENE_CAMERA_H
 
@@ -93,38 +84,33 @@ public:
     update();
   }
 
-  void setLook(const gvt::core::math::Vector4f &viewDir,
-               const gvt::core::math::Vector4f &upDir) {
-    gvt::core::math::Vector3f z =
-        viewDir; // this is where the z axis should end up
-    const gvt::core::math::Vector3f &y =
-        upDir;                           // where the y axis should end up
-    gvt::core::math::Vector3f x = y ^ z; // lah,
-    m = gvt::core::math::AffineTransformMatrix<float>(
-            x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2], 0.f,
-            0.f, 0.f, 0.f, 1.f)
-            .transpose();
+  void setLook(const gvt::core::math::Vector4f &viewDir, const gvt::core::math::Vector4f &upDir) {
+    gvt::core::math::Vector3f z = viewDir;      // this is where the z axis should end up
+    const gvt::core::math::Vector3f &y = upDir; // where the y axis should end up
+    gvt::core::math::Vector3f x = y ^ z;        // lah,
+    // clang-format off
+    m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
+                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
+    // clang-format on
     update();
   }
 
-  void setLook(gvt::core::math::Vector4f &eyePos,
-               gvt::core::math::Vector4f &lookAt,
+  void setLook(gvt::core::math::Vector4f &eyePos, gvt::core::math::Vector4f &lookAt,
                const gvt::core::math::Vector4f &upDir) {
     eye = eyePos;
     look = lookAt;
     up = upDir;
     focus = lookAt;
-    gvt::core::math::Vector3f z =
-        -(lookAt - eyePos)
-             .normalize(); // this is where the z axis should end up
-    const gvt::core::math::Vector3f y = upDir; // where the y axis should end up
-    gvt::core::math::Vector3f x = (y ^ z).normalize(); // lah,
-    m = gvt::core::math::AffineTransformMatrix<float>(
-            x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2], 0.f,
-            0.f, 0.f, 0.f, 1.f)
-            .transpose();
+    gvt::core::math::Vector3f z = -(lookAt - eyePos).normalize(); // this is where the z axis should end up
+    const gvt::core::math::Vector3f y = upDir;                    // where the y axis should end up
+    gvt::core::math::Vector3f x = (y ^ z).normalize();
+
+    // clang-format off
+    m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
+                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
+    // clang-format on
     update();
-    //const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
+    // const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
   }
 
   void setFOV(double fov) {
@@ -161,7 +147,7 @@ public:
   boost::mutex rmutex;
 
   gvt::core::math::AffineTransformMatrix<float> m; // rotation matrix
-  double normalizedHeight; // dimensions of image place at unit dist from eye
+  double normalizedHeight;                         // dimensions of image place at unit dist from eye
   double aspectRatio;
 
   void update() {

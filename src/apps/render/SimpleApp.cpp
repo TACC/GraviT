@@ -1,42 +1,32 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /**
  * A simple GraviT application that loads some geometry and renders it.
  *
- * This application renders a simple scene of cones and cubes using the GraviT
- * interface.
- * This will run in both single-process and MPI modes. You can alter the work
- * scheduler
+ * This application renders a simple scene of cones and cubes using the GraviT interface.
+ * This will run in both single-process and MPI modes. You can alter the work scheduler
+
  * used by changing line 242.
  *
 */
@@ -47,6 +37,7 @@
 #include <set>
 #include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/Variant.h>
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
@@ -74,6 +65,10 @@
 #include <boost/range/algorithm.hpp>
 
 #include <iostream>
+
+#ifdef __USE_TAU
+#include <TAU.h>
+#endif
 
 using namespace std;
 using namespace gvt::render;
@@ -114,13 +109,10 @@ int main(int argc, char **argv) {
 
   // mix of cones and cubes
 
-  // TODO: maybe rename to 'Data' - as it can store different types of data
-  // [mesh, volume, lines]
-  gvt::core::DBNodeH dataNodes =
-      cntxt->createNodeFromType("Data", "Data", root.UUID());
+  // TODO: maybe rename to 'Data' - as it can store different types of data [mesh, volume, lines]
+  gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
 
-  gvt::core::DBNodeH coneMeshNode =
-      cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
+  gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
   {
     Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 0.5, 1.0)));
     int numPoints = 7;
@@ -155,13 +147,14 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
     // add cone mesh to the database
+    gvt::core::Variant meshvariant(mesh);
+    std::cout << "meshvariant " << meshvariant << std::endl;
     coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = meshbbox;
-    coneMeshNode["ptr"] = mesh;
+    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
+    coneMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
-  gvt::core::DBNodeH cubeMeshNode =
-      cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
+  gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
     Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 0.5, 1.0)));
     int numPoints = 8;
@@ -205,12 +198,11 @@ int main(int argc, char **argv) {
 
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
-    cubeMeshNode["bbox"] = meshbbox;
-    cubeMeshNode["ptr"] = mesh;
+    cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
+    cubeMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
-  gvt::core::DBNodeH instNodes =
-      cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+  gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
 
   // create a NxM grid of alternating cones / cubes, offset using i and j
   int instId = 0;
@@ -218,12 +210,10 @@ int main(int argc, char **argv) {
   int jj[2] = { -2, 3 }; // j range
   for (int i = ii[0]; i < ii[1]; i++) {
     for (int j = jj[0]; j < jj[1]; j++) {
-      gvt::core::DBNodeH instnode =
-          cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-      // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode :
-      // cubeMeshNode;
+      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+      // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
       gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
-      Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
 
       instnode["id"] = instId++;
       instnode["meshRef"] = meshNode.UUID();
@@ -231,54 +221,45 @@ int main(int argc, char **argv) {
       auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
       auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
       auto normi = new gvt::core::math::Matrix3f();
-      *m =
-          *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(
-                   0.0, i * 0.5, j * 0.5);
-      *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(
-                    0.4, 0.4, 0.4);
-      instnode["mat"] = m;
+      *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, i * 0.5, j * 0.5);
+      *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(0.4, 0.4, 0.4);
+      instnode["mat"] = (unsigned long long)m;
       *minv = m->inverse();
-      instnode["matInv"] = minv;
+      instnode["matInv"] = (unsigned long long)minv;
       *normi = m->upper33().inverse().transpose();
-      instnode["normi"] = normi;
+      instnode["normi"] = (unsigned long long)normi;
 
       auto il = (*m) * mbox->bounds[0];
       auto ih = (*m) * mbox->bounds[1];
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-      instnode["bbox"] = ibox;
+      instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
     }
   }
 
   // add lights, camera, and film to the database
-  gvt::core::DBNodeH lightNodes =
-      cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  gvt::core::DBNodeH lightNode =
-      cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+  gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = Vector4f(1.0, 0.0, 0.0, 0.0);
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
 
   // second light just for fun
-  // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight",
-  // "conelight", lightNodes.UUID());
+  // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   // lN2["position"] = Vector4f(2.0, 2.0, 2.0, 0.0);
   // lN2["color"] = Vector4f(0.0, 0.0, 0.0, 0.0);
 
-  gvt::core::DBNodeH camNode =
-      cntxt->createNodeFromType("Camera", "conecam", root.UUID());
+  gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = Point4f(4.0, 0.0, 0.0, 1.0);
   camNode["focus"] = Point4f(0.0, 0.0, 0.0, 1.0);
   camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
-  gvt::core::DBNodeH filmNode =
-      cntxt->createNodeFromType("Film", "conefilm", root.UUID());
+  gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
 
   // TODO: schedule db design could be modified a bit
-  gvt::core::DBNodeH schedNode =
-      cntxt->createNodeFromType("Schedule", "conesched", root.UUID());
+  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "conesched", root.UUID());
   schedNode["type"] = gvt::render::scheduler::Image;
 // schedNode["type"] = gvt::render::scheduler::Domain;
 
@@ -292,40 +273,34 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Embree;
-  //schedNode["adapter"] = gvt::render::adapter::Heterogeneous;
-
-
+  schedNode["adapter"] = adapterType;
 
   // end db setup
+
+  cntxt->database()->printTree(root.UUID(), 10, std::cout);
 
   // use db to create structs needed by system
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition =
-      gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-  float fov = gvt::core::variant_toFloat(camNode["fov"].value());
-  Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+  float fov = camNode["fov"].value().toFloat();
+  Vector4f up = camNode["upVector"].value().toVector4f();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(
-      gvt::core::variant_toInteger(filmNode["width"].value()),
-      gvt::core::variant_toInteger(filmNode["height"].value()));
+  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
 #ifdef GVT_USE_MPE
   MPE_Log_event(readend, 0, NULL);
 #endif
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(),
-                "cone");
+  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "cone");
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
 
-  int schedType =
-      gvt::core::variant_toInteger(root["Schedule"]["type"].value());
+  int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
@@ -358,14 +333,12 @@ int main(int argc, char **argv) {
   MPE_Log_sync_clocks();
 // MPE_Finish_log("gvtSimplelog");
 #endif
-  if (MPI::COMM_WORLD.Get_size() > 1)
-    MPI_Finalize();
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 
 // bvh intersection list test
 void test_bvh(gvtPerspectiveCamera &mycamera) {
-  gvt::core::DBNodeH root =
-      gvt::render::RenderContext::instance()->getRootNode();
+  gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
   cout << "\n-- bvh test --" << endl;
 
@@ -377,17 +350,14 @@ void test_bvh(gvtPerspectiveCamera &mycamera) {
   rays.push_back(mycamera.rays[100 * 512 + 100]);
   rays.push_back(mycamera.rays[182 * 512 + 182]);
   rays.push_back(mycamera.rays[256 * 512 + 256]);
-  auto dir = (gvt::core::math::Vector4f(0.0, 0.0, 0.0, 0.0) -
-              gvt::core::math::Vector4f(1.0, 1.0, 1.0, 0.0))
-                 .normalize();
-  rays.push_back(gvt::render::actor::Ray(
-      gvt::core::math::Point4f(1.0, 1.0, 1.0, 1.0), dir));
+  auto dir =
+      (gvt::core::math::Vector4f(0.0, 0.0, 0.0, 0.0) - gvt::core::math::Vector4f(1.0, 1.0, 1.0, 0.0)).normalize();
+  rays.push_back(gvt::render::actor::Ray(gvt::core::math::Point4f(1.0, 1.0, 1.0, 1.0), dir));
   rays.push_back(mycamera.rays[300 * 512 + 300]);
   rays.push_back(mycamera.rays[400 * 512 + 400]);
   rays.push_back(mycamera.rays[470 * 512 + 470]);
-  rays.push_back(
-      gvt::render::actor::Ray(gvt::core::math::Point4f(0.0, 0.0, 1.0, 1.0),
-                              gvt::core::math::Vector4f(0.0, 0.0, -1.0, 1.0)));
+  rays.push_back(gvt::render::actor::Ray(gvt::core::math::Point4f(0.0, 0.0, 1.0, 1.0),
+                                         gvt::core::math::Vector4f(0.0, 0.0, -1.0, 1.0)));
   rays.push_back(mycamera.rays[144231]);
 
   // test rays and print out which instances were hit

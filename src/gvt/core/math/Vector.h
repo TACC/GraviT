@@ -1,35 +1,26 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas
-   at Austin
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
 
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use
-   this file
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   Vector.h
  * Author: jbarbosa
@@ -144,28 +135,17 @@ public:
 
   template <class U> friend T operator*(const Vector<T> &a, const Vector<T> &b);
   template <class U> friend Vector<T> operator-(const Vector<T> &v);
-  template <class U>
-  friend Vector<T> operator*(const Vector<T> &a, const double d);
-  template <class U>
-  friend Vector<T> operator*(const double d, const Vector<T> &a);
-  template <class U>
-  friend Vector<T> operator/(const Vector<T> &a, const double d);
-  template <class U>
-  friend Vector<T> operator^(const Vector<T> &a, const Vector<T> &b);
-  template <class U>
-  friend bool operator==(const Vector<T> &a, const Vector<T> &b);
-  template <class U>
-  friend bool operator!=(const Vector<T> &a, const Vector<T> &b);
-  template <class U>
-  friend std::ostream &operator<<(std::ostream &os, const Vector<T> &v);
-  template <class U>
-  friend std::istream &operator>>(std::istream &is, Vector<T> &v);
-  template <class U>
-  friend Vector<T> minimum(const Vector<T> &a, const Vector<T> &b);
-  template <class U>
-  friend Vector<T> maximum(const Vector<T> &a, const Vector<T> &b);
-  template <class U>
-  friend Vector<T> prod(const Vector<T> &a, const Vector<T> &b);
+  template <class U> friend Vector<T> operator*(const Vector<T> &a, const double d);
+  template <class U> friend Vector<T> operator*(const double d, const Vector<T> &a);
+  template <class U> friend Vector<T> operator/(const Vector<T> &a, const double d);
+  template <class U> friend Vector<T> operator^(const Vector<T> &a, const Vector<T> &b);
+  template <class U> friend bool operator==(const Vector<T> &a, const Vector<T> &b);
+  template <class U> friend bool operator!=(const Vector<T> &a, const Vector<T> &b);
+  template <class U> friend std::ostream &operator<<(std::ostream &os, const Vector<T> &v);
+  template <class U> friend std::istream &operator>>(std::istream &is, Vector<T> &v);
+  template <class U> friend Vector<T> minimum(const Vector<T> &a, const Vector<T> &b);
+  template <class U> friend Vector<T> maximum(const Vector<T> &a, const Vector<T> &b);
+  template <class U> friend Vector<T> prod(const Vector<T> &a, const Vector<T> &b);
 };
 
 typedef Vector<int> Vectori;
@@ -174,9 +154,7 @@ typedef Vector<double> Vectord;
 
 //==========[ class Vector2 ]=================================
 
-template <class T>
-
-class Vector2 {
+template <class T> class Vector2 {
   //---[ Private Variable Declarations ]-------
 
 public:
@@ -248,13 +226,9 @@ public:
 
   //---[ Arithmetic Operators ]----------------
 
-  Vector2<T> operator-(const Vector2<T> &a) {
-    return Vector2<T>(n[0] - a[0], n[1] - a[1]);
-  }
+  Vector2<T> operator-(const Vector2<T> &a) { return Vector2<T>(n[0] - a[0], n[1] - a[1]); }
 
-  Vector2<T> operator+(const Vector2<T> &a) {
-    return Vector2<T>(a[0] + n[0], a[1] + n[1]);
-  }
+  Vector2<T> operator+(const Vector2<T> &a) { return Vector2<T>(a[0] + n[0], a[1] + n[1]); }
 
   //---[ Conversion Operators ]----------------
 
@@ -275,8 +249,9 @@ public:
   }
 
   //---[ Zero Test ]---------------------------
-
+  // clang-format off
   bool isZero() { return ((n[0] == 0 && n[1] == 0) ? true : false); }
+  // clang-format on
 
   void zeroElements() { memset(n, 0, sizeof(T) * 2); }
 };
@@ -411,13 +386,9 @@ public:
 
   //---[ Arithmetic Operators ]----------------
 
-  Vector3<T> operator-(const Vector3<T> &a) const {
-    return Vector3<T>(n[0] - a[0], n[1] - a[1], n[2] - a[2]);
-  }
+  Vector3<T> operator-(const Vector3<T> &a) const { return Vector3<T>(n[0] - a[0], n[1] - a[1], n[2] - a[2]); }
 
-  Vector3<T> operator+(const Vector3<T> &a) const {
-    return Vector3<T>(a[0] + n[0], a[1] + n[1], a[2] + n[2]);
-  }
+  Vector3<T> operator+(const Vector3<T> &a) const { return Vector3<T>(a[0] + n[0], a[1] + n[1], a[2] + n[2]); }
 
   //---[ Conversion Operators ]----------------
 
@@ -442,18 +413,17 @@ public:
   void clamp() {
     int i;
     for (i = 0; i < 3; i++) {
-      if (n[i] < 0)
-        n[i] = 0.0;
-      if (n[i] > 1)
-        n[i] = 1.0;
+      if (n[i] < 0) n[i] = 0.0;
+      if (n[i] > 1) n[i] = 1.0;
     }
   }
 
   //---[ Zero Test ]---------------------------
-
+  // clang-format off
   bool isZero() {
     return ((n[0] == 0 && n[1] == 0 && n[2] == 0) ? true : false);
   };
+  // clang-format on
 
   void zeroElements() { memset(n, 0, sizeof(T) * 3); }
 
@@ -469,43 +439,24 @@ public:
 
   //---[ Friend Methods ]----------------------
 
-  template <class U>
-  friend T operator*(const Vector3<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend T operator*(const Vector4<T> &b, const Vector3<T> &a);
-  template <class U>
-  friend Vector3<T> operator*(const Vector3<T> &a, const double d);
-  template <class U>
-  friend Vector3<T> operator*(const double d, const Vector3<T> &a);
-  template <class U>
-  friend Vector3<T> operator*(const Vector3<T> &v, AffineTransformMatrix<T> &a);
-  template <class U>
-  friend T operator*(const Vector3<T> &a, const Vector3<T> &b);
-  template <class U>
-  friend Vector3<T> operator*(const Matrix3<T> &a, const Vector3<T> &v);
-  template <class U>
-  friend Vector3<T> operator*(const Vector3<T> &v, const Matrix3<T> &a);
-  template <class U>
-  friend Vector3<T> operator*(const AffineTransformMatrix<T> &a,
-                              const Vector3<T> &v);
-  template <class U>
-  friend Vector3<T> operator/(const Vector3<T> &a, const double d);
-  template <class U>
-  friend Vector3<T> operator^(const Vector3<T> &a, const Vector3<T> &b);
-  template <class U>
-  friend bool operator==(const Vector3<T> &a, const Vector3<T> &b);
-  template <class U>
-  friend bool operator!=(const Vector3<T> &a, const Vector3<T> &b);
-  template <class U>
-  friend std::ostream &operator<<(std::ostream &os, const Vector3<T> &v);
-  template <class U>
-  friend std::istream &operator>>(std::istream &is, Vector3<T> &v);
-  template <class U>
-  friend Vector3<T> minimum(const Vector3<T> &a, const Vector3<T> &b);
-  template <class U>
-  friend Vector3<T> maximum(const Vector3<T> &a, const Vector3<T> &b);
-  template <class U>
-  friend Vector3<T> prod(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend T operator*(const Vector3<T> &a, const Vector4<T> &b);
+  template <class U> friend T operator*(const Vector4<T> &b, const Vector3<T> &a);
+  template <class U> friend Vector3<T> operator*(const Vector3<T> &a, const double d);
+  template <class U> friend Vector3<T> operator*(const double d, const Vector3<T> &a);
+  template <class U> friend Vector3<T> operator*(const Vector3<T> &v, AffineTransformMatrix<T> &a);
+  template <class U> friend T operator*(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend Vector3<T> operator*(const Matrix3<T> &a, const Vector3<T> &v);
+  template <class U> friend Vector3<T> operator*(const Vector3<T> &v, const Matrix3<T> &a);
+  template <class U> friend Vector3<T> operator*(const AffineTransformMatrix<T> &a, const Vector3<T> &v);
+  template <class U> friend Vector3<T> operator/(const Vector3<T> &a, const double d);
+  template <class U> friend Vector3<T> operator^(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend bool operator==(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend bool operator!=(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend std::ostream &operator<<(std::ostream &os, const Vector3<T> &v);
+  template <class U> friend std::istream &operator>>(std::istream &is, Vector3<T> &v);
+  template <class U> friend Vector3<T> minimum(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend Vector3<T> maximum(const Vector3<T> &a, const Vector3<T> &b);
+  template <class U> friend Vector3<T> prod(const Vector3<T> &a, const Vector3<T> &b);
 };
 
 typedef Vector3<int> Vector3i;
@@ -656,23 +607,17 @@ public:
     return Vector4<T>(n[0] - a[0], n[1] - a[1], n[2] - a[2], n[3] - a[3]);
   }
 
-  Vector4<T> operator+(const Vector4<T> &a) {
-    return Vector4<T>(a[0] + n[0], a[1] + n[1], a[2] + n[2], a[3] + n[3]);
-  }
+  Vector4<T> operator+(const Vector4<T> &a) { return Vector4<T>(a[0] + n[0], a[1] + n[1], a[2] + n[2], a[3] + n[3]); }
 
   //---[ Length Methods ]----------------------
 
-  double length2() const {
-    return n[0] * n[0] + n[1] * n[1] + n[2] * n[2] + n[3] * n[3];
-  }
+  double length2() const { return n[0] * n[0] + n[1] * n[1] + n[2] * n[2] + n[3] * n[3]; }
 
   double length() const { return sqrt(length2()); }
 
   //---[ Zero Test ]---------------------------
 
-  bool isZero() const {
-    return n[0] == 0 && n[1] == 0 && n[2] == 0 && n[3] == 0;
-  }
+  bool isZero() const { return n[0] == 0 && n[1] == 0 && n[2] == 0 && n[3] == 0; }
 
   void zeroElements() { memset(n, 0, 4 * sizeof(T)); }
 
@@ -688,40 +633,23 @@ public:
   }
 
   //---[ Friend Methods ]----------------------
-  template <class U>
-  friend T operator*(const Vector3<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend T operator*(const Vector4<T> &b, const Vector3<T> &a);
+  template <class U> friend T operator*(const Vector3<T> &a, const Vector4<T> &b);
+  template <class U> friend T operator*(const Vector4<T> &b, const Vector3<T> &a);
   //	template <class U> friend Vector4<T> operator -( const Vector4<T>& v );
-  template <class U>
-  friend Vector4<T> operator*(const Vector4<T> &a, const double d);
-  template <class U>
-  friend Vector4<T> operator*(const double d, const Vector4<T> &a);
-  template <class U>
-  friend T operator*(const Vector4<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend Vector4<T> operator*(const AffineTransformMatrix<T> &a,
-                              const Vector4<T> &v);
-  //	template <class U> friend Vector4<T> operator *( const Vector4<T>& v,
-  //const Matrix4<T>& a );
-  template <class U>
-  friend Vector4<T> operator/(const Vector4<T> &a, const double d);
-  //	template <class U> friend Vector4<T> operator ^( const Vector4<T>& a,
-  //const Vector4<T>& b );
-  template <class U>
-  friend bool operator==(const Vector4<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend bool operator!=(const Vector4<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend std::ostream &operator<<(std::ostream &os, const Vector4<T> &v);
-  template <class U>
-  friend std::istream &operator>>(std::istream &is, Vector4<T> &v);
-  template <class U>
-  friend Vector4<T> minimum(const Vector4<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend Vector4<T> maximum(const Vector4<T> &a, const Vector4<T> &b);
-  template <class U>
-  friend Vector4<T> prod(const Vector4<T> &a, const Vector4<T> &b);
+  template <class U> friend Vector4<T> operator*(const Vector4<T> &a, const double d);
+  template <class U> friend Vector4<T> operator*(const double d, const Vector4<T> &a);
+  template <class U> friend T operator*(const Vector4<T> &a, const Vector4<T> &b);
+  template <class U> friend Vector4<T> operator*(const AffineTransformMatrix<T> &a, const Vector4<T> &v);
+  //	template <class U> friend Vector4<T> operator *( const Vector4<T>& v, const Matrix4<T>& a );
+  template <class U> friend Vector4<T> operator/(const Vector4<T> &a, const double d);
+  //	template <class U> friend Vector4<T> operator ^( const Vector4<T>& a, const Vector4<T>& b );
+  template <class U> friend bool operator==(const Vector4<T> &a, const Vector4<T> &b);
+  template <class U> friend bool operator!=(const Vector4<T> &a, const Vector4<T> &b);
+  template <class U> friend std::ostream &operator<<(std::ostream &os, const Vector4<T> &v);
+  template <class U> friend std::istream &operator>>(std::istream &is, Vector4<T> &v);
+  template <class U> friend Vector4<T> minimum(const Vector4<T> &a, const Vector4<T> &b);
+  template <class U> friend Vector4<T> maximum(const Vector4<T> &a, const Vector4<T> &b);
+  template <class U> friend Vector4<T> prod(const Vector4<T> &a, const Vector4<T> &b);
 };
 
 typedef Vector4<int> Vector4i;
@@ -778,10 +706,8 @@ public:
 
   double length() const { return 0.f; }
 
-  template <class U>
-  friend std::ostream &operator<<(std::ostream &os, const Point4<T> &m);
-  template <class U>
-  friend std::istream &operator>>(std::istream &is, Point4<T> &m);
+  template <class U> friend std::ostream &operator<<(std::ostream &os, const Point4<T> &m);
+  template <class U> friend std::istream &operator>>(std::istream &is, Point4<T> &m);
 };
 
 typedef Point4<int> Point4i;
@@ -794,11 +720,9 @@ template <class T> Vector<T>::Vector(int size, bool zeroElements) {
   numElements = size;
   n = new T[size];
 
-  if (!zeroElements)
-    return;
+  if (!zeroElements) return;
 
-  for (int i = 0; i < size; i++)
-    n[i] = 0.0;
+  for (int i = 0; i < size; i++) n[i] = 0.0;
 }
 
 template <class T> Vector<T>::Vector(const Vector<T> &v) {
@@ -818,78 +742,63 @@ template <class T> void Vector<T>::resize(int size, bool zeroElements) {
     n = new T[size];
   }
 
-  if (zeroElements)
-    memset(n, 0, numElements * sizeof(T));
+  if (zeroElements) memset(n, 0, numElements * sizeof(T));
 }
 
-template <class T> void Vector<T>::zeroElements() {
-  memset(n, 0, numElements * sizeof(T));
-}
+template <class T> void Vector<T>::zeroElements() { memset(n, 0, numElements * sizeof(T)); }
 
 template <class T> Vector<T> &Vector<T>::operator=(const Vector<T> &v) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements !=
-                                 numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
-  for (int i = 0; i < numElements; i++)
-    n[i] = v[i];
+  for (int i = 0; i < numElements; i++) n[i] = v[i];
 
   return *this;
 }
 
 template <class T> Vector<T> &Vector<T>::operator+=(const Vector<T> &v) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements !=
-                                 numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
-  for (int i = 0; i < numElements; i++)
-    n[i] += v[i];
+  for (int i = 0; i < numElements; i++) n[i] += v[i];
 
   return *this;
 }
 
 template <class T> Vector<T> &Vector<T>::operator-=(const Vector<T> &v) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements !=
-                                 numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
-  for (int i = 0; i < numElements; i++)
-    n[i] -= v[i];
+  for (int i = 0; i < numElements; i++) n[i] -= v[i];
 
   return *this;
 }
 
 template <class T> Vector<T> &Vector<T>::operator*=(const T d) {
-  for (int i = 0; i < numElements; i++)
-    n[i] *= d;
+  for (int i = 0; i < numElements; i++) n[i] *= d;
 
   return *this;
 }
 
 template <class T> Vector<T> &Vector<T>::operator/=(const T d) {
-  for (int i = 0; i < numElements; i++)
-    n[i] /= d;
+  for (int i = 0; i < numElements; i++) n[i] /= d;
 
   return *this;
 }
 
 template <class T> Vector<T> Vector<T>::operator-(const Vector<T> &v) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements !=
-                                 numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
   Vector<T> result(numElements, false);
 
-  for (int i = 0; i < numElements; i++)
-    result[i] = n[i] - v[i];
+  for (int i = 0; i < numElements; i++) result[i] = n[i] - v[i];
 
   return result;
 }
 
 template <class T> Vector<T> Vector<T>::operator+(const Vector<T> &v) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements !=
-                                 numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
   Vector<T> result(numElements, false);
 
-  for (int i = 0; i < numElements; i++)
-    result[i] = v[i] + n[i];
+  for (int i = 0; i < numElements; i++) result[i] = v[i] + n[i];
 
   return result;
 }
@@ -897,8 +806,7 @@ template <class T> Vector<T> Vector<T>::operator+(const Vector<T> &v) {
 template <class T> double Vector<T>::length2() const {
   double result = 0.0;
 
-  for (int i = 0; i < numElements; i++)
-    result += n[i] * n[i];
+  for (int i = 0; i < numElements; i++) result += n[i] * n[i];
 
   return result;
 }
@@ -908,92 +816,71 @@ template <class T> double Vector<T>::length() const { return sqrt(length2()); }
 template <class T> void Vector<T>::normalize() {
   double len = 1. / length();
 
-  for (int i = 0; i < numElements; i++)
-    n[i] *= len;
+  for (int i = 0; i < numElements; i++) n[i] *= len;
 }
 
 template <class T> bool Vector<T>::isZero() {
   for (int i = 0; i < numElements; i++)
-    if (n[i] != 0)
-      return false;
+    if (n[i] != 0) return false;
 
   return true;
 }
 
 template <class T> Vector<T> minimum(const Vector<T> &a, const Vector<T> &b) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (a.numElements !=
-                                 b.numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
   gvt::core::math::Vector<T> result(a.numElements, false);
 
-  for (int i = 0; i < a.numElements; i++)
-    result[i] = min(a[i], b[i]);
+  for (int i = 0; i < a.numElements; i++) result[i] = min(a[i], b[i]);
 
   return result;
 }
 
 template <class T> Vector<T> maximum(const Vector<T> &a, const Vector<T> &b) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (a.numElements !=
-                                 b.numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
   Vector<T> result(a.numElements, false);
 
-  for (int i = 0; i < a.numElements; i++)
-    result[i] = max(a[i], b[i]);
+  for (int i = 0; i < a.numElements; i++) result[i] = max(a[i], b[i]);
 
   return result;
 }
 
 template <class T> Vector<T> prod(const Vector<T> &a, const Vector<T> &b) {
-  GVT_DEBUG_CODE(DBG_ALWAYS, if (a.numElements !=
-                                 b.numElements) throw VectortorSizeMismatch());
+  GVT_DEBUG_CODE(DBG_ALWAYS, if (a.numElements != b.numElements) throw VectortorSizeMismatch());
 
   Vector<T> result(a.numElements, false);
 
-  for (int i = 0; i < a.numElements; i++)
-    result[i] = a[i] * b[i];
+  for (int i = 0; i < a.numElements; i++) result[i] = a[i] * b[i];
 
   return result;
 }
 
-template <class T>
-inline Vector3<T> minimum(const Vector3<T> &a, const Vector3<T> &b) {
-  return gvt::core::math::Vector3<T>(min(a[0], b[0]), min(a[1], b[1]),
-                                     min(a[2], b[2]));
+template <class T> inline Vector3<T> minimum(const Vector3<T> &a, const Vector3<T> &b) {
+  return gvt::core::math::Vector3<T>(min(a[0], b[0]), min(a[1], b[1]), min(a[2], b[2]));
 }
 
-template <class T>
-inline Vector3<T> maximum(const Vector3<T> &a, const Vector3<T> &b) {
-  return gvt::core::math::Vector3<T>(max(a[0], b[0]), max(a[1], b[1]),
-                                     max(a[2], b[2]));
+template <class T> inline Vector3<T> maximum(const Vector3<T> &a, const Vector3<T> &b) {
+  return gvt::core::math::Vector3<T>(max(a[0], b[0]), max(a[1], b[1]), max(a[2], b[2]));
 }
 
-template <class T>
-inline Vector3<T> prod(const Vector3<T> &a, const Vector3<T> &b) {
+template <class T> inline Vector3<T> prod(const Vector3<T> &a, const Vector3<T> &b) {
   return gvt::core::math::Vector3<T>(a[0] * b[0], a[1] * b[1], a[2] * b[2]);
 }
 
-template <class T>
-inline Vector4<T> minimum(const Vector4<T> &a, const Vector4<T> &b) {
-  return gvt::core::math::Vector4<T>(min(a[0], b[0]), min(a[1], b[1]),
-                                     min(a[2], b[2]), min(a[3], b[3]));
+template <class T> inline Vector4<T> minimum(const Vector4<T> &a, const Vector4<T> &b) {
+  return gvt::core::math::Vector4<T>(min(a[0], b[0]), min(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3]));
 }
 
-template <class T>
-inline Vector4<T> maximum(const Vector4<T> &a, const Vector4<T> &b) {
-  return gvt::core::math::Vector4<T>(max(a[0], b[0]), max(a[1], b[1]),
-                                     max(a[2], b[2]), max(a[3], b[3]));
+template <class T> inline Vector4<T> maximum(const Vector4<T> &a, const Vector4<T> &b) {
+  return gvt::core::math::Vector4<T>(max(a[0], b[0]), max(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]));
 }
 
-template <class T>
-inline Vector4<T> prod(const Vector4<T> &a, const Vector4<T> &b) {
-  return gvt::core::math::Vector4<T>(a[0] * b[0], a[1] * b[1], a[2] * b[2],
-                                     a[3] * b[3]);
+template <class T> inline Vector4<T> prod(const Vector4<T> &a, const Vector4<T> &b) {
+  return gvt::core::math::Vector4<T>(a[0] * b[0], a[1] * b[1], a[2] * b[2], a[3] * b[3]);
 }
 
-template <class T> Vector3<T> vector4to3(Vector4<T> &v) {
-  return Vector3<T>(v[0], v[1], v[2]);
-}
+template <class T> Vector3<T> vector4to3(Vector4<T> &v) { return Vector3<T>(v[0], v[1], v[2]); }
 #include "VectorOperators.inl"
 }
 }
