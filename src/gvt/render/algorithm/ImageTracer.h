@@ -109,9 +109,12 @@ public:
     boost::timer::cpu_timer t_frame;
     t_frame.start();
     boost::timer::cpu_timer t_trace;
+    t_trace.stop();
     boost::timer::cpu_timer t_sort;
+    t_sort.stop();
     boost::timer::cpu_timer t_shuffle;
-    
+    t_shuffle.stop();
+
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
