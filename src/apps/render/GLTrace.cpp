@@ -48,6 +48,9 @@
 #include <string>
 #include <vector>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
 #include "ConfigFileLoader.h"
 #include <gvt/core/Math.h>
 #include <gvt/core/mpi/Wrapper.h>
@@ -906,6 +909,7 @@ void ConfigSceneCone() {
 }
 
 int main(int argc, char *argv[]) {
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   unsigned char action;
   // mpi initialization
 

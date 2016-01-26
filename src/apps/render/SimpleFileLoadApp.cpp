@@ -34,6 +34,10 @@
 #include <gvt/core/Math.h>
 #include <gvt/render/Schedulers.h>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -65,6 +69,8 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
+
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);

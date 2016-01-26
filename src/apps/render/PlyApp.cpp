@@ -40,6 +40,9 @@
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -109,6 +112,9 @@ static Face **flist;
 #define MAX(a, b) ((a > b) ? (a) : (b))
 int main(int argc, char **argv) {
 
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+
+
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
   Vertex *vert;
@@ -122,8 +128,8 @@ int main(int argc, char **argv) {
   char txt[16];
   std::string temp;
   std::string filename, filepath, rootdir;
-  rootdir = "/home/jbarbosa/r/EnzoPlyData/";
-  // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
+  // rootdir = "/home/jbarbosa/r/EnzoPlyData/";
+  rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
   // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
   // myfile = fopen(filename.c_str(),"r");
   MPI_Init(&argc, &argv);
