@@ -132,10 +132,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
-  void clearBuffer() {
-    std::memset(colorBuf,0,sizeof(GVT_COLOR_ACCUM) * width * height); 
-  }
-
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(GVT_COLOR_ACCUM) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};

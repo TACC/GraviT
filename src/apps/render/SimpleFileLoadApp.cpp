@@ -37,7 +37,6 @@
 #include <tbb/task_scheduler_init.h>
 #include <thread>
 
-
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif

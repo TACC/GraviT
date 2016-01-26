@@ -69,10 +69,10 @@ void gvtCameraBase::buildTransform() {
   // V direction is the camera up vector.
   //
   v = up_vector.normalize();
-  //
-  // U direction is the cross product of the camera up vector and the W vector
-  //
-  //
+//
+// U direction is the cross product of the camera up vector and the W vector
+//
+//
 #ifdef LEFT_HAND_CAMERA
   u[0] = v[1] * w[2] - v[2] * w[1];
   u[1] = v[2] * w[0] - v[0] * w[2];
@@ -90,11 +90,11 @@ void gvtCameraBase::buildTransform() {
   u = u.normalize();
 #endif
 
-  //
-  // The up vector input may not have been orthogonal to the viewing direction w.
-  // Recalculate an up vector perpendicular to both the view direction w and the
-  // horizontal direction up. The new up vector will be the cross product of w and u
-  //
+//
+// The up vector input may not have been orthogonal to the viewing direction w.
+// Recalculate an up vector perpendicular to both the view direction w and the
+// horizontal direction up. The new up vector will be the cross product of w and u
+//
 #ifdef LEFT_HAND_CAMERA
   up_vector[0] = w[1] * u[2] - u[1] * w[2];
   up_vector[1] = w[2] * u[0] - u[2] * w[0];

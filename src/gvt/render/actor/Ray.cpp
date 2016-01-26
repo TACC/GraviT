@@ -63,16 +63,32 @@ Ray::Ray(Ray &ray, AffineTransformMatrix<float> &m) {
 }
 
 Ray::Ray(const Ray &ray) {
-  origin = ray.origin;
-  direction = ray.direction;
-  inverseDirection = ray.inverseDirection;
-  t = ray.t;
-  color = ray.color;
+  //  origin = ray.origin;
+  //  direction = ray.direction;
+  //  inverseDirection = ray.inverseDirection;
+  //  t = ray.t;
+  //  color = ray.color;
+  //  domains = ray.domains;
+  //  id = ray.id;
+  //  w = ray.w;
+  //  type = ray.type;
+  //  depth = ray.depth;
+  std::memcpy(data, ray.data, 16 * 4 + 7 * 4);
   domains = ray.domains;
-  id = ray.id;
-  w = ray.w;
-  type = ray.type;
-  depth = ray.depth;
+}
+
+Ray::Ray(Ray &&ray) {
+  //    std::memmove(&origin,&ray.origin,sizeof(Point4f));
+  //    std::memmove(&direction,&ray.direction,sizeof(Vector4f));
+  //    std::memmove(&inverseDirection,&ray.inverseDirection,sizeof(Vector4f));
+  //    std::memmove(&color,&ray.color,sizeof(Vector4f));
+  std::memmove(data, ray.data, 16 * 4 + 7 * 4);
+  std::swap(domains, ray.domains);
+  //  t = ray.t;
+  //  id = ray.id;
+  //  w = ray.w;
+  //  type = ray.type;
+  //  depth = ray.depth;
 }
 
 Ray::~Ray() {}

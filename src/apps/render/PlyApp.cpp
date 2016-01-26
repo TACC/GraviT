@@ -114,7 +114,6 @@ int main(int argc, char **argv) {
 
   tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
-
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
   Vertex *vert;
