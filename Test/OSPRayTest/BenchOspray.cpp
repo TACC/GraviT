@@ -85,10 +85,17 @@ PlyProperty face_props[] = {
 };
 
 // determine if file is a directory
-bool isdir(const char* path) {
-		struct stat buf;
-		stat(path,&buf);
-		return S_ISDIR(buf.st_mode);
+bool isdir(const char* path) 
+{
+	struct stat buf;
+	stat(path,&buf);
+	return S_ISDIR(buf.st_mode);
+}
+// determine if a file exists
+bool file_exists(const char* path) 
+{
+	struct stat buf;
+	return ( stat(path,&buf) == 0);
 }
 /*** search a directory for files named *.ply and return a vector containing the full path to
  * each one. 
@@ -119,6 +126,7 @@ void ReadPlyFile(std::string filename, OSPGeometry &mesh ){
 	int32_t *index;
 	Vertex *vert;
 	Face *face;
+	// default color of vertex
 	float color[] = { 0.5f, 0.5f, 1.0f, 1.0f};
 	InputFile = fopen(filename.c_str(), "r");
 	in_ply = read_ply(InputFile);
@@ -127,7 +135,7 @@ void ReadPlyFile(std::string filename, OSPGeometry &mesh ){
 		if(elem_name == "vertex") {
 			nverts = elem_count;
 			vertexarray = (float*)malloc(3*nverts*sizeof(float));//allocate vertex array
-			colorarray = (float*)malloc(4*nverts*sizeof(float));//allocate vertex array
+			colorarray = (float*)malloc(4*nverts*sizeof(float));//allocate color array
 			setup_property_ply(in_ply, &vert_props[0]);
 			setup_property_ply(in_ply, &vert_props[1]);
 			setup_property_ply(in_ply, &vert_props[2]);
@@ -201,7 +209,6 @@ int main(int argc, const char** argv) {
 	float cam_fovy = 50.0;
 	float lightdirection[] = {0.,0.,1.0};
 	// parse the command line
-	std::cout << argc << " args " <<  std::endl;
 	if( (argc < 2)  ) 
 	{
 	// no input so render default empty image.
@@ -211,15 +218,18 @@ int main(int argc, const char** argv) {
 	// parse the input
 		for(int i = 1;i<argc;i++) 
 		{
-			std::cout << i << " " << argv[i] << std::endl;
 			const std::string arg = argv[i];
 			if(arg == "-i") 
 			{ // set the path to the input file
 				filepath = argv[++i];
-				// test to see if the file exists, open and read it if it does.
-				if(isdir(filepath.c_str()))
+				if (!file_exists(filepath.c_str()))
+				{
+					std::cout << "File \"" << filepath << "\" does not exist. Exiting." << std::endl;
+					return 0;
+				// test to see if the file is a directory
+				} 
+				else if(isdir(filepath.c_str()))
 				{ // read all .ply files in a directory
-					std::cout << " got a directory of .ply files" << std::endl;
 					std::vector<std::string> files = findply(filepath);
 					if(!files.empty()) 
 					{ // parse the files and add the meshes.
@@ -234,7 +244,6 @@ int main(int argc, const char** argv) {
 					} 
 					else 
 					{
-						std::cout << " no .ply files in " << filepath << std::endl;
 						filepath = "";
 					}
 				} 
