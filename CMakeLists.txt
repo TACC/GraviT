@@ -480,6 +480,7 @@ if (GVT_GLRENDER_APP)
 	set(GVTGLAPP_RENDER_SRCS ${GVTGLAPP_RENDER_SRCS}
 		src/apps/render/ConfigFileLoader.cpp
 		src/apps/render/GLTrace.cpp
+                ${PLYPATH}/ply.c
 		)
 
 	add_executable(glTracer

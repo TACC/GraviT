@@ -65,11 +65,7 @@
 #include <GL/freeglut.h>
 #endif
 
-typedef enum { BVH_RENDER_MODE, FILM_RENDER_MODE } render_mode;
-
-#define ESCAPE 27
-#define ROTATE_STEP .1
-#define MOVE_STEP 0.1
+#include <ply.h>
 
 using namespace std;
 using namespace gvtapps::render;
@@ -82,6 +78,14 @@ using namespace gvt::core::math;
 using namespace gvt::render;
 using namespace gvt::render::data::primitives;
 
+
+typedef enum { BVH_RENDER_MODE, FILM_RENDER_MODE } render_mode;
+
+#define ESCAPE 27
+#define ROTATE_STEP .1
+#define MOVE_STEP 0.1
+
+
 // global variables used by glut callbacks.
 //
 GLubyte *imagebuffer;
@@ -92,8 +96,9 @@ int opengl_rank;
 int mpi_rank;
 bool update = false;
 render_mode renderMode = BVH_RENDER_MODE;
-bool cameraRotationMode = true; // true to rotate focus, false to rotate eye
 //render_mode renderMode = FILM_RENDER_MODE;
+bool cameraRotationMode = true; // true to rotate focus, false to rotate eye
+
 gvt::core::DBNodeH camNode;
 
 static int mouseButton0 = 0;
@@ -107,6 +112,42 @@ gvtPerspectiveCamera mycamera;
 Image* imageptr;
 boost::timer::cpu_timer t_frame;
 boost::timer::cpu_times lastFrameTime;
+
+/*
+ * Ply
+ */
+typedef struct Vertex {
+  float x, y, z;
+  float nx, ny, nz;
+  void *other_props; /* other properties */
+} Vertex;
+
+typedef struct Face {
+  unsigned char nverts; /* number of vertex indices in list */
+  int *verts;           /* vertex index list */
+  void *other_props;    /* other properties */
+} Face;
+
+PlyProperty vert_props[] = {
+  /* list of property information for a vertex */
+  { "x", Float32, Float32, offsetof(Vertex, x), 0, 0, 0, 0 },
+  { "y", Float32, Float32, offsetof(Vertex, y), 0, 0, 0, 0 },
+  { "z", Float32, Float32, offsetof(Vertex, z), 0, 0, 0, 0 },
+  { "nx", Float32, Float32, offsetof(Vertex, nx), 0, 0, 0, 0 },
+  { "ny", Float32, Float32, offsetof(Vertex, ny), 0, 0, 0, 0 },
+  { "nz", Float32, Float32, offsetof(Vertex, nz), 0, 0, 0, 0 },
+};
+
+PlyProperty face_props[] = {
+  /* list of property information for a face */
+  { "vertex_indices", Int32, Int32, offsetof(Face, verts), 1, Uint8, Uint8, offsetof(Face, nverts) },
+};
+
+#define MIN(a, b) ((a < b) ? (a) : (b))
+#define MAX(a, b) ((a > b) ? (a) : (b))
+
+static Vertex **vlist;
+static Face **flist;
 
 inline double WallClockTime() {
 #if defined(__linux__) || defined(__APPLE__) || defined(__CYGWIN__) || \
@@ -123,7 +164,7 @@ inline double WallClockTime() {
 }
 
 
-void PrintString(void *font, const char *string) {
+void printString(void *font, const char *string) {
   int len, i;
 
   len = (int)strlen(string);
@@ -134,13 +175,13 @@ void PrintString(void *font, const char *string) {
 void PrintHelpString(const unsigned int x, const unsigned int y, const char *key, const char *msg) {
   glColor3f(0.9f, 0.9f, 0.5f);
   glRasterPos2i(x, y);
-  PrintString(GLUT_BITMAP_8_BY_13, key);
+  printString(GLUT_BITMAP_8_BY_13, key);
 
   glColor3f(1.f, 1.f, 1.f);
   // To update raster color
   glRasterPos2i(x + glutBitmapLength(GLUT_BITMAP_8_BY_13, (unsigned char *)key), y);
-  PrintString(GLUT_BITMAP_8_BY_13, ": ");
-  PrintString(GLUT_BITMAP_8_BY_13, msg);
+  printString(GLUT_BITMAP_8_BY_13, ": ");
+  printString(GLUT_BITMAP_8_BY_13, msg);
 }
 
 void PrintHelpAndSettings() {
@@ -171,6 +212,9 @@ void PrintHelpAndSettings() {
 
       fontOffset += 15;
       PrintHelpString(15, fontOffset, "arrow keys", "translate camera left, right, forward, and backward");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "r", "refresh frame");
 
       fontOffset += 15;
       PrintHelpString(15, fontOffset, "m", "switch between film and bvh render mode");
@@ -486,19 +530,151 @@ void reshape(int w, int h) {
       glLoadIdentity();
 
     } else {
-      glMatrixMode(GL_PROJECTION);
-      glLoadIdentity();
-      gluPerspective(45, (double)w / (double)h, .1, 100);
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
 
       Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
       Point4f focus = camNode["focus"].value().toPoint4f();
       Vector4f up = camNode["upVector"].value().toVector4f();
+      float fov = camNode["fov"].value().toFloat()*(180/M_PI);
+      //simply calculating the zfar according to camera view dir for now
+      float zfar = (focus-eye1).length()*1.5;
+
+      glMatrixMode(GL_PROJECTION);
+      glLoadIdentity();
+      gluPerspective(fov, (double)w / (double)h, .1, zfar);
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+
 
       UpdateCamera( focus,  eye1,  up);
 
     }
+}
+
+
+void specialkey(int key, int x, int y) {
+  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+  Vector4f up = camNode["upVector"].value().toVector4f();
+
+  switch (key) {
+    case GLUT_KEY_LEFT:
+      TranslateLeft(eye1, focus, MOVE_STEP);
+      update = true;
+      break;
+    case GLUT_KEY_RIGHT:
+      TranslateRight(eye1, focus, MOVE_STEP);
+      update = true;
+      break;
+    case GLUT_KEY_UP:
+      TranslateForward(eye1, focus, MOVE_STEP);
+      update = true;
+      break;
+    case GLUT_KEY_DOWN:
+      TranslateBackward(eye1, focus, MOVE_STEP);
+      update = true;
+      break;
+    default:
+      break;
+    }
+
+  UpdateCamera(focus, eye1,up);
+
+  glutPostRedisplay();
+}
+
+void UpdateRenderMode() {
+  if (renderMode == BVH_RENDER_MODE) {
+      renderMode = FILM_RENDER_MODE;
+
+      glMatrixMode(GL_PROJECTION);
+      glLoadIdentity();
+      gluOrtho2D(0.0, (GLdouble)width, 0.0, (GLdouble)height);
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+
+    } else {
+
+      Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+      Point4f focus = camNode["focus"].value().toPoint4f();
+      Vector4f up = camNode["upVector"].value().toVector4f();
+      float fov = camNode["fov"].value().toFloat()*(180/M_PI);
+      //simply calculating the zfar according to camera view dir for now
+      float zfar = (focus-eye1).length()*1.5;
+
+      renderMode = BVH_RENDER_MODE;
+      glMatrixMode(GL_PROJECTION);
+      glLoadIdentity();
+      gluPerspective(fov, (double)width / (double)height, .1, zfar);
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+
+
+
+      UpdateCamera( focus,  eye1,  up);
+    }
+}
+
+void keyboard(unsigned char key, int x, int y) {
+  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+  Vector4f up = camNode["upVector"].value().toVector4f();
+
+  switch (key) {
+    case ESCAPE:
+      MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
+      if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+      exit(0);
+
+    case 'q':
+      MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
+      if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+      exit(0);
+
+    case 'w':
+      RotateUp(eye1, focus, ROTATE_STEP);
+      update = true;
+      break;
+    case 's':
+      RotateDown(eye1, focus, ROTATE_STEP);
+      update = true;
+      break;
+    case 'a':
+      RotateLeft(eye1, focus, ROTATE_STEP);
+      update = true;
+      break;
+    case 'd':
+      RotateRight(eye1, focus, ROTATE_STEP);
+      update = true;
+      break;
+
+    case 'm':
+      UpdateRenderMode();
+      break;
+
+    case 'h':
+      printHelp = (!printHelp);
+      break;
+
+    case 'p':
+      imageptr->Write();
+      break;
+
+    case 'c':
+      cameraRotationMode = (!cameraRotationMode);
+      break;
+
+    case 'r':
+      update = true;
+      break;
+
+    default:
+      // dont do anything
+      break;
+    }
+
+  if (update) UpdateCamera(focus, eye1,up);
+
+  glutPostRedisplay();
 }
 
 void drawWireBox(gvt::render::data::primitives::Box3D &bbox) {
@@ -518,10 +694,7 @@ void drawWireBox(gvt::render::data::primitives::Box3D &bbox) {
   glPopMatrix();
 }
 
-
-
 void RenderBVH() {
-
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootNode = cntxt->getRootNode();
@@ -534,6 +707,8 @@ void RenderBVH() {
       Box3D *bbox = (Box3D *)instance["bbox"].value().toULongLong();
       drawWireBox(*bbox);
     }
+
+ //glutSolidTeapot(.1);
 
   PrintHelpAndSettings();
 
@@ -620,122 +795,6 @@ void dispfunc(void) {
         break;
       }
     }
-}
-
-void specialkey(int key, int x, int y) {
-  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
-  Point4f focus = camNode["focus"].value().toPoint4f();
-  Vector4f up = camNode["upVector"].value().toVector4f();
-
-  switch (key) {
-    case GLUT_KEY_LEFT:
-      TranslateLeft(eye1, focus, MOVE_STEP);
-      update = true;
-      break;
-    case GLUT_KEY_RIGHT:
-      TranslateRight(eye1, focus, MOVE_STEP);
-      update = true;
-      break;
-    case GLUT_KEY_UP:
-      TranslateForward(eye1, focus, MOVE_STEP);
-      update = true;
-      break;
-    case GLUT_KEY_DOWN:
-      TranslateBackward(eye1, focus, MOVE_STEP);
-      update = true;
-      break;
-    default:
-      break;
-    }
-
-  UpdateCamera(focus, eye1,up);
-
-  glutPostRedisplay();
-}
-
-void UpdateRenderMode() {
-  if (renderMode == BVH_RENDER_MODE) {
-      renderMode = FILM_RENDER_MODE;
-
-      glMatrixMode(GL_PROJECTION);
-      glLoadIdentity();
-      gluOrtho2D(0.0, (GLdouble)width, 0.0, (GLdouble)height);
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
-
-    } else {
-      renderMode = BVH_RENDER_MODE;
-      glMatrixMode(GL_PROJECTION);
-      glLoadIdentity();
-      gluPerspective(45, (double)width / (double)height, .1, 100);
-      glMatrixMode(GL_MODELVIEW);
-      glLoadIdentity();
-
-      Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
-      Point4f focus = camNode["focus"].value().toPoint4f();
-      Vector4f up = camNode["upVector"].value().toVector4f();
-
-      UpdateCamera( focus,  eye1,  up);
-    }
-}
-
-void keyboard(unsigned char key, int x, int y) {
-  Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
-  Point4f focus = camNode["focus"].value().toPoint4f();
-  Vector4f up = camNode["upVector"].value().toVector4f();
-
-  switch (key) {
-    case ESCAPE:
-      MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
-      if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-      exit(0);
-
-    case 'q':
-      MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
-      if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-      exit(0);
-
-    case 'w':
-      RotateUp(eye1, focus, ROTATE_STEP);
-      update = true;
-      break;
-    case 's':
-      RotateDown(eye1, focus, ROTATE_STEP);
-      update = true;
-      break;
-    case 'a':
-      RotateLeft(eye1, focus, ROTATE_STEP);
-      update = true;
-      break;
-    case 'd':
-      RotateRight(eye1, focus, ROTATE_STEP);
-      update = true;
-      break;
-
-    case 'm':
-      UpdateRenderMode();
-      break;
-
-    case 'h':
-      printHelp = (!printHelp);
-      break;
-
-    case 'p':
-      imageptr->Write();
-      break;
-
-    case 'c':
-      cameraRotationMode = (!cameraRotationMode);
-      break;
-
-    default:
-      // dont do anything
-      break;
-    }
-
-  if (update) UpdateCamera(focus, eye1,up);
-
-  glutPostRedisplay();
 }
 
 void ConfigSceneFromFile(string filename) {
@@ -1074,6 +1133,147 @@ void ConfigSceneCone() {
   filmNode["height"] = 512;
 }
 
+
+void ConfigEnzo() {
+
+  // mess I use to open and read the ply file with the c utils I found.
+  PlyFile *in_ply;
+  Vertex *vert;
+  Face *face;
+  int elem_count, nfaces, nverts;
+  int i, j, k;
+  float xmin, ymin, zmin, xmax, ymax, zmax;
+  char *elem_name;
+  ;
+  FILE *myfile;
+  char txt[16];
+  std::string temp;
+  std::string filename, filepath, rootdir;
+  rootdir = "/Users/rri/work/TACC-GraviT/gravit/data/EnzoPlyData/";
+  // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
+  // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
+  // myfile = fopen(filename.c_str(),"r");
+
+
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes = root["Data"];
+
+  // Enzo isosurface...
+  for (k = 0; k < 8; k++) {
+      sprintf(txt, "%d", k);
+      filename = "block";
+      filename += txt;
+      gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
+      // read in some ply data and get ready to load it into the mesh
+      // filepath = rootdir + "block" + std::string(txt) + ".ply";
+      filepath = rootdir + filename + ".ply";
+      myfile = fopen(filepath.c_str(), "r");
+      in_ply = read_ply(myfile);
+      for (i = 0; i < in_ply->num_elem_types; i++) {
+          elem_name = setup_element_read_ply(in_ply, i, &elem_count);
+          temp = elem_name;
+          if (temp == "vertex") {
+              vlist = (Vertex **)malloc(sizeof(Vertex *) * elem_count);
+              nverts = elem_count;
+              setup_property_ply(in_ply, &vert_props[0]);
+              setup_property_ply(in_ply, &vert_props[1]);
+              setup_property_ply(in_ply, &vert_props[2]);
+              for (j = 0; j < elem_count; j++) {
+                  vlist[j] = (Vertex *)malloc(sizeof(Vertex));
+                  get_element_ply(in_ply, (void *)vlist[j]);
+                }
+            } else if (temp == "face") {
+              flist = (Face **)malloc(sizeof(Face *) * elem_count);
+              nfaces = elem_count;
+              setup_property_ply(in_ply, &face_props[0]);
+              for (j = 0; j < elem_count; j++) {
+                  flist[j] = (Face *)malloc(sizeof(Face));
+                  get_element_ply(in_ply, (void *)flist[j]);
+                }
+            }
+        }
+      close_ply(in_ply);
+      // smoosh data into the mesh object
+      {
+        Mesh *mesh = new Mesh(new Lambert(Vector4f(1.0, 1.0, 1.0, 1.0)));
+        vert = vlist[0];
+        xmin = vert->x;
+        ymin = vert->y;
+        zmin = vert->z;
+        xmax = vert->x;
+        ymax = vert->y;
+        zmax = vert->z;
+
+        for (i = 0; i < nverts; i++) {
+            vert = vlist[i];
+            xmin = MIN(vert->x, xmin);
+            ymin = MIN(vert->y, ymin);
+            zmin = MIN(vert->z, zmin);
+            xmax = MAX(vert->x, xmax);
+            ymax = MAX(vert->y, ymax);
+            zmax = MAX(vert->z, zmax);
+            mesh->addVertex(Point4f(vert->x, vert->y, vert->z, 1.0));
+          }
+        Point4f lower(xmin, ymin, zmin);
+        Point4f upper(xmax, ymax, zmax);
+        Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+        // add faces to mesh
+        for (i = 0; i < nfaces; i++) {
+            face = flist[i];
+            mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
+          }
+        mesh->generateNormals();
+        // add Enzo mesh to the database
+        // EnzoMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
+        EnzoMeshNode["file"] = string(filepath);
+        EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
+        EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+      }
+      // add instance
+      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", root["Instances"].UUID());
+      gvt::core::DBNodeH meshNode = EnzoMeshNode;
+      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+      instnode["id"] = k;
+      instnode["meshRef"] = meshNode.UUID();
+      auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
+      auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
+      auto normi = new gvt::core::math::Matrix3f();
+      instnode["mat"] = (unsigned long long)m;
+      *minv = m->inverse();
+      instnode["matInv"] = (unsigned long long)minv;
+      *normi = m->upper33().inverse().transpose();
+      instnode["normi"] = (unsigned long long)normi;
+      auto il = (*m) * mbox->bounds[0];
+      auto ih = (*m) * mbox->bounds[1];
+      Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+      instnode["bbox"] = (unsigned long long)ibox;
+      instnode["centroid"] = ibox->centroid();
+    }
+
+
+
+
+
+  // add lights, camera, and film to the database
+  gvt::core::DBNodeH lightNodes = root["Lights"];
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+  lightNode["position"] = Vector4f(512.0, 512.0, 2048.0, 0.0);
+  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  // camera
+  gvt::core::DBNodeH camNode = root["Camera"];
+  camNode["eyePoint"] = Point4f(512.0, 512.0, 4096.0, 1.0);
+  camNode["focus"] = Point4f(512.0, 512.0, 0.0, 1.0);
+  camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  camNode["fov"] = (float)(25.0 * M_PI / 180.0);
+  // film
+  gvt::core::DBNodeH filmNode =  root["Film"];
+  filmNode["width"] = 1900;
+  filmNode["height"] = 1080;
+}
+
+
 int main(int argc, char *argv[]) {
   unsigned char action;
   // mpi initialization
@@ -1110,9 +1310,10 @@ int main(int argc, char *argv[]) {
   cntxt->createNodeFromType("Film", "Film", root.UUID());
 
 
-  ConfigSceneFromFile(filename);
+  //ConfigSceneFromFile(filename);
   //ConfigSceneCubeCone();
   //ConfigSceneCone();
+  ConfigEnzo();
 
 
   gvt::core::DBNodeH schedNode =
@@ -1189,15 +1390,19 @@ int main(int argc, char *argv[]) {
           glLoadIdentity();
 
         } else {
-          glMatrixMode(GL_PROJECTION);
-          glLoadIdentity();
-          gluPerspective(45, (double)width / (double)height, .1, 100);
-          glMatrixMode(GL_MODELVIEW);
-          glLoadIdentity();
 
           Point4f eye1 = camNode["eyePoint"].value().toPoint4f();
           Point4f focus = camNode["focus"].value().toPoint4f();
           Vector4f up = camNode["upVector"].value().toVector4f();
+          float fov = camNode["fov"].value().toFloat()*(180/M_PI);
+          //simply calculating the zfar according to camera view dir for now
+          float zfar = (focus-eye1).length()*1.5;
+
+          glMatrixMode(GL_PROJECTION);
+          glLoadIdentity();
+          gluPerspective(fov, (double)width / (double)height, .1, zfar);
+          glMatrixMode(GL_MODELVIEW);
+          glLoadIdentity();
 
           update=true; //force up vector otho check, not applied to gtv first frame
           UpdateCamera( focus,  eye1,  up);
