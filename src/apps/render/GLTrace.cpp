@@ -91,8 +91,9 @@ static GLint height;
 int opengl_rank;
 int mpi_rank;
 bool update = false;
-//render_mode renderMode = BVH_RENDER_MODE;
-render_mode renderMode = FILM_RENDER_MODE;
+render_mode renderMode = BVH_RENDER_MODE;
+bool cameraRotationMode = true; // true to rotate focus, false to rotate eye
+//render_mode renderMode = FILM_RENDER_MODE;
 gvt::core::DBNodeH camNode;
 
 static int mouseButton0 = 0;
@@ -100,10 +101,12 @@ static int mouseButton2 = 0;
 static int mouseGrabLastX = 0;
 static int mouseGrabLastY = 0;
 static double lastMouseUpdate = 0.0;
-
+static bool printHelp = true;
 gvt::render::algorithm::AbstractTrace *tracer;
 gvtPerspectiveCamera mycamera;
 Image* imageptr;
+boost::timer::cpu_timer t_frame;
+boost::timer::cpu_times lastFrameTime;
 
 inline double WallClockTime() {
 #if defined(__linux__) || defined(__APPLE__) || defined(__CYGWIN__) || \
@@ -119,6 +122,74 @@ inline double WallClockTime() {
 #endif
 }
 
+
+void PrintString(void *font, const char *string) {
+  int len, i;
+
+  len = (int)strlen(string);
+  for (i = 0; i < len; i++)
+    glutBitmapCharacter(font, string[i]);
+}
+
+void PrintHelpString(const unsigned int x, const unsigned int y, const char *key, const char *msg) {
+  glColor3f(0.9f, 0.9f, 0.5f);
+  glRasterPos2i(x, y);
+  PrintString(GLUT_BITMAP_8_BY_13, key);
+
+  glColor3f(1.f, 1.f, 1.f);
+  // To update raster color
+  glRasterPos2i(x + glutBitmapLength(GLUT_BITMAP_8_BY_13, (unsigned char *)key), y);
+  PrintString(GLUT_BITMAP_8_BY_13, ": ");
+  PrintString(GLUT_BITMAP_8_BY_13, msg);
+}
+
+void PrintHelpAndSettings() {
+
+  if (printHelp) {
+
+      glMatrixMode(GL_PROJECTION);
+      glPushMatrix();
+      glLoadIdentity();
+      gluOrtho2D(0, width, 0, height);
+
+      glMatrixMode(GL_MODELVIEW);
+      glPushMatrix();
+      glLoadIdentity();
+
+      glColor3f(1.f, 1.f, 1.f);
+      int fontOffset = 0;
+
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "p", "write .ppm image");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "c", "switch camera rotation mode (rotate around eye or around focus)");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "a, s, d, w or mouse X/Y + mouse button 0", "rotate camera");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "arrow keys", "translate camera left, right, forward, and backward");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "m", "switch between film and bvh render mode");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "h", "toggle Help");
+
+      fontOffset += 15;
+      PrintHelpString(15, fontOffset, "frame time", boost::timer::format(lastFrameTime).c_str());
+
+      glPopMatrix();
+
+      glMatrixMode(GL_PROJECTION);
+      glPopMatrix();
+
+      glMatrixMode(GL_MODELVIEW);
+    }
+
+}
 
 /*
  * TODO: Multiple static values re-calculated over and over in these
@@ -176,9 +247,11 @@ void Rotate(Point4f &eye, Point4f &focus, const float angle,
       gvt::core::math::AffineTransformMatrix<float>::createRotation(t[2], 0.0,
       0.0, 1.0);
   // Rotate focus point
- // focus = eye + mAA * p;
 
-  eye = focus + (mAA * (-p));
+  if (cameraRotationMode)
+    focus = eye + mAA * p;
+  else
+    eye = focus + (mAA * (-p));
 }
 
 void RotateLeft(Point4f &eye, Point4f &focus, float angle) {
@@ -309,12 +382,12 @@ void UpdateCamera(Point4f focus, Point4f eye1, Vector4f up) {
       camNode["eyePoint"] = eye1;
       camNode["focus"] = focus;
 
-        Vector4f v = (focus - eye1).normalize();
-        float cross = v * up.normalize();
-        if( cross == 1 || cross == -1) {
-            if(up[1] == 1)
+      Vector4f v = (focus - eye1).normalize();
+      float cross = v * up.normalize();
+      if( cross == 1 || cross == -1) {
+          if(up[1] == 1)
             up = Vector4f(0,0,1,0);
-            else if(up[2]==1 || up[0] == 1)
+          else if(up[2]==1 || up[0] == 1)
             up = Vector4f(0,1,0,0);
         }
 
@@ -445,11 +518,16 @@ void drawWireBox(gvt::render::data::primitives::Box3D &bbox) {
   glPopMatrix();
 }
 
+
+
 void RenderBVH() {
+
+
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootNode = cntxt->getRootNode();
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   glMatrixMode(GL_MODELVIEW);
 
   for (gvt::core::DBNodeH instance : rootNode["Instances"].getChildren()) {
@@ -457,9 +535,9 @@ void RenderBVH() {
       drawWireBox(*bbox);
     }
 
-  // glutSolidTeapot(.5);
+  PrintHelpAndSettings();
 
-  glFlush();
+  glutSwapBuffers();
 }
 
 void Render() {
@@ -486,6 +564,7 @@ void Render() {
   mycamera.generateRays();
   imageptr->clear();
 
+  t_frame.start();
   switch (schedType) {
     case gvt::render::scheduler::Image: {
         std::cout << "starting image scheduler" << std::endl;
@@ -504,6 +583,9 @@ void Render() {
       }
     }
 
+  t_frame.stop();
+  lastFrameTime = t_frame.elapsed();
+
 }
 
 void RenderFilm() {
@@ -514,9 +596,13 @@ void RenderFilm() {
       update = false;
     }
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  PrintHelpAndSettings();
+
   glRasterPos2i(0, 0);
   glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, imagebuffer);
-  glFlush();
+
+  glutSwapBuffers();
 }
 
 void dispfunc(void) {
@@ -542,19 +628,19 @@ void specialkey(int key, int x, int y) {
   Vector4f up = camNode["upVector"].value().toVector4f();
 
   switch (key) {
-    case GLUT_KEY_LEFT:  // translate camera left
+    case GLUT_KEY_LEFT:
       TranslateLeft(eye1, focus, MOVE_STEP);
       update = true;
       break;
-    case GLUT_KEY_RIGHT:  // translate camera right
+    case GLUT_KEY_RIGHT:
       TranslateRight(eye1, focus, MOVE_STEP);
       update = true;
       break;
-    case GLUT_KEY_UP:  // translate camera right
+    case GLUT_KEY_UP:
       TranslateForward(eye1, focus, MOVE_STEP);
       update = true;
       break;
-    case GLUT_KEY_DOWN:  // translate camera right
+    case GLUT_KEY_DOWN:
       TranslateBackward(eye1, focus, MOVE_STEP);
       update = true;
       break;
@@ -629,6 +715,19 @@ void keyboard(unsigned char key, int x, int y) {
     case 'm':
       UpdateRenderMode();
       break;
+
+    case 'h':
+      printHelp = (!printHelp);
+      break;
+
+    case 'p':
+      imageptr->Write();
+      break;
+
+    case 'c':
+      cameraRotationMode = (!cameraRotationMode);
+      break;
+
     default:
       // dont do anything
       break;
