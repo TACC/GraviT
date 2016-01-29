@@ -413,7 +413,7 @@ endif(GVT_SIMPLE_APP)
 
 if(GVT_TESTING) 
 	set(OSPRAY_HOME_DIR $ENV{OSPRAY_BUILD_PREFIX})
-	set(OSPRAY_INCLUDE_DIR ${OSPRAY_HOME_DIR} ${OSPRAY_HOME_DIR}/ospray/include)
+	set(OSPRAY_INCLUDE_DIR ${OSPRAY_HOME_DIR} ${OSPRAY_HOME_DIR}/release ${OSPRAY_HOME_DIR}/ospray/include ${OSPRAY_HOME_DIR}/ospray/embree-v2.7.1 ${OSPRAY_HOME_DIR}/ospray/embree-v2.7.1/include )
 	include_directories(${OSPRAY_INCLUDE_DIR} ${PLYPATH})
 	set(GVT_TESTING_SRCS ${GVT_TESTING_SRCS} Test/OSPRayTest/BenchOspray.cpp
 	Test/OSPRayTest/timer.c ${PLYPATH}/ply.c)

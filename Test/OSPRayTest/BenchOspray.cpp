@@ -115,14 +115,12 @@ std::vector<std::string> findply(const std::string dirname) {
 /*** read a ply file and stuff the data into an ospgeometry object. Expects a triangle
  * mesh. If the ply file contains non triangular faces then bad things will probably happen. 
  * */
-void ReadPlyFile(std::string filename, OSPGeometry &mesh ){
+void ReadPlyData(std::string filename, float* &vertexarray,float* &colorarray,int32_t* &indexarray,int &nverts, int &nfaces){
 	FILE *InputFile;
 	PlyFile *in_ply;
 	std::string elem_name;
-	int elem_count,nfaces,nverts,i,j;
-	float *vertexarray;
-	float *colorarray;
-	int32_t *indexarray;
+	int elem_count,i,j;
+	//int elem_count,nfaces,nverts,i,j;
 	int32_t *index;
 	Vertex *vert;
 	Face *face;
@@ -164,6 +162,62 @@ void ReadPlyFile(std::string filename, OSPGeometry &mesh ){
 		}
 	}
 	close_ply(in_ply);
+}
+void ReadPlyFile(std::string filename, OSPGeometry &mesh ){
+
+	float *vertexarray = NULL;
+	float *colorarray = NULL;
+	int32_t *indexarray = NULL;
+	int nverts = 0;
+	int nfaces = 0;
+	ReadPlyData(filename,vertexarray,colorarray,indexarray,nverts,nfaces);
+#if 0
+	FILE *InputFile;
+	PlyFile *in_ply;
+	std::string elem_name;
+	int elem_count,nfaces,nverts,i,j;
+	int32_t *index;
+	Vertex *vert;
+	Face *face;
+	// default color of vertex
+	float color[] = { 0.5f, 0.5f, 1.0f, 1.0f};
+	InputFile = fopen(filename.c_str(), "r");
+	in_ply = read_ply(InputFile);
+	for(i=0;i<in_ply->num_elem_types;i++) {
+		elem_name = std::string(setup_element_read_ply(in_ply,i,&elem_count));
+		if(elem_name == "vertex") {
+			nverts = elem_count;
+			vertexarray = (float*)malloc(3*nverts*sizeof(float));//allocate vertex array
+			colorarray = (float*)malloc(4*nverts*sizeof(float));//allocate color array
+			setup_property_ply(in_ply, &vert_props[0]);
+			setup_property_ply(in_ply, &vert_props[1]);
+			setup_property_ply(in_ply, &vert_props[2]);
+			vert =(Vertex*)malloc(sizeof(Vertex));
+			for(j=0;j<elem_count;j++) {
+				get_element_ply(in_ply,(void*)vert);
+				vertexarray[3*j]   = vert->x;
+				vertexarray[3*j+1] = vert->y;
+				vertexarray[3*j+2] = vert->z;
+				colorarray[4*j]   = color[0];
+				colorarray[4*j+1] = color[1];
+				colorarray[4*j+2] = color[2];
+				colorarray[4*j+3] = color[3];
+			}
+		} else if (elem_name == "face" ) {
+			nfaces = elem_count;
+			indexarray = (int32_t*)malloc(3*nfaces*sizeof(int32_t));
+			setup_property_ply(in_ply, &face_props[0]);
+			face = (Face*)malloc(sizeof(Face));
+			for (j=0;j<elem_count;j++) {
+				get_element_ply(in_ply, (void*)face);
+				indexarray[3*j]   = face->verts[0];
+				indexarray[3*j+1] = face->verts[1];
+				indexarray[3*j+2] = face->verts[2];
+			}
+		}
+	}
+	close_ply(in_ply);
+#endif
 	OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);
 	ospCommit(data);
 	ospSetData(mesh,"vertex",data);
@@ -178,6 +232,7 @@ void ReadPlyFile(std::string filename, OSPGeometry &mesh ){
 
 	ospCommit(mesh);
 }
+
 	
 int main(int argc, const char** argv) {
 	// default values
@@ -187,10 +242,18 @@ int main(int argc, const char** argv) {
 	int benchframes = 10;
 	// timer stuff
 	my_timer_t startTime, endTime;
+	double rendertime = 0.0;
+	double  iotime = 0.0; 
+	double modeltime = 0.0;
 	// empty vertex list
 	float vertex[1] ;
 	float color[1];
 	int32_t index[1];
+	float* vertexarray;
+	float* colorarray;
+	int32_t* indexarray;
+	int nverts,nfaces;
+	int numtriangles = 0;
 	// file related things
 	std::string temp;
 	std::string filename;
@@ -236,10 +299,30 @@ int main(int argc, const char** argv) {
 						std::vector<std::string>::const_iterator file;
 						for(file=files.begin(); file!=files.end(); file++)
 						{
-							std::cout << " adding file " << *file << std::endl;
+							timeCurrent(&startTime);
+							ReadPlyData(*file,vertexarray,colorarray,indexarray,nverts,nfaces);
+							timeCurrent(&endTime);
+							iotime += timeDifferenceMS(&startTime,&endTime);
+							timeCurrent(&startTime);
 							mesh = ospNewGeometry("triangles");
-							ReadPlyFile(*file,mesh);
+							//ReadPlyFile(*file,mesh);
+							OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);
+							ospCommit(data);
+							ospSetData(mesh,"vertex",data);
+
+							data = ospNewData(nverts, OSP_FLOAT4, colorarray);
+							ospCommit(data);
+							ospSetData(mesh,"vertex.color", data);
+
+							data = ospNewData(nfaces, OSP_INT3, indexarray);
+							ospCommit(data);
+							ospSetData(mesh,"index",data);
+
+							ospCommit(mesh);
 							ospAddGeometry(world,mesh);
+							timeCurrent(&endTime);
+							modeltime += timeDifferenceMS(&startTime,&endTime);
+							numtriangles += nfaces;
 						} 
 					} 
 					else 
@@ -249,9 +332,30 @@ int main(int argc, const char** argv) {
 				} 
 				else 
 				{ // read a single file into a mesh.
+					timeCurrent(&startTime);
+					ReadPlyData(filepath,vertexarray,colorarray,indexarray,nverts,nfaces);
+					timeCurrent(&endTime);
+					iotime += timeDifferenceMS(&startTime,&endTime);
+					timeCurrent(&startTime);
 					mesh = ospNewGeometry("triangles");
-					ReadPlyFile(filepath,mesh); 
+					//ReadPlyFile(filepath,mesh); 
+					OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);
+					ospCommit(data);
+					ospSetData(mesh,"vertex",data);
+
+					data = ospNewData(nverts, OSP_FLOAT4, colorarray);
+					ospCommit(data);
+					ospSetData(mesh,"vertex.color", data);
+
+					data = ospNewData(nfaces, OSP_INT3, indexarray);
+					ospCommit(data);
+					ospSetData(mesh,"index",data);
+
+					ospCommit(mesh);
 					ospAddGeometry(world, mesh);
+					timeCurrent(&endTime);
+					modeltime += timeDifferenceMS(&startTime,&endTime);
+					numtriangles += nfaces;
 				}
 			} 
 			else if (arg == "-bench") 
@@ -362,18 +466,11 @@ int main(int argc, const char** argv) {
 			}
 		}
 	}
-	ospSetVec3f(camera, "pos", cam_pos);
-	ospSetf(camera, "aspect", width/(float)height);
-	ospSetf(camera, "fovy", cam_fovy);
-	ospSetVec3f(camera, "dir", cam_view);
-  ospSetVec3f(camera, "up",  cam_up);
-	std::cout << cam_up.x << " " << cam_up.y << " " << cam_up.z << std::endl;
-  ospCommit(camera);
 	//
 	// Create empty data set (dont know if this is necessary or not to do empty
 	// screen test) if there is no filename given
 	//
-	std::cout << " done parsing stuff " << std::endl;
+	timeCurrent(&startTime);
 	if(filepath.empty() ){
 		std::cout << " empty filepath render blank screen " << std::endl;
 		mesh = ospNewGeometry("triangles");
@@ -392,6 +489,12 @@ int main(int argc, const char** argv) {
 		ospCommit(mesh);
 		ospAddGeometry(world, mesh);
 	}
+	ospSetVec3f(camera, "pos", cam_pos);
+	ospSetf(camera, "aspect", width/(float)height);
+	ospSetf(camera, "fovy", cam_fovy);
+	ospSetVec3f(camera, "dir", cam_view);
+  ospSetVec3f(camera, "up",  cam_up);
+  ospCommit(camera);
 
 	ospCommit(world);
 	// framebuffer and renderer
@@ -413,6 +516,8 @@ int main(int argc, const char** argv) {
 	osp::vec2i framebufferdimensions = {width,height};
 	OSPFrameBuffer framebuffer = ospNewFrameBuffer(framebufferdimensions,OSP_RGBA_I8,OSP_FB_COLOR | OSP_FB_ACCUM);
 	ospFrameBufferClear(framebuffer, OSP_FB_COLOR | OSP_FB_ACCUM);
+	timeCurrent(&endTime);
+	modeltime += timeDifferenceMS(&startTime,&endTime);
 	
 	// warmup
 	for(int frame = 0; frame <warmupframes;frame++)
@@ -423,8 +528,10 @@ int main(int argc, const char** argv) {
 		ospRenderFrame(framebuffer, renderer, OSP_FB_COLOR| OSP_FB_ACCUM);
 	timeCurrent(&endTime);
 	//
-	double d = timeDifferenceMS(&startTime,&endTime);
-	std::cout << d/benchframes << " (ms)/frame " <<  (1000*benchframes)/d << " fps " << std::endl;
+	rendertime = timeDifferenceMS(&startTime,&endTime);
+	std::cout << numtriangles/1000000. << " million triangles" << std::endl;
+	std::cout << "iotime (ms) " << iotime << " modeltime (ms) " << modeltime << std::endl;
+	std::cout << rendertime/benchframes << " (ms)/frame " <<  (1000*benchframes)/rendertime << " fps " << std::endl;
 	if(!outputfile.empty()) {
 		const uint32_t *fb = (uint32_t*)ospMapFrameBuffer(framebuffer, OSP_FB_COLOR );
 		writePPM(outputfile.c_str(),width,height,fb);
