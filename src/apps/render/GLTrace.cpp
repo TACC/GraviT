@@ -95,8 +95,8 @@ static GLint height;
 int opengl_rank;
 int mpi_rank;
 bool update = false;
-render_mode renderMode = BVH_RENDER_MODE;
-//render_mode renderMode = FILM_RENDER_MODE;
+//render_mode renderMode = BVH_RENDER_MODE;
+render_mode renderMode = FILM_RENDER_MODE;
 bool cameraRotationMode = true; // true to rotate focus, false to rotate eye
 
 gvt::core::DBNodeH camNode;
@@ -373,6 +373,34 @@ void RotateDown(Point4f &eye, Point4f &focus, float angle) {
 }
 
 /*
+ * Temporary camera film size across mpi nodes until we have context consistent
+ */
+void SyncFilmSize(){
+
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH rootNode = cntxt->getRootNode();
+  gvt::core::DBNodeH filmNode = rootNode["Film"];
+
+  unsigned char * v_new = new unsigned char[4 * sizeof(float)];
+
+  MPI_Bcast(&width, 1, MPI_INT, opengl_rank, MPI_COMM_WORLD);
+
+  if(mpi_rank != opengl_rank){
+    filmNode["width"] = width;
+    }
+
+
+  MPI_Bcast(&height, 1, MPI_INT, opengl_rank, MPI_COMM_WORLD);
+
+  if(mpi_rank != opengl_rank){
+    filmNode["height"] = height;
+    }
+
+
+}
+
+
+/*
  * Temporary camera sync across mpi nodes until we have context consistent
  */
 void SyncCamera(){
@@ -403,36 +431,55 @@ void UpdateCamera(Point4f focus, Point4f eye1, Vector4f up) {
 
   if (update){
 
-      Point4f old_focus = camNode["focus"].value().toPoint4f();
-      std::cout << "old_focus: " << old_focus[0] << " "
-                << old_focus[1] << " "
-                << old_focus[2] << endl;
+//      Point4f old_focus = camNode["focus"].value().toPoint4f();
+//      std::cout << "old_focus: " << old_focus[0] << " "
+//                << old_focus[1] << " "
+//                << old_focus[2] << endl;
 
-      std::cout << "new_focus: " << focus[0] << " "
-                << focus[1] << " "
-                << focus[2] << endl;
+//      std::cout << "new_focus: " << focus[0] << " "
+//                << focus[1] << " "
+//                << focus[2] << endl;
 
 
-      Point4f old_eyePoint = camNode["eyePoint"].value().toPoint4f();
-      std::cout << "old_eyePoint: " << old_eyePoint[0] << " "
-                << old_eyePoint[1] << " "
-                << old_eyePoint[2] << endl;
+//      Point4f old_eyePoint = camNode["eyePoint"].value().toPoint4f();
+//      std::cout << "old_eyePoint: " << old_eyePoint[0] << " "
+//                << old_eyePoint[1] << " "
+//                << old_eyePoint[2] << endl;
 
-      std::cout << "new_eyePoint: " << eye1[0] << " "
-                << eye1[1] << " "
-                << eye1[2] << endl;
-
+//      std::cout << "new_eyePoint: " << eye1[0] << " "
+//                << eye1[1] << " "
+//                << eye1[2] << endl;
 
       camNode["eyePoint"] = eye1;
       camNode["focus"] = focus;
 
+      //cam dir
       Vector4f v = (focus - eye1).normalize();
-      float cross = v * up.normalize();
-      if( cross == 1 || cross == -1) {
-          if(up[1] == 1)
-            up = Vector4f(0,0,1,0);
-          else if(up[2]==1 || up[0] == 1)
-            up = Vector4f(0,1,0,0);
+      float dot = v * up.normalize();
+
+      // if cam dir and up are converging to non-ortho,
+      // update up vector to a correct ortho vector
+      if( dot >= 0.9 || dot <= -0.9) {
+
+          //Using vector orthgonal to cam dir, so calculating rotation axis
+          //for cam dir
+          Vector4f rot = Vector3f(v) ^ Vector3f(up.normalize());
+
+          // rotate it 90 deg
+          rot = (float)(90.0 * M_PI / 180.0)*rot;
+
+          //ratation matrix
+          gvt::core::math::AffineTransformMatrix<float> mAA;
+          mAA = gvt::core::math::AffineTransformMatrix<float>::createRotation(
+                rot[0], 1.0, 0.0, 0.0) *
+              gvt::core::math::AffineTransformMatrix<float>::createRotation(
+                rot[1], 0.0, 1.0, 0.0) *
+              gvt::core::math::AffineTransformMatrix<float>::createRotation(rot[2], 0.0,
+              0.0, 1.0);
+
+          //apply rotation
+          up = mAA*v;
+
         }
 
       camNode["upVector"] = up;
@@ -511,11 +558,12 @@ void reshape(int w, int h) {
   width = w;
   height = h;
 
-
-  //TODO: This also needs to be consistent across mpi nodes. Also this
-  // used when instancing the tracer.
   filmNode["width"] = w;
   filmNode["height"] = h;
+
+  unsigned char key = 'f';
+  MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
+  SyncFilmSize();
 
 
   update = true;
@@ -689,7 +737,6 @@ void drawWireBox(gvt::render::data::primitives::Box3D &bbox) {
   glTranslatef(0.5f * (xmin + xmax), 0.5f * (ymin + ymax),
                0.5f * (zmin + zmax));
   glScalef(xmax - xmin, ymax - ymin, zmax - zmin);
-  glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
   glutWireCube(1.0f);
   glPopMatrix();
 }
@@ -703,7 +750,31 @@ void RenderBVH() {
 
   glMatrixMode(GL_MODELVIEW);
 
+  int schedType = rootNode["Schedule"]["type"].value().toInteger();
+
+  std::map<gvt::core::Uuid, size_t> mpiInstanceMap;
+  if (schedType ==  gvt::render::scheduler::Domain)
+    mpiInstanceMap =
+        ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler>*)
+         tracer)->mpiInstanceMap;
+
+
+
   for (gvt::core::DBNodeH instance : rootNode["Instances"].getChildren()) {
+
+      int mpiNode =0;
+
+      if (schedType ==  gvt::render::scheduler::Domain &&
+          MPI::COMM_WORLD.Get_size() > 1 ){
+          mpiNode = mpiInstanceMap[instance.UUID()];
+          GLfloat c[3] = {0,0,0};
+          c[mpiNode % 3] = float((((mpiNode+1)*230) % 255))/float(255);
+          glColor3fv(c);
+
+        }
+      else
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+
       Box3D *bbox = (Box3D *)instance["bbox"].value().toULongLong();
       drawWireBox(*bbox);
     }
@@ -739,6 +810,29 @@ void Render() {
   mycamera.generateRays();
   imageptr->clear();
 
+  if (tracer->height != height || tracer->width != width){
+
+        imageptr = new Image(width, height, "spoot");
+        imagebuffer = imageptr->GetBuffer();
+
+      switch (schedType) {
+        case gvt::render::scheduler::Image:
+          tracer = new gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays,
+                                                                      *imageptr);
+          break;
+        case gvt::render::scheduler::Domain:
+          std::cout << "starting domain scheduler" << std::endl;
+          tracer = new gvt::render::algorithm::Tracer<DomainScheduler>(
+                mycamera.rays, *imageptr);
+          break;
+        default:
+          std::cout << "unknown schedule type provided: " << schedType << std::endl;
+          break;
+        }
+    }
+
+  MPI_Barrier( MPI_COMM_WORLD );
+
   t_frame.start();
   switch (schedType) {
     case gvt::render::scheduler::Image: {
@@ -773,6 +867,8 @@ void RenderFilm() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   PrintHelpAndSettings();
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glRasterPos2i(0, 0);
   glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, imagebuffer);
@@ -1310,10 +1406,10 @@ int main(int argc, char *argv[]) {
   cntxt->createNodeFromType("Film", "Film", root.UUID());
 
 
-  //ConfigSceneFromFile(filename);
+  ConfigSceneFromFile(filename);
   //ConfigSceneCubeCone();
   //ConfigSceneCone();
-  ConfigEnzo();
+  //ConfigEnzo();
 
 
   gvt::core::DBNodeH schedNode =
@@ -1340,6 +1436,10 @@ int main(int argc, char *argv[]) {
   imageptr = new Image(width, height, "spoot");
   imagebuffer = imageptr->GetBuffer();
 
+
+  mycamera.setFilmsize(root["Film"]["width"].value().toInteger(),
+      root["Film"]["height"].value().toInteger());
+
   mycamera.AllocateCameraRays();
 
 
@@ -1359,7 +1459,7 @@ int main(int argc, char *argv[]) {
       break;
     }
 
-  Render();
+  //Render();
 
   if (mpi_rank == opengl_rank) {  // max rank process does display
 
@@ -1426,6 +1526,9 @@ int main(int argc, char *argv[]) {
               break;
             case 'c':
               SyncCamera();
+              break;
+            case 'f':
+              SyncFilmSize();
               break;
             default:
               break;
