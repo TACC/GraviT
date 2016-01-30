@@ -215,6 +215,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/domain/GeometryDomain.h
 	src/gvt/render/data/domain/reader/ObjReader.h
 	src/gvt/render/data/domain/reader/PlyReader.h
+	src/gvt/render/data/domain/reader/TinyObjReaderAdapter.h
 	src/gvt/render/data/Domains.h
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
@@ -242,6 +243,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/schedule/ImageScheduler.h
 	src/gvt/render/Schedulers.h
 	src/gvt/render/Types.h
+	
 	)
 
 
@@ -255,6 +257,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/domain/GeometryDomain.cpp
 	src/gvt/render/data/domain/reader/ObjReader.cpp
 	src/gvt/render/data/domain/reader/PlyReader.cpp
+	src/gvt/render/data/domain/reader/TinyObjReaderAdapter.cpp
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
@@ -351,6 +354,10 @@ if (GVT_RENDER)
 	find_package(Manta REQUIRED)
 	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${MANTA_TARGET_LINK_LIBRARIES}) 
 
+	##include TinyObjLoader into libs
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${TINYOBJPATH}/lib/libtinyobjloader.a) 
+	include_directories(${TINYOBJPATH})
+	
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES})
