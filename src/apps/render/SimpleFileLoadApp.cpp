@@ -82,6 +82,7 @@ int main(int argc, char **argv) {
   // add the data - mesh in this case
   gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
 
+  Box3D *meshbbox;
   gvt::core::DBNodeH bunnyMeshNode = cntxt->createNodeFromType("Mesh", "bunny", dataNodes.UUID());
   {
     // path assumes binary is run as bin/gvtFileApp
@@ -91,7 +92,7 @@ int main(int argc, char **argv) {
     mesh->generateNormals();
 
     mesh->computeBoundingBox();
-    Box3D *meshbbox = mesh->getBoundingBox();
+    meshbbox = mesh->getBoundingBox();
 
     // add bunny mesh to the database
     bunnyMeshNode["file"] = string("../data/geom/bunny.obj");
@@ -104,7 +105,7 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
   gvt::core::DBNodeH meshNode = bunnyMeshNode;
-  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+  Box3D *mbox = meshbbox;
 
   instnode["id"] = 0; // unique id per instance
   instnode["meshRef"] = meshNode.UUID();
