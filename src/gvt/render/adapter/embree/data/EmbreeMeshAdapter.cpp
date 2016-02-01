@@ -51,6 +51,11 @@
 #include <boost/timer/timer.hpp>
 
 #include <tbb/task_group.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/tick_count.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+#include <tbb/mutex.h>
 
 // TODO: add logic for other packet sizes
 #define GVT_EMBREE_PACKET_SIZE 4
@@ -255,7 +260,7 @@ struct embreeParallelTrace {
       for (int i = 0; i < localPacketSize; i++) {
         valid[i] = -1;
       }
-      for (int i = localPacketSize; i < packetSize; i++) {
+      for (int i = localPacketSize; i < localPacketSize; i++) {
         valid[i] = 0;
       }
     }
@@ -266,6 +271,10 @@ struct embreeParallelTrace {
         const Ray &r = rays[startIdx + i];
         const auto origin = (*minv) * r.origin; // transform ray to local space
         const auto direction = (*minv) * r.direction;
+
+        //      const auto &origin = r.origin; // transform ray to local space
+        //      const auto &direction = r.direction;
+
         ray4.orgx[i] = origin[0];
         ray4.orgy[i] = origin[1];
         ray4.orgz[i] = origin[2];
@@ -537,7 +546,7 @@ struct embreeParallelTrace {
                   Vector4f c = mesh->vertices[K];
                   Vector4f u = b - a;
                   Vector4f v = c - a;
-                  Vector4f normal;
+                  rayList Vector4f normal;
                   normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
                   normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
                   normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
@@ -556,7 +565,7 @@ struct embreeParallelTrace {
 
                 int ndepth = r.depth - 1;
 
-                float p = 1.f - fastrand() / RAND_MAX; //(float(rand()) / RAND_MAX);
+                float p = 1.f - float(fastrand()) / float(RAND_MAX); //(float(rand()) / RAND_MAX);
                 // replace current ray with generated secondary ray
                 if (ndepth > 0 && r.w > p) {
                   r.domains.clear();
@@ -673,11 +682,25 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
 
     if (lightNode.name() == std::string("PointLight")) {
       auto pos = lightNode["position"].value().toVector4f();
-      lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+      lights.push_back(new gvt::render::data::scene::PointLight((*minv) * pos, color));
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));
     }
   }
+
+  //  tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rayList.begin(), rayList.end()),
+  //                    [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+
+  //    for (gvt::render::actor::Ray &r : raysit) {
+  //        r.origin = (*minv) * r.origin; // transform ray to local space
+  //        r.direction = (*minv) * r.direction;
+  //    }
+
+  //  });
+
+  //  const auto origin = (*minv) * r.origin; // transform ray to local space
+  //  const auto direction = (*minv) * r.direction;
+
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converted " << lightNodes.size()
                                                         << " light nodes into structs: size: " << lights.size());
   // end `convertLights`
@@ -701,11 +724,16 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
     });
     //);
   }
-
   g.wait();
-  // for (auto &t : _tasks)
-  //   t.wait();
 
+  //  tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(moved_rays.begin(),
+  //  moved_rays.end()),
+  //                    [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+  //    for (gvt::render::actor::Ray &r : raysit) {
+  //        r.origin = (*m) * r.origin; // transform ray to local space
+  //        r.direction = (*m) * r.direction;
+  //    }
+  //  });
   // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
 

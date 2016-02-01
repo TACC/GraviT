@@ -46,14 +46,9 @@ int inline InBox(Point4f Hit, Point4f B1, Point4f B2, const int Axis) {
   return 0;
 }
 
-template <typename T> inline T fastmin(const T& a, const T& b) {
-  return (a < b) ? a : b;
-}
+template <typename T> inline T fastmin(const T &a, const T &b) { return (a < b) ? a : b; }
 
-template <typename T> inline T fastmax(const T& a, const T& b) {
-  return (a > b) ? a : b;
-}
-
+template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) ? a : b; }
 
 // returns true if line (L1, L2) intersects with the box (B1, B2)
 // returns intersection point in Hit
@@ -167,7 +162,7 @@ bool Box3D::intersectDistance(const Ray &ray, float &t) const {
   return (t > FLT_EPSILON);
 }
 
-bool Box3D::intersectDistance(const Ray &ray, float &tmin, float& tmax) const {
+bool Box3D::intersectDistance(const Ray &ray, float &tmin, float &tmax) const {
 
   float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
 
@@ -180,8 +175,8 @@ bool Box3D::intersectDistance(const Ray &ray, float &tmin, float& tmax) const {
   tmin = fastmax(fastmax(fastmin(t1, t2), fastmin(t3, t4)), fastmin(t5, t6));
   tmax = fastmin(fastmin(fastmax(t1, t2), fastmax(t3, t4)), fastmax(t5, t6));
   if (tmax < 0 || tmin > tmax) return false;
-  //t = (tmin > 0) ? tmin : tmax;
-  return true;//(t > FLT_EPSILON);
+  // t = (tmin > 0) ? tmin : tmax;
+  return true; //(t > FLT_EPSILON);
 }
 
 // returns dimension with maximum extent

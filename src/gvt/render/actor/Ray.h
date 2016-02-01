@@ -84,6 +84,8 @@ public:
     SHADOW,
     SECONDARY
   };
+
+  const static float RAY_EPSILON;
   // clang-format on
 
   Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
@@ -91,7 +93,10 @@ public:
       RayType type = PRIMARY, int depth = 10);
   Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
   Ray(const Ray &orig);
+  Ray(Ray &&ray);
   Ray(const unsigned char *buf);
+
+  Ray operator=(const Ray &r) { return std::move(Ray(r)); }
 
   virtual ~Ray();
 
@@ -110,21 +115,23 @@ public:
     return stream;
   }
 
-  mutable gvt::core::math::Point4f origin;
-  mutable gvt::core::math::Vector4f direction;
-  mutable gvt::core::math::Vector4f inverseDirection;
-
-  int id;    ///<! index into framebuffer
-  int depth; ///<! sample rate
-  float w;   ///<! weight of image contribution
-  mutable float t;
-  mutable float t_min;
-  mutable float t_max;
-  GVT_COLOR_ACCUM color;
+  union {
+    struct {
+      mutable gvt::core::math::Point4f origin;
+      mutable gvt::core::math::Vector4f direction;
+      mutable gvt::core::math::Vector4f inverseDirection;
+      mutable GVT_COLOR_ACCUM color;
+      int id;    ///<! index into framebuffer
+      int depth; ///<! sample rate
+      float w;   ///<! weight of image contribution
+      mutable float t;
+      mutable float t_min;
+      mutable float t_max;
+      int type;
+    };
+    unsigned char data[16 * 4 + 7 * 4];
+  };
   isecDomList domains;
-  int type;
-
-  const static float RAY_EPSILON;
 
 protected:
 };

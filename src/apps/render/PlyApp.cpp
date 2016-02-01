@@ -40,6 +40,9 @@
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -108,6 +111,8 @@ static Face **flist;
 #define MIN(a, b) ((a < b) ? (a) : (b))
 #define MAX(a, b) ((a > b) ? (a) : (b))
 int main(int argc, char **argv) {
+
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;

@@ -74,7 +74,7 @@ BVH::~BVH() {
 
 void BVH::intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) {
   if (root) {
-    //ClosestHit hit;
+    // ClosestHit hit;
     trace(ray, root, /*hit,*/ isect, 0);
   }
 }

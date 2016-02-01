@@ -48,6 +48,9 @@
 #include <string>
 #include <vector>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
 #include "ConfigFileLoader.h"
 #include <gvt/core/Math.h>
 #include <gvt/core/mpi/Wrapper.h>
@@ -243,8 +246,8 @@ void PrintHelpAndSettings() {
 void Translate(Point4f &eye, Point4f &focus, const float k) {
   Vector4f v = camNode["upVector"].value().toVector4f();
 
-  Vector4f w = focus - eye;  // Cam direction
-  Vector4f move_dir;         // Cross(w,v)
+  Vector4f w = focus - eye; // Cam direction
+  Vector4f move_dir;        // Cross(w,v)
 
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
@@ -257,13 +260,9 @@ void Translate(Point4f &eye, Point4f &focus, const float k) {
   focus += t;
 }
 
-void TranslateLeft(Point4f &eye, Point4f &focus, const float k) {
-  Translate(eye, focus, -k);
-}
+void TranslateLeft(Point4f &eye, Point4f &focus, const float k) { Translate(eye, focus, -k); }
 
-void TranslateRight(Point4f &eye, Point4f &focus, const float k) {
-  Translate(eye, focus, k);
-}
+void TranslateRight(Point4f &eye, Point4f &focus, const float k) { Translate(eye, focus, k); }
 
 void TranslateForward(Point4f &eye, Point4f &focus, const float k) {
   Point4f t = k * (focus - eye);
@@ -277,8 +276,7 @@ void TranslateBackward(Point4f &eye, Point4f &focus, const float k) {
   focus += t;
 }
 
-void Rotate(Point4f &eye, Point4f &focus, const float angle,
-            const Point4f &axis) {
+void Rotate(Point4f &eye, Point4f &focus, const float angle, const Point4f &axis) {
   Vector4f p = focus - eye;
 
   gvt::core::math::Vector4f t = angle * axis;
@@ -301,9 +299,9 @@ void Rotate(Point4f &eye, Point4f &focus, const float angle,
 void RotateLeft(Point4f &eye, Point4f &focus, float angle) {
   Vector4f v = camNode["upVector"].value().toVector4f();
 
-  Vector4f w = focus - eye;  // Cam direction
-  Vector4f move_dir_x;       // Cross(w,v)
-  Vector4f move_dir_y;       // Cross(move_dir_x,w)
+  Vector4f w = focus - eye; // Cam direction
+  Vector4f move_dir_x;      // Cross(w,v)
+  Vector4f move_dir_y;      // Cross(move_dir_x,w)
 
   move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
   move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
@@ -323,9 +321,9 @@ void RotateLeft(Point4f &eye, Point4f &focus, float angle) {
 void RotateRight(Point4f &eye, Point4f &focus, float angle) {
   Vector4f v = camNode["upVector"].value().toVector4f();
 
-  Vector4f w = focus - eye;  // Cam direction
-  Vector4f move_dir_x;       // Cross(w,v)
-  Vector4f move_dir_y;       // Cross(move_dir_x,w)
+  Vector4f w = focus - eye; // Cam direction
+  Vector4f move_dir_x;      // Cross(w,v)
+  Vector4f move_dir_y;      // Cross(move_dir_x,w)
 
   move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
   move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
@@ -345,8 +343,8 @@ void RotateRight(Point4f &eye, Point4f &focus, float angle) {
 void RotateUp(Point4f &eye, Point4f &focus, float angle) {
   Vector4f v = camNode["upVector"].value().toVector4f();
 
-  Vector4f w = focus - eye;  // Cam direction
-  Vector4f move_dir;         // Cross(w,v)
+  Vector4f w = focus - eye; // Cam direction
+  Vector4f move_dir;        // Cross(w,v)
 
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
@@ -360,8 +358,8 @@ void RotateUp(Point4f &eye, Point4f &focus, float angle) {
 void RotateDown(Point4f &eye, Point4f &focus, float angle) {
   Vector4f v = camNode["upVector"].value().toVector4f();
 
-  Vector4f w = focus - eye;  // Cam direction
-  Vector4f move_dir;         // Cross(w,v)
+  Vector4f w = focus - eye; // Cam direction
+  Vector4f move_dir;        // Cross(w,v)
 
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
@@ -459,7 +457,7 @@ void UpdateCamera(Point4f focus, Point4f eye1, Vector4f up) {
 
       // if cam dir and up are converging to non-ortho,
       // update up vector to a correct ortho vector
-      if( dot >= 0.9 || dot <= -0.9) {
+      if( dot >= 0.6 || dot <= -0.6) {
 
           //Using vector orthgonal to cam dir, so calculating rotation axis
           //for cam dir
@@ -949,7 +947,7 @@ void ConfigSceneFromFile(string filename) {
   _camNode["eyePoint"] = Point4f(scene.camera.getEye());
   _camNode["focus"] = Point4f(scene.camera.getFocus());
   _camNode["upVector"] = scene.camera.getUp();
-  _camNode["fov"] = (float)(45.0 * M_PI / 180.0);  // TODO
+  _camNode["fov"] = (float)(45.0 * M_PI / 180.0); // TODO
 
   // film
   gvt::core::DBNodeH filmNode = root["Film"];
@@ -1007,8 +1005,7 @@ void ConfigSceneCubeCone() {
     coneMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
-  gvt::core::DBNodeH cubeMeshNode =
-      cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
+  gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
     Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 0.5, 1.0)));
     int numPoints = 8;
@@ -1061,8 +1058,8 @@ void ConfigSceneCubeCone() {
 
   // create a NxM grid of alternating cones / cubes, offset using i and j
   int instId = 0;
-  int ii[2] = {-2, 3};  // i range
-  int jj[2] = {-2, 3};  // j range
+  int ii[2] = { -2, 3 }; // i range
+  int jj[2] = { -2, 3 }; // j range
   for (int i = ii[0]; i < ii[1]; i++) {
       for (int j = jj[0]; j < jj[1]; j++) {
           gvt::core::DBNodeH instnode =
@@ -1371,6 +1368,7 @@ void ConfigEnzo() {
 
 
 int main(int argc, char *argv[]) {
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   unsigned char action;
   // mpi initialization
 
@@ -1415,7 +1413,7 @@ int main(int argc, char *argv[]) {
   gvt::core::DBNodeH schedNode =
       cntxt->createNodeFromType("Schedule", "Schedule", root.UUID());
   schedNode["type"] = gvt::render::scheduler::Image;
-  // schedNode["type"] = gvt::render::scheduler::Domain;
+   //schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;

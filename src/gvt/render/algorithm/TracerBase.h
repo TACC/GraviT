@@ -132,10 +132,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
-  void clearBuffer() {
-    std::memset(colorBuf,0,sizeof(GVT_COLOR_ACCUM) * width * height); 
-  }
-
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(GVT_COLOR_ACCUM) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};
@@ -335,13 +332,13 @@ public:
         int dom = _doms.front();
         //_doms.erase(_doms.begin());
         _doms.pop_front();
-        if (queue_mutex[dom].try_lock()) {
+        (queue_mutex[dom].lock()); {
           queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
                             std::make_move_iterator(local_queue[dom].end()));
           queue_mutex[dom].unlock();
-        } else {
+        }/* else {
           _doms.push_back(dom);
-        }
+        }*/
       }
 
       // for (auto &q : local_queue) {
