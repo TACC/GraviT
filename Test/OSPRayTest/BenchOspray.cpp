@@ -25,9 +25,22 @@
  * aspects of the library. The results can be compared to similar tests of GraviT to
  * determine the impact of the GraviT overhead.
  *
- * run it like this:
- *   bin/osptest -i /work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData -o spoot -cp -1000.0,0.0,-1000.0 -fov 50.0 -cd
- *0.,0.0,-1.0 -cu 0.,1.,0. -ld 0,-0.5,-1
+ * command line args:
+ *
+ * -i <file> input file name. Should be a .ply file. If a directory the directory is
+ *           searched for .ply files and each is added as a triangle mesh.
+ * -o <file> causes a .ppm file to be written with name file.
+ * -bench <warmxbench> number of warmup and bench frames respectively (-bench 10x100)
+ * -geom <widthxheight> width and height of image. (-geom 1920x1080)
+ * -cp <x,y,z> list of coordinates for camera position in world coords.
+ * -cd <x,y,z> direction vector where camera is looking (not focal point)
+ * -cu <x,y,z> camera up vector. 
+ * -fov <angle> vertical field of view angle of the camera.
+ * -renderer <ren> name of renerer, (obj, scivis, raytracer, ao, ... )
+ * -ld <x,y,z> direction light goes. direction vector similar to camera direction.
+ *
+ *   for example
+ *   bin/osptest -i /work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData -o spoot -cp -1000.0,0.0,-1000.0 -fov 50.0 -cd 0.,0.0,-1.0 -cu 0.,1.,0. -ld 0,-0.5,-1
  *
  * Tests Performed:
  * 	1) rendering blank screen with no geometry.
@@ -278,6 +291,7 @@ int main(int argc, const char **argv) {
   std::string filename;
   std::string filepath("");
   std::string outputfile("");
+	std::string renderertype("obj");
   // initialize ospray
   ospInit(&argc, argv);
   OSPGeometry mesh;
@@ -314,7 +328,6 @@ int main(int argc, const char **argv) {
               iotime += timeDifferenceMS(&startTime, &endTime);
               timeCurrent(&startTime);
               mesh = ospNewGeometry("triangles");
-              // ReadPlyFile(*file,mesh);
               OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);
               ospCommit(data);
               ospSetData(mesh, "vertex", data);
@@ -343,7 +356,6 @@ int main(int argc, const char **argv) {
           iotime += timeDifferenceMS(&startTime, &endTime);
           timeCurrent(&startTime);
           mesh = ospNewGeometry("triangles");
-          // ReadPlyFile(filepath,mesh);
           OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);
           ospCommit(data);
           ospSetData(mesh, "vertex", data);
@@ -370,6 +382,16 @@ int main(int argc, const char **argv) {
             arg2.replace(pos, 1, " ");
             std::stringstream ss(arg2);
             ss >> warmupframes >> benchframes;
+          }
+        }
+			} else if (arg == "-geom") {
+        if (++i < argc) {
+          std::string arg2(argv[i]);
+          size_t pos = arg2.find("x");
+          if (pos != std::string::npos) {
+            arg2.replace(pos, 1, " ");
+            std::stringstream ss(arg2);
+            ss >> width >> height;
           }
         }
       } else if (arg == "-o") {
@@ -440,7 +462,9 @@ int main(int argc, const char **argv) {
         }
       } else if (arg == "-fov") { // grab the field of view
         cam_fovy = atof(argv[++i]);
-      }
+      } else if (arg == "-renderer" ) {
+				renderertype = argv[++i];
+			}
     }
   }
   //
@@ -475,7 +499,7 @@ int main(int argc, const char **argv) {
 
   ospCommit(world);
   // framebuffer and renderer
-  OSPRenderer renderer = ospNewRenderer("obj");
+  OSPRenderer renderer = ospNewRenderer(renderertype.c_str());
   ospSetObject(renderer, "model", world);
   ospSetObject(renderer, "camera", camera);
   ospCommit(renderer);
@@ -506,9 +530,15 @@ int main(int argc, const char **argv) {
   timeCurrent(&endTime);
   //
   rendertime = timeDifferenceMS(&startTime, &endTime);
-  std::cout << numtriangles / 1000000. << " million triangles" << std::endl;
-  std::cout << "iotime (ms) " << iotime << " modeltime (ms) " << modeltime << std::endl;
-  std::cout << rendertime / benchframes << " (ms)/frame " << (1000 * benchframes) / rendertime << " fps " << std::endl;
+	float millionsoftriangles = numtriangles/1000000.;
+	float millisecondsperframe = rendertime/benchframes;
+	float framespersecond = (1000*benchframes)/rendertime;
+	// dump out csv of values
+	std::cout << renderertype << "," <<width << "," << height << "," << warmupframes<<","<<benchframes<<","<<iotime;
+	std::cout <<","<< modeltime << "," << millisecondsperframe << ","<< framespersecond << std::endl;
+  //std::cout << millionsoftriangles << " million triangles" << std::endl;
+  //std::cout << "iotime (ms) " << iotime << " modeltime (ms) " << modeltime << std::endl;
+  //std::cout << millisecondsperframe << " (ms)/frame " << framespersecond << " fps " << std::endl;
   if (!outputfile.empty()) {
     const uint32_t *fb = (uint32_t *)ospMapFrameBuffer(framebuffer, OSP_FB_COLOR);
     writePPM(outputfile.c_str(), width, height, fb);
