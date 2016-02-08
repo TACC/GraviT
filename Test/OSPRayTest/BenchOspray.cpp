@@ -34,237 +34,27 @@
  * -geom <widthxheight> width and height of image. (-geom 1920x1080)
  * -cp <x,y,z> list of coordinates for camera position in world coords.
  * -cd <x,y,z> direction vector where camera is looking (not focal point)
- * -cu <x,y,z> camera up vector. 
+ * -cu <x,y,z> camera up vector.
  * -fov <angle> vertical field of view angle of the camera.
  * -renderer <ren> name of renerer, (obj, scivis, raytracer, ao, ... )
  * -ld <x,y,z> direction light goes. direction vector similar to camera direction.
  *
  *   for example
- *   bin/osptest -i /work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData -o spoot -cp -1000.0,0.0,-1000.0 -fov 50.0 -cd 0.,0.0,-1.0 -cu 0.,1.,0. -ld 0,-0.5,-1
+ *   bin/osptest -i /work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData -o spoot -cp -1000.0,0.0,-1000.0 -fov 50.0 -cd
+ *0.,0.0,-1.0 -cu 0.,1.,0. -ld 0,-0.5,-1
  *
  * Tests Performed:
  * 	1) rendering blank screen with no geometry.
  * 	2) rendering large geometry data (Enzo isosurface)
  * */
 
+#include "../iostuff.h"
 #include "ospray/ospray.h"
-#include <sys/stat.h>
-#include <time.h>
-#include "timer.h"
-#include <iostream>
+
+
 #include <sstream>
-#include <string.h>
-#include <ply.h>
-#include <glob.h>
-#include <vector>
-
-// file writer right out of ospray example code.
-void writePPM(const char *fileName, const int sizeX, const int sizeY, const uint32_t *pixel) {
-  FILE *file = fopen(fileName, "wb");
-  fprintf(file, "P6\n%i %i\n255\n", sizeX, sizeY);
-  unsigned char *out = (unsigned char *)alloca(3 * sizeX);
-  for (int y = 0; y < sizeY; y++) {
-    const unsigned char *in = (const unsigned char *)&pixel[(sizeY - 1 - y) * sizeX];
-    for (int x = 0; x < sizeX; x++) {
-      out[3 * x + 0] = in[4 * x + 0];
-      out[3 * x + 1] = in[4 * x + 1];
-      out[3 * x + 2] = in[4 * x + 2];
-    }
-    fwrite(out, 3 * sizeX, sizeof(char), file);
-  }
-  fprintf(file, "\n");
-  fclose(file);
-
-  std::string alphaName(fileName);
-  alphaName.resize(alphaName.length() - 4); // remove ".ppm"
-  alphaName.append("_alpha.pgm");
-
-  file = fopen(alphaName.c_str(), "wb");
-  fprintf(file, "P5\n%i %i\n255\n", sizeX, sizeY);
-  for (int y = 0; y < sizeY; y++) {
-    const unsigned char *in = (const unsigned char *)&pixel[(sizeY - 1 - y) * sizeX];
-    for (int x = 0; x < sizeX; x++)
-      out[x] = in[4 * x + 3];
-    fwrite(out, sizeX, sizeof(char), file);
-  }
-  fprintf(file, "\n");
-  fclose(file);
-}
-// definitions used in ply file reader
-typedef struct Vertex {
-  float x, y, z;
-  float nx, ny, nz;
-  void *other_props;
-} Vertex;
-
-typedef struct Face {
-  unsigned char nverts;
-  int *verts;
-  void *other_props;
-} Face;
-
-PlyProperty vert_props[] = {
-  /* list of property information for a vertex */
-  { "x", Float32, Float32, offsetof(Vertex, x), 0, 0, 0, 0 },
-  { "y", Float32, Float32, offsetof(Vertex, y), 0, 0, 0, 0 },
-  { "z", Float32, Float32, offsetof(Vertex, z), 0, 0, 0, 0 },
-  { "nx", Float32, Float32, offsetof(Vertex, nx), 0, 0, 0, 0 },
-  { "ny", Float32, Float32, offsetof(Vertex, ny), 0, 0, 0, 0 },
-  { "nz", Float32, Float32, offsetof(Vertex, nz), 0, 0, 0, 0 },
-};
-
-PlyProperty face_props[] = {
-  /* list of property information for a face */
-  { "vertex_indices", Int32, Int32, offsetof(Face, verts), 1, Uint8, Uint8, offsetof(Face, nverts) },
-};
-
-// determine if file is a directory
-bool isdir(const char *path) {
-  struct stat buf;
-  stat(path, &buf);
-  return S_ISDIR(buf.st_mode);
-}
-// determine if a file exists
-bool file_exists(const char *path) {
-  struct stat buf;
-  return (stat(path, &buf) == 0);
-}
-/*** search a directory for files named *.ply and return a vector containing the full path to
- * each one.
- **/
-std::vector<std::string> findply(const std::string dirname) {
-  glob_t result;
-  std::string exp = dirname + "/*.ply";
-  std::cout << "searching for " << exp << std::endl;
-  glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-  std::vector<std::string> ret;
-  for (int i = 0; i < result.gl_pathc; i++) {
-    ret.push_back(std::string(result.gl_pathv[i]));
-  }
-  globfree(&result);
-  return ret;
-}
-/*** read a ply file and stuff the data into an ospgeometry object. Expects a triangle
- * mesh. If the ply file contains non triangular faces then bad things will probably happen.
- * */
-void ReadPlyData(std::string filename, float *&vertexarray, float *&colorarray, int32_t *&indexarray, int &nverts,
-                 int &nfaces) {
-  FILE *InputFile;
-  PlyFile *in_ply;
-  std::string elem_name;
-  int elem_count, i, j;
-  // int elem_count,nfaces,nverts,i,j;
-  int32_t *index;
-  Vertex *vert;
-  Face *face;
-  // default color of vertex
-  float color[] = { 0.5f, 0.5f, 1.0f, 1.0f };
-  InputFile = fopen(filename.c_str(), "r");
-  in_ply = read_ply(InputFile);
-  for (i = 0; i < in_ply->num_elem_types; i++) {
-    elem_name = std::string(setup_element_read_ply(in_ply, i, &elem_count));
-    if (elem_name == "vertex") {
-      nverts = elem_count;
-      vertexarray = (float *)malloc(3 * nverts * sizeof(float)); // allocate vertex array
-      colorarray = (float *)malloc(4 * nverts * sizeof(float));  // allocate color array
-      setup_property_ply(in_ply, &vert_props[0]);
-      setup_property_ply(in_ply, &vert_props[1]);
-      setup_property_ply(in_ply, &vert_props[2]);
-      vert = (Vertex *)malloc(sizeof(Vertex));
-      for (j = 0; j < elem_count; j++) {
-        get_element_ply(in_ply, (void *)vert);
-        vertexarray[3 * j] = vert->x;
-        vertexarray[3 * j + 1] = vert->y;
-        vertexarray[3 * j + 2] = vert->z;
-        colorarray[4 * j] = color[0];
-        colorarray[4 * j + 1] = color[1];
-        colorarray[4 * j + 2] = color[2];
-        colorarray[4 * j + 3] = color[3];
-      }
-    } else if (elem_name == "face") {
-      nfaces = elem_count;
-      indexarray = (int32_t *)malloc(3 * nfaces * sizeof(int32_t));
-      setup_property_ply(in_ply, &face_props[0]);
-      face = (Face *)malloc(sizeof(Face));
-      for (j = 0; j < elem_count; j++) {
-        get_element_ply(in_ply, (void *)face);
-        indexarray[3 * j] = face->verts[0];
-        indexarray[3 * j + 1] = face->verts[1];
-        indexarray[3 * j + 2] = face->verts[2];
-      }
-    }
-  }
-  close_ply(in_ply);
-}
-void ReadPlyFile(std::string filename, OSPGeometry &mesh) {
-
-  float *vertexarray = NULL;
-  float *colorarray = NULL;
-  int32_t *indexarray = NULL;
-  int nverts = 0;
-  int nfaces = 0;
-  ReadPlyData(filename, vertexarray, colorarray, indexarray, nverts, nfaces);
-#if 0
-	FILE *InputFile;
-	PlyFile *in_ply;
-	std::string elem_name;
-	int elem_count,nfaces,nverts,i,j;
-	int32_t *index;
-	Vertex *vert;
-	Face *face;
-	// default color of vertex
-	float color[] = { 0.5f, 0.5f, 1.0f, 1.0f};
-	InputFile = fopen(filename.c_str(), "r");
-	in_ply = read_ply(InputFile);
-	for(i=0;i<in_ply->num_elem_types;i++) {
-		elem_name = std::string(setup_element_read_ply(in_ply,i,&elem_count));
-		if(elem_name == "vertex") {
-			nverts = elem_count;
-			vertexarray = (float*)malloc(3*nverts*sizeof(float));//allocate vertex array
-			colorarray = (float*)malloc(4*nverts*sizeof(float));//allocate color array
-			setup_property_ply(in_ply, &vert_props[0]);
-			setup_property_ply(in_ply, &vert_props[1]);
-			setup_property_ply(in_ply, &vert_props[2]);
-			vert =(Vertex*)malloc(sizeof(Vertex));
-			for(j=0;j<elem_count;j++) {
-				get_element_ply(in_ply,(void*)vert);
-				vertexarray[3*j]   = vert->x;
-				vertexarray[3*j+1] = vert->y;
-				vertexarray[3*j+2] = vert->z;
-				colorarray[4*j]   = color[0];
-				colorarray[4*j+1] = color[1];
-				colorarray[4*j+2] = color[2];
-				colorarray[4*j+3] = color[3];
-			}
-		} else if (elem_name == "face" ) {
-			nfaces = elem_count;
-			indexarray = (int32_t*)malloc(3*nfaces*sizeof(int32_t));
-			setup_property_ply(in_ply, &face_props[0]);
-			face = (Face*)malloc(sizeof(Face));
-			for (j=0;j<elem_count;j++) {
-				get_element_ply(in_ply, (void*)face);
-				indexarray[3*j]   = face->verts[0];
-				indexarray[3*j+1] = face->verts[1];
-				indexarray[3*j+2] = face->verts[2];
-			}
-		}
-	}
-	close_ply(in_ply);
-#endif
-  OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);
-  ospCommit(data);
-  ospSetData(mesh, "vertex", data);
-
-  data = ospNewData(nverts, OSP_FLOAT4, colorarray);
-  ospCommit(data);
-  ospSetData(mesh, "vertex.color", data);
-
-  data = ospNewData(nfaces, OSP_INT3, indexarray);
-  ospCommit(data);
-  ospSetData(mesh, "index", data);
-
-  ospCommit(mesh);
-}
+#include <time.h>
+#include "../timer.h"
 
 int main(int argc, const char **argv) {
   // default values
@@ -287,11 +77,9 @@ int main(int argc, const char **argv) {
   int nverts, nfaces;
   int numtriangles = 0;
   // file related things
-  std::string temp;
-  std::string filename;
   std::string filepath("");
   std::string outputfile("");
-	std::string renderertype("obj");
+  std::string renderertype("obj");
   // initialize ospray
   ospInit(&argc, argv);
   OSPGeometry mesh;
@@ -384,7 +172,7 @@ int main(int argc, const char **argv) {
             ss >> warmupframes >> benchframes;
           }
         }
-			} else if (arg == "-geom") {
+      } else if (arg == "-geom") {
         if (++i < argc) {
           std::string arg2(argv[i]);
           size_t pos = arg2.find("x");
@@ -462,9 +250,9 @@ int main(int argc, const char **argv) {
         }
       } else if (arg == "-fov") { // grab the field of view
         cam_fovy = atof(argv[++i]);
-      } else if (arg == "-renderer" ) {
-				renderertype = argv[++i];
-			}
+      } else if (arg == "-renderer") {
+        renderertype = argv[++i];
+      }
     }
   }
   //
@@ -530,15 +318,16 @@ int main(int argc, const char **argv) {
   timeCurrent(&endTime);
   //
   rendertime = timeDifferenceMS(&startTime, &endTime);
-	float millionsoftriangles = numtriangles/1000000.;
-	float millisecondsperframe = rendertime/benchframes;
-	float framespersecond = (1000*benchframes)/rendertime;
-	// dump out csv of values
-	std::cout << renderertype << "," <<width << "," << height << "," << warmupframes<<","<<benchframes<<","<<iotime;
-	std::cout <<","<< modeltime << "," << millisecondsperframe << ","<< framespersecond << std::endl;
-  //std::cout << millionsoftriangles << " million triangles" << std::endl;
-  //std::cout << "iotime (ms) " << iotime << " modeltime (ms) " << modeltime << std::endl;
-  //std::cout << millisecondsperframe << " (ms)/frame " << framespersecond << " fps " << std::endl;
+  float millionsoftriangles = numtriangles / 1000000.;
+  float millisecondsperframe = rendertime / benchframes;
+  float framespersecond = (1000 * benchframes) / rendertime;
+  // dump out csv of values
+  std::cout << renderertype << "," << width << "," << height << "," << warmupframes << "," << benchframes << ","
+            << iotime;
+  std::cout << "," << modeltime << "," << millisecondsperframe << "," << framespersecond << std::endl;
+  // std::cout << millionsoftriangles << " million triangles" << std::endl;
+  // std::cout << "iotime (ms) " << iotime << " modeltime (ms) " << modeltime << std::endl;
+  // std::cout << millisecondsperframe << " (ms)/frame " << framespersecond << " fps " << std::endl;
   if (!outputfile.empty()) {
     const uint32_t *fb = (uint32_t *)ospMapFrameBuffer(framebuffer, OSP_FB_COLOR);
     writePPM(outputfile.c_str(), width, height, fb);
