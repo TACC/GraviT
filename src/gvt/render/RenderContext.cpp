@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 #include "gvt/render/RenderContext.h"
 
 #include "gvt/core/Debug.h"
@@ -72,9 +68,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("parallelScale");
     n += gvt::core::CoreContext::createNode("nearPlane");
     n += gvt::core::CoreContext::createNode("farPlane");
-  }
-
-  else if (type == String("Dataset")) // TODO: remove dataset db entries
+  } else if (type == String("Dataset")) // TODO: remove dataset db entries
   {
     GVT_DEBUG(DBG_ALWAYS, "renderctx: db: ERROR: should not be creating a Dataset type");
     n += gvt::core::CoreContext::createNode("schedule");
@@ -89,9 +83,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n["Views"] += gvt::core::CoreContext::createNodeFromType("View");
     n += gvt::core::CoreContext::createNode("renderType", "surface");
     n += gvt::core::CoreContext::createNode("schedule", "Image");
-  }
-
-  else if (type == String("Mesh")) {
+  } else if (type == String("Mesh")) {
     n += gvt::core::CoreContext::createNode("file");
     n += gvt::core::CoreContext::createNode("ptr");
     n += gvt::core::CoreContext::createNode("bbox");

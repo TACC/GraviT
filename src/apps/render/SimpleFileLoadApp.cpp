@@ -34,6 +34,9 @@
 #include <gvt/core/Math.h>
 #include <gvt/render/Schedulers.h>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -66,6 +69,8 @@ using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
 
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
   int rank = -1;
@@ -95,8 +100,8 @@ int main(int argc, char **argv) {
 
     // add bunny mesh to the database
     bunnyMeshNode["file"] = string("../data/geom/bunny.obj");
-    bunnyMeshNode["bbox"] = meshbbox;
-    bunnyMeshNode["ptr"] = mesh;
+    bunnyMeshNode["bbox"] = (unsigned long long)meshbbox;
+    bunnyMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
   // create the instance
@@ -104,7 +109,7 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
   gvt::core::DBNodeH meshNode = bunnyMeshNode;
-  Box3D *mbox = gvt::core::variant_toBox3DPtr(meshNode["bbox"].value());
+  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
 
   instnode["id"] = 0; // unique id per instance
   instnode["meshRef"] = meshNode.UUID();
@@ -116,17 +121,17 @@ int main(int argc, char **argv) {
   auto normi = new gvt::core::math::Matrix3f();
   *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, 0.0, 0.0);
   *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(scale, scale, scale);
-  instnode["mat"] = m;
+  instnode["mat"] = (unsigned long long)m;
   *minv = m->inverse();
-  instnode["matInv"] = minv;
+  instnode["matInv"] = (unsigned long long)minv;
   *normi = m->upper33().inverse().transpose();
-  instnode["normi"] = normi;
+  instnode["normi"] = (unsigned long long)normi;
 
   // transform mesh bounding box
   auto il = (*m) * mbox->bounds[0];
   auto ih = (*m) * mbox->bounds[1];
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-  instnode["bbox"] = ibox;
+  instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
 
   // add a light
@@ -168,7 +173,7 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Embree;
+  schedNode["adapter"] = adapterType;
   //
   // start gvt
   //
@@ -178,14 +183,13 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition = gvt::core::variant_toPoint4f(camNode["eyePoint"].value());
-  Point4f focus = gvt::core::variant_toPoint4f(camNode["focus"].value());
-  float fov = gvt::core::variant_toFloat(camNode["fov"].value());
-  Vector4f up = gvt::core::variant_toVector4f(camNode["upVector"].value());
+  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
+  Point4f focus = camNode["focus"].value().toPoint4f();
+  float fov = camNode["fov"].value().toFloat();
+  Vector4f up = camNode["upVector"].value().toVector4f();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(gvt::core::variant_toInteger(filmNode["width"].value()),
-                       gvt::core::variant_toInteger(filmNode["height"].value()));
+  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "bunny");
@@ -193,7 +197,7 @@ int main(int argc, char **argv) {
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
 
-  int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
+  int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
@@ -212,6 +216,5 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-  if (MPI::COMM_WORLD.Get_size() > 1)
-    MPI_Finalize();
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }

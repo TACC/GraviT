@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,12 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
-
+   ======================================================================================= */
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/Attributes.h>
 #include <gvt/render/data/accel/BVH.h>
@@ -53,9 +48,10 @@ bool Dataset::intersect(Ray &r, isecDomList &inter) {
   if (dataSetBB.intersect(r) || dataSetBB.inBox(r)) {
     r.t = FLT_MAX;
     if (!acceleration) {
-      BOOST_FOREACH (AbstractDomain *d, domainSet)
-        d->intersect(r, inter);
-
+      // clang-format off
+      BOOST_FOREACH(AbstractDomain * d, domainSet)
+      d->intersect(r, inter);
+      // clang-format on
     } else {
       acceleration->intersect(r, inter);
     }

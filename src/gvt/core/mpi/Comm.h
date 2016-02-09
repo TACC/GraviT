@@ -43,15 +43,19 @@ namespace core {
 namespace mpi {
 /// enumeration for process parallel mode
 /** enumeration for process parallel mode.
-note that aspects of GraviT will use thread-based parallelism independent of
-this setting.
+note that aspects of GraviT will use thread-based parallelism independent of this setting.
 
 - NOTPARALLEL - not using process parallelism
 - PARALLEL_MPI - using MPI-based process parallelism
 
 \sa COMM_SIDEDNESS_ENUM
 */
-enum PARALLEL_ENUM { NOTPARALLEL, PARALLEL_MPI };
+// clang-format off
+enum PARALLEL_ENUM {
+  NOTPARALLEL,
+  PARALLEL_MPI
+};
+// clang-format on
 
 /// MPI communication type used in process parallel mode
 /** communication type used during process parallel mode

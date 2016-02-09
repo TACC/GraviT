@@ -181,8 +181,7 @@ struct parallelTrace {
     localDispatch.reserve(rayList.size() * 2);
 
     //                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertices.size());
-    //                GVT_DEBUG(DBG_ALWAYS,
-    //                dom->meshManta->vertex_indices.size());
+    //                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertex_indices.size());
     //
     //                BOOST_FOREACH(int i, dom->meshManta->vertex_indices) {
     //                    GVT_DEBUG(DBG_ALWAYS, i);
@@ -208,8 +207,7 @@ struct parallelTrace {
                                Manta::RayPacket::NormalizedDirections);
         for (int i = 0; i < rayPacket.size(); i++) {
           mRays.setRay(i, transform<Ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
-          // mRays.setRay(i, GVT::Data::transform<GVT::Data::ray,
-          // Manta::Ray>(rayPacket[i]));
+          // mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(rayPacket[i]));
         }
 
         mRays.resetHits();
@@ -220,11 +218,9 @@ struct parallelTrace {
 
         for (int pindex = 0; pindex < rayPacket.size(); pindex++) {
           if (mRays.wasHit(pindex)) {
-            //                                GVT_DEBUG(DBG_ALWAYS,"Ray has hit
-            //                                " << pindex);
+            //                                GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SHADOW) {
-              //                                    GVT_DEBUG(DBG_ALWAYS,"Process
-              //                                    ray in shadow");
+              //                                    GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
 
               continue;
             }
@@ -297,8 +293,7 @@ void MantaDomain::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
     gvt::core::schedule::asyncExec::instance()->run_task(parallelTrace(this, rayList, moved_rays, workload, counter));
   }
   gvt::core::schedule::asyncExec::instance()->sync();
-//            parallelTrace(this, rayList, moved_rays,
-//            rayList.size(),counter)();
+//            parallelTrace(this, rayList, moved_rays, rayList.size(),counter)();
 
 #ifdef NDEBUG
   std::cout << "Proccessed rays : " << counter << std::endl;

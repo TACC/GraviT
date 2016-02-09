@@ -70,18 +70,15 @@ using std::flush;
 
 /// GraviT debug level.
 /** GraviT debug levels used to grade debug output.
-If the debug statement level is at or above the set debug level, the statement
-will print.
+If the debug statement level is at or above the set debug level, the statement will print.
 */
 enum GVT_DEBUG_LEVEL {
-  DBG_NONE, // should never be used in debug statements, set to this to turn off
-            // all debugging output
+  DBG_NONE, // should never be used in debug statements, set to this to turn off all debugging output
   DBG_ALWAYS,
   DBG_SEVERE,
   DBG_MODERATE,
   DBG_LOW,
-  DBG_OFF // used to keep a debug statement in place, but to turn it off,
-          // without excessive comments
+  DBG_OFF // used to keep a debug statement in place, but to turn it off, without excessive comments
 };
 
 /// GraviT debug level, see GVT_DEBUG_LEVEL enum

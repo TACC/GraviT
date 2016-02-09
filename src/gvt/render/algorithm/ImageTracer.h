@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * ImageTracer.h
  *
@@ -64,21 +60,17 @@
 namespace gvt {
 namespace render {
 namespace algorithm {
-/// work scheduler that strives to keep rays resident and load data domains as
-/// needed
+/// work scheduler that strives to keep rays resident and load data domains as needed
 /**
-  The Image scheduler strives to schedule work such that rays remain resident on
-  their initial process
-  and domains are loaded as necessary to retire those rays. Rays are never sent
-  to other processes.
-  Domains can be loaded at multiple processes, depending on the requirements of
-  the rays at each process.
+  The Image scheduler strives to schedule work such that rays remain resident on their
+  initial process and domains are loaded as necessary to retire those rays. Rays are never
+  sent to other processes. Domains can be loaded at multiple processes, depending on the
+  requirements of the rays at each process.
 
   This scheduler can become unbalanced when:
    - certain rays require more time to process than others
    - rays at a process require many domains, which can cause memory thrashing
-   - when there are few rays remaining to render, other processes can remain
-  idle
+   - when there are few rays remaining to render, other processes can remain idle
 
      \sa DomainTracer, HybridTracer
    */
@@ -99,8 +91,7 @@ public:
   // organize the rays into queues
   // if using mpi, only keep the rays for the current rank
   virtual void FilterRaysLocally() {
-    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until
-                                          // shuffleRays is fully replaced
+    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
 
     if (mpi) {
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: filter locally mpi: [" << rays_start << ", " << rays_end << "]");
@@ -115,14 +106,22 @@ public:
   }
 
   virtual void operator()() {
-    boost::timer::cpu_timer t_sched;
-    t_sched.start();
+    boost::timer::cpu_timer t_frame;
+    t_frame.start();
     boost::timer::cpu_timer t_trace;
+    t_trace.stop();
+    boost::timer::cpu_timer t_sort;
+    t_sort.stop();
+    boost::timer::cpu_timer t_shuffle;
+    t_shuffle.stop();
+
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
-    int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
+    int adapterType = root["Schedule"]["adapter"].value().toInteger();
+
+    clearBuffer();
 
     // sort rays into queues
     FilterRaysLocally();
@@ -135,6 +134,7 @@ public:
       instTarget = -1;
       instTargetCount = 0;
 
+      t_sort.resume();
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: selecting next instance, num queues: " << this->queue.size());
       for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
            ++q) {
@@ -143,6 +143,7 @@ public:
           instTarget = q->first;
         }
       }
+      t_sort.stop();
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
       if (instTarget >= 0) {
@@ -155,8 +156,8 @@ public:
         auto it = adapterCache.find(meshNode.UUID());
         if (it != adapterCache.end()) {
           adapter = it->second;
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache["
-                                    << gvt::core::uuid_toString(meshNode.UUID()) << "], " << (void *)adapter);
+          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
+                                                                             << (void *)adapter);
         }
         if (!adapter) {
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
@@ -207,16 +208,20 @@ public:
         }
 
         GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
+        t_shuffle.resume();
         shuffleRays(moved_rays, instancenodes[instTarget]);
         moved_rays.clear();
+        t_shuffle.stop();
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
     this->gatherFramebuffers(this->rays.size());
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+    std::cout << "image scheduler: select time: " << t_sort.format();
     std::cout << "image scheduler: trace time: " << t_trace.format();
-    std::cout << "image scheduler: sched time: " << t_sched.format();
+    std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
+    std::cout << "image scheduler: frame time: " << t_frame.format();
   }
 };
 }

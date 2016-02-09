@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * Tracer.h
  *
@@ -57,6 +53,7 @@
 
 #include <mpi.h>
 
+#include <deque>
 #include <map>
 
 #include <tbb/parallel_for_each.h>
@@ -105,8 +102,8 @@ public:
 
   gvt::render::data::accel::AbstractAccel *acceleration;
 
-  int width = gvt::core::variant_toInteger(rootnode["Film"]["width"].value());
-  int height = gvt::core::variant_toInteger(rootnode["Film"]["height"].value());
+  int width = rootnode["Film"]["width"].value().toInteger();
+  int height = rootnode["Film"]["height"].value().toInteger();
 
   float sample_ratio;
 
@@ -135,8 +132,14 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
-  virtual ~AbstractTrace(){};
-  virtual void operator()(void) { GVT_ASSERT_BACKTRACE(0, "Not supported"); };
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(GVT_COLOR_ACCUM) * width * height); }
+
+  // clang-format off
+  virtual ~AbstractTrace() {};
+  virtual void operator()(void) {
+    GVT_ASSERT_BACKTRACE(0, "Not supported");
+  };
+  // clang-format on
 
   virtual void FilterRaysLocally(void) {
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
@@ -272,86 +275,86 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     const size_t raycount = rays.size();
-    const int domID = (instNode) ? gvt::core::variant_toInteger(instNode["id"].value()) : -1;
+    const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
     const gvt::render::data::primitives::Box3D domBB =
-        (instNode) ? *gvt::core::variant_toBox3DPtr(instNode["bbox"].value()) : gvt::render::data::primitives::Box3D();
+        (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
+                   : gvt::render::data::primitives::Box3D();
 
     // tbb::parallel_for(size_t(0), size_t(rays.size()),
     //      [&] (size_t index) {
 
+    // clang-format off
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
-                        //        gvt::render::actor::Ray &r = rays[index];
+      //        gvt::render::actor::Ray &r = rays[index];
 
-                        std::map<int, gvt::render::actor::RayVector> local_queue;
+      std::map<int, gvt::render::actor::RayVector> local_queue;
 
-                        for (gvt::render::actor::Ray &r : raysit) {
-                          if (domID != -1) {
-                            float t = FLT_MAX;
-                            if (r.domains.empty() && domBB.intersectDistance(r, t)) {
-                              r.origin += r.direction * t;
-                            }
-                          }
+      for (gvt::render::actor::Ray &r : raysit) {
+        if (domID >= 0 && r.domains.empty()) {
+          float tmin,tmax; // = FLT_MAX;
+          if (domBB.intersectDistance(r, tmin,tmax)) {
+            r.origin += r.direction * tmax;
+          }
+        }
 
-                          if (r.domains.empty()) {
-                            acceleration->intersect(r, r.domains);
-                            boost::sort(r.domains);
-                          }
+        if (r.domains.empty()) {
+          acceleration->intersect(r, r.domains);
+          boost::sort(r.domains);
+        }
 
-                          if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
-                            r.domains.erase(r.domains.begin());
-                          }
+        if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
+          r.domains.erase(r.domains.begin());
+        }
 
-                          if (!r.domains.empty()) {
+        if (!r.domains.empty()) {
 
-                            int firstDomainOnList = (*r.domains.begin());
-                            r.domains.erase(r.domains.begin());
-                            // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
-                            local_queue[firstDomainOnList].push_back(r);
+          int firstDomainOnList = (*r.domains.begin());
+          r.domains.erase(r.domains.begin());
+          // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
+          local_queue[firstDomainOnList].push_back(r);
 
-                          } else if (instNode) {
+        } else if (instNode) {
 
-                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                            for (int i = 0; i < 3; i++)
-                              colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                            colorBuf[r.id].rgba[3] = 1.f;
-                            colorBuf[r.id].clamp();
-                          }
-                        }
+          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+          for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
+          colorBuf[r.id].rgba[3] = 1.f;
+          colorBuf[r.id].clamp();
+        }
+      }
 
-                        std::vector<int> _doms;
-                        std::transform(local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
-                                       [](const std::map<int, gvt::render::actor::RayVector>::value_type &pair) {
-                                         return pair.first;
-                                       });
+      std::deque<int> _doms;
+      std::transform(local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
+                     [](const std::map<int, gvt::render::actor::RayVector>::value_type &pair) { return pair.first; });
 
-                        while (!_doms.empty()) {
+      while (!_doms.empty()) {
 
-                          int dom = _doms.front();
-                          _doms.erase(_doms.begin());
-                          if (queue_mutex[dom].try_lock()) {
-                            queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
-                                              std::make_move_iterator(local_queue[dom].end()));
-                            queue_mutex[dom].unlock();
-                          } else {
-                            _doms.push_back(dom);
-                          }
-                        }
+        int dom = _doms.front();
+        //_doms.erase(_doms.begin());
+        _doms.pop_front();
+        (queue_mutex[dom].lock()); {
+          queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
+                            std::make_move_iterator(local_queue[dom].end()));
+          queue_mutex[dom].unlock();
+        }/* else {
+          _doms.push_back(dom);
+        }*/
+      }
 
-                        // for (auto &q : local_queue) {
-                        //   const int dom = q.first;
-                        //   const size_t size = q.second.size();
-                        //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-                        //   // queue[dom].reserve(queue[dom].size() + size);
-                        //   queue[dom].insert(queue[dom].end(),
-                        //                     std::make_move_iterator(q.second.begin()),
-                        //                     std::make_move_iterator(q.second.end()));
+      // for (auto &q : local_queue) {
+      //   const int dom = q.first;
+      //   const size_t size = q.second.size();
+      //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
+      //   // queue[dom].reserve(queue[dom].size() + size);
+      //   queue[dom].insert(queue[dom].end(),
+      //                     std::make_move_iterator(q.second.begin()),
+      //                     std::make_move_iterator(q.second.end()));
 
-                        //   // std::move(q.second.begin(), q.second.end(),
-                        //   // std::back_inserter(queue[dom]));
-                        // }
-
-                      });
+      //   // std::move(q.second.begin(), q.second.end(),
+      //   // std::back_inserter(queue[dom]));
+      // }
+    });
+    // clang-format on
     rays.clear();
   }
 
@@ -373,8 +376,7 @@ public:
     for (auto limit : chunks) {
       GVT_DEBUG(DBG_ALWAYS, "Limits : " << limit.first << ", " << limit.second);
       futures.push_back(std::async(std::launch::deferred, [&]() {
-        for (int i = limit.first; i < limit.second; i++)
-          image.Add(i, colorBuf[i]);
+        for (int i = limit.first; i < limit.second; i++) image.Add(i, colorBuf[i]);
       }));
     }
 
@@ -387,11 +389,9 @@ public:
 
     size_t size = width * height;
 
-    for (size_t i = 0; i < size; i++)
-      image.Add(i, colorBuf[i]);
+    for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
 
-    if (!mpi)
-      return;
+    if (!mpi) return;
 
     unsigned char *rgb = image.GetBuffer();
 

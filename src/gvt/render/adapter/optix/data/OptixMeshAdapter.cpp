@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 //
 // OptixMeshAdapter.cpp
 //
@@ -38,7 +34,8 @@
 #include <gvt/core/schedule/TaskScheduling.h> // used for threads
 
 #include <gvt/render/actor/Ray.h>
-
+#include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 
@@ -94,7 +91,7 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
     : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(OptixContext::singleton()->context()) {
   // Get GVT mesh pointer
   GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-  Mesh *mesh = gvt::core::variant_toMeshPtr(node["ptr"].value());
+  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
   GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
   int numVerts = mesh->vertices.size();
@@ -113,8 +110,7 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
     for (int i = 0; i < devCount; i++) {
       cudaGetDeviceProperties(&prop, i);
-      if (prop.kernelExecTimeoutEnabled == 0)
-        activeDevices.push_back(i);
+      if (prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
       // Oversubcribe the GPU
       packetSize = prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor;
     }
@@ -136,31 +132,36 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
   std::vector<std::future<void> > _tasks;
 
+  // clang-format off
   for (int i = 0; i < numVerts; i += offset_verts) {
     _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
-      for (int jj = ii; jj < end && jj < numVerts; jj++) {
-        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
-        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
-        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
-      }
-    }, i, i + offset_verts));
+                                                      for (int jj = ii; jj < end && jj < numVerts; jj++) {
+                                                        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+                                                        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+                                                        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+                                                      }
+                                                    },
+                                i, i + offset_verts));
   }
+  // clang-format on
 
   const int offset_tris = 100; // numTris / std::thread::hardware_concurrency();
 
+  // clang-format off
   for (int i = 0; i < numTris; i += offset_tris) {
     _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
-      for (int jj = ii; jj < end && jj < numTris; jj++) {
-        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
-        faces[jj * 3 + 0] = f.get<0>();
-        faces[jj * 3 + 1] = f.get<1>();
-        faces[jj * 3 + 2] = f.get<2>();
-      }
-    }, i, i + offset_tris));
+                                                      for (int jj = ii; jj < end && jj < numTris; jj++) {
+                                                        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+                                                        faces[jj * 3 + 0] = f.get<0>();
+                                                        faces[jj * 3 + 1] = f.get<1>();
+                                                        faces[jj * 3 + 2] = f.get<2>();
+                                                      }
+                                                    },
+                                i, i + offset_tris));
   }
+  // clang-format on
 
-  for (auto &f : _tasks)
-    f.wait();
+  for (auto &f : _tasks) f.wait();
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
@@ -357,8 +358,7 @@ struct OptixParallelTrace {
    */
   void traceShadowRays() {
     ::optix::prime::Query query = adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
-    if (!query.isValid())
-      return;
+    if (!query.isValid()) return;
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
       const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
@@ -447,7 +447,7 @@ struct OptixParallelTrace {
 
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = gvt::core::variant_toMeshPtr(instNode["meshRef"].deRef()["ptr"].value());
+    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
     ::optix::prime::Model scene = adapter->getScene();
 
@@ -652,8 +652,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
 
-  if (_end == 0)
-    _end = rayList.size();
+  if (_end == 0) _end = rayList.size();
 
   this->begin = _begin;
   this->end = _end;
@@ -673,10 +672,10 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   // pull out instance transform data
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: getting instance transform data");
   gvt::core::math::AffineTransformMatrix<float> *m =
-      gvt::core::variant_toAffineTransformMatPtr(instNode["mat"].value());
+      (gvt::core::math::AffineTransformMatrix<float> *)instNode["mat"].value().toULongLong();
   gvt::core::math::AffineTransformMatrix<float> *minv =
-      gvt::core::variant_toAffineTransformMatPtr(instNode["matInv"].value());
-  gvt::core::math::Matrix3f *normi = gvt::core::variant_toMatrix3fPtr(instNode["normi"].value());
+      (gvt::core::math::AffineTransformMatrix<float> *)instNode["matInv"].value().toULongLong();
+  gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f *)instNode["normi"].value().toULongLong();
 
   //
   // TODO: wrap this db light array -> class light array conversion in some sort
@@ -687,10 +686,10 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   std::vector<gvt::render::data::scene::Light *> lights;
   lights.reserve(2);
   for (auto lightNode : lightNodes) {
-    auto color = gvt::core::variant_toVector4f(lightNode["color"].value());
+    auto color = lightNode["color"].value().toVector4f();
 
     if (lightNode.name() == std::string("PointLight")) {
-      auto pos = gvt::core::variant_toVector4f(lightNode["position"].value());
+      auto pos = lightNode["position"].value().toVector4f();
       lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));
@@ -716,8 +715,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
     }));
   }
 
-  for (auto &t : _tasks)
-    t.wait();
+  for (auto &t : _tasks) t.wait();
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());

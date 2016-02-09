@@ -57,9 +57,7 @@ template <class T> class Vector4;
 template <class T> class Matrix3;
 template <class T> class AffineTransformMatrix;
 
-//==========[ class Matrix3
-//]=====================================================
-
+//==========[ class Matrix3 ]=====================================================
 template <class T> class Matrix3 {
   //---[ Private Variable Declarations ]-----------------
 public:
@@ -193,8 +191,7 @@ public:
     {
       i1 = j; // Row with largest pivot candidate
       for (i = j + 1; i < 3; i++) {
-        if (std::abs(a[i][j]) > std::abs(a[i1][j]))
-          i1 = i;
+        if (std::abs(a[i][j]) > std::abs(a[i1][j])) i1 = i;
 
         // Swap rows i1 and j in a and b to put pivot on diagonal
         for (i = 0; i < 3; i++) {
@@ -242,8 +239,7 @@ typedef Matrix3<int> Matrix3i;
 typedef Matrix3<float> Matrix3f;
 typedef Matrix3<double> Matrix3d;
 
-//==========[ class Matrix4
-//]=====================================================
+//==========[ class Matrix4 ]=====================================================
 
 template <class T> class AffineTransformMatrix {
   //---[ Private Variable Declarations ]-----------------
@@ -475,8 +471,7 @@ public:
     {
       i1 = j; // Row with largest pivot candidate
       for (i = j + 1; i < 4; i++) {
-        if (std::abs(a[i][j]) > std::abs(a[i1][j]))
-          i1 = i;
+        if (std::abs(a[i][j]) > std::abs(a[i1][j])) i1 = i;
       }
 
       // Swap rows i1 and j in a and b to put pivot on diagonal
@@ -528,8 +523,7 @@ typedef AffineTransformMatrix<int> Matrix4i;
 typedef AffineTransformMatrix<float> Matrix4f;
 typedef AffineTransformMatrix<double> Matrix4d;
 
-//==========[ Inline Method Definitions (Matrixrix)
-//]=============================
+//==========[ Inline Method Definitions (Matrixrix) ]=============================
 
 template <class T> inline Matrix3<T> Matrix3<T>::createRotation(T angle, float x, float y) {
   Matrix3<T> rot;

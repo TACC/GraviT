@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <boost/timer/timer.hpp>
 
@@ -63,8 +59,7 @@ void gvtCameraBase::SetCamera(gvt::render::actor::RayVector &rayvect, float rate
 void gvtCameraBase::buildTransform() {
   //
   // Find the u, v, and w unit basis vectors for the camera coordinate system.
-  // These vectors are in world coordinates and are considered attached to the
-  // camera.
+  // These vectors are in world coordinates and are considered attached to the camera.
   // Calculate the w vector that points from the camera to the focal point.
   // Normalize it.
   //
@@ -74,27 +69,48 @@ void gvtCameraBase::buildTransform() {
   // V direction is the camera up vector.
   //
   v = up_vector.normalize();
-  //
-  // U direction is the cross product of the camera up vector and the W vector
-  // (left hand camera coord system)
-  //
+//
+// U direction is the cross product of the camera up vector and the W vector
+//
+//
+#ifdef LEFT_HAND_CAMERA
   u[0] = v[1] * w[2] - v[2] * w[1];
   u[1] = v[2] * w[0] - v[0] * w[2];
   u[2] = v[0] * w[1] - v[1] * w[0];
   u[3] = 0.0;
   u = u.normalize();
-  //
-  // The up vector input may not have been orthogonal to the viewing direction
-  // w.
-  // Recalculate an up vector perpendicular to both the view direction w and the
-  // horizontal direction up. The new up vector will be the cross product of w
-  // and u
-  //
+
+#endif
+
+#ifdef RIGHT_HAND_CAMERA
+  u[0] = w[1] * v[2] - w[2] * v[1];
+  u[1] = w[2] * v[0] - w[0] * v[2];
+  u[2] = w[0] * v[1] - w[1] * v[0];
+  u[3] = 0.0;
+  u = u.normalize();
+#endif
+
+//
+// The up vector input may not have been orthogonal to the viewing direction w.
+// Recalculate an up vector perpendicular to both the view direction w and the
+// horizontal direction up. The new up vector will be the cross product of w and u
+//
+#ifdef LEFT_HAND_CAMERA
   up_vector[0] = w[1] * u[2] - u[1] * w[2];
   up_vector[1] = w[2] * u[0] - u[2] * w[0];
   up_vector[2] = w[0] * u[1] - u[0] * w[1];
   up_vector[3] = 0.0;
   v = up_vector.normalize();
+#endif
+
+#ifdef RIGHT_HAND_CAMERA
+  up_vector[0] = u[1] * w[2] - w[1] * u[2];
+  up_vector[1] = u[2] * w[0] - w[2] * u[0];
+  up_vector[2] = u[0] * w[1] - w[0] * u[1];
+  up_vector[3] = 0.0;
+  v = up_vector.normalize();
+#endif
+
   //
   // last column in the camera to world transformation matrix is the eye_point.
   //
@@ -152,6 +168,7 @@ void gvtCameraBase::AllocateCameraRays() {
 #endif
   depth = 0;
   size_t nrays = filmsize[0] * filmsize[1];
+  rays.clear();
   rays.resize(nrays);
   // return rays;
 }

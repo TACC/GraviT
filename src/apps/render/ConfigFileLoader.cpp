@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   ConfigFileLoader.cpp
  * Author: jbarbosa
@@ -81,14 +77,12 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
   while (file.good()) {
     std::string line;
     std::getline(file, line);
-    if (line.find("#") == 0)
-      continue;
+    if (line.find("#") == 0) continue;
 
     std::vector<std::string> elems;
     split(line, ' ', elems);
 
-    if (elems.empty())
-      continue;
+    if (elems.empty()) continue;
 
     if (elems[0] == "F") {
       scene.camera.setFilmSize(std::atoi(elems[1].c_str()), std::atoi(elems[2].c_str()));
@@ -141,15 +135,13 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         GVT_DEBUG(DBG_ALWAYS, "Translate vector : \n" << t);
 
-        if (t.length() > 0.0)
-          domain->translate(t);
+        if (t.length() > 0.0) domain->translate(t);
 
         t[0] = std::atof(elems[5].c_str());
         t[1] = std::atof(elems[6].c_str());
         t[2] = std::atof(elems[7].c_str());
 
-        if (t.length() > 0.0)
-          domain->rotate(t);
+        if (t.length() > 0.0) domain->rotate(t);
 
         t[0] = std::atof(elems[8].c_str());
         t[1] = std::atof(elems[9].c_str());
@@ -157,8 +149,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         GVT_DEBUG(DBG_ALWAYS, "Scale vector : \n" << t);
 
-        if (t.length() > 0.0)
-          domain->scale(t);
+        if (t.length() > 0.0) domain->scale(t);
 
         GVT_DEBUG(DBG_ALWAYS, "Aff. m : \n" << domain->m);
         GVT_DEBUG(DBG_ALWAYS, "Aff. minv : \n" << domain->minv);
@@ -199,18 +190,13 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
     } else if (elems[0] == "ST") {
       GVT_DEBUG(DBG_ALWAYS, "Light area not implemented");
     } else if (elems[0] == "DT") {
-      if (elems[1] == "OPTIX")
-        domain_type = 1;
-      if (elems[1] == "EMBREE")
-        domain_type = 2;
+      if (elems[1] == "OPTIX") domain_type = 1;
+      if (elems[1] == "EMBREE") domain_type = 2;
     } else if (elems[0] == "ST") {
-      if (elems[1] == "DOMAIN")
-        scheduler_type = 1;
-      if (elems[1] == "HYBRID")
-        scheduler_type = 2;
+      if (elems[1] == "DOMAIN") scheduler_type = 1;
+      if (elems[1] == "HYBRID") scheduler_type = 2;
     } else if (elems[0] == "AT") {
-      if (elems[1] == "BVH")
-        accel_type = BVH;
+      if (elems[1] == "BVH") accel_type = BVH;
     } else {
       GVT_DEBUG(DBG_LOW, "Invalid option");
     }

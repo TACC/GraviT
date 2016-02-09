@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   ObjReader.cpp
  * Author: jbarbosa
@@ -63,8 +59,7 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
 }
 }
 }
-} // namespace reader} namespace domain} namespace data} namespace render}
-// namespace gvt}
+} // namespace reader} namespace domain} namespace data} namespace render} namespace gvt}
 
 ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
 
@@ -79,8 +74,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
     std::string line;
     std::getline(file, line);
 
-    if (line.find("#") == 0)
-      continue;
+    if (line.find("#") == 0) continue;
 
     if (line.find("v") == 0) {
       parseVertex(line);
@@ -100,8 +94,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
     }
   }
 
-  if (computeNormals)
-    objMesh->generateNormals();
+  if (computeNormals) objMesh->generateNormals();
   objMesh->computeBoundingBox();
 }
 

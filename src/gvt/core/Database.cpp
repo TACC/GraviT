@@ -73,28 +73,24 @@ void Database::removeItem(Uuid uuid) {
     }
     children = &__tree[cnode->parentUUID()];
     GVT_DEBUG_CODE(DBG_LOW, for (it = children->begin(); it != children->end(); it++) std::cerr
-                                << "tree item: " << uuid_toString((*it)->UUID()) << std::endl;);
+                                << "tree item: " << (*it)->UUID().toString() << std::endl;);
     for (it = children->begin(); it != children->end(); ++it) {
-      if ((*it)->UUID() == uuid)
-        break;
+      if ((*it)->UUID() == uuid) break;
     }
     Uuid puid = cnode->parentUUID();
-    GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " "
-                                                                 << uuid_toString((*it)->UUID()));
-    if (it != children->end())
-      children->erase(it);
+    GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " " << (*it)->UUID().toString());
+    if (it != children->end()) children->erase(it);
     __nodes.erase(uuid);
     delete cnode;
   } else {
-    GVT_DEBUG(DBG_MODERATE, "ERROR: Could not find item to remove from database : " << uuid_toString(uuid));
+    GVT_DEBUG(DBG_MODERATE, "ERROR: Could not find item to remove from database : " << uuid.toString());
   }
 }
 
 DatabaseNode *Database::getChildByName(Uuid parent, String name) {
   ChildList children = __tree[parent];
   for (ChildList::iterator it = children.begin(); it != children.end(); ++it) {
-    if ((*it)->name() == name)
-      return (*it);
+    if ((*it)->name() == name) return (*it);
   }
   return NULL;
 }
@@ -103,32 +99,30 @@ void Database::print(const Uuid &parent, const int depth, std::ostream &os) {
 
   DatabaseNode *pnode = this->getItem(parent);
   if (!pnode) {
-    GVT_DEBUG(DBG_MODERATE, "Database::print - node not found: " << uuid_toString(parent));
+    GVT_DEBUG(DBG_MODERATE, "Database::print - node not found: " << parent.toString());
     return;
   }
   std::string offset = "";
-  for (int i = 0; i < depth; i++)
-    offset += "-";
-  os << offset << uuid_toString(pnode->UUID()) << " : " << pnode->name() << " : " << pnode->value() << std::endl;
+  for (int i = 0; i < depth; i++) offset += "-";
+  os << offset << pnode->UUID().toString() << " : " << pnode->name() << " : " << pnode->value() << std::endl;
   offset += "-";
   ChildList children = __tree[parent];
   for (ChildList::iterator it = children.begin(); it != children.end(); ++it) {
     DatabaseNode *node = (*it);
-    os << offset << uuid_toString(node->UUID()) << " : " << node->name() << " : " << node->value() << std::endl;
+    os << offset << node->UUID().toString() << " : " << node->name() << " : " << node->value() << std::endl;
   }
 }
 
 void Database::printTree(const Uuid &parent, const int depth, std::ostream &os) {
   DatabaseNode *pnode = this->getItem(parent);
   if (!pnode) {
-    GVT_DEBUG(DBG_ALWAYS, "Database::printTree - node not found: " << uuid_toString(parent));
+    GVT_DEBUG(DBG_ALWAYS, "Database::printTree - node not found: " << parent.toString());
     return;
   }
   std::string offset = "";
-  for (int i = 0; i < depth; i++)
-    offset += "-";
+  for (int i = 0; i < depth; i++) offset += "-";
   offset += "|";
-  os << offset << uuid_toString(pnode->UUID()) << " : " << pnode->name() << " : " << pnode->value() << std::endl;
+  os << offset << pnode->UUID().toString() << " : " << pnode->name() << " : " << pnode->value() << std::endl;
   ChildList children = __tree[parent];
   for (ChildList::iterator it = children.begin(); it != children.end(); ++it) {
     DatabaseNode *node = (*it);
@@ -139,27 +133,23 @@ void Database::printTree(const Uuid &parent, const int depth, std::ostream &os) 
 Variant Database::getValue(Uuid id) {
   Variant val;
   DatabaseNode *node = getItem(id);
-  if (node)
-    val = node->value();
+  if (node) val = node->value();
   return val;
 }
 
 void Database::setValue(Uuid id, Variant val) {
   DatabaseNode *node = getItem(id);
-  if (node)
-    node->setValue(val);
+  if (node) node->setValue(val);
 }
 
 Variant Database::getChildValue(Uuid parent, String child) {
   Variant val;
   DatabaseNode *node = getChildByName(parent, child);
-  if (node)
-    val = node->value();
+  if (node) val = node->value();
   return val;
 }
 
 void Database::setChildValue(Uuid parent, String child, Variant value) {
   DatabaseNode *node = getChildByName(parent, child);
-  if (node)
-    node->setValue(value);
+  if (node) node->setValue(value);
 }

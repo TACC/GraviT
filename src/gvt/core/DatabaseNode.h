@@ -58,7 +58,7 @@ public:
 
 class DBNodeH {
 public:
-  explicit DBNodeH(Uuid uuid = Uuid(nil_uuid())) { _uuid = uuid; }
+  explicit DBNodeH(Uuid u = Uuid::null());
   Uuid UUID();
   String name();
   Uuid parentUUID();

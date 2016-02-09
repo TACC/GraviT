@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 //
 // BVH.cpp
 //
@@ -49,9 +45,7 @@ using namespace gvt::core::math;
 // #define DEBUG_ACCEL
 
 BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(instanceSet), root(NULL) {
-
   gvt::core::Vector<gvt::core::DBNodeH> sortedInstanceSet;
-
   root = build(sortedInstanceSet, 0, instanceSet.size(), 0);
 
 #ifdef DEBUG_ACCEL
@@ -65,8 +59,8 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   // std::vector<int> instanceSetID;
 
   for (auto &node : this->instanceSet) {
-    instanceSetBB.push_back(gvt::core::variant_toBox3DPtr(node["bbox"].value()));
-    instanceSetID.push_back(gvt::core::variant_toInteger(node["id"].value()));
+    instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
+    instanceSetID.push_back(node["id"].value().toInteger());
   }
 }
 
@@ -80,8 +74,8 @@ BVH::~BVH() {
 
 void BVH::intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) {
   if (root) {
-    ClosestHit hit;
-    trace(ray, root, hit, isect, 0);
+    // ClosestHit hit;
+    trace(ray, root, /*hit,*/ isect, 0);
   }
 }
 
@@ -94,7 +88,7 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
   // evaluate bounds
   Box3D bbox;
   for (int i = start; i < end; ++i) {
-    Box3D *tmpbb = gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+    Box3D *tmpbb = (Box3D *)instanceSet[i]["bbox"].value().toULongLong();
     bbox.merge(*tmpbb);
   }
 
@@ -134,9 +128,9 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
   std::cout << "\n";
 #else
   for (int i = start; i < end; ++i) {
-    gvt::core::math::Point4f centroid = gvt::core::variant_toPoint4f(instanceSet[i]["centroid"].value());
+    gvt::core::math::Point4f centroid = instanceSet[i]["centroid"].value().toPoint4f();
     bool lessThan = (centroid[splitAxis] < splitPoint);
-    int id = gvt::core::variant_toInteger(instanceSet[i]["id"].value());
+    int id = instanceSet[i]["id"].value().toInteger();
     std::cout << "[Lvl" << level << "][SP:" << splitPoint << "][" << i << "][id:" << id
               << "][centroid: " << centroid[splitAxis] << "][isLess: " << lessThan << "]\t";
   }
@@ -187,7 +181,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
 
   for (int i = start; i < end; ++i) {
 
-    Box3D refBbox = *gvt::core::variant_toBox3DPtr(instanceSet[i]["bbox"].value());
+    Box3D &refBbox = *(Box3D *)instanceSet[i]["bbox"].value().toULongLong();
 
     for (int e = 0; e < 2; ++e) {
 
@@ -197,7 +191,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
       int leftCount = 0;
 
       for (int j = start; j < end; ++j) {
-        Box3D bbox = *gvt::core::variant_toBox3DPtr(instanceSet[j]["bbox"].value());
+        Box3D &bbox = *(Box3D *)instanceSet[j]["bbox"].value().toULongLong();
         if (bbox.centroid()[splitAxis] < edge) {
           ++leftCount;
           leftBox.merge(bbox);
@@ -218,7 +212,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
   return splitPoint;
 }
 
-void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit &hit,
+void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
                 gvt::render::actor::isecDomList &isect, int level) {
 
   float t = std::numeric_limits<float>::max();
@@ -227,9 +221,9 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit
     return;
   }
 
-  if (t > hit.distance) {
-    return;
-  }
+  // if (t > hit.distance) {
+  //   return;
+  // }
 
   int instanceCount = node->numInstances;
 
@@ -252,7 +246,7 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit
     assert(node->leftChild && node->rightChild);
 #endif
     int nextLevel = level + 1;
-    trace(ray, node->leftChild, hit, isect, nextLevel);
-    trace(ray, node->rightChild, hit, isect, nextLevel);
+    trace(ray, node->leftChild, /*hit,*/ isect, nextLevel);
+    trace(ray, node->rightChild, /*hit,*/ isect, nextLevel);
   }
 }

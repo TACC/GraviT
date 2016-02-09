@@ -35,10 +35,8 @@ namespace core {
 typedef Vector<DatabaseNode *> ChildList;
 /// object-store database for GraviT
 /**
-object store database for GraviT. The stored objects are contained in
-DatabaseNode objects.
-The database and the objects are typicallly accessed using the CoreContext
-singleton, which
+object store database for GraviT. The stored objects are contained in DatabaseNode objects.
+The database and the objects are typicallly accessed using the CoreContext singleton, which
 returns DBNodeH handles to the database objects.
 */
 class Database {

@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   cell.cpp
  * Author: jbarbosa
@@ -82,8 +78,7 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
   for (int i = 0; i < 3; ++i) {
     tswap = false;
     if (r.direction[i] == 0) {
-      if ((r.origin[i] < min[i]) | (r.origin[i] > max[i]))
-        return false;
+      if ((r.origin[i] < min[i]) | (r.origin[i] > max[i])) return false;
     } else {
       float inv_d = 1.f / r.direction[i];
       float t1, t2;
@@ -106,10 +101,8 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
         axis[1] = i;
         swap[1] = tswap;
       }
-      if (t[0] > t[1])
-        return false;
-      if (t[1] < 0)
-        return false;
+      if (t[0] > t[1]) return false;
+      if (t[1] < 0) return false;
     }
   }
 
@@ -117,8 +110,10 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
   for (int i = 0; i < 2; ++i) {
     switch (axis[i]) {
     case 0: {
-      float pt[2] = { ((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1],
-                      ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
+      // clang-format off
+      float pt[2] = {((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1],
+                     ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
+      // clang-format on
       if (i == 0)
         if (swap[i])
           faces.push_back(Face(t[i], pt[0], pt[1], data[1], data[3], data[5], data[7]));
@@ -130,8 +125,10 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
         faces.push_back(Face(t[i], pt[0], pt[1], data[1], data[3], data[5], data[7]));
     } break;
     case 1: {
-      float pt[2] = { ((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
-                      ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
+      // clang-format off
+      float pt[2] = {((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
+                     ((r.origin[2] + r.direction[2] * t[i]) - min[2]) * inv_size[2] };
+      // clang-format on
       if (i == 0)
         if (swap[i])
           faces.push_back(Face(t[i], pt[0], pt[1], data[2], data[3], data[6], data[7]));
@@ -143,8 +140,10 @@ bool Cell::FindFaceIntersectionsWithRay(gvt::render::actor::Ray &r, vector<Cell:
         faces.push_back(Face(t[i], pt[0], pt[1], data[2], data[3], data[6], data[7]));
     } break;
     case 2: {
-      float pt[2] = { ((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
-                      ((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1] };
+      // clang-format off
+      float pt[2] = {((r.origin[0] + r.direction[0] * t[i]) - min[0]) * inv_size[0],
+                     ((r.origin[1] + r.direction[1] * t[i]) - min[1]) * inv_size[1] };
+      // clang-format on
       if (i == 0)
         if (swap[i])
           faces.push_back(Face(t[i], pt[0], pt[1], data[4], data[5], data[6], data[7]));

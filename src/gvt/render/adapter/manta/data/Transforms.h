@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   GVT_MANTA.h
  * Author: jbarbosa
@@ -72,14 +68,16 @@ namespace data {
 
 GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
+    // clang-format off
     /// return a Manta-compliant 4-float vector
     template <>
-    struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f> {
+struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f> {
 
   static inline Manta::Vec4f transform(const gvt::core::math::Vector4f &r) {
     return Manta::Vec4f(r[0], r[1], r[2], r[3]);
   }
 };
+// clang-format on
 
 /// return a Manta-compliant 4-float vector
 template <> struct transform_impl<gvt::core::math::Point4f, Manta::Vec4f> {
@@ -144,8 +142,7 @@ template <> struct transform_impl<Manta::Ray, gvt::render::actor::Ray> {
 template <> struct transform_impl<Manta::PointLight *, gvt::render::data::scene::PointLight *> {
 
   static inline Manta::PointLight *transform(const gvt::render::data::scene::PointLight *ls) {
-    // lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8),
-    // Manta::Color(Manta::RGBColor(1, 1, 1))));
+    // lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
 
     return new Manta::PointLight(Manta::Vector(ls->position[0], ls->position[1], ls->position[2]),
                                  Manta::Color(Manta::RGBColor(ls->color[0], ls->color[1], ls->color[2])));
@@ -155,25 +152,20 @@ template <> struct transform_impl<Manta::PointLight *, gvt::render::data::scene:
 };
 
 //        template<size_t LENGTH>
-//        struct transform_impl<GVT::Data::RayVector,
-//        std::vector<Manta::RayPacket*>, LENGTH> {
+//        struct transform_impl<GVT::Data::RayVector, std::vector<Manta::RayPacket*>, LENGTH> {
 //
-//            static inline std::vector<Manta::RayPacket*> transform(const
-//            GVT::Data::RayVector& rr) {
+//            static inline std::vector<Manta::RayPacket*> transform(const GVT::Data::RayVector& rr) {
 //                GVT_DEBUG(DBG_ALWAYS, "Called the right transform");
 //                std::vector<Manta::RayPacket*> ret;
 //                size_t current_ray = 0;
 //                for (; current_ray < rr.size();) {
-//                    size_t psize = std::min(LENGTH, (rr.size() -
-//                    current_ray));
+//                    size_t psize = std::min(LENGTH, (rr.size() - current_ray));
 //                    Manta::RayPacketData* rpData = new Manta::RayPacketData();
-//                    Manta::RayPacket* mRays = new Manta::RayPacket(*rpData,
-//                    Manta::RayPacket::UnknownShape, 0, psize, 0,
-//                    Manta::RayPacket::NormalizedDirections);
+//                    Manta::RayPacket* mRays = new Manta::RayPacket(*rpData, Manta::RayPacket::UnknownShape, 0, psize,
+//                    0, Manta::RayPacket::NormalizedDirections);
 //
 //                    for (int i = 0; i < psize; i++) {
-//                        mRays->setRay(i, GVT::Data::transform<GVT::Data::ray,
-//                        Manta::Ray>(rr[current_ray + i]));
+//                        mRays->setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(rr[current_ray + i]));
 //                    }
 //
 //                    ret.push_back(mRays);

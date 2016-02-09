@@ -27,13 +27,12 @@
 
 using namespace gvt::core;
 
-DatabaseNode *DatabaseNode::errNode =
-    new DatabaseNode(String("error"), String("error"), Uuid(nil_uuid()), Uuid(nil_uuid()));
+DatabaseNode *DatabaseNode::errNode = new DatabaseNode(String("error"), String("error"), Uuid::null(), Uuid::null());
 
 DatabaseNode::DatabaseNode(String name, Variant value, Uuid uuid, Uuid parentUUID)
     : p_uuid(uuid), p_name(name), p_value(value), p_parent(parentUUID) {}
 
-DatabaseNode::operator bool() const { return (p_uuid != Uuid(nil_uuid())) && (p_parent != Uuid(nil_uuid())); }
+DatabaseNode::operator bool() const { return (!p_uuid.isNull() && !p_parent.isNull()); }
 
 Uuid DatabaseNode::UUID() { return p_uuid; }
 
@@ -75,6 +74,8 @@ Vector<DatabaseNode *> DatabaseNode::getChildren() {
 
  *******************/
 
+DBNodeH::DBNodeH(Uuid uuid) : _uuid(uuid) {}
+
 DatabaseNode &DBNodeH::getNode() {
   CoreContext *ctx = CoreContext::instance();
   Database &db = *(ctx->database());
@@ -89,11 +90,11 @@ DBNodeH DBNodeH::deRef() {
   CoreContext *ctx = CoreContext::instance();
   Database &db = *(ctx->database());
   DatabaseNode &n = getNode();
-  DatabaseNode *ref = db.getItem(variant_toUuid(n.value()));
-  if (ref && (variant_toUuid(n.value()) != nil_uuid())) {
+  DatabaseNode *ref = db.getItem(n.value().toUuid());
+  if (ref && !n.value().toUuid().isNull()) {
     return DBNodeH(ref->UUID());
   } else {
-    GVT_DEBUG(DBG_SEVERE, "DBNodeH deRef failed for uuid " << uuid_toString(_uuid));
+    GVT_DEBUG(DBG_SEVERE, "DBNodeH deRef failed for uuid " << _uuid.toString());
     return DBNodeH();
   }
 }
@@ -103,7 +104,7 @@ DBNodeH DBNodeH::operator[](const String &key) {
   Database &db = *(ctx->database());
   DatabaseNode *child = db.getChildByName(_uuid, key);
   if (!child) {
-    GVT_DEBUG(DBG_ALWAYS, "DBNodeH[] failed to find key \"" << key << "\" for uuid " << uuid_toString(_uuid));
+    GVT_DEBUG(DBG_ALWAYS, "DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
     child = &(ctx->createNode(key).getNode());
   }
   return DBNodeH(child->UUID());
@@ -125,7 +126,7 @@ DBNodeH &DBNodeH::operator=(Variant val) {
 
 bool DBNodeH::operator==(const Variant val) { return value() == val; }
 
-DBNodeH::operator bool() const { return (_uuid != nil_uuid()); }
+DBNodeH::operator bool() const { return !_uuid.isNull(); }
 
 Uuid DBNodeH::UUID() {
   DatabaseNode &n = getNode();
@@ -186,7 +187,6 @@ Vector<DBNodeH> DBNodeH::getChildren() {
   Database &db = *(ctx->database());
   Vector<DatabaseNode *> children = db.getChildren(UUID());
   Vector<DBNodeH> result;
-  for (int i = 0; i < children.size(); i++)
-    result.push_back(DBNodeH(children[i]->UUID()));
+  for (int i = 0; i < children.size(); i++) result.push_back(DBNodeH(children[i]->UUID()));
   return result;
 }

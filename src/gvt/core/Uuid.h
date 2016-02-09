@@ -21,24 +21,49 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_TYPES_H
-#define GVT_CORE_TYPES_H
+#ifndef GVT_CORE_UUID_H
+#define GVT_CORE_UUID_H
 
-#include <gvt/core/Math.h>
 #include <gvt/core/String.h>
-#include <gvt/core/Uuid.h>
-#include <gvt/core/Variant.h>
 
-#include <boost/container/allocator.hpp>
-#include <boost/container/map.hpp>
-#include <boost/container/vector.hpp>
-#include <string>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+#include <ostream>
 
 namespace gvt {
 namespace core {
-template <class T> using Vector = boost::container::vector<T>;
-template <class K, class V> using Map = boost::container::map<K, V>;
-}
-}
+/// unique identifier used to tag nodes in the context database
+/**
+* \sa CoreContext, Database, DatabaseNode
+*/
+class Uuid {
+public:
+  Uuid() : uuid(gen()) {}
 
-#endif // GVT_CORE_TYPES_H
+  void nullify() { uuid = boost::uuids::nil_uuid(); }
+
+  bool isNull() const { return uuid == boost::uuids::nil_uuid(); }
+
+  String toString() const { return boost::uuids::to_string(uuid); }
+
+  bool operator==(const Uuid &u) const { return uuid == u.uuid; }
+  bool operator!=(const Uuid &u) const { return uuid != u.uuid; }
+
+  bool operator>(const Uuid &u) const { return uuid > u.uuid; }
+
+  bool operator<(const Uuid &u) const { return uuid < u.uuid; }
+
+  friend std::ostream &operator<<(std::ostream &, const Uuid &);
+  static Uuid null();
+
+protected:
+  boost::uuids::uuid uuid;
+
+private:
+  static boost::uuids::random_generator gen;
+};
+}
+}
+#endif // GVT_CORE_UUID_H

@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 //
 // BVH.h
 //
@@ -74,7 +70,7 @@ private:
     CentroidLessThan(float splitPoint, int splitAxis) : splitPoint(splitPoint), splitAxis(splitAxis) {}
     bool operator()(const gvt::core::DBNodeH inst) const {
       gvt::core::DBNodeH i2 = inst;
-      gvt::core::math::Point4f centroid = gvt::core::variant_toPoint4f(i2["centroid"].value());
+      gvt::core::math::Point4f centroid = i2["centroid"].value().toPoint4f();
       return (centroid[splitAxis] < splitPoint);
     }
 
@@ -88,7 +84,7 @@ private:
   float findSplitPoint(int splitAxis, int start, int end);
 
   /// traverse ray through BVH. Called by intersect().
-  void trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit &hit,
+  void trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
              gvt::render::actor::isecDomList &isect, int level);
 
   std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;

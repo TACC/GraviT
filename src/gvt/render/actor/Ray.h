@@ -68,25 +68,35 @@ typedef struct intersection {
 
 } isecDom;
 
-typedef boost::container::vector<isecDom> isecDomList;
+typedef std::vector<isecDom> isecDomList;
 
 class Ray {
 public:
   /// ray type
   /** ray type enumeration
    - PRIMARY - a camera or eye ray
-   - SHADOW - a ray that tests visibility from a light source to an intersection
-   point
+   - SHADOW - a ray that tests visibility from a light source to an intersection point
    - SECONDARY - all other rays
    */
-  enum RayType { PRIMARY, SHADOW, SECONDARY };
+  // clang-format off
+  enum RayType {
+    PRIMARY,
+    SHADOW,
+    SECONDARY
+  };
+
+  const static float RAY_EPSILON;
+  // clang-format on
 
   Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
       gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), float contribution = 1.f,
       RayType type = PRIMARY, int depth = 10);
   Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
   Ray(const Ray &orig);
+  Ray(Ray &&ray);
   Ray(const unsigned char *buf);
+
+  Ray operator=(const Ray &r) { return std::move(Ray(r)); }
 
   virtual ~Ray();
 
@@ -97,8 +107,7 @@ public:
   /// returns size in bytes for the ray information to be sent via MPI
   int packedSize();
 
-  /// packs the ray information onto the given buffer and returns the number of
-  /// bytes packed
+  /// packs the ray information onto the given buffer and returns the number of bytes packed
   int pack(unsigned char *buffer);
 
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
@@ -106,21 +115,23 @@ public:
     return stream;
   }
 
-  mutable gvt::core::math::Point4f origin;
-  mutable gvt::core::math::Vector4f direction;
-  mutable gvt::core::math::Vector4f inverseDirection;
-
-  int id;    ///<! index into framebuffer
-  int depth; ///<! sample rate
-  float w;   ///<! weight of image contribution
-  mutable float t;
-  mutable float t_min;
-  mutable float t_max;
-  GVT_COLOR_ACCUM color;
+  union {
+    struct {
+      mutable gvt::core::math::Point4f origin;
+      mutable gvt::core::math::Vector4f direction;
+      mutable gvt::core::math::Vector4f inverseDirection;
+      mutable GVT_COLOR_ACCUM color;
+      int id;    ///<! index into framebuffer
+      int depth; ///<! sample rate
+      float w;   ///<! weight of image contribution
+      mutable float t;
+      mutable float t_min;
+      mutable float t_max;
+      int type;
+    };
+    unsigned char data[16 * 4 + 7 * 4];
+  };
   isecDomList domains;
-  int type;
-
-  const static float RAY_EPSILON;
 
 protected:
 };

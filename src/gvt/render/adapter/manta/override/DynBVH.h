@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 #ifndef _MANTA_DYNBVH_H_
 #define _MANTA_DYNBVH_H_
 
@@ -60,8 +56,7 @@ public:
   struct BVHNode {
     BBox bounds;
     int child;          // my child
-    unsigned char axis; // 0 = x, 1 = y, 2 = z.  axis==3 means node is
-                        // uninitialized.
+    unsigned char axis; // 0 = x, 1 = y, 2 = z.  axis==3 means node is uninitialized.
     unsigned isLeftCheaper : 1;
     unsigned isLargeSubtree : 1; // If it has lots of subnodes, it's
                                  // handled by serial part of BVH update
@@ -118,8 +113,12 @@ public:
   static const unsigned int kNumLazyBuildMutexes = 256;
   mutable AtomicCounter nextFree;
 
+  // clang-format off
   // Align each vector (align the vector itself, not the data in it).
-  template <class T, size_t Alignment> struct MANTA_ALIGN(MAXCACHELINESIZE) SpacedVectors { vector<T> v; };
+  template <class T, size_t Alignment> struct MANTA_ALIGN(MAXCACHELINESIZE) SpacedVectors {
+    vector<T> v;
+  };
+  // clang-format on
   mutable MANTA_ALIGN(MAXCACHELINESIZE) SpacedVectors<int, MAXCACHELINESIZE> nodesBeingBuilt[kNumLazyBuildMutexes];
 
   mutable Mutex lazybuild_mutex[kNumLazyBuildMutexes];
@@ -158,8 +157,7 @@ public:
 
   void setGroup(Group *new_group);
   Group *getGroup() const;
-  void groupDirty(); // tells the acceleration structure that the group has
-                     // changed
+  void groupDirty(); // tells the acceleration structure that the group has changed
 
   virtual void addToUpdateGraph(ObjectUpdateGraph *graph, ObjectUpdateGraphNode *parent);
 
@@ -194,8 +192,7 @@ public:
     return currGroup->parallelInterpolate(keyframes, proc, numProc);
   }
 
-  // return the first index (between [rays.begin(),rays.end()]) which hits the
-  // box
+  // return the first index (between [rays.begin(),rays.end()]) which hits the box
   static int firstIntersects(const BBox &box, const RayPacket &rays, const IAData &ia_data);
   // return the last index which hits the box
   static int lastIntersects(const BBox &box, const RayPacket &rays);
@@ -352,8 +349,7 @@ protected:
   // TODO: instead of storing costs and subtree_size for all nodes (so
   // wasteful!), try to compute these on the fly during the rotation step.
   mutable vector<Real> costs;
-  mutable vector<unsigned int> subtree_size; // number of nodes making up this
-                                             // subtree
+  mutable vector<unsigned int> subtree_size; // number of nodes making up this subtree
 
   void rotateNode(int const nodeID);
   void rotateTree(int const nodeID);

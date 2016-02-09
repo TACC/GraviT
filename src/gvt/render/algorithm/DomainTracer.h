@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * DomainTracer.h
  *
@@ -73,13 +69,11 @@ namespace algorithm {
 
 /// work scheduler that strives to keep domains loaded and send rays
 /**
-  The Domain scheduler strives to schedule work such that loaded domains remain
-  loaded
-  and rays are sent to the process that contains the loaded domain (or is
-  responsible for loading the domain).
-  A domain is loaded in at most one process at any time. If there are sufficent
-  processes to load
-  all domains, the entire render will proceed in-core.
+  The Domain scheduler strives to schedule work such that loaded domains remain loaded
+  and rays are sent to the process that contains the loaded domain (or is responsible
+  for loading the domain). A domain is loaded in at most one process at any time. If
+  there are sufficent processes to load all domains, the entire render will proceed
+  in-core.
 
   This scheduler can become unbalanced when:
    - there are more processes than domains, excess processes will remain idle
@@ -147,7 +141,7 @@ public:
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx
                                 << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
 
-      GVT_ASSERT(dataIdx != (size_t)-1, "domain scheduler: could not find data node");
+      GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
       mpiInstanceMap[instancenodes[i].UUID()] = mpiNode;
     }
   }
@@ -174,15 +168,15 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
-    int adapterType = gvt::core::variant_toInteger(root["Schedule"]["adapter"].value());
+    clearBuffer();
+    int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
     long domain_counter = 0;
 
 // FindNeighbors();
 
 // sort rays into queues
-// note: right now throws away rays that do not hit any domain owned by the
-// current
+// note: right now throws away rays that do not hit any domain owned by the current
 // rank
 #ifdef GVT_USE_MPE
     MPE_Log_event(localrayfilterstart, 0, NULL);
@@ -351,10 +345,8 @@ public:
       MPI_Gather(&not_done, 1, MPI_INT, empties, 1, MPI_INT, 0, MPI_COMM_WORLD);
       if (mpi.rank == 0) {
         not_done = 0;
-        for (size_t i = 0; i < mpi.world_size; ++i)
-          not_done += empties[i];
-        for (size_t i = 0; i < mpi.world_size; ++i)
-          empties[i] = not_done;
+        for (size_t i = 0; i < mpi.world_size; ++i) not_done += empties[i];
+        for (size_t i = 0; i < mpi.world_size; ++i) empties[i] = not_done;
       }
 
       MPI_Scatter(empties, 1, MPI_INT, &not_done, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -378,7 +370,7 @@ public:
   // FIXME: update FindNeighbors to use mpiInstanceMap
   virtual void FindNeighbors() {
     gvt::core::math::Vector3f topo;
-    topo = gvt::core::variant_toVector3f(rootnode["Dataset"]["topology"].value());
+    topo = rootnode["Dataset"]["topology"].value().toVector3f();
     int total = topo[2], plane = topo[1], row = topo[0]; // XXX TODO:
     // int total = gvt::render::Attributes::rta->GetTopology()[2],
     //   plane = gvt::render::Attributes::rta->GetTopology()[1],
@@ -390,104 +382,76 @@ public:
 
     // find all domains that neighbor my domains
     for (int i = 0; i < total; ++i) {
-      if (i % mpi.world_size != mpi.rank)
-        continue;
+      if (i % mpi.world_size != mpi.rank) continue;
 
       // down, left
       int n = i - 1;
-      if (n >= 0 && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % row) < (i % row)) n_doms.insert(n);
       n = i - row;
-      if (n >= 0 && (n % plane) < (i % plane))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) < (i % plane)) n_doms.insert(n);
       n = i - row - 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) < (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
       n = i - row + 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) < (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
 
       // up, right
       n = i + 1;
-      if (n < total && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % row) > (i % row)) n_doms.insert(n);
       n = i + row;
-      if (n < total && (n % plane) > (i % plane))
-        n_doms.insert(n);
+      if (n < total && (n % plane) > (i % plane)) n_doms.insert(n);
       n = i + row - 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % plane) > (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
       n = i + row + 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % plane) > (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
 
       // bottom
       n = i - plane;
-      if (n >= 0)
-        n_doms.insert(n);
+      if (n >= 0) n_doms.insert(n);
       // bottom: down, left
       n = i - plane - 1;
-      if (n >= 0 && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % row) < (i % row)) n_doms.insert(n);
       n = i - plane - row;
-      if (n >= 0 && (n % plane) < (i % plane))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) < (i % plane)) n_doms.insert(n);
       n = i - plane - row - 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) < (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
       n = i - plane - row + 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) < (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
       // bottom: up, right
       n = i - plane + 1;
-      if (n >= 0 && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % row) > (i % row)) n_doms.insert(n);
       n = i - plane + row;
-      if (n >= 0 && (n % plane) > (i % plane))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) > (i % plane)) n_doms.insert(n);
       n = i - plane + row - 1;
-      if (n >= 0 && (n % plane) > (i % plane) && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) > (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
       n = i - plane + row + 1;
-      if (n >= 0 && (n % plane) > (i % plane) && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n >= 0 && (n % plane) > (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
 
       // top
       n = i + plane;
-      if (n < total)
-        n_doms.insert(n);
+      if (n < total) n_doms.insert(n);
       // down, left
       n = i + plane - 1;
-      if (n < total && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % row) < (i % row)) n_doms.insert(n);
       n = i + plane - row;
-      if (n < total && (n % plane) < (i % plane))
-        n_doms.insert(n);
+      if (n < total && (n % plane) < (i % plane)) n_doms.insert(n);
       n = i + plane - row - 1;
-      if (n < total && (n % plane) < (i % plane) && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % plane) < (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
       n = i + plane - row + 1;
-      if (n < total && (n % plane) < (i % plane) && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % plane) < (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
       // up, right
       n = i + plane + 1;
-      if (n < total && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % row) > (i % row)) n_doms.insert(n);
       n = i + plane + row;
-      if (n < total && (n % plane) > (i % plane))
-        n_doms.insert(n);
+      if (n < total && (n % plane) > (i % plane)) n_doms.insert(n);
       n = i + plane + row - 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) < (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % plane) > (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
       n = i + plane + row + 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) > (i % row))
-        n_doms.insert(n);
+      if (n < total && (n % plane) > (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
     }
 
     // find which proc owns each neighboring domain
     for (std::set<int>::iterator it = n_doms.begin(); it != n_doms.end(); ++it)
-      if (*it % mpi.world_size != mpi.rank)
-        neighbors.insert(*it % mpi.world_size);
+      if (*it % mpi.world_size != mpi.rank) neighbors.insert(*it % mpi.world_size);
   }
   virtual bool SendRays() {
     int *outbound = new int[2 * mpi.world_size];
@@ -499,8 +463,7 @@ public:
     int *send_buf_ptr = new int[mpi.world_size];
 
     // if there is only one rank we dont need to go through this routine.
-    if (mpi.world_size < 2)
-      return false;
+    if (mpi.world_size < 2) return false;
     // init bufs
     for (size_t i = 0; i < 2 * mpi.world_size; ++i) {
       inbound[i] = outbound[i] = 0;
@@ -543,10 +506,10 @@ public:
 #ifdef GVT_DEBUG
     std::cerr << mpi.rank << ": sent neighbor info" << std::endl;
     std::cerr << mpi.rank << ": inbound ";
-    for (size_t i = 0; i < mpi.world_size; ++i)
-      std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
+    for (size_t i = 0; i < mpi.world_size; ++i) std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
     std::cerr << std::endl << mpi.rank << ": outbound ";
     for (size_t i = 0; i < mpi.world_size; ++i)
+
       std::cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
     std::cerr << std::endl;
 #endif
@@ -563,8 +526,7 @@ public:
       else
         recv_buf[i] = 0;
     }
-    for (size_t i = 0; i < 2 * mpi.world_size; ++i)
-      reqs[i] = MPI_REQUEST_NULL;
+    for (size_t i = 0; i < 2 * mpi.world_size; ++i) reqs[i] = MPI_REQUEST_NULL;
 
     //  ************************ post non-blocking receive *********************
     tag = tag + 1;
@@ -576,12 +538,10 @@ public:
         GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << ": recv posted from " << n << std::endl);
       }
     }
-    // ******************** pack the send buffers
-    // *********************************
+    // ******************** pack the send buffers *********************************
     std::vector<int> to_del;
     for (std::map<int, gvt::render::actor::RayVector>::iterator q = queue.begin(); q != queue.end(); ++q) {
-      int n = mpiInstanceMap[instancenodes[q->first].UUID()]; // bds use
-                                                              // instance map
+      int n = mpiInstanceMap[instancenodes[q->first].UUID()]; // bds use instance map
       if (outbound[2 * n] > 0) {
         *((int *)(send_buf[n] + send_buf_ptr[n])) = q->first;         // bds load queue number into send buffer
         send_buf_ptr[n] += sizeof(int);                               // bds advance pointer
@@ -609,14 +569,15 @@ public:
 
     MPI_Waitall(2 * mpi.world_size, reqs, stat); // XXX TODO refactor to use Waitany?
 
-    // ******************* unpack rays into the queues
-    // **************************
-    for (size_t n = 0; n < mpi.world_size; ++n) { // bds loop over all
+    // ******************* unpack rays into the queues **************************
+    for (int n = 0; n < mpi.world_size; ++n) { // bds loop over all
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] " << n << " inbound[2*n] " << inbound[2 * n] << std::endl);
       if (inbound[2 * n] > 0) {
+        // clang-format off
         GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: adding " << inbound[2 * n] << " rays (" << inbound[2 * n + 1]
-                                  << " B) from " << n << std::endl
-                                  << "    recv buf: " << (long)recv_buf[n] << std::endl);
+                                  << " B) from " << n << std::endl << "    recv buf: " << (long)recv_buf[n]
+                                  << std::endl);
+        // clang-format on
         int ptr = 0;
         while (ptr < inbound[2 * n + 1]) {
           int q_number = *((int *)(recv_buf[n] + ptr)); // bds get queue number

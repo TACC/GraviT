@@ -21,24 +21,15 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_CORE_TYPES_H
-#define GVT_CORE_TYPES_H
+#ifndef GVT_CORE_STRING_H
+#define GVT_CORE_STRING_H
 
-#include <gvt/core/Math.h>
-#include <gvt/core/String.h>
-#include <gvt/core/Uuid.h>
-#include <gvt/core/Variant.h>
-
-#include <boost/container/allocator.hpp>
-#include <boost/container/map.hpp>
-#include <boost/container/vector.hpp>
 #include <string>
 
 namespace gvt {
 namespace core {
-template <class T> using Vector = boost::container::vector<T>;
-template <class K, class V> using Map = boost::container::map<K, V>;
+typedef std::string String;
 }
 }
 
-#endif // GVT_CORE_TYPES_H
+#endif /* GVT_CORE_STRING_H */

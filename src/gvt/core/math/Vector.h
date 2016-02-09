@@ -154,9 +154,7 @@ typedef Vector<double> Vectord;
 
 //==========[ class Vector2 ]=================================
 
-template <class T>
-
-class Vector2 {
+template <class T> class Vector2 {
   //---[ Private Variable Declarations ]-------
 
 public:
@@ -251,8 +249,9 @@ public:
   }
 
   //---[ Zero Test ]---------------------------
-
+  // clang-format off
   bool isZero() { return ((n[0] == 0 && n[1] == 0) ? true : false); }
+  // clang-format on
 
   void zeroElements() { memset(n, 0, sizeof(T) * 2); }
 };
@@ -414,16 +413,17 @@ public:
   void clamp() {
     int i;
     for (i = 0; i < 3; i++) {
-      if (n[i] < 0)
-        n[i] = 0.0;
-      if (n[i] > 1)
-        n[i] = 1.0;
+      if (n[i] < 0) n[i] = 0.0;
+      if (n[i] > 1) n[i] = 1.0;
     }
   }
 
   //---[ Zero Test ]---------------------------
-
-  bool isZero() { return ((n[0] == 0 && n[1] == 0 && n[2] == 0) ? true : false); };
+  // clang-format off
+  bool isZero() {
+    return ((n[0] == 0 && n[1] == 0 && n[2] == 0) ? true : false);
+  };
+  // clang-format on
 
   void zeroElements() { memset(n, 0, sizeof(T) * 3); }
 
@@ -640,11 +640,9 @@ public:
   template <class U> friend Vector4<T> operator*(const double d, const Vector4<T> &a);
   template <class U> friend T operator*(const Vector4<T> &a, const Vector4<T> &b);
   template <class U> friend Vector4<T> operator*(const AffineTransformMatrix<T> &a, const Vector4<T> &v);
-  //	template <class U> friend Vector4<T> operator *( const Vector4<T>& v,
-  // const Matrix4<T>& a );
+  //	template <class U> friend Vector4<T> operator *( const Vector4<T>& v, const Matrix4<T>& a );
   template <class U> friend Vector4<T> operator/(const Vector4<T> &a, const double d);
-  //	template <class U> friend Vector4<T> operator ^( const Vector4<T>& a,
-  // const Vector4<T>& b );
+  //	template <class U> friend Vector4<T> operator ^( const Vector4<T>& a, const Vector4<T>& b );
   template <class U> friend bool operator==(const Vector4<T> &a, const Vector4<T> &b);
   template <class U> friend bool operator!=(const Vector4<T> &a, const Vector4<T> &b);
   template <class U> friend std::ostream &operator<<(std::ostream &os, const Vector4<T> &v);
@@ -722,11 +720,9 @@ template <class T> Vector<T>::Vector(int size, bool zeroElements) {
   numElements = size;
   n = new T[size];
 
-  if (!zeroElements)
-    return;
+  if (!zeroElements) return;
 
-  for (int i = 0; i < size; i++)
-    n[i] = 0.0;
+  for (int i = 0; i < size; i++) n[i] = 0.0;
 }
 
 template <class T> Vector<T>::Vector(const Vector<T> &v) {
@@ -746,8 +742,7 @@ template <class T> void Vector<T>::resize(int size, bool zeroElements) {
     n = new T[size];
   }
 
-  if (zeroElements)
-    memset(n, 0, numElements * sizeof(T));
+  if (zeroElements) memset(n, 0, numElements * sizeof(T));
 }
 
 template <class T> void Vector<T>::zeroElements() { memset(n, 0, numElements * sizeof(T)); }
@@ -755,8 +750,7 @@ template <class T> void Vector<T>::zeroElements() { memset(n, 0, numElements * s
 template <class T> Vector<T> &Vector<T>::operator=(const Vector<T> &v) {
   GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
-  for (int i = 0; i < numElements; i++)
-    n[i] = v[i];
+  for (int i = 0; i < numElements; i++) n[i] = v[i];
 
   return *this;
 }
@@ -764,8 +758,7 @@ template <class T> Vector<T> &Vector<T>::operator=(const Vector<T> &v) {
 template <class T> Vector<T> &Vector<T>::operator+=(const Vector<T> &v) {
   GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
-  for (int i = 0; i < numElements; i++)
-    n[i] += v[i];
+  for (int i = 0; i < numElements; i++) n[i] += v[i];
 
   return *this;
 }
@@ -773,22 +766,19 @@ template <class T> Vector<T> &Vector<T>::operator+=(const Vector<T> &v) {
 template <class T> Vector<T> &Vector<T>::operator-=(const Vector<T> &v) {
   GVT_DEBUG_CODE(DBG_ALWAYS, if (v.numElements != numElements) throw VectortorSizeMismatch());
 
-  for (int i = 0; i < numElements; i++)
-    n[i] -= v[i];
+  for (int i = 0; i < numElements; i++) n[i] -= v[i];
 
   return *this;
 }
 
 template <class T> Vector<T> &Vector<T>::operator*=(const T d) {
-  for (int i = 0; i < numElements; i++)
-    n[i] *= d;
+  for (int i = 0; i < numElements; i++) n[i] *= d;
 
   return *this;
 }
 
 template <class T> Vector<T> &Vector<T>::operator/=(const T d) {
-  for (int i = 0; i < numElements; i++)
-    n[i] /= d;
+  for (int i = 0; i < numElements; i++) n[i] /= d;
 
   return *this;
 }
@@ -798,8 +788,7 @@ template <class T> Vector<T> Vector<T>::operator-(const Vector<T> &v) {
 
   Vector<T> result(numElements, false);
 
-  for (int i = 0; i < numElements; i++)
-    result[i] = n[i] - v[i];
+  for (int i = 0; i < numElements; i++) result[i] = n[i] - v[i];
 
   return result;
 }
@@ -809,8 +798,7 @@ template <class T> Vector<T> Vector<T>::operator+(const Vector<T> &v) {
 
   Vector<T> result(numElements, false);
 
-  for (int i = 0; i < numElements; i++)
-    result[i] = v[i] + n[i];
+  for (int i = 0; i < numElements; i++) result[i] = v[i] + n[i];
 
   return result;
 }
@@ -818,8 +806,7 @@ template <class T> Vector<T> Vector<T>::operator+(const Vector<T> &v) {
 template <class T> double Vector<T>::length2() const {
   double result = 0.0;
 
-  for (int i = 0; i < numElements; i++)
-    result += n[i] * n[i];
+  for (int i = 0; i < numElements; i++) result += n[i] * n[i];
 
   return result;
 }
@@ -829,14 +816,12 @@ template <class T> double Vector<T>::length() const { return sqrt(length2()); }
 template <class T> void Vector<T>::normalize() {
   double len = 1. / length();
 
-  for (int i = 0; i < numElements; i++)
-    n[i] *= len;
+  for (int i = 0; i < numElements; i++) n[i] *= len;
 }
 
 template <class T> bool Vector<T>::isZero() {
   for (int i = 0; i < numElements; i++)
-    if (n[i] != 0)
-      return false;
+    if (n[i] != 0) return false;
 
   return true;
 }
@@ -846,8 +831,7 @@ template <class T> Vector<T> minimum(const Vector<T> &a, const Vector<T> &b) {
 
   gvt::core::math::Vector<T> result(a.numElements, false);
 
-  for (int i = 0; i < a.numElements; i++)
-    result[i] = min(a[i], b[i]);
+  for (int i = 0; i < a.numElements; i++) result[i] = min(a[i], b[i]);
 
   return result;
 }
@@ -857,8 +841,7 @@ template <class T> Vector<T> maximum(const Vector<T> &a, const Vector<T> &b) {
 
   Vector<T> result(a.numElements, false);
 
-  for (int i = 0; i < a.numElements; i++)
-    result[i] = max(a[i], b[i]);
+  for (int i = 0; i < a.numElements; i++) result[i] = max(a[i], b[i]);
 
   return result;
 }
@@ -868,8 +851,7 @@ template <class T> Vector<T> prod(const Vector<T> &a, const Vector<T> &b) {
 
   Vector<T> result(a.numElements, false);
 
-  for (int i = 0; i < a.numElements; i++)
-    result[i] = a[i] * b[i];
+  for (int i = 0; i < a.numElements; i++) result[i] = a[i] * b[i];
 
   return result;
 }

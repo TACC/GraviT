@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   RayWeightedSpread.h
  * Author: jbarbosa
@@ -41,20 +37,15 @@ namespace gvt {
 namespace render {
 namespace schedule {
 namespace hybrid {
-/// hybrid schedule that distributes requested data across available processes,
-/// sorted by number of pending rays
-/** This schedule allocates requested domains that have high ray demand to
-availalbe processes,
- where a process is 'available' if none of its loaded data is currently
-requested by any ray. This takes the
- SpreadSchedule logic and sorts the homeless domains by number of pending rays
-before assigning to available processes.
+/// hybrid schedule that distributes requested data across available processes, sorted by number of pending rays
+/** This schedule allocates requested domains that have high ray demand to availalbe processes,
+ where a process is 'available' if none of its loaded data is currently requested by any ray.
+ This takes the SpreadSchedule logic and sorts the homeless domains by number of pending rays
+ before assigning to available processes.
 
 This schedule has the following issues:
-    - processes may remain idle if there are fewer requested domains than
-processes
-    - a domain can be assigned to a process that does not have rays queued for
-it, incurring excess ray sends
+    - processes may remain idle if there are fewer requested domains than processes
+    - a domain can be assigned to a process that does not have rays queued for it, incurring excess ray sends
 
     \sa LoadAnyOnceSchedule, GreedySchedule, SpreadSchedule
     */
@@ -67,8 +58,7 @@ struct RayWeightedSpreadSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in adaptive schedule");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, int> data2proc;
     std::map<int, int> data2size;
@@ -115,8 +105,7 @@ struct RayWeightedSpreadSchedule : public HybridScheduleBase {
     // could be dupes in the homeless list, so keep track of what's added
     for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
       if (newMap[i] < 0) {
-        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end())
-          homeless.pop_back();
+        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end()) homeless.pop_back();
         if (!homeless.empty()) {
           newMap[i] = homeless.back();
           data2proc[newMap[i]] = i;

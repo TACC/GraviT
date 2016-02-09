@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   AdaptiveSend.h
  * Author: jbarbosa
@@ -42,19 +38,16 @@ namespace gvt {
 namespace render {
 namespace schedule {
 namespace hybrid {
-/// hybrid schedule that attempts to load multiple data copies in response to
-/// ray load
+/// hybrid schedule that attempts to load multiple data copies in response to ray load
 /** This schedule attempts to detect high ray demand for particular data
-and loads multiple copies of that data in order to balance ray load across
-multiple processes.
+and loads multiple copies of that data in order to balance ray load across multiple processes.
 
-The current implementation is not particularly successful at this. Issues
-include:
+The current implementation is not particularly successful at this. Issues include:
     - data loads typically occur at remote processes, incurring data send costs
-    - demand detection algorith needs improvement, particularly ray demand
-threshold over which additional data is loaded
-    - eviction logic could be improved: at present the algorithm prefers to keep
-loaded data if even one ray needs it
+    - demand detection algorith needs improvement, particularly ray demand threshold over
+    which additional data isloaded
+    - eviction logic could be improved: at present the algorithm prefers to keep loaded data
+    if even one ray needs it
 */
 struct AdaptiveSendSchedule : public HybridScheduleBase {
 
@@ -65,8 +58,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in AdaptiveSend scheduler");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, std::vector<int> > cur_data2procs;
     std::map<int, std::vector<int> > send_data;
@@ -143,8 +135,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
 
     // while procs are available
     // get highest priority and allocate procs
-    // std::vector<int> excess;  // reclaim excess procs? or reclaim them when
-    // become zero priority?
+    // std::vector<int> excess;  // reclaim excess procs? or reclaim them when become zero priority?
     GVT_DEBUG(DBG_LOW, "    scheduling");
     for (std::map<int, std::vector<int> >::reverse_iterator rit = priority.rbegin();
          (rit != priority.rend()) & (avail > 0); ++rit) {
@@ -266,8 +257,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
       // could be dupes in the homeless list, so keep track of what's added
       for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
         if (newMap[i] < 0) {
-          while (!homeless.empty() && cur_data2procs.find(homeless.back()) != cur_data2procs.end())
-            homeless.pop_back();
+          while (!homeless.empty() && cur_data2procs.find(homeless.back()) != cur_data2procs.end()) homeless.pop_back();
           if (!homeless.empty()) {
             newMap[i] = homeless.back();
             cur_data2procs[newMap[i]].push_back(i);
@@ -287,8 +277,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
       GVT_DEBUG(DBG_LOW, "    data " << it->first << " needed on " << to_recv << " procs, already on " << to_send
                                      << " procs");
       for (int r = 0, s = 0; r < to_recv; ++r, ++s) {
-        s = r % to_send; // XXX TODO pnav: 's' is likely an error here, but
-                         // confirm and fix
+        s = r % to_send; // XXX TODO pnav: 's' is likely an error here, but confirm and fix
         GVT_DEBUG(DBG_LOW, "    for data " << it->first << ": " << it->second[r] << " <- "
                                            << cur_data2procs[it->first][s]);
         data_send_buf[it->second[r]] = cur_data2procs[it->first][s];

@@ -1,6 +1,5 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray
-   tracing
+   This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
    Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
@@ -9,8 +8,7 @@
    Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
    except in compliance with the License.
    A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the
-   License at:
+   If your copy does not contain the License, you may obtain a copy of the License at:
 
        http://opensource.org/licenses/BSD-3-Clause
 
@@ -20,11 +18,9 @@
    See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards
-   ACI-1339863,
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
-   =======================================================================================
-   */
+   ======================================================================================= */
 /*
  * File:   gvt_mesh.cpp
  * Author: jbarbosa
@@ -82,10 +78,8 @@ void Mesh::setVertex(int which, Point4f vertex, Vector4f normal, Point4f texUV) 
   GVT_ASSERT((which > vertices.size()), "Setting vertex outside the bounds");
   vertices[which] = vertex;
   boundingBox.expand(vertex);
-  if (normal.length2())
-    normals[which] = normal;
-  if (texUV.length2())
-    this->mapuv[which] = texUV;
+  if (normal.length2()) normals[which] = normal;
+  if (texUV.length2()) this->mapuv[which] = texUV;
 }
 
 void Mesh::setMaterial(Material *mat) { this->mat = mat; }
@@ -100,16 +94,14 @@ void Mesh::addFace(int v0, int v1, int v2) {
 void Mesh::addFaceToNormals(Mesh::FaceToNormals face) { faces_to_normals.push_back(face); }
 
 void Mesh::generateNormals() {
-  if (haveNormals)
-    return;
+  if (haveNormals) return;
   normals.clear();
   face_normals.clear();
   faces_to_normals.clear();
   normals.resize(vertices.size());
   face_normals.resize(faces.size());
   faces_to_normals.resize(faces.size());
-  for (int i = 0; i < normals.size(); ++i)
-    normals[i] = Vector4f(0.0f, 0.0f, 0.0f, 0.0f);
+  for (int i = 0; i < normals.size(); ++i) normals[i] = Vector4f(0.0f, 0.0f, 0.0f, 0.0f);
 
   for (int i = 0; i < faces.size(); ++i) {
     int I = faces[i].get<0>();
@@ -132,16 +124,14 @@ void Mesh::generateNormals() {
     normals[K] += normal;
     faces_to_normals[i] = FaceToNormals(I, J, K);
   }
-  for (int i = 0; i < normals.size(); ++i)
-    normals[i].normalize();
+  for (int i = 0; i < normals.size(); ++i) normals[i].normalize();
   haveNormals = true;
 }
 
 Color Mesh::shadeFace(const int face_id, const Ray &r, const Vector4f &normal, const Light *lsource) {
   // XXX TODO: shadeFace returns constant color, fix?
 
-  if (!faces_to_materials.size())
-    return shade(r, normal, lsource);
+  if (!faces_to_materials.size()) return shade(r, normal, lsource);
 
   Color c(0.5f, 0.5f, 0.5f, 0.0f);
   Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);

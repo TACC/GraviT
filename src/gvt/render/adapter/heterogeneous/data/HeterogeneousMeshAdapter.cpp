@@ -77,10 +77,8 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
           size_t end = current;
           _lock_rays.unlock();
 
-          if (start >= size)
-            continue;
-          if (end >= size)
-            end = size;
+          if (start >= size) continue;
+          if (end >= size) end = size;
 
           gput++;
           _optix->trace(rayList, mOptix, instNode, start, end);
@@ -97,10 +95,8 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
           size_t end = current;
           _lock_rays.unlock();
 
-          if (start >= size)
-            continue;
-          if (end >= size)
-            end = size;
+          if (start >= size) continue;
+          if (end >= size) end = size;
 
           cput++;
           _embree->trace(rayList, moved_rays, instNode, start, end);
