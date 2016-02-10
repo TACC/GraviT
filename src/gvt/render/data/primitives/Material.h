@@ -86,6 +86,8 @@ public:
     return direction.normalize();
   }
 
+  virtual void pack(unsigned char *buffer)=0;
+
 protected:
 };
 
@@ -102,6 +104,11 @@ public:
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
                                                   const gvt::core::math::Vector4f &sufaceNormal, float samples);
+
+  virtual void pack(unsigned char *buffer){
+	  gvt::core::math::Vector4f* buf = ( gvt::core::math::Vector4f*)buffer;
+	  *buf=kd;
+  };
 
 protected:
   gvt::core::math::Vector4f kd;
@@ -121,6 +128,21 @@ public:
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
                                                   const gvt::core::math::Vector4f &sufaceNormal, float samples);
+
+
+  virtual void pack(unsigned char *buffer){
+	  gvt::core::math::Vector4f* buf = ( gvt::core::math::Vector4f*)buffer;
+	  *buf=kd;
+
+	  gvt::core::math::Vector4f* buf2 = ( gvt::core::math::Vector4f*)(buffer+16);
+	  *buf2=ks;
+
+	  float* buf3= ( float*)(buffer+32);
+	  *buf3=alpha;
+
+
+
+  };
 
 protected:
   gvt::core::math::Vector4f kd;
@@ -142,6 +164,21 @@ public:
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
                                                   const gvt::core::math::Vector4f &sufaceNormal, float samples);
+
+
+  virtual void pack(unsigned char *buffer){
+	  gvt::core::math::Vector4f* buf = ( gvt::core::math::Vector4f*)buffer;
+	  *buf=kd;
+
+	  gvt::core::math::Vector4f* buf2 = ( gvt::core::math::Vector4f*)(buffer+16);
+	  *buf2=ks;
+
+	  float* buf3= ( float*)(buffer+32);
+	  *buf3=alpha;
+
+
+
+  };
 
 protected:
   gvt::core::math::Vector4f kd;

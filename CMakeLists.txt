@@ -292,9 +292,17 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/Transforms.h
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
+		src/gvt/render/adapter/optix/data/Mesh.cuh
+		src/gvt/render/adapter/optix/data/Light.cuh
+		src/gvt/render/adapter/optix/data/Material.cuh
+		src/gvt/render/adapter/optix/data/Ray.cuh
+		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cu
+		src/gvt/render/adapter/optix/data/Light.cu
+		src/gvt/render/adapter/optix/data/Material.cu
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
@@ -369,8 +377,13 @@ if (GVT_RENDER)
     		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
     		-gencode arch=compute_30,code=sm_30
     		-gencode arch=compute_35,code=sm_35
+		    --compiler-options '-fPIC'
     		)
-    	cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+
+
+    	#cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+	CUDA_ADD_LIBRARY(CUDA_LIBRARY ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
+
     	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
     		${GVT_RENDER_CUDA_OBJS}
     		)
@@ -390,7 +403,7 @@ if (GVT_RENDER)
 		${GVT_RENDER_SRCS}
 		)
 
-	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
+	target_link_libraries(gvtRender ${GVT_RENDER_LIBS} CUDA_LIBRARY)
 
 	install(TARGETS gvtRender
 		LIBRARY DESTINATION lib

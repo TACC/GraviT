@@ -32,6 +32,26 @@
 #include <cuda_runtime.h>
 #include <optix_prime/optix_primepp.h>
 
+
+
+/**
+ * CUDA shading API /////
+ */
+#include "Mesh.cuh"
+#include "Ray.cuh"
+#include "Light.cuh"
+#include "Material.cuh"
+#include "curand_kernel.h"
+#include "OptixMeshAdapter.cuh"
+
+extern "C" void trace( gvt::render::data::cuda_primitives::CudaShade cudaShade);
+
+curandState* set_random_states(dim3 numBlocks,dim3 threadsPerBlock);
+
+/**
+ * /////// CUDA shading API
+ */
+
 namespace gvt {
 namespace render {
 namespace adapter {
