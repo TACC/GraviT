@@ -23,7 +23,7 @@
    ======================================================================================= */
 /**
  * A simple GraviT application to do some testing.
- * This is supposed to be as close to the osptest application as I can get it. 
+ * This is supposed to be as close to the osptest application as I can get it.
  *
 */
 #include <gvt/render/RenderContext.h>
@@ -79,23 +79,21 @@ static Face **flist;
 
 #define MIN(a, b) ((a < b) ? (a) : (b))
 #define MAX(a, b) ((a > b) ? (a) : (b))
-void findbounds(float* array, int numelements,  Point4f* lower,Point4f* upper)
-{
-  float xmin,xmax,ymin,ymax,zmin,zmax;
+void findbounds(float *array, int numelements, Point4f *lower, Point4f *upper) {
+  float xmin, xmax, ymin, ymax, zmin, zmax;
   xmin = array[0];
   ymin = array[1];
   zmin = array[2];
   xmax = xmin;
   ymax = ymin;
   zmax = zmin;
-  for(int i=0;i<numelements;i++) 
-  {
-    xmin = MIN(array[3*i], xmin);
-    ymin = MIN(array[3*i+1], ymin);
-    zmin = MIN(array[3*i+2], zmin);
-    xmax = MAX(array[3*i], xmax);
-    ymax = MAX(array[3*i+1], ymax);
-    zmax = MAX(array[3*i+2], zmax);
+  for (int i = 0; i < numelements; i++) {
+    xmin = MIN(array[3 * i], xmin);
+    ymin = MIN(array[3 * i + 1], ymin);
+    zmin = MIN(array[3 * i + 2], zmin);
+    xmax = MAX(array[3 * i], xmax);
+    ymax = MAX(array[3 * i + 1], ymax);
+    zmax = MAX(array[3 * i + 2], zmax);
   }
   *lower = Point4f(xmin, ymin, zmin);
   *upper = Point4f(xmax, ymax, zmax);
@@ -119,7 +117,7 @@ int main(int argc, char **argv) {
   float *colorarray;
   int32_t *indexarray;
   int numtriangles = 0;
-  int nverts,nfaces;
+  int nverts, nfaces;
   // file related things
   string filepath("");
   string filename("");
@@ -136,38 +134,29 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
 
   // parse the command line
-  if ((argc <2)) 
-  {
+  if ((argc < 2)) {
     // no input so render the defalut empty image
-  } 
-  else
-  {
-    // parse the input 
-    for(int i=1;i<argc;i++)
-    {
+  } else {
+    // parse the input
+    for (int i = 1; i < argc; i++) {
       const string arg = argv[i];
-      if(arg == "-i" )
-      {
+      if (arg == "-i") {
         filepath = argv[++i];
-        if(!file_exists(filepath.c_str())) 
-        {
+        if (!file_exists(filepath.c_str())) {
           cout << "File \"" << filepath << "\" does not exist. Exiting." << endl;
           return 0;
-        }
-        else if (isdir(filepath.c_str()))
-        {
+        } else if (isdir(filepath.c_str())) {
           vector<string> files = findply(filepath);
-          if(!files.empty()) // directory contains .ply files
+          if (!files.empty()) // directory contains .ply files
           {
             vector<string>::const_iterator file;
             int k;
             char txt[16];
-            for(file=files.begin(),k=0;file!=files.end();file++,k++)
-            {
+            for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
               timeCurrent(&startTime);
-              ReadPlyData(*file,vertexarray,colorarray,indexarray,nverts,nfaces);
+              ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
               timeCurrent(&endTime);
-              iotime += timeDifferenceMS(&startTime,&endTime);
+              iotime += timeDifferenceMS(&startTime, &endTime);
 
               timeCurrent(&startTime);
               sprintf(txt, "%d", k);
@@ -175,17 +164,16 @@ int main(int argc, char **argv) {
               filename += txt;
               gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
               Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 1.0, 1.0)));
-              for (int i = 0; i < nverts; i++) 
-              {
-                mesh->addVertex(Point4f(vertexarray[3*i], vertexarray[3*i+1], vertexarray[3*i+2], 1.0));
+              for (int i = 0; i < nverts; i++) {
+                mesh->addVertex(Point4f(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2], 1.0));
               }
-              for (int i = 0; i < nfaces; i++) //Add faces to mesh
+              for (int i = 0; i < nfaces; i++) // Add faces to mesh
               {
-                mesh->addFace(indexarray[3*i]+1,indexarray[3*i+1]+1,indexarray[3*i+2]+1);
+                mesh->addFace(indexarray[3 * i] + 1, indexarray[3 * i + 1] + 1, indexarray[3 * i + 2] + 1);
               }
               Point4f lower;
               Point4f upper;
-              findbounds(vertexarray,nverts,&lower,&upper);
+              findbounds(vertexarray, nverts, &lower, &upper);
               Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
               mesh->generateNormals();
               EnzoMeshNode["file"] = string(filename);
@@ -211,52 +199,43 @@ int main(int argc, char **argv) {
               instnode["bbox"] = (unsigned long long)ibox;
               instnode["centroid"] = ibox->centroid();
               timeCurrent(&endTime);
-              modeltime+=timeDifferenceMS(&startTime,&endTime);
+              modeltime += timeDifferenceMS(&startTime, &endTime);
               numtriangles += nfaces;
             }
-          }
-          else // directory has no .ply files
+          } else // directory has no .ply files
           {
-            filepath="";
+            filepath = "";
           }
-        }
-        else // filepath is not a directory but a .ply file
+        } else // filepath is not a directory but a .ply file
         {
           timeCurrent(&startTime);
-          ReadPlyData(filepath,vertexarray,colorarray,indexarray,nverts,nfaces);
+          ReadPlyData(filepath, vertexarray, colorarray, indexarray, nverts, nfaces);
           timeCurrent(&endTime);
-          iotime+=timeDifferenceMS(&startTime,&endTime);
+          iotime += timeDifferenceMS(&startTime, &endTime);
           gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
           numtriangles += nfaces;
         }
-      } else if (arg =="-bench")
-      {
-        if(++i<argc) 
-        {
+      } else if (arg == "-bench") {
+        if (++i < argc) {
           std::string arg2(argv[i]);
           size_t pos = arg2.find("x");
-          if(pos != std::string::npos)
-          {
-            arg2.replace(pos,1," ");
+          if (pos != std::string::npos) {
+            arg2.replace(pos, 1, " ");
             std::stringstream ss(arg2);
-            ss >> warmupframes >>benchmarkframes;
+            ss >> warmupframes >> benchmarkframes;
           }
         }
-      } else if (arg == "-geom")
-      {
-        if (++i < argc) 
-        {
+      } else if (arg == "-geom") {
+        if (++i < argc) {
           std::string arg2(argv[i]);
           size_t pos = arg2.find("x");
-          if (pos != std::string::npos)
-          {
-            arg2.replace(pos,1," ");
+          if (pos != std::string::npos) {
+            arg2.replace(pos, 1, " ");
             std::stringstream ss(arg2);
             ss >> width >> height;
           }
         }
-      } else if (arg == "-o")
-      {
+      } else if (arg == "-o") {
         outputfile = argv[++i];
       }
     }
@@ -300,7 +279,6 @@ int main(int argc, char **argv) {
 
   schedNode["adapter"] = gvt::render::adapter::Embree;
 
-
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
   Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
@@ -309,22 +287,22 @@ int main(int argc, char **argv) {
   Vector4f up = camNode["upVector"].value().toVector4f();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(filmNode["width"].value().toInteger(),filmNode["height"].value().toInteger());
+  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), outputfile);
 
-  //mycamera.AllocateCameraRays();
-  //mycamera.generateRays();
+  // mycamera.AllocateCameraRays();
+  // mycamera.generateRays();
   timeCurrent(&endTime);
-  modeltime+=timeDifferenceMS(&startTime,&endTime);
+  modeltime += timeDifferenceMS(&startTime, &endTime);
 
-  //int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
+  // int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
-  //  std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays,myimage);
+    //  std::cout << "starting image scheduler" << std::endl;
+    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < warmupframes; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
@@ -336,10 +314,10 @@ int main(int argc, char **argv) {
       mycamera.generateRays();
       myimage.clear();
       tracer();
-      //gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
+      // gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
     }
     timeCurrent(&endTime);
-    rendertime += timeDifferenceMS(&startTime,&endTime);
+    rendertime += timeDifferenceMS(&startTime, &endTime);
     break;
   }
   case gvt::render::scheduler::Domain: {
@@ -347,7 +325,7 @@ int main(int argc, char **argv) {
     timeCurrent(&startTime);
     gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     timeCurrent(&endTime);
-    rendertime += timeDifferenceMS(&startTime,&endTime);
+    rendertime += timeDifferenceMS(&startTime, &endTime);
     break;
   }
   default: {
@@ -356,16 +334,14 @@ int main(int argc, char **argv) {
   }
   }
 
-  float millionsoftriangles = numtriangles/1000000;
-  float millisecondsperframe = rendertime/benchmarkframes;
-  float framespersecond = (1000 *benchmarkframes)/rendertime;
+  float millionsoftriangles = numtriangles / 1000000;
+  float millisecondsperframe = rendertime / benchmarkframes;
+  float framespersecond = (1000 * benchmarkframes) / rendertime;
   myimage.Write();
-  std::cout<<scheduletype<<","<<width<<","<<height<<","<<warmupframes<<",";
-  std::cout<<benchmarkframes<<","<<iotime<<","<<modeltime<<",";
-  std::cout<<millisecondsperframe<<","<<framespersecond<<std::endl;
+  std::cout << scheduletype << "," << width << "," << height << "," << warmupframes << ",";
+  std::cout << benchmarkframes << "," << iotime << "," << modeltime << ",";
+  std::cout << millisecondsperframe << "," << framespersecond << std::endl;
 #ifdef GVT_USE_MPI
-  if (MPI::COMM_WORLD.Get_size() > 1)
-    MPI_Finalize();
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 #endif
 }
-

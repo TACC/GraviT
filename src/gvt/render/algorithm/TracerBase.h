@@ -292,8 +292,8 @@ public:
 
       for (gvt::render::actor::Ray &r : raysit) {
         if (domID >= 0 && r.domains.empty()) {
-          float tmin,tmax; // = FLT_MAX;
-          if (domBB.intersectDistance(r, tmin,tmax)) {
+          float tmin, tmax; // = FLT_MAX;
+          if (domBB.intersectDistance(r, tmin, tmax)) {
             r.origin += r.direction * tmax;
           }
         }
@@ -332,13 +332,14 @@ public:
         int dom = _doms.front();
         //_doms.erase(_doms.begin());
         _doms.pop_front();
-        (queue_mutex[dom].lock()); {
+        (queue_mutex[dom].lock());
+        {
           queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
                             std::make_move_iterator(local_queue[dom].end()));
           queue_mutex[dom].unlock();
-        }/* else {
-          _doms.push_back(dom);
-        }*/
+        } /* else {
+           _doms.push_back(dom);
+         }*/
       }
 
       // for (auto &q : local_queue) {
