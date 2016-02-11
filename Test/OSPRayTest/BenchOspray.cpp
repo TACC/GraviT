@@ -288,6 +288,7 @@ int main(int argc, const char **argv) {
   ospCommit(world);
   // framebuffer and renderer
   OSPRenderer renderer = ospNewRenderer(renderertype.c_str());
+  ospSet3f(renderer,"bgColor",0.,0.,0.);
   ospSetObject(renderer, "model", world);
   ospSetObject(renderer, "camera", camera);
   ospCommit(renderer);

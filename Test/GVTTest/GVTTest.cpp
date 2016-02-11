@@ -205,14 +205,53 @@ int main(int argc, char **argv) {
           } else // directory has no .ply files
           {
             filepath = "";
-          }
+          } 
         } else // filepath is not a directory but a .ply file
         {
           timeCurrent(&startTime);
           ReadPlyData(filepath, vertexarray, colorarray, indexarray, nverts, nfaces);
           timeCurrent(&endTime);
           iotime += timeDifferenceMS(&startTime, &endTime);
+          timeCurrent(&startTime);
           gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
+          Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 1.0, 1.0)));
+          std::cout << nverts << " verts " << nfaces << " faces " << std::endl;
+          for (int i = 0; i < nverts; i++) {
+            mesh->addVertex(Point4f(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2], 1.0));
+          }
+          for (int i = 0; i < nfaces; i++) // Add faces to mesh
+          {
+            mesh->addFace(indexarray[3 * i] +1, indexarray[3 * i + 1]+1 , indexarray[3 * i + 2]+1 );
+          }
+          Point4f lower;
+          Point4f upper;
+          findbounds(vertexarray, nverts, &lower, &upper);
+          Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+          mesh->generateNormals();
+          EnzoMeshNode["file"] = string(filepath);
+          EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
+          EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+          // add instance
+          gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+          gvt::core::DBNodeH meshNode = EnzoMeshNode;
+          Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+          instnode["id"] = 0;
+          instnode["meshRef"] = meshNode.UUID();
+          auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
+          auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
+          auto normi = new gvt::core::math::Matrix3f();
+          instnode["mat"] = (unsigned long long)m;
+          *minv = m->inverse();
+          instnode["matInv"] = (unsigned long long)minv;
+          *normi = m->upper33().inverse().transpose();
+          instnode["normi"] = (unsigned long long)normi;
+          auto il = (*m) * mbox->bounds[0];
+          auto ih = (*m) * mbox->bounds[1];
+          Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+          instnode["bbox"] = (unsigned long long)ibox;
+          instnode["centroid"] = ibox->centroid();
+          timeCurrent(&endTime);
+          modeltime += timeDifferenceMS(&startTime, &endTime);
           numtriangles += nfaces;
         }
       } else if (arg == "-bench") {
@@ -254,8 +293,9 @@ int main(int argc, char **argv) {
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 1.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = Point4f(512.0, 512.0, 4096.0, 1.0);
-  camNode["focus"] = Point4f(512.0, 512.0, 0.0, 1.0);
+  //camNode["eyePoint"] = Point4f(0.,.15,0.7, 1.0);
+  camNode["eyePoint"] = Point4f(0.,-20.,400., 1.0);
+  camNode["focus"] = Point4f(.0, -20., 0.0, 1.0);
   camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
@@ -302,12 +342,15 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     //  std::cout << "starting image scheduler" << std::endl;
+    timeCurrent(&startTime);
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < warmupframes; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       tracer();
     }
+    timeCurrent(&endTime);
+    std::cout << " warmup frame took " << timeDifferenceMS(&startTime, &endTime) << " (ms)" << std::endl;
     timeCurrent(&startTime);
     for (int z = 0; z < benchmarkframes; z++) {
       mycamera.AllocateCameraRays();

@@ -218,10 +218,12 @@ public:
     this->gatherFramebuffers(this->rays.size());
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+#ifndef GVT_TESTING
     std::cout << "image scheduler: select time: " << t_sort.format();
     std::cout << "image scheduler: trace time: " << t_trace.format();
     std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
     std::cout << "image scheduler: frame time: " << t_frame.format();
+#endif
   }
 };
 }
