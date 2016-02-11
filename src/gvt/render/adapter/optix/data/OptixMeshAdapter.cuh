@@ -33,6 +33,8 @@
 
 #include "curand_kernel.h"
 
+#define CUDA_OPTIX
+//#define CPU_OPTIX
 
 __device__ float cudaRand( );
 
@@ -48,9 +50,16 @@ struct CudaShade {
 	Ray * shadowRays;
 	OptixRay* traceRays;
 	OptixHit* traceHits;
+	Ray* dispatch;
 	Light* lights;
+	bool* valid;
 	uint nLights;
-	uint shadowRayCount;
+	int rayCount;
+	int shadowRayCount;
+	int dispatchCount;
+	Matrix3f* normi;
+
+
 };
 
 }

@@ -39,7 +39,7 @@
 #include "Ray.cuh"
 #include "Light.cuh"
 #include "Material.cuh"
-
+#include "cuda.h"
 #include "OptixMeshAdapter.cuh"
 #include "cutil_math.h"
 
@@ -50,8 +50,9 @@ using namespace render;
 using namespace data;
 using namespace cuda_primitives;
 
-__device__ Ray &push_back(Ray *array, uint &size) {
-  register uint a = atomicAdd((uint *)&size, 1);
+__device__ Ray &push_back(Ray *array, int &i) {
+
+	register int a = atomicAdd((int *)&i, 1);
 
   return array[a];
 }
@@ -97,11 +98,10 @@ curandState *set_random_states(dim3 numBlocks, dim3 threadsPerBlock) {
 }
 
 __device__ void generateShadowRays(const Ray &r, const float4 &normal,
-                                   int primID, Mesh *mesh,
-                                   CudaShade cudaShade) {
+                                   int primID, CudaShade* cudaShade) {
 
-  for (int l = 0; l < cudaShade.nLights; l++) {
-    Light *light = &(cudaShade.lights[l]);
+  for (int l = 0; l < cudaShade->nLights; l++) {
+    Light *light = &(cudaShade->lights[l]);
 
     // Try to ensure that the shadow ray is on the correct side of the
     // triangle.
@@ -119,7 +119,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     // shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w,
     // Ray::SHADOW, r.depth));
 
-    Ray &shadow_ray = push_back(cudaShade.shadowRays, cudaShade.shadowRayCount);
+    Ray &shadow_ray = push_back(cudaShade->shadowRays, cudaShade->shadowRayCount);
 
     shadow_ray.origin = r.origin + r.direction * t_shadow;
     shadow_ray.direction = dir;
@@ -131,7 +131,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.t_max = t_max;
 
     // FIXME: remove dependency on mesh->shadeFace
-    Color c = cudaShade.mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
+    Color c = cudaShade->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
     // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
     // normal, lights[lindex]);
 
@@ -143,15 +143,142 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
   }
 }
 
-__global__ void
-kernel(gvt::render::data::cuda_primitives::CudaShade cudaShade) {
 
-  printf("GPU mat %f \n", cudaShade.mesh.mat->phong.alpha);
-  printf("GPU ray %f \n", cudaShade.rays[3].origin.x);
-  printf("GPU light %f \n", cudaShade.lights[0].light.position.x);
+
+__global__ void
+kernel(gvt::render::data::cuda_primitives::CudaShade* cudaShade) {
+
+	int len_X = gridDim.x * blockDim.x;
+		int pos_x = blockIdx.x*blockDim.x  + threadIdx.x;
+		int pos_y = blockIdx.y*blockDim.y  + threadIdx.y;
+
+		int tID = pos_y * len_X + pos_x ;
+
+    if (cudaShade->valid[tID]) {
+      // counter++; // tracks rays processed [atomic]
+      Ray &r = cudaShade->rays[tID];
+      if (cudaShade->traceHits[tID].triangle_id >= 0) {
+        // ray has hit something
+        // shadow ray hit something, so it should be dropped
+        if (r.type == Ray::SHADOW) {
+          //continue;
+        	return;
+        }
+
+        float t = cudaShade->traceHits[tID].t;
+        r.t = t;
+
+        float4 manualNormal;
+        {
+          const int triangle_id = cudaShade->traceHits[tID].triangle_id;
+#ifndef FLAT_SHADING
+          const float u = cudaShade->traceHits[tID].u;
+          const float v = cudaShade->traceHits[tID].v;
+          const int3 &normals =
+        		  cudaShade->mesh.faces_to_normals[triangle_id]; // FIXME: need to
+                                                   // figure out
+                                                   // to store
+          // `faces_to_normals`
+          // list
+          const float4 &a =   cudaShade->mesh.normals[normals.x];
+          const float4 &b =   cudaShade->mesh.normals[normals.y];
+          const float4 &c =   cudaShade->mesh.normals[normals.z];
+          manualNormal = a * u + b * v + c * (1.0f - u - v);
+
+          manualNormal =make_float4(
+              (*(cudaShade->normi)) * make_float3(manualNormal.x,
+            		  manualNormal.y,manualNormal.z));
+
+          normalize(manualNormal);
+
+#else
+          int I = mesh->faces[triangle_id].get<0>();
+          int J = mesh->faces[triangle_id].get<1>();
+          int K = mesh->faces[triangle_id].get<2>();
+
+          Vector4f a = mesh->vertices[I];
+          Vector4f b = mesh->vertices[J];
+          Vector4f c = mesh->vertices[K];
+          Vector4f u = b - a;
+          Vector4f v = c - a;
+          Vector4f normal;
+          normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
+          normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
+          normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
+          normal.n[3] = 0.0f;
+          manualNormal = normal.normalize();
+#endif
+        }
+        const float4 &normal = manualNormal;
+
+        // reduce contribution of the color that the shadow rays get
+        if (r.type == Ray::SECONDARY) {
+          t = (t > 1) ? 1.f / t : t;
+          r.w = r.w * t;
+        }
+
+        generateShadowRays(r, normal, cudaShade->
+        		traceHits[tID].triangle_id, cudaShade);
+        int ndepth = r.depth - 1;
+        float p = 1.f - cudaRand();
+        // replace current ray with generated secondary ray
+        if (ndepth > 0 && r.w > p) {
+          //r.domains.clear();
+          r.type = Ray::SECONDARY;
+          const float multiplier =
+              1.0f -
+              16.0f *
+                 FLT_EPSILON; // TODO: move
+                                                         // out
+          // somewhere /
+          // make static
+          const float t_secondary = multiplier * r.t;
+          r.origin = r.origin + r.direction * t_secondary;
+
+
+         float4 dir = normalize(cudaShade->mesh.mat->material.
+                  		  CosWeightedRandomHemisphereDirection2(normal));
+
+          r.setDirection(dir);
+
+          r.w = r.w * (r.direction * normal);
+          r.depth = ndepth;
+          //validRayLeft =
+            //  true; // we still have a valid ray in the packet to trace
+        } else {
+        	cudaShade->valid[tID] = false;
+        }
+      } else {
+        // ray is valid, but did not hit anything, so add to dispatch
+        // queue and disable it
+        //localDispatch.push_back(r);
+        Ray &dr = push_back(cudaShade->dispatch, cudaShade->dispatchCount);
+        dr = r;
+      }
+    }
+
 }
 
-extern "C" void trace(gvt::render::data::cuda_primitives::CudaShade cudaShade) {
+extern "C" void trace(
+		gvt::render::data::cuda_primitives::CudaShade& cudaShade) {
 
-  kernel<<<1, 1, 0>>>(cudaShade);
+	gvt::render::data::cuda_primitives::CudaShade * cudaShade_devptr;
+
+	cudaMalloc((void **) &cudaShade_devptr,
+			sizeof(gvt::render::data::cuda_primitives::CudaShade));
+
+	cudaMemcpy(cudaShade_devptr, &cudaShade,
+			sizeof(gvt::render::data::cuda_primitives::CudaShade),
+			cudaMemcpyHostToDevice);
+
+	int N= cudaShade.rayCount;
+
+	dim3 blockDIM = dim3(16, 16);
+	dim3 gridDIM = dim3((N / blockDIM.x * blockDIM.x) + 1, 1);
+
+	kernel<<<blockDIM, gridDIM, 0>>>(cudaShade_devptr);
+
+	cudaMemcpy((void **) &cudaShade, cudaShade_devptr,
+			sizeof(gvt::render::data::cuda_primitives::CudaShade),
+			cudaMemcpyDeviceToHost);
 }

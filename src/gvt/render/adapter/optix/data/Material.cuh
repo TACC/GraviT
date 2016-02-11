@@ -175,16 +175,16 @@ typedef struct {
 		float4 r;
 		switch (type) {
 		case BASE_MATERIAL:
-			r = shade(ray, sufaceNormal, lightSource);
+			//r = material.shade(ray, sufaceNormal, lightSource);
 			break;
 		case LAMBERT:
-			r = shade(ray, sufaceNormal, lightSource);
+			r = lambert.shade(ray, sufaceNormal, lightSource);
 			break;
 		case PHONG:
-			r = shade(ray, sufaceNormal, lightSource);
+			r = phong.shade(ray, sufaceNormal, lightSource);
 			break;
 		case BLINN:
-			r = shade(ray, sufaceNormal, lightSource);
+			r = blinn.shade(ray, sufaceNormal, lightSource);
 			break;
 		default:
 			break;

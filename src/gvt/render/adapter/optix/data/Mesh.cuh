@@ -46,6 +46,22 @@ namespace data {
 namespace cuda_primitives {
 
 
+class Matrix3f {
+  //---[ Private Variable Declarations ]-----------------
+public:
+  // matrix elements in row major order
+  float n[9];
+
+
+  inline __device__ float3 operator*(const float3& v)
+  {
+      return make_float3(n[0] * v.x + n[1] * v.y + n[2] * v.z,
+              n[3] * v.x + n[4] * v.y + n[5] * v.z,
+              n[6] * v.x + n[7] * v.y + n[8] * v.z);
+  }
+
+};
+
 /// base class for mesh
 class AbstractMesh {
 public:
@@ -86,15 +102,15 @@ public:
 */
 public:
    Material* mat;
-  float4* vertices;
-  float4* mapuv;
+  //float4* vertices;
+  //float4* mapuv;
   float4* normals;
-  float4* faces;
-  float4* faces_to_normals;
+  int3* faces;
+  int3* faces_to_normals;
   float4* face_normals;
-  float4* faces_to_materials;
+  //float4* faces_to_materials;
   //gvt::render::data::primitives::Box3D boundingBox;
-  bool haveNormals;
+  //bool haveNormals;
 };
 }
 }

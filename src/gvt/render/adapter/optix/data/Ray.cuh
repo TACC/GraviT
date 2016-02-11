@@ -85,6 +85,18 @@ struct ColorAccumulator {
 class Ray {
 public:
 
+	__device__ void setDirection(float4 dir) {
+		direction = dir;
+	 // dir.w = 0;
+	  //direction = normalize(dir);
+	/*  for (int i = 0; i < 3; i++) {
+	    if (direction[i] != 0)
+	      inverseDirection[i] = 1.0 / direction[i];
+	    else
+	      inverseDirection[i] = 0.;
+	  }*/
+	}
+
 	typedef enum  {
 	    PRIMARY,
 	    SHADOW,
