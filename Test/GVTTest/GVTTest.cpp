@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
   // camera and light
   Point4f cam_pos = {0.,0.,0.,0.};
   Point4f cam_focus = {0.,0.,-1.0,0.};
+  float cam_fovy = (float)(25.0 * M_PI / 180.0);
   Vector4f cam_up = {0.,1.,0.,1.};
   Vector4f light_pos = cam_pos;
   Vector4f light_color = {1.,1.,1.,1.};
@@ -305,6 +306,10 @@ int main(int argc, char **argv) {
       {
         outputfile = argv[++i];
       }
+      else if (arg == "-fov")
+      {
+        cam_fovy = (float)(atof(argv[++i]) * M_PI/180.0);
+      }
       else if (arg == "-cp")
       {
         if (++i < argc)
@@ -381,17 +386,14 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = Vector4f(512.0, 512.0, 2048.0, 0.0);
-  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 1.0);
+  lightNode["color"] = light_color;
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  //camNode["eyePoint"] = Point4f(0.,.15,0.7, 1.0);
-  //camNode["eyePoint"] = Point4f(0.,-20.,400., 1.0);
   camNode["eyePoint"] = cam_pos;
-  //camNode["focus"] = Point4f(.0, -20., 0.0, 1.0);
   camNode["focus"] = cam_focus;
-  //camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
   camNode["upVector"] = cam_up;
-  camNode["fov"] = (float)(25.0 * M_PI / 180.0);
+  camNode["fov"] = cam_fovy;
+  //camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = width;
