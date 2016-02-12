@@ -294,13 +294,20 @@ int main(int argc, const char **argv) {
   ospCommit(renderer);
   // Light
   OSPLight somelight = ospNewLight(renderer, "DirectionalLight");
+  ospSetString(somelight,"name","sun");
   ospSet3f(somelight, "color", 1, 1, 1);
-  // ospSet3fv(somelight,"direction",&cam_view.x);
-  // ospSet3fv(somelight,"direction",lightdirection);
-  // ospSet3f(somelight,"direction",0.,0.,1.);
   ospSetVec3f(somelight, "direction", light_dir);
+  //ospSet1f(somelight,"intensity",250.f);
   ospCommit(somelight);
-  OSPData lightArray = ospNewData(1, OSP_OBJECT, &somelight);
+  OSPData lightArray = ospNewData(1, OSP_OBJECT, &somelight,0);
+  // point light does not work for some reason
+  //OSPLight ptlight = ospNewLight(renderer,"PointLight");
+  //ospSet3f(ptlight,"color",1,1,1);
+  //ospSetVec3f(ptlight,"position",cam_pos);
+  //ospSet1f(ptlight,"intensity",250.f);
+  //ospSet1f(ptlight,"radius",4.f);
+  //ospCommit(ptlight);
+  //OSPData lightArray = ospNewData(1, OSP_OBJECT, &ptlight,0);
   ospSetData(renderer, "lights", lightArray);
   ospCommit(renderer);
   osp::vec2i framebufferdimensions = { width, height };

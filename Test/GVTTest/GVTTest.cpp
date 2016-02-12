@@ -107,6 +107,12 @@ int main(int argc, char **argv) {
   int height = 1080;
   int warmupframes = 1;
   int benchmarkframes = 10;
+  // camera and light
+  Point4f cam_pos = {0.,0.,0.,0.};
+  Point4f cam_focus = {0.,0.,-1.0,0.};
+  Vector4f cam_up = {0.,1.,0.,1.};
+  Vector4f light_pos = cam_pos;
+  Vector4f light_color = {1.,1.,1.,1.};
   // timer stuff
   my_timer_t startTime, endTime;
   double rendertime = 0.0;
@@ -134,25 +140,34 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
 
   // parse the command line
-  if ((argc < 2)) {
+  if ((argc < 2)) 
+  {
     // no input so render the defalut empty image
-  } else {
+  } 
+  else 
+  {
     // parse the input
-    for (int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) 
+    {
       const string arg = argv[i];
-      if (arg == "-i") {
+      if (arg == "-i") 
+      {
         filepath = argv[++i];
-        if (!file_exists(filepath.c_str())) {
+        if (!file_exists(filepath.c_str())) 
+        {
           cout << "File \"" << filepath << "\" does not exist. Exiting." << endl;
           return 0;
-        } else if (isdir(filepath.c_str())) {
+        } 
+        else if (isdir(filepath.c_str())) 
+        {
           vector<string> files = findply(filepath);
           if (!files.empty()) // directory contains .ply files
           {
             vector<string>::const_iterator file;
             int k;
             char txt[16];
-            for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+            for (file = files.begin(), k = 0; file != files.end(); file++, k++) 
+            {
               timeCurrent(&startTime);
               ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
               timeCurrent(&endTime);
@@ -164,7 +179,8 @@ int main(int argc, char **argv) {
               filename += txt;
               gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
               Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 1.0, 1.0)));
-              for (int i = 0; i < nverts; i++) {
+              for (int i = 0; i < nverts; i++) 
+              {
                 mesh->addVertex(Point4f(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2], 1.0));
               }
               for (int i = 0; i < nfaces; i++) // Add faces to mesh
@@ -202,11 +218,13 @@ int main(int argc, char **argv) {
               modeltime += timeDifferenceMS(&startTime, &endTime);
               numtriangles += nfaces;
             }
-          } else // directory has no .ply files
+          } 
+          else // directory has no .ply files
           {
             filepath = "";
           } 
-        } else // filepath is not a directory but a .ply file
+        } 
+        else // filepath is not a directory but a .ply file
         {
           timeCurrent(&startTime);
           ReadPlyData(filepath, vertexarray, colorarray, indexarray, nverts, nfaces);
@@ -254,28 +272,101 @@ int main(int argc, char **argv) {
           modeltime += timeDifferenceMS(&startTime, &endTime);
           numtriangles += nfaces;
         }
-      } else if (arg == "-bench") {
-        if (++i < argc) {
+      } 
+      else if (arg == "-bench") 
+      {
+        if (++i < argc) 
+        {
           std::string arg2(argv[i]);
           size_t pos = arg2.find("x");
-          if (pos != std::string::npos) {
+          if (pos != std::string::npos) 
+          {
             arg2.replace(pos, 1, " ");
             std::stringstream ss(arg2);
             ss >> warmupframes >> benchmarkframes;
           }
         }
-      } else if (arg == "-geom") {
-        if (++i < argc) {
+      } 
+      else if (arg == "-geom") 
+      {
+        if (++i < argc) 
+        {
           std::string arg2(argv[i]);
           size_t pos = arg2.find("x");
-          if (pos != std::string::npos) {
+          if (pos != std::string::npos) 
+          {
             arg2.replace(pos, 1, " ");
             std::stringstream ss(arg2);
             ss >> width >> height;
           }
         }
-      } else if (arg == "-o") {
+      } 
+      else if (arg == "-o") 
+      {
         outputfile = argv[++i];
+      }
+      else if (arg == "-cp")
+      {
+        if (++i < argc)
+        {
+          std::string arg2(argv[i]);
+          size_t pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          float camx,camy,camz;
+          std::stringstream ss(arg2);
+          ss >> camx >> camy >> camz;
+          cam_pos = {camx,camy,camz,0.0};
+        }
+      }
+      else if (arg=="-fp") // camera focus point
+      {
+        if (++i < argc)
+        {
+          std::string arg2(argv[i]);
+          size_t pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          float camfx,camfy,camfz;
+          std::stringstream ss(arg2);
+          ss >> camfx >> camfy >> camfz;
+          cam_focus = {camfx,camfy,camfz,0.0};
+        }
+      }
+      else if (arg=="-cu") // camera up vector
+      {
+        if (++i < argc)
+        {
+          std::string arg2(argv[i]);
+          size_t pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          float cux,cuy,cuz;
+          std::stringstream ss(arg2);
+          ss >> cux >> cuy >> cuz;
+          cam_up = {cux,cuy,cuz,1.0};
+        }
       }
     }
   }
@@ -294,9 +385,12 @@ int main(int argc, char **argv) {
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   //camNode["eyePoint"] = Point4f(0.,.15,0.7, 1.0);
-  camNode["eyePoint"] = Point4f(0.,-20.,400., 1.0);
-  camNode["focus"] = Point4f(.0, -20., 0.0, 1.0);
-  camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  //camNode["eyePoint"] = Point4f(0.,-20.,400., 1.0);
+  camNode["eyePoint"] = cam_pos;
+  //camNode["focus"] = Point4f(.0, -20., 0.0, 1.0);
+  camNode["focus"] = cam_focus;
+  //camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  camNode["upVector"] = cam_up;
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
