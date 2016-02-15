@@ -46,7 +46,7 @@
 
 extern "C" void trace( gvt::render::data::cuda_primitives::CudaShade* cudaShade);
 
-curandState* set_random_states(dim3 numBlocks,dim3 threadsPerBlock);
+curandState* set_random_states(int N);
 
 void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay* optixrays, bool* valid,
                   const int localPacketSize, gvt::render::data::cuda_primitives::Ray* rays,

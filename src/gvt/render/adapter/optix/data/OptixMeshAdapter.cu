@@ -86,7 +86,11 @@ __device__ float cudaRand() {
   return RANDOM;
 }
 
-curandState *set_random_states(dim3 numBlocks, dim3 threadsPerBlock) {
+curandState *set_random_states(int rayCount) {
+
+
+	 dim3 threadsPerBlock = dim3(16, 16);
+	  dim3 numBlocks = dim3((rayCount / (threadsPerBlock.x * threadsPerBlock.y)) + 1, 1);
 
   int N = numBlocks.x * numBlocks.y * threadsPerBlock.x * threadsPerBlock.y;
   curandState *devStates;
@@ -178,7 +182,7 @@ void cudaProcessShadows(CudaShade* cudaShade) {
 					sizeof(gvt::render::data::cuda_primitives::CudaShade),
 					cudaMemcpyHostToDevice);
 
-		printf("Launching cudaPrepOptixRays..\n");
+		printf("Launching cudaProcessShadows..\n");
 
 		cudaKernelFilterShadow<<<gridDIM,blockDIM , 0>>>(cudaShade_devptr);
 

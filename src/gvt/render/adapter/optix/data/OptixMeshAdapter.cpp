@@ -252,13 +252,13 @@ cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
 }
 
 gvt::render::data::cuda_primitives::Ray *
-cudaGetRays(gvt::render::actor::RayVector &gvtRayVector) {
+cudaGetRays(gvt::render::actor::RayVector::iterator gvtRayVector, int localRayCount) {
 
   gvt::render::data::cuda_primitives::Ray *cudaRays_devPtr;
 
   std::vector< gvt::render::data::cuda_primitives::Ray> cudaRays;
 
-  for (int i = 0; i < gvtRayVector.size(); i++) {
+  for (int i = 0; i < localRayCount; i++) {
 	  gvt::render::data::cuda_primitives::Ray r;
 
 
@@ -269,11 +269,11 @@ cudaGetRays(gvt::render::actor::RayVector &gvtRayVector) {
 
   cudaMalloc((void **)&cudaRays_devPtr,
              sizeof(gvt::render::data::cuda_primitives::Ray) *
-                 gvtRayVector.size());
+             localRayCount);
 
   cudaMemcpy(cudaRays_devPtr, &cudaRays[0],
              sizeof(gvt::render::data::cuda_primitives::Ray) *
-                 gvtRayVector.size(),
+             localRayCount,
              cudaMemcpyHostToDevice);
 
   return cudaRays_devPtr;
@@ -591,7 +591,8 @@ struct OptixParallelTrace {
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays),
         sharedIdx(sharedIdx), workSize(workSize), instNode(instNode), m(m),
         minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
+        packetSize(adapter->getPacketSize()), begin(begin), end(end) {
+  }
 
   /**
    * Convert a set of rays from a vector into a prepOptixRays ray packet.
@@ -829,6 +830,89 @@ struct OptixParallelTrace {
     // its embree_packetSize * lights.size()
     shadowRays.reserve(packetSize * lights.size());
 
+
+
+
+    bool* valid =  new bool[packetSize];
+           std::vector<OptixRay> optix_rays(packetSize);
+           std::vector<OptixHit> optix_hits(packetSize);
+
+
+          memset(&(valid[0]),1,sizeof(bool)*packetSize);
+
+           gvt::render::data::cuda_primitives::OptixRay *cudaOptixRayBuff;
+           cudaMalloc((void **)&cudaOptixRayBuff,
+                      sizeof(gvt::render::data::cuda_primitives::OptixRay) *
+                         packetSize * lights.size());
+
+           gvt::render::data::cuda_primitives::OptixHit *cudaHitsBuff;
+           cudaMalloc((void **)&cudaHitsBuff,
+                      sizeof(gvt::render::data::cuda_primitives::OptixHit) *
+                      packetSize * lights.size());
+
+           gvt::render::data::cuda_primitives::Ray *shadowRaysBuff;
+           cudaMalloc((void **)&shadowRaysBuff,
+                      sizeof(gvt::render::data::cuda_primitives::Ray) *
+                          packetSize * lights.size());
+
+           bool *validBuff;
+                   cudaMalloc((void **)&validBuff,
+                              sizeof(bool) *
+                              packetSize);
+
+
+           int* dispatchBuff;
+                           cudaMalloc((void **)&dispatchBuff,
+                                      sizeof(int) *
+                                          (end-begin)*2);
+
+            gvt::render::data::cuda_primitives::Matrix3f *normiBuff;
+           cudaMalloc((void **)&normiBuff,
+           		sizeof(gvt::render::data::cuda_primitives::Matrix3f));
+           cudaMemcpy(normiBuff, &(normi->n[0]),
+                          sizeof(gvt::render::data::cuda_primitives::Matrix3f) ,
+                          cudaMemcpyHostToDevice);
+
+
+           gvt::render::data::cuda_primitives::Matrix4f *minvBuff;
+          cudaMalloc((void **)&minvBuff,
+          		sizeof(gvt::render::data::cuda_primitives::Matrix4f));
+          cudaMemcpy(minvBuff, &(minv->n[0]),
+                         sizeof(gvt::render::data::cuda_primitives::Matrix4f) ,
+                         cudaMemcpyHostToDevice);
+
+
+           gvt::render::data::cuda_primitives::Mesh cudaMesh;
+           cudaMesh = cudaInstanceMesh(mesh);
+
+
+           set_random_states(packetSize);
+
+
+
+           gvt::render::data::cuda_primitives::Light *cudaLights =
+               cudaGetLights(lights);
+
+           cudaMemcpy(validBuff, &(valid[0]),
+        		   packetSize,
+                                          cudaMemcpyHostToDevice);
+
+                  gvt::render::data::cuda_primitives::CudaShade& cudaShade =
+                		  *(new   gvt::render::data::cuda_primitives::CudaShade());
+
+            cudaShade.mesh = cudaMesh;
+   		 cudaShade.traceRays = cudaOptixRayBuff;
+   		 cudaShade.traceHits = cudaHitsBuff;
+   		 cudaShade.lights = cudaLights;
+   		 cudaShade.shadowRays = shadowRaysBuff;
+   		 cudaShade.nLights = lights.size();
+   		 cudaShade.valid = validBuff;
+   		 cudaShade.dispatch = dispatchBuff;
+   		 cudaShade.normi=normiBuff;
+   		 cudaShade.minv=minvBuff;
+
+
+
     while (sharedIdx < end) {
 #ifdef GVT_USE_DEBUG
 // boost::timer::auto_cpu_timer t_outer_loop("OptixMeshAdapter: workSize rays
@@ -851,11 +935,17 @@ struct OptixParallelTrace {
 
       for (size_t localIdx = workStart; localIdx < workEnd;
            localIdx += packetSize) {
+
+
         // this is the local packet size. this might be less than the main
         // packetSize due to uneven amount of rays
         const size_t localPacketSize = (localIdx + packetSize > workEnd)
                                            ? (workEnd - localIdx)
                                            : packetSize;
+
+        printf("localPacketSize: %zu localIdx: %d packetSize: %zu raylistSize: %zu workStart: %zu workEnd: %zu\n",
+        		localPacketSize,localIdx, packetSize, rayList.size(), workStart, workEnd);
+
 
         // trace a packet of rays, then keep tracing the generated secondary
         // rays to completion
@@ -870,73 +960,12 @@ struct OptixParallelTrace {
         // modified with the previous packet
         bool resetValid = true;
 
-        bool* valid =  new bool[localPacketSize];
-        std::vector<OptixRay> optix_rays(localPacketSize);
-        std::vector<OptixHit> optix_hits(localPacketSize);
+  		cudaShade.rayCount = localPacketSize;
+
+  		gvt::render::actor::RayVector::iterator localRayList = rayList.begin() + localIdx;
 
 
-       // valid.reserve(localPacketSize);
-        //std::fill(valid.begin(), valid.end(), 1);
-       memset(&(valid[0]),1,sizeof(bool)*localPacketSize);
-
-        gvt::render::data::cuda_primitives::OptixRay *cudaOptixRayBuff;
-        cudaMalloc((void **)&cudaOptixRayBuff,
-                   sizeof(gvt::render::data::cuda_primitives::OptixRay) *
-                      packetSize * lights.size());
-
-        gvt::render::data::cuda_primitives::OptixHit *cudaHitsBuff;
-        cudaMalloc((void **)&cudaHitsBuff,
-                   sizeof(gvt::render::data::cuda_primitives::OptixHit) *
-                   packetSize * lights.size());
-
-        gvt::render::data::cuda_primitives::Ray *shadowRaysBuff;
-        cudaMalloc((void **)&shadowRaysBuff,
-                   sizeof(gvt::render::data::cuda_primitives::Ray) *
-                       packetSize * lights.size());
-
-        bool *validBuff;
-                cudaMalloc((void **)&validBuff,
-                           sizeof(bool) *
-                           localPacketSize);
-
-
-        int* dispatchBuff;
-                        cudaMalloc((void **)&dispatchBuff,
-                                   sizeof(int) *
-                                       (end-begin)*2);
-
-         gvt::render::data::cuda_primitives::Matrix3f *normiBuff;
-        cudaMalloc((void **)&normiBuff,
-        		sizeof(gvt::render::data::cuda_primitives::Matrix3f));
-        cudaMemcpy(normiBuff, &(normi->n[0]),
-                       sizeof(gvt::render::data::cuda_primitives::Matrix3f) ,
-                       cudaMemcpyHostToDevice);
-
-
-        gvt::render::data::cuda_primitives::Matrix4f *minvBuff;
-       cudaMalloc((void **)&minvBuff,
-       		sizeof(gvt::render::data::cuda_primitives::Matrix4f));
-       cudaMemcpy(minvBuff, &(minv->n[0]),
-                      sizeof(gvt::render::data::cuda_primitives::Matrix4f) ,
-                      cudaMemcpyHostToDevice);
-
-
-        gvt::render::data::cuda_primitives::Mesh cudaMesh;
-        cudaMesh = cudaInstanceMesh(mesh);
-
-        dim3 blockDIM = dim3(16, 16);
-        int rayCount = rayList.size();
-        	dim3 gridDIM = dim3((rayCount / (blockDIM.x * blockDIM.y)) + 1, 1);
-        set_random_states(gridDIM,blockDIM);
-
-        gvt::render::data::cuda_primitives::Ray *cudaRays =
-            cudaGetRays(rayList);
-        gvt::render::data::cuda_primitives::Light *cudaLights =
-            cudaGetLights(lights);
-
-        cudaMemcpy(validBuff, &(valid[0]),
-                                        localPacketSize,
-                                       cudaMemcpyHostToDevice);
+        cudaShade.rays = cudaGetRays(rayList.begin() + localIdx, localPacketSize);
 
         while (validRayLeft) {
 
@@ -944,31 +973,20 @@ struct OptixParallelTrace {
 
           validRayLeft = false;
 
-          cudaMemset(cudaOptixRayBuff, 0,
+          cudaMemset(cudaShade.traceRays, 0,
         		  sizeof(gvt::render::data::cuda_primitives::OptixRay)
         		  *localPacketSize);
 
-          //TODO; init buffs
-          gvt::render::data::cuda_primitives::CudaShade& cudaShade =
-        		  *(new   gvt::render::data::cuda_primitives::CudaShade());
-          cudaShade.mesh = cudaMesh;
-          cudaShade.rays = cudaRays;
-          cudaShade.traceRays = cudaOptixRayBuff;
-          cudaShade.traceHits = cudaHitsBuff;
-          cudaShade.lights = cudaLights;
-          cudaShade.shadowRays = shadowRaysBuff;
-          cudaShade.nLights = lights.size();
-          cudaShade.valid = validBuff;
-          cudaShade.dispatch = dispatchBuff;
-          cudaShade.dispatchCount = 0; // TODO: check
-          cudaShade.normi=normiBuff;
-          cudaShade.minv=minvBuff;
-          cudaShade.rayCount = rayList.size();
+          cudaMemset( cudaShade.traceHits, 0,
+                 		  sizeof(gvt::render::data::cuda_primitives::OptixHit)
+                 		  *localPacketSize);
+
+          cudaShade.dispatchCount = 0;
           cudaShade.shadowRayCount = 0;
 
 
-          cudaPrepOptixRays( cudaOptixRayBuff,  validBuff,
-                           localPacketSize, cudaRays,
+          cudaPrepOptixRays( cudaShade.traceRays,  validBuff,
+                           localPacketSize, cudaShade.rays,
                            localIdx,  &cudaShade, false);
 
 
@@ -981,21 +999,18 @@ struct OptixParallelTrace {
           rtpBufferDescCreate(
               OptixContext::singleton()->context()->getRTPcontext(),
               RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
-              RTP_BUFFER_TYPE_CUDA_LINEAR, cudaOptixRayBuff, &rays);
+              RTP_BUFFER_TYPE_CUDA_LINEAR,  cudaShade.traceRays, &rays);
 
           rtpBufferDescSetRange(rays, 0, localPacketSize);
 
           rtpQuerySetRays(query, rays);
 
-          cudaMemset(cudaHitsBuff, 0,  sizeof(gvt::render::data::cuda_primitives::OptixHit)
-        		  * localPacketSize);
-
           RTPbufferdesc hits;
           rtpBufferDescCreate(
               OptixContext::singleton()->context()->getRTPcontext(),
               RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V, RTP_BUFFER_TYPE_CUDA_LINEAR,
-              cudaHitsBuff, &hits);
-          rtpBufferDescSetRange(hits, 0, optix_hits.size());
+              cudaShade.traceHits, &hits);
+          rtpBufferDescSetRange(hits, 0,localPacketSize);
 
           rtpQuerySetHits(query, hits);
 
@@ -1014,68 +1029,32 @@ struct OptixParallelTrace {
           gvt::render::data::cuda_primitives::Ray *cudaRays_tmp =
               new gvt::render::data::cuda_primitives::Ray[cudaShade.rayCount];
 
-          cudaMemcpy(cudaRays_tmp,cudaRays,
+          cudaMemcpy(cudaRays_tmp,cudaShade.rays,
                      sizeof(gvt::render::data::cuda_primitives::Ray) *
                      cudaShade.rayCount,
                      cudaMemcpyDeviceToHost);
 
 
           for (int i = 0; i < cudaShade.rayCount; i++) {
-			  cudaRayToGvtRay(cudaRays_tmp[i],rayList[i]);
+			  cudaRayToGvtRay(cudaRays_tmp[i],localRayList[i]);
               //memcpy(&(rayList[i].data[0]), &(cudaRays_tmp[i].data[0]), 16 * 4 + 8 * 4);
             }
 
           delete[] cudaRays_tmp;
 
-
-//          //Shadows
-//          gvt::render::data::cuda_primitives::Ray *cudaShadowRays_tmp =
-//			  new gvt::render::data::cuda_primitives::Ray[cudaShade.shadowRayCount];
-//
-//		  cudaMemcpy(cudaShadowRays_tmp,shadowRaysBuff,
-//					 sizeof(gvt::render::data::cuda_primitives::Ray) *
-//					 cudaShade.shadowRayCount,
-//					 cudaMemcpyDeviceToHost);
-//
-//		  for (int i = 0; i < cudaShade.shadowRayCount; i++) {
-//			  Ray shadow;
-//			  cudaRayToGvtRay(cudaShadowRays_tmp[i],shadow);
-//			  //memcpy(&(shadow.data[0]), &(cudaShadowRays_tmp[i].data[0]), 16 * 4 + 8 * 4);
-//			  shadowRays.push_back(shadow);
-//			}
-//
-//		  delete[] cudaShadowRays_tmp;
-
-
-//
-//		  bool * validHost = new bool[localPacketSize];
-//			//valid
-//			cudaMemcpy(&valid[0],validBuff,
-//			sizeof(bool)*localPacketSize,
-//			cudaMemcpyDeviceToHost);
-//
-//
-//			validRayLeft = false;
-//			for (int i = 0; i < localPacketSize; i++){
-//				//valid.at(i)=validHost[i];
-//				if (valid[i]){
-//					validRayLeft = true;
-//					break;
-//				}
-//			}
-
 			//dispatch
+          {
 			int* disp = new int[cudaShade.dispatchCount];
 			cudaMemcpy(&disp[0],dispatchBuff,sizeof(int)*
 					cudaShade.dispatchCount,
 			cudaMemcpyDeviceToHost);
 
 			for (int i = 0; i < cudaShade.dispatchCount; i++) {
-				localDispatch.push_back(rayList[disp[i]]);
+				localDispatch.push_back(localRayList[disp[i]]);
 			}
 
 			delete[] disp;
-
+          }
 
 			printf("shadow host  %d \n",cudaShade.shadowRayCount);
 			printf("dispatch host  %d \n",cudaShade.dispatchCount);
@@ -1085,6 +1064,45 @@ struct OptixParallelTrace {
 
 			cudaShade.dispatchCount=0;
 			traceShadowRays( cudaShade);
+
+			//dispatch
+
+		    //raysList
+		  gvt::render::data::cuda_primitives::Ray *cudaShRays_tmp =
+			  new gvt::render::data::cuda_primitives::Ray[cudaShade.shadowRayCount];
+
+
+		  gvt::render::actor::Ray *ShRays_tmp =
+							  new      gvt::render::actor::Ray[cudaShade.shadowRayCount];
+
+
+		  cudaMemcpy(cudaShRays_tmp,cudaShade.shadowRays,
+					 sizeof(gvt::render::data::cuda_primitives::Ray) *
+					 cudaShade.shadowRayCount,
+					 cudaMemcpyDeviceToHost);
+
+
+		  for (int i = 0; i < cudaShade.shadowRayCount; i++) {
+			  cudaRayToGvtRay(cudaShRays_tmp[i],ShRays_tmp[i]);
+			}
+
+		  delete[] cudaShRays_tmp;
+
+
+
+			int* disp = new int[cudaShade.dispatchCount];
+			cudaMemcpy(&disp[0],dispatchBuff,sizeof(int)*
+					cudaShade.dispatchCount,
+			cudaMemcpyDeviceToHost);
+
+			for (int i = 0; i < cudaShade.dispatchCount; i++) {
+				if (disp[i] >= cudaShade.shadowRayCount || disp[i] >=   packetSize * lights.size())
+					printf("CATA ERROR!!!!!\n");
+				localDispatch.push_back(ShRays_tmp[disp[i]]);
+			}
+
+			delete[] disp;
+			  delete[] ShRays_tmp;
 
 			printf("dispatch host  %d \n",cudaShade.dispatchCount);
 
@@ -1212,12 +1230,6 @@ struct OptixParallelTrace {
 
 #endif
 
-
-
-
-
-          // trace shadow rays generated by the packet
-
         }
       }
     }
@@ -1275,9 +1287,9 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
   std::atomic<size_t> sharedIdx(begin); // shared index into rayList
   const size_t numThreads = 1; // std::thread::hardware_concurrency();
   gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize =
-      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE,
-                                   (size_t)((end - begin) / numThreads)));
+  const size_t workSize =(end - begin) ;
+//      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE,
+//                                   (size_t)((end - begin) / numThreads)));
 
   const size_t numworkers =
       std::max((size_t)1, std::min((size_t)numThreads,
