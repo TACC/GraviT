@@ -129,7 +129,7 @@ public:
       mutable float t_max;
       int type;
     };
-    unsigned char data[16 * 4 + 7 * 4];
+    unsigned char data[16 * 4 + 8 * 4];
   };
   isecDomList domains;
 

@@ -56,7 +56,7 @@ struct OptixRay {
   //}
 
    __device__ void print(){
-	printf("gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin[0] ,  origin[1], origin[2], direction[0]
+	printf("optix gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin[0] ,  origin[1], origin[2], direction[0]
 	               ,direction[1] , direction[2]);
   }
 };
@@ -84,6 +84,14 @@ struct ColorAccumulator {
 
 class Ray {
 public:
+
+
+
+
+	   __device__ void print(){
+		printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin.x ,  origin.y, origin.z,
+				direction.x   ,direction.y , direction.z);
+	  }
 
 	__device__ void setDirection(float4 dir) {
 		direction = dir;
@@ -118,10 +126,10 @@ public:
 			float t;
 			float t_min;
 			float t_max;
-			RayType type;
+			int type;
 
 		};
-		unsigned char data[16 * 4 + 7 * 4];
+		unsigned char data[16 * 4 + 8 * 4];
 	};
 
 

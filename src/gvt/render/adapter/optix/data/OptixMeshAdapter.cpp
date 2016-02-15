@@ -64,12 +64,47 @@
 #include <optix_prime/optix_primepp.h>
 #include <optix.h>
 #include <optix_cuda_interop.h>
+#include "optix_prime/optix_prime.h"
 
 #include "OptixMeshAdapter.cuh"
 
 #include <float.h>
 
+void cudaRayToGvtRay(gvt::render::data::cuda_primitives::Ray& cudaRay,
+		gvt::render::actor::Ray& gvtRay){
 
+
+	memcpy(&(gvtRay.origin[0]), &(cudaRay.origin.x), sizeof(float)*4);
+	memcpy(&(gvtRay.direction[0]), &(cudaRay.direction.x), sizeof(float)*4);
+	memcpy(&(gvtRay.inverseDirection[0]), &(cudaRay.inverseDirection.x), sizeof(float)*4);
+	memcpy(&(gvtRay.color.rgba[0]), &(cudaRay.color.rgba[0]), sizeof(float)*4);
+	gvtRay.color.t = cudaRay.color.t;
+	gvtRay.id=cudaRay.id;
+	gvtRay.depth=cudaRay.depth;
+	gvtRay.w=cudaRay.w;
+	gvtRay.t=cudaRay.t;
+	gvtRay.t_min=cudaRay.t_min;
+	gvtRay.t_max=cudaRay.t_max;
+	gvtRay.type=cudaRay.type;
+}
+
+void gvtRayToCudaRay(	gvt::render::actor::Ray& gvtRay,
+		gvt::render::data::cuda_primitives::Ray& cudaRay){
+
+
+	memcpy(&(cudaRay.origin.x), &(gvtRay.origin[0]), sizeof(float)*4);
+	memcpy(&(cudaRay.direction.x), &(gvtRay.direction[0]), sizeof(float)*4);
+	memcpy(&(cudaRay.inverseDirection.x), &(gvtRay.inverseDirection[0]), sizeof(float)*4);
+	memcpy(&(cudaRay.color.rgba[0]), &(gvtRay.color.rgba[0]), sizeof(float)*4);
+	cudaRay.color.t = gvtRay.color.t;
+	cudaRay.id=gvtRay.id;
+	cudaRay.depth=gvtRay.depth;
+	cudaRay.w=gvtRay.w;
+	cudaRay.t=gvtRay.t;
+	cudaRay.t_min=gvtRay.t_min;
+	cudaRay.t_max=gvtRay.t_max;
+	cudaRay.type=gvtRay.type;
+}
 
 int3*
 cudaCreateFacesToNormals(boost::container::vector<boost::tuple<int, int, int> >
@@ -82,7 +117,7 @@ cudaCreateFacesToNormals(boost::container::vector<boost::tuple<int, int, int> >
 	             sizeof(int3)*gvt_face_to_normals.size());
 
 	std::vector<int3> faces_to_normals;
-	for (int i =0; gvt_face_to_normals.size(); i++){
+	for (int i =0; i < gvt_face_to_normals.size(); i++){
 
 		const boost::tuple<int, int, int> &f = gvt_face_to_normals[i];
 
@@ -90,11 +125,12 @@ cudaCreateFacesToNormals(boost::container::vector<boost::tuple<int, int, int> >
 		int3 v = make_int3(f.get<0>(),
 			f.get<1>(),
 			f.get<2>());
+
 		faces_to_normals.push_back(v);
 	}
 
 	 cudaMemcpy(faces_to_normalsBuff, &faces_to_normals[0],
-	             sizeof(int3),
+	             sizeof(int3)*faces_to_normals.size(),
 	             cudaMemcpyHostToDevice);
 
 	 return faces_to_normalsBuff;
@@ -112,14 +148,14 @@ cudaCreateNormals(boost::container::vector<gvt::core::math::Point4f>
 	             sizeof(float4)*gvt_normals.size());
 
 	std::vector<float4> normals;
-	for (int i =0; gvt_normals.size(); i++){
+	for (int i =0; i < gvt_normals.size(); i++){
 
 		float4 v =make_float4(gvt_normals[i].x,gvt_normals[i].y,gvt_normals[i].z,gvt_normals[i].w);
 		normals.push_back(v);
 	}
 
 	 cudaMemcpy(normalsBuff, &normals[0],
-	             sizeof(float4),
+	             sizeof(float4)*gvt_normals.size(),
 	             cudaMemcpyHostToDevice);
 
 	 return normalsBuff;
@@ -137,7 +173,7 @@ cudaCreateFaces(boost::container::vector<boost::tuple<int, int, int> >
 	             sizeof(int3)*gvt_faces.size());
 
 	std::vector<int3> faces;
-	for (int i =0; gvt_faces.size(); i++){
+	for (int i =0; i < gvt_faces.size(); i++){
 
 		const boost::tuple<int, int, int> &f = gvt_faces[i];
 
@@ -149,7 +185,7 @@ cudaCreateFaces(boost::container::vector<boost::tuple<int, int, int> >
 	}
 
 	 cudaMemcpy(facesBuff, &faces[0],
-	             sizeof(int3),
+	             sizeof(int3)*gvt_faces.size(),
 	             cudaMemcpyHostToDevice);
 
 	 return facesBuff;
@@ -220,23 +256,25 @@ cudaGetRays(gvt::render::actor::RayVector &gvtRayVector) {
 
   gvt::render::data::cuda_primitives::Ray *cudaRays_devPtr;
 
-  gvt::render::data::cuda_primitives::Ray *cudaRays =
-      new gvt::render::data::cuda_primitives::Ray[gvtRayVector.size()];
+  std::vector< gvt::render::data::cuda_primitives::Ray> cudaRays;
 
   for (int i = 0; i < gvtRayVector.size(); i++) {
-    memcpy(&(cudaRays[i].data[0]), &(gvtRayVector[i].data[0]), 16 * 4 + 7 * 4);
+	  gvt::render::data::cuda_primitives::Ray r;
+
+
+	  gvtRayToCudaRay(gvtRayVector[i],r);
+    cudaRays.push_back(r);
+
   }
 
   cudaMalloc((void **)&cudaRays_devPtr,
              sizeof(gvt::render::data::cuda_primitives::Ray) *
                  gvtRayVector.size());
 
-  cudaMemcpy(cudaRays_devPtr, cudaRays,
+  cudaMemcpy(cudaRays_devPtr, &cudaRays[0],
              sizeof(gvt::render::data::cuda_primitives::Ray) *
                  gvtRayVector.size(),
              cudaMemcpyHostToDevice);
-
-  delete[] cudaRays;
 
   return cudaRays_devPtr;
 }
@@ -636,6 +674,51 @@ struct OptixParallelTrace {
    * Test occlusion for stored shadow rays.  Add missed rays
    * to the dispatch queue.
    */
+  void traceShadowRays(  gvt::render::data::cuda_primitives::CudaShade& cudaShade) {
+
+	    ::optix::prime::Model model = adapter->getScene();
+
+    RTPquery query ;
+    rtpQueryCreate(model->getRTPmodel(), RTP_QUERY_TYPE_CLOSEST, &query) ;
+
+      cudaPrepOptixRays( cudaShade.traceRays,  NULL,
+    		  cudaShade.shadowRayCount, cudaShade.shadowRays,
+                               0,  &cudaShade, true);
+
+      RTPbufferdesc desc;
+      rtpBufferDescCreate(
+          OptixContext::singleton()->context()->getRTPcontext(),
+          RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
+          RTP_BUFFER_TYPE_CUDA_LINEAR, cudaShade.traceRays, &desc);
+
+      rtpBufferDescSetRange(desc, 0, cudaShade.shadowRayCount);
+      rtpQuerySetRays(query, desc) ;
+
+
+      RTPbufferdesc desc2;
+          rtpBufferDescCreate(
+              OptixContext::singleton()->context()->getRTPcontext(),
+              RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V,
+              RTP_BUFFER_TYPE_CUDA_LINEAR, cudaShade.traceHits, &desc2);
+
+
+         rtpBufferDescSetRange(desc2, 0, cudaShade.shadowRayCount);
+         rtpQuerySetHits(query, desc2) ;
+
+
+      // Execute our query and wait for it to finish.
+         rtpQueryExecute(query,RTP_QUERY_HINT_ASYNC);
+         rtpQueryFinish(query);
+
+         cudaProcessShadows(&cudaShade);
+
+ }
+
+
+  /**
+   * Test occlusion for stored shadow rays.  Add missed rays
+   * to the dispatch queue.
+   */
   void traceShadowRays() {
     ::optix::prime::Query query =
         adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
@@ -737,7 +820,6 @@ struct OptixParallelTrace {
     auto mesh =
         (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
-
     ::optix::prime::Model scene = adapter->getScene();
 
     localDispatch.reserve((end - begin) * 2);
@@ -788,21 +870,24 @@ struct OptixParallelTrace {
         // modified with the previous packet
         bool resetValid = true;
 
-        std::vector<bool> valid(localPacketSize);
+        bool* valid =  new bool[localPacketSize];
         std::vector<OptixRay> optix_rays(localPacketSize);
         std::vector<OptixHit> optix_hits(localPacketSize);
 
-        std::fill(valid.begin(), valid.end(), true);
 
-        gvt::render::data::cuda_primitives::OptixRay *cudaRayBuff;
-        cudaMalloc((void **)&cudaRayBuff,
+       // valid.reserve(localPacketSize);
+        //std::fill(valid.begin(), valid.end(), 1);
+       memset(&(valid[0]),1,sizeof(bool)*localPacketSize);
+
+        gvt::render::data::cuda_primitives::OptixRay *cudaOptixRayBuff;
+        cudaMalloc((void **)&cudaOptixRayBuff,
                    sizeof(gvt::render::data::cuda_primitives::OptixRay) *
-                       localPacketSize);
+                      packetSize * lights.size());
 
         gvt::render::data::cuda_primitives::OptixHit *cudaHitsBuff;
         cudaMalloc((void **)&cudaHitsBuff,
                    sizeof(gvt::render::data::cuda_primitives::OptixHit) *
-                       localPacketSize);
+                   packetSize * lights.size());
 
         gvt::render::data::cuda_primitives::Ray *shadowRaysBuff;
         cudaMalloc((void **)&shadowRaysBuff,
@@ -814,9 +899,10 @@ struct OptixParallelTrace {
                            sizeof(bool) *
                            localPacketSize);
 
-        gvt::render::data::cuda_primitives::Ray *dispatchBuff;
+
+        int* dispatchBuff;
                         cudaMalloc((void **)&dispatchBuff,
-                                   sizeof(gvt::render::data::cuda_primitives::Ray) *
+                                   sizeof(int) *
                                        (end-begin)*2);
 
          gvt::render::data::cuda_primitives::Matrix3f *normiBuff;
@@ -826,67 +912,48 @@ struct OptixParallelTrace {
                        sizeof(gvt::render::data::cuda_primitives::Matrix3f) ,
                        cudaMemcpyHostToDevice);
 
+
+        gvt::render::data::cuda_primitives::Matrix4f *minvBuff;
+       cudaMalloc((void **)&minvBuff,
+       		sizeof(gvt::render::data::cuda_primitives::Matrix4f));
+       cudaMemcpy(minvBuff, &(minv->n[0]),
+                      sizeof(gvt::render::data::cuda_primitives::Matrix4f) ,
+                      cudaMemcpyHostToDevice);
+
+
         gvt::render::data::cuda_primitives::Mesh cudaMesh;
         cudaMesh = cudaInstanceMesh(mesh);
 
-        set_random_states(dim3(1, 1), dim3(1, 1));
+        dim3 blockDIM = dim3(16, 16);
+        int rayCount = rayList.size();
+        	dim3 gridDIM = dim3((rayCount / (blockDIM.x * blockDIM.y)) + 1, 1);
+        set_random_states(gridDIM,blockDIM);
 
         gvt::render::data::cuda_primitives::Ray *cudaRays =
             cudaGetRays(rayList);
         gvt::render::data::cuda_primitives::Light *cudaLights =
             cudaGetLights(lights);
 
+        cudaMemcpy(validBuff, &(valid[0]),
+                                        localPacketSize,
+                                       cudaMemcpyHostToDevice);
+
         while (validRayLeft) {
+
+        	printf("Valid Rays left..\n");
+
           validRayLeft = false;
 
-          prepOptixRays(optix_rays, valid, false, localPacketSize, rayList,
-                        localIdx);
-
-          ::optix::prime::Query query =
-              adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
-
-          cudaMemset(cudaRayBuff, 0, localPacketSize);
-          cudaMemcpy(cudaRayBuff, &optix_rays[0],
-                     sizeof(gvt::render::data::cuda_primitives::OptixRay) *
-                         optix_rays.size(),
-                     cudaMemcpyHostToDevice);
-
-          RTPbufferdesc rays;
-          rtpBufferDescCreate(
-              OptixContext::singleton()->context()->getRTPcontext(),
-              RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
-              RTP_BUFFER_TYPE_CUDA_LINEAR, cudaRayBuff, &rays);
-          rtpBufferDescSetRange(rays, 0, optix_rays.size());
-
-          rtpQuerySetRays(query->getRTPquery(), rays);
-
-          cudaMemset(cudaHitsBuff, 0, localPacketSize);
-          cudaMemcpy(cudaHitsBuff, &optix_hits[0],
-                     sizeof(gvt::render::data::cuda_primitives::OptixHit) *
-                         optix_hits.size(),
-                     cudaMemcpyHostToDevice);
-
-          RTPbufferdesc hits;
-          rtpBufferDescCreate(
-              OptixContext::singleton()->context()->getRTPcontext(),
-              RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V, RTP_BUFFER_TYPE_CUDA_LINEAR,
-              cudaHitsBuff, &hits);
-          rtpBufferDescSetRange(hits, 0, optix_hits.size());
-
-          rtpQuerySetHits(query->getRTPquery(), hits);
-
-          query->execute(RTP_QUERY_HINT_ASYNC);
-          query->finish();
-          GVT_ASSERT(query.isValid(), "Something went wrong.");
-
-
-#ifdef CUDA_OPTIX
+          cudaMemset(cudaOptixRayBuff, 0,
+        		  sizeof(gvt::render::data::cuda_primitives::OptixRay)
+        		  *localPacketSize);
 
           //TODO; init buffs
-          gvt::render::data::cuda_primitives::CudaShade cudaShade;
+          gvt::render::data::cuda_primitives::CudaShade& cudaShade =
+        		  *(new   gvt::render::data::cuda_primitives::CudaShade());
           cudaShade.mesh = cudaMesh;
           cudaShade.rays = cudaRays;
-          cudaShade.traceRays = cudaRayBuff;
+          cudaShade.traceRays = cudaOptixRayBuff;
           cudaShade.traceHits = cudaHitsBuff;
           cudaShade.lights = cudaLights;
           cudaShade.shadowRays = shadowRaysBuff;
@@ -895,9 +962,51 @@ struct OptixParallelTrace {
           cudaShade.dispatch = dispatchBuff;
           cudaShade.dispatchCount = 0; // TODO: check
           cudaShade.normi=normiBuff;
+          cudaShade.minv=minvBuff;
           cudaShade.rayCount = rayList.size();
+          cudaShade.shadowRayCount = 0;
 
-          trace(cudaShade);
+
+          cudaPrepOptixRays( cudaOptixRayBuff,  validBuff,
+                           localPacketSize, cudaRays,
+                           localIdx,  &cudaShade, false);
+
+
+          ::optix::prime::Model model = adapter->getScene();
+          RTPquery query ;
+
+          rtpQueryCreate(model->getRTPmodel(), RTP_QUERY_TYPE_CLOSEST, &query) ;
+
+          RTPbufferdesc rays;
+          rtpBufferDescCreate(
+              OptixContext::singleton()->context()->getRTPcontext(),
+              RTP_BUFFER_FORMAT_RAY_ORIGIN_TMIN_DIRECTION_TMAX,
+              RTP_BUFFER_TYPE_CUDA_LINEAR, cudaOptixRayBuff, &rays);
+
+          rtpBufferDescSetRange(rays, 0, localPacketSize);
+
+          rtpQuerySetRays(query, rays);
+
+          cudaMemset(cudaHitsBuff, 0,  sizeof(gvt::render::data::cuda_primitives::OptixHit)
+        		  * localPacketSize);
+
+          RTPbufferdesc hits;
+          rtpBufferDescCreate(
+              OptixContext::singleton()->context()->getRTPcontext(),
+              RTP_BUFFER_FORMAT_HIT_T_TRIID_U_V, RTP_BUFFER_TYPE_CUDA_LINEAR,
+              cudaHitsBuff, &hits);
+          rtpBufferDescSetRange(hits, 0, optix_hits.size());
+
+          rtpQuerySetHits(query, hits);
+
+          rtpQueryExecute(query,RTP_QUERY_HINT_ASYNC);
+          rtpQueryFinish(query);
+
+
+#ifdef CUDA_OPTIX
+
+          trace(&cudaShade);
+
 
 // temporary to use host preoptix and traceShadows
 
@@ -912,37 +1021,72 @@ struct OptixParallelTrace {
 
 
           for (int i = 0; i < cudaShade.rayCount; i++) {
-              memcpy(&(rayList[i].data[0]), &(cudaRays[i].data[0]), 16 * 4 + 7 * 4);
+			  cudaRayToGvtRay(cudaRays_tmp[i],rayList[i]);
+              //memcpy(&(rayList[i].data[0]), &(cudaRays_tmp[i].data[0]), 16 * 4 + 8 * 4);
             }
 
           delete[] cudaRays_tmp;
 
 
-          //Shadows
-          gvt::render::data::cuda_primitives::Ray *cudaShadowRays_tmp =
-                      new gvt::render::data::cuda_primitives::Ray[cudaShade.shadowRayCount];
+//          //Shadows
+//          gvt::render::data::cuda_primitives::Ray *cudaShadowRays_tmp =
+//			  new gvt::render::data::cuda_primitives::Ray[cudaShade.shadowRayCount];
+//
+//		  cudaMemcpy(cudaShadowRays_tmp,shadowRaysBuff,
+//					 sizeof(gvt::render::data::cuda_primitives::Ray) *
+//					 cudaShade.shadowRayCount,
+//					 cudaMemcpyDeviceToHost);
+//
+//		  for (int i = 0; i < cudaShade.shadowRayCount; i++) {
+//			  Ray shadow;
+//			  cudaRayToGvtRay(cudaShadowRays_tmp[i],shadow);
+//			  //memcpy(&(shadow.data[0]), &(cudaShadowRays_tmp[i].data[0]), 16 * 4 + 8 * 4);
+//			  shadowRays.push_back(shadow);
+//			}
+//
+//		  delete[] cudaShadowRays_tmp;
 
-                  cudaMemcpy(cudaShadowRays_tmp,shadowRaysBuff,
-                             sizeof(gvt::render::data::cuda_primitives::Ray) *
-                             cudaShade.shadowRayCount,
-                             cudaMemcpyDeviceToHost);
+
+//
+//		  bool * validHost = new bool[localPacketSize];
+//			//valid
+//			cudaMemcpy(&valid[0],validBuff,
+//			sizeof(bool)*localPacketSize,
+//			cudaMemcpyDeviceToHost);
+//
+//
+//			validRayLeft = false;
+//			for (int i = 0; i < localPacketSize; i++){
+//				//valid.at(i)=validHost[i];
+//				if (valid[i]){
+//					validRayLeft = true;
+//					break;
+//				}
+//			}
+
+			//dispatch
+			int* disp = new int[cudaShade.dispatchCount];
+			cudaMemcpy(&disp[0],dispatchBuff,sizeof(int)*
+					cudaShade.dispatchCount,
+			cudaMemcpyDeviceToHost);
+
+			for (int i = 0; i < cudaShade.dispatchCount; i++) {
+				localDispatch.push_back(rayList[disp[i]]);
+			}
+
+			delete[] disp;
 
 
-                  for (int i = 0; i < cudaShade.shadowRayCount; i++) {
-                	  Ray shadow;
-                      memcpy(&(shadow.data[0]), &(cudaRays[i].data[0]), 16 * 4 + 7 * 4);
-                      shadowRays.push_back(shadow);
-                    }
-
-                  delete[] cudaShadowRays_tmp;
+			printf("shadow host  %d \n",cudaShade.shadowRayCount);
+			printf("dispatch host  %d \n",cudaShade.dispatchCount);
 
 
-          //valid
-          cudaMemcpy(&valid[0],validBuff,
-        		  localPacketSize,
-                              cudaMemcpyDeviceToHost);
+			printf("Tracing shadows\n");
 
-          //dispatch
+			cudaShade.dispatchCount=0;
+			traceShadowRays( cudaShade);
+
+			printf("dispatch host  %d \n",cudaShade.dispatchCount);
 
 
 #endif
@@ -953,10 +1097,14 @@ struct OptixParallelTrace {
                                   optix_hits.size(),
                               cudaMemcpyDeviceToHost);
 
+
+
           for (size_t pi = 0; pi < localPacketSize; pi++) {
             if (valid[pi]) {
               // counter++; // tracks rays processed [atomic]
               auto &r = rayList[localIdx + pi];
+
+
               if (optix_hits[pi].triangle_id >= 0) {
                 // ray has hit something
                 // shadow ray hit something, so it should be dropped
@@ -1007,6 +1155,7 @@ struct OptixParallelTrace {
                 }
                 const Vector4f &normal = manualNormal;
 
+
                 // reduce contribution of the color that the shadow rays get
                 if (r.type == gvt::render::actor::Ray::SECONDARY) {
                   t = (t > 1) ? 1.f / t : t;
@@ -1046,14 +1195,29 @@ struct OptixParallelTrace {
                 // ray is valid, but did not hit anything, so add to dispatch
                 // queue and disable it
                 localDispatch.push_back(r);
+                valid[pi] = false;
               }
             }
           }
 
+      	  printf("shadow host  %d \n",shadowRays.size());
+            	  printf("dispatch host  %d \n",localDispatch.size());
+
+
+              printf("Tracing shadows\n");
+              traceShadowRays( );
+
+        	  printf("dispatch host  %d \n",localDispatch.size());
+
+
 #endif
 
+
+
+
+
           // trace shadow rays generated by the packet
-          traceShadowRays();
+
         }
       }
     }

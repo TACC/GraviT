@@ -44,9 +44,16 @@
 #include "curand_kernel.h"
 #include "OptixMeshAdapter.cuh"
 
-extern "C" void trace( gvt::render::data::cuda_primitives::CudaShade cudaShade);
+extern "C" void trace( gvt::render::data::cuda_primitives::CudaShade* cudaShade);
 
 curandState* set_random_states(dim3 numBlocks,dim3 threadsPerBlock);
+
+void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay* optixrays, bool* valid,
+                  const int localPacketSize, gvt::render::data::cuda_primitives::Ray* rays,
+                   const size_t startIdx, gvt::render::data::cuda_primitives::CudaShade* cudaShade, bool);
+
+
+void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaShade* cudaShade);
 
 /**
  * /////// CUDA shading API
@@ -64,6 +71,7 @@ struct OptixContext {
 
   static OptixContext *singleton() {
     if (!_singleton) {
+    	cudaFree(0);
       _singleton = new OptixContext();
     }
     return _singleton;

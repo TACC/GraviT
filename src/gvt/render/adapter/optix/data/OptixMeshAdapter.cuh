@@ -50,7 +50,7 @@ struct CudaShade {
 	Ray * shadowRays;
 	OptixRay* traceRays;
 	OptixHit* traceHits;
-	Ray* dispatch;
+	int* dispatch;
 	Light* lights;
 	bool* valid;
 	uint nLights;
@@ -58,6 +58,8 @@ struct CudaShade {
 	int shadowRayCount;
 	int dispatchCount;
 	Matrix3f* normi;
+	Matrix4f* minv;
+
 
 
 };
