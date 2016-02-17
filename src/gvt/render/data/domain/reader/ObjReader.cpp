@@ -36,6 +36,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <tiny_obj_loader.h>
+
 using namespace gvt::core::math;
 using namespace gvt::render::data::domain::reader;
 using namespace gvt::render::data::primitives;
@@ -63,40 +65,123 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
 
 ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
 
-  GVT_ASSERT(filename.size() > 0, "Invalid filename");
-  std::fstream file;
-  file.open(filename.c_str());
-  GVT_ASSERT(file.good(), "Error loading obj file " << filename);
+  // GVT_ASSERT(filename.size() > 0, "Invalid filename");
+  // std::fstream file;
+  // file.open(filename.c_str());
+  // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  objMesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 0.5, 1.0)));
+  objMesh = new Mesh(new Lambert(Vector4f(0.8, 0.8, 0.8, 1.0)));
 
-  while (file.good()) {
-    std::string line;
-    std::getline(file, line);
+  // while (file.good()) {
+  //   std::string line;
+  //   std::getline(file, line);
+  //
+  //   if (line.find("#") == 0) continue;
+  //
+  //   if (line.find("v") == 0) {
+  //     parseVertex(line);
+  //     continue;
+  //   }
+  //   if (line.find("vn") == 0) {
+  //     parseVertexNormal(line);
+  //     continue;
+  //   }
+  //   if (line.find("vt") == 0) {
+  //     parseVertexTexture(line);
+  //     continue;
+  //   }
+  //   if (line.find("f") == 0) {
+  //     parseFace(line);
+  //     continue;
+  //   }
+  // }
 
-    if (line.find("#") == 0)
-      continue;
+  std::size_t found = filename.find_last_of("/");
+  std::string path = filename.substr(0, found + 1);
 
-    if (line.find("v") == 0) {
-      parseVertex(line);
-      continue;
-    }
-    if (line.find("vn") == 0) {
-      parseVertexNormal(line);
-      continue;
-    }
-    if (line.find("vt") == 0) {
-      parseVertexTexture(line);
-      continue;
-    }
-    if (line.find("f") == 0) {
-      parseFace(line);
-      continue;
-    }
+  std::vector<tinyobj::shape_t> shapes;
+  std::vector<tinyobj::material_t> materials;
+
+  // std::vector<pathtr::math::vec3<float> > vertices;
+  // std::vector<pathtr::math::vec3<int> > faces;
+  // std::vector<pathtr::math::vec3<float> > normals;
+  // std::vector<size_t> cindex;
+  // std::vector<pathtr::material> color;
+  // std::vector<size_t> lfaces;
+  // bbox bb;
+
+  std::string err;
+
+  if (!tinyobj::LoadObj(shapes, materials, err, filename.c_str(), path.c_str())) {
+    std::cerr << err << std::endl;
+    exit(1);
   }
 
-  if (computeNormals)
-    objMesh->generateNormals();
+  // color.resize(materials.size());
+  // ;
+  // for (size_t i = 0; i < materials.size(); i++) {
+  //   pathtr::material &m = color[i];
+  //   if (materials[i].name.find("light") != std::string::npos) {
+  //     m._light = true;
+  //   }
+  //
+  //   m.illum = materials[i].illum;
+  //
+  //   m.ambient = pathtr::rgb(materials[i].ambient[0], materials[i].ambient[1], materials[i].ambient[2]);
+  //   m.diffuse = pathtr::rgb(materials[i].diffuse[0], materials[i].diffuse[1], materials[i].diffuse[2]);
+  //   m.specular = pathtr::rgb(materials[i].specular[0], materials[i].specular[1], materials[i].specular[2]);
+  //   m.transmittance =
+  //       pathtr::rgb(materials[i].transmittance[0], materials[i].transmittance[1], materials[i].transmittance[2]);
+  //   m.emission = pathtr::rgb(materials[i].emission[0], materials[i].emission[1], materials[i].emission[2]);
+  //   m.shininess = materials[i].shininess;
+  //   m.ior = materials[i].ior;
+  //   m.dissolve = materials[i].dissolve;
+  // }
+
+  size_t vertices_offset = 0;
+
+  for (size_t i = 0; i < shapes.size(); i++) {
+
+    for (size_t v = 0; v < shapes[i].mesh.positions.size() / 3; v++) {
+
+      objMesh->vertices.push_back(Point4f(shapes[i].mesh.positions[3 * v + 0], shapes[i].mesh.positions[3 * v + 1],
+                                          shapes[i].mesh.positions[3 * v + 2]));
+
+      objMesh->boundingBox.expand(objMesh->vertices[objMesh->vertices.size() - 1]);
+
+      if (!shapes[i].mesh.normals.empty()) {
+        Vector4f n(shapes[i].mesh.normals[3 * v + 0], shapes[i].mesh.normals[3 * v + 1],
+                   shapes[i].mesh.normals[3 * v + 2], 0);
+
+        n.normalize();
+
+        objMesh->normals.push_back(n);
+      }
+    }
+
+    for (size_t f = 0; f < shapes[i].mesh.indices.size() / 3; f++) {
+      objMesh->faces.push_back(Mesh::Face(vertices_offset + shapes[i].mesh.indices[3 * f + 0],
+                                          vertices_offset + shapes[i].mesh.indices[3 * f + 1],
+                                          vertices_offset + shapes[i].mesh.indices[3 * f + 2]));
+
+      // size_t midx = shapes[i].mesh.material_ids[f];
+      // cindex.push_back(midx);
+      // if (color[midx].light()) {
+      //   lfaces.push_back(faces.size() - 1);
+      // }
+    }
+
+    vertices_offset += shapes[i].mesh.positions.size() / 3;
+  }
+
+  computeNormals = (objMesh->normals.size() == objMesh->vertices.size());
+  std::cout << "Found : " << objMesh->vertices.size() << " vertices" << std::endl;
+  std::cout << "Found : " << objMesh->normals.size() << " normals" << std::endl;
+  std::cout << "Found : " << objMesh->faces.size() << " normals" << std::endl;
+  std::cout << "Bound : " << objMesh->boundingBox.bounds[0] << " x " << objMesh->boundingBox.bounds[1] << std::endl;
+  std::cout << "Center : " << ((objMesh->boundingBox.bounds[0] + objMesh->boundingBox.bounds[1]) * .5f) << std::endl;
+
+  if (computeNormals) objMesh->generateNormals();
   objMesh->computeBoundingBox();
 }
 

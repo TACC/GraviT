@@ -628,9 +628,7 @@ struct mantaParallelTrace {
           for (size_t pi = 0; pi < localPacketSize; ++pi) {
             auto &r = rayList[localIdx + pi];
 
-            if (valid[pi] && mRays.wasHit(pi))
-            // if (mRays.wasHit(pi))
-            {
+            if (valid[pi] && mRays.wasHit(pi)) {
               // shadow ray hit something, so it should be dropped
               if (r.type == gvt::render::actor::Ray::SHADOW) {
                 continue;
@@ -792,8 +790,7 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
       std::max((size_t)1, (size_t)(rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
   GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: trace: instNode: "
-                            << instNode.UUID().toString() << ", rays: " << rayList.size()
-                            << ", workSize: " << workSize
+                            << instNode.UUID().toString() << ", rays: " << rayList.size() << ", workSize: " << workSize
                             << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
 
   // pull out information out of the database, create local structs that will be passed into the parallel struct

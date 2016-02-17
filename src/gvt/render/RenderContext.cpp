@@ -68,9 +68,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("parallelScale");
     n += gvt::core::CoreContext::createNode("nearPlane");
     n += gvt::core::CoreContext::createNode("farPlane");
-  }
-
-  else if (type == String("Dataset")) // TODO: remove dataset db entries
+  } else if (type == String("Dataset")) // TODO: remove dataset db entries
   {
     GVT_DEBUG(DBG_ALWAYS, "renderctx: db: ERROR: should not be creating a Dataset type");
     n += gvt::core::CoreContext::createNode("schedule");
@@ -85,9 +83,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n["Views"] += gvt::core::CoreContext::createNodeFromType("View");
     n += gvt::core::CoreContext::createNode("renderType", "surface");
     n += gvt::core::CoreContext::createNode("schedule", "Image");
-  }
-
-  else if (type == String("Mesh")) {
+  } else if (type == String("Mesh")) {
     n += gvt::core::CoreContext::createNode("file");
     n += gvt::core::CoreContext::createNode("ptr");
     n += gvt::core::CoreContext::createNode("bbox");

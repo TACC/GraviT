@@ -71,7 +71,7 @@ if (GVT_RENDER)
 	option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
 	option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
 	add_definitions(-DGVT_RENDER)
-endif(GVT_RENDER) 
+endif(GVT_RENDER)
 
 
 
@@ -103,7 +103,7 @@ if(GVT_MPE)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
 endif(GVT_MPE)
 # the compiler is ususally set through environment vars outside the cmake file
-# so this is redundant. CMake detects the compiler. 
+# so this is redundant. CMake detects the compiler.
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
 set(GVT_VECTOR_TARGET "AVX" CACHE STRING "Target Vector ISA on host (SSE,AVX,AVX2)")
 mark_as_advanced(GVT_USE_ICC)
@@ -300,7 +300,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
 		)
-	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
@@ -336,7 +336,7 @@ if (GVT_CORE)
     set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
 	add_library(gvtCore STATIC
-		${GVT_CORE_HDRS} 
+		${GVT_CORE_HDRS}
 		${GVT_CORE_SRCS}
 		)
 
@@ -350,10 +350,12 @@ endif(GVT_CORE)
 
 
 if (GVT_RENDER)
-	# TODO: PlyReader in gvtRender requires Manta, 
+	# TODO: PlyReader in gvtRender requires Manta,
 	#       should only need Manta if including Manta adapter
 	find_package(Manta REQUIRED)
-	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${MANTA_TARGET_LINK_LIBRARIES}) 
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${MANTA_TARGET_LINK_LIBRARIES})
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader)
+  include_directories(${TINYOBJPATH})
 
 	##include TinyObjLoader into libs
 	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${TINYOBJPATH}/lib/libtinyobjloader.a) 
@@ -362,7 +364,7 @@ if (GVT_RENDER)
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES})
-	
+
     if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
     	find_package(CUDA REQUIRED)
     	find_package(OptiX REQUIRED)
@@ -390,7 +392,7 @@ if (GVT_RENDER)
 	endif(GVT_RENDER_ADAPTER_EMBREE)
 
 	add_library(gvtRender STATIC
-		${GVT_CORE_HDRS} 
+		${GVT_CORE_HDRS}
 		${GVT_CORE_SRCS}
 		${GVT_RENDER_HDRS}
 		${GVT_RENDER_SRCS}
@@ -459,7 +461,7 @@ if (GVT_PLY_APP)
 	find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
 	set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_LIBRARIES})
-	set(GVTPLY_RENDER_SRCS ${GVTPLY_RENDER_SRCS} 
+	set(GVTPLY_RENDER_SRCS ${GVTPLY_RENDER_SRCS}
 		src/apps/render/PlyApp.cpp
 		${PLYPATH}/ply.c)
 	add_executable(gvtPly ${GVTPLY_RENDER_SRCS})
@@ -508,6 +510,7 @@ if (GVT_GLRENDER_APP)
 	set(GVTGLAPP_RENDER_SRCS ${GVTGLAPP_RENDER_SRCS}
 		src/apps/render/ConfigFileLoader.cpp
 		src/apps/render/GLTrace.cpp
+                ${PLYPATH}/ply.c
 		)
 
 	add_executable(glTracer
@@ -521,4 +524,3 @@ if (GVT_GLRENDER_APP)
 		RUNTIME DESTINATION bin
 		)
 endif(GVT_GLRENDER_APP)
-

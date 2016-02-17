@@ -39,8 +39,8 @@ namespace schedule {
 namespace hybrid {
 /// hybrid schedule that distributes requested data across available processes, sorted by number of pending rays
 /** This schedule allocates requested domains that have high ray demand to availalbe processes,
- where a process is 'available' if none of its loaded data is currently requested by any ray. 
- This takes the SpreadSchedule logic and sorts the homeless domains by number of pending rays 
+ where a process is 'available' if none of its loaded data is currently requested by any ray.
+ This takes the SpreadSchedule logic and sorts the homeless domains by number of pending rays
  before assigning to available processes.
 
 This schedule has the following issues:
@@ -58,8 +58,7 @@ struct RayWeightedSpreadSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in adaptive schedule");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, int> data2proc;
     std::map<int, int> data2size;
@@ -106,8 +105,7 @@ struct RayWeightedSpreadSchedule : public HybridScheduleBase {
     // could be dupes in the homeless list, so keep track of what's added
     for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
       if (newMap[i] < 0) {
-        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end())
-          homeless.pop_back();
+        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end()) homeless.pop_back();
         if (!homeless.empty()) {
           newMap[i] = homeless.back();
           data2proc[newMap[i]] = i;

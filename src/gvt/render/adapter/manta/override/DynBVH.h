@@ -113,8 +113,12 @@ public:
   static const unsigned int kNumLazyBuildMutexes = 256;
   mutable AtomicCounter nextFree;
 
+  // clang-format off
   // Align each vector (align the vector itself, not the data in it).
-  template <class T, size_t Alignment> struct MANTA_ALIGN(MAXCACHELINESIZE) SpacedVectors { vector<T> v; };
+  template <class T, size_t Alignment> struct MANTA_ALIGN(MAXCACHELINESIZE) SpacedVectors {
+    vector<T> v;
+  };
+  // clang-format on
   mutable MANTA_ALIGN(MAXCACHELINESIZE) SpacedVectors<int, MAXCACHELINESIZE> nodesBeingBuilt[kNumLazyBuildMutexes];
 
   mutable Mutex lazybuild_mutex[kNumLazyBuildMutexes];

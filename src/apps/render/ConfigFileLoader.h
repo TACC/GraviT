@@ -41,17 +41,17 @@ namespace render {
 
 /// GVT configuration file loader
 /** Load scene data from a gvt configuration file. The configuration file
- * contains "scene" information such as camera descriptions, lights,
- * and descriptions of geometric objects in the scene. The components are loaded
- * into a render dataset object. The config file that is read
- * by this class also contains information on which renderer to use. Back end
- * renderers such as Optix and Manta do the actual ray-geometry
- * intersections. The configuration file loader also adapts to object types and
- * uses the appropriate reader class to parse the geometric
- * input. The extension of the file name in the config file is used to select
- * which geometry reader to use. For example an .obj file extension
- * would cause the gvt obj file reader to be used to parse that file.
- * File:   ConfigFileLoader.h
+ contains "scene" information such as camera descriptions, lights,
+ and descriptions of geometric objects in the scene. The components are loaded
+ into a render dataset object. The config file that is read
+ by this class also contains information on which renderer to use. Back end
+ renderers such as Optix and Manta do the actual ray-geometry
+ intersections. The configuration file loader also adapts to object types and
+ uses the appropriate reader class to parse the geometric
+ input. The extension of the file name in the config file is used to select
+ which geometry reader to use. For example an .obj file extension
+ would cause the gvt obj file reader to be used to parse that file.
+ File:   ConfigFileLoader.h
 */
 class ConfigFileLoader {
 public:
@@ -63,21 +63,25 @@ public:
   ConfigFileLoader(const ConfigFileLoader &orig);
   virtual ~ConfigFileLoader();
 
-  enum AccelType { NoAccel, BVH };
+  // clang-format off
+  enum AccelType {
+    NoAccel,
+    BVH
+  };
+  // clang-format on
 
   /** gvt render dataset member function that contains all the scene data,
-   * cameras, lights, objects etc.
+  cameras, lights, objects etc.
   */
   gvt::render::data::Dataset scene;
 
   /**  data member that indicates the type of renderer to use. Options include
-  * but are not limited to
-  * Manta, Optix, and Embree.
+  but are not limited to Manta, Optix, and Embree.
   */
-  int domain_type = 0;    /* default Manta domain */
-                          /**  data member that indicates the type of scheduler to use. The default
-                           * scheduler is the Image scheduler
-                          */
+  int domain_type = 0; /* default Manta domain */
+  /**  data member that indicates the type of scheduler to use. The default
+  scheduler is the Image scheduler
+  */
   int scheduler_type = 0; /* default Image scheduler */
   /**  data member that indicates the type of acceleration structure to use. The
   default scheduler is without acceleration.

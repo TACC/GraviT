@@ -295,7 +295,6 @@ void MantaDomain::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   gvt::core::schedule::asyncExec::instance()->sync();
 //            parallelTrace(this, rayList, moved_rays, rayList.size(),counter)();
 
-
 #ifdef NDEBUG
   std::cout << "Proccessed rays : " << counter << std::endl;
 #else

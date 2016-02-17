@@ -41,14 +41,17 @@ namespace scene {
 */
 class Image {
 public:
-  enum ImageFormat { PPM };
+  // clang-format off
+  enum ImageFormat {
+    PPM
+  };
+  // clang-format on
 
   Image(int w, int h, std::string fn = "gvt_image", ImageFormat f = PPM)
       : width(w), height(h), filename(fn), format(f) {
     int size = 3 * width * height;
     rgb = new unsigned char[size];
-    for (int i = 0; i < size; ++i)
-      rgb[i] = 0;
+    for (int i = 0; i < size; ++i) rgb[i] = 0;
   }
 
   void Add(int pixel, float *buf) {
@@ -63,12 +66,9 @@ public:
     rgb[index + 0] = (unsigned char)(ca.rgba[0] / ca.rgba[3] * 255.f);
     rgb[index + 1] = (unsigned char)(ca.rgba[1] / ca.rgba[3] * 255.f);
     rgb[index + 2] = (unsigned char)(ca.rgba[2] / ca.rgba[3] * 255.f);
-    if (rgb[index + 0] > 255.f)
-      rgb[index + 0] = 255;
-    if (rgb[index + 1] > 255.f)
-      rgb[index + 1] = 255;
-    if (rgb[index + 2] > 255.f)
-      rgb[index + 2] = 255;
+    if (rgb[index + 0] > 255.f) rgb[index + 0] = 255;
+    if (rgb[index + 1] > 255.f) rgb[index + 1] = 255;
+    if (rgb[index + 2] > 255.f) rgb[index + 2] = 255;
   }
 
   void Add(int pixel, ColorAccumulator &ca, float w) {
@@ -81,6 +81,7 @@ public:
   unsigned char *GetBuffer() { return rgb; }
 
   void Write();
+  void clear() { std::memset(rgb, 0, sizeof(char) * 3 * width * height); }
 
   ~Image() { delete[] rgb; }
 

@@ -1,7 +1,11 @@
 tinyobjloader
 =============
 
+[![Join the chat at https://gitter.im/syoyo/tinyobjloader](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/syoyo/tinyobjloader?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![wercker status](https://app.wercker.com/status/495a3bac400212cdacdeb4dd9397bf4f/m "wercker status")](https://app.wercker.com/project/bykey/495a3bac400212cdacdeb4dd9397bf4f)
+
+[![Build status](https://ci.appveyor.com/api/projects/status/tlb421q3t2oyobcn/branch/master?svg=true)](https://ci.appveyor.com/project/syoyo/tinyobjloader/branch/master)
 
 http://syoyo.github.io/tinyobjloader/
 
@@ -13,6 +17,8 @@ Tiny but poweful single file wavefront obj loader written in C++. No dependency 
 What's new
 ----------
 
+* Nov 08, 2015 : Improved API.
+* Jun 23, 2015 : Various fixes and added more projects using tinyobjloader. Thanks many contributors!
 * Mar 03, 2015 : Replace atof() with hand-written parser for robust reading of numeric value. Thanks skurmedel!
 * Feb 06, 2015 : Fix parsing multi-material object
 * Sep 14, 2014 : Add support for multi-material per object/group. Thanks Mykhailo!
@@ -43,6 +49,9 @@ TinyObjLoader is successfully used in ...
 * mallie https://lighttransport.github.io/mallie
 * IBLBaker (Image Based Lighting Baker). http://www.derkreature.com/iblbaker/
 * Stanford CS148 http://web.stanford.edu/class/cs148/assignments/assignment3.pdf
+* Awesome Bump http://awesomebump.besaba.com/about/
+* sdlgl3-wavefront OpenGL .obj viewer https://github.com/chrisliebert/sdlgl3-wavefront
+* pbrt-v3 https://https://github.com/mmp/pbrt-v3
 * Your project here!
 
 Features
@@ -77,10 +86,14 @@ Usage
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
   
-    std::string err = tinyobj::LoadObj(shapes, materials, inputfile.c_str());
+    std::string err;
+    bool ret = tinyobj::LoadObj(shapes, materials, err, inputfile.c_str());
   
-    if (!err.empty()) {
+    if (!err.empty()) { // `err` may contain warning message.
       std::cerr << err << std::endl;
+    }
+
+    if (!ret) {
       exit(1);
     }
 
@@ -120,7 +133,7 @@ Usage
       printf("  material.map_Ka = %s\n", materials[i].ambient_texname.c_str());
       printf("  material.map_Kd = %s\n", materials[i].diffuse_texname.c_str());
       printf("  material.map_Ks = %s\n", materials[i].specular_texname.c_str());
-      printf("  material.map_Ns = %s\n", materials[i].normal_texname.c_str());
+      printf("  material.map_Ns = %s\n", materials[i].specular_highlight_texname.c_str());
       std::map<std::string, std::string>::const_iterator it(materials[i].unknown_parameter.begin());
       std::map<std::string, std::string>::const_iterator itEnd(materials[i].unknown_parameter.end());
       for (; it != itEnd; it++) {

@@ -62,9 +62,9 @@ namespace render {
 namespace algorithm {
 /// work scheduler that strives to keep rays resident and load data domains as needed
 /**
-  The Image scheduler strives to schedule work such that rays remain resident on their 
-  initial process and domains are loaded as necessary to retire those rays. Rays are never 
-  sent to other processes. Domains can be loaded at multiple processes, depending on the 
+  The Image scheduler strives to schedule work such that rays remain resident on their
+  initial process and domains are loaded as necessary to retire those rays. Rays are never
+  sent to other processes. Domains can be loaded at multiple processes, depending on the
   requirements of the rays at each process.
 
   This scheduler can become unbalanced when:
@@ -106,14 +106,22 @@ public:
   }
 
   virtual void operator()() {
-    boost::timer::cpu_timer t_sched;
-    t_sched.start();
+    boost::timer::cpu_timer t_frame;
+    t_frame.start();
     boost::timer::cpu_timer t_trace;
+    t_trace.stop();
+    boost::timer::cpu_timer t_sort;
+    t_sort.stop();
+    boost::timer::cpu_timer t_shuffle;
+    t_shuffle.stop();
+
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
+
+    clearBuffer();
 
     // sort rays into queues
     FilterRaysLocally();
@@ -126,6 +134,7 @@ public:
       instTarget = -1;
       instTargetCount = 0;
 
+      t_sort.resume();
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: selecting next instance, num queues: " << this->queue.size());
       for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
            ++q) {
@@ -134,6 +143,7 @@ public:
           instTarget = q->first;
         }
       }
+      t_sort.stop();
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
       if (instTarget >= 0) {
@@ -146,8 +156,8 @@ public:
         auto it = adapterCache.find(meshNode.UUID());
         if (it != adapterCache.end()) {
           adapter = it->second;
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache["
-                                    << meshNode.UUID().toString() << "], " << (void *)adapter);
+          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
+                                                                             << (void *)adapter);
         }
         if (!adapter) {
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
@@ -198,16 +208,20 @@ public:
         }
 
         GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
+        t_shuffle.resume();
         shuffleRays(moved_rays, instancenodes[instTarget]);
         moved_rays.clear();
+        t_shuffle.stop();
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
     this->gatherFramebuffers(this->rays.size());
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+    std::cout << "image scheduler: select time: " << t_sort.format();
     std::cout << "image scheduler: trace time: " << t_trace.format();
-    std::cout << "image scheduler: sched time: " << t_sched.format();
+    std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
+    std::cout << "image scheduler: frame time: " << t_frame.format();
   }
 };
 }

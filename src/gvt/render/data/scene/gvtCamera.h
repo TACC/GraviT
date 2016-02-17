@@ -37,6 +37,9 @@ namespace render {
 namespace data {
 namespace scene {
 
+#define RIGHT_HAND_CAMERA // OpenGL Standard
+                          //#define LEFT_HAND_CAMERA
+
 /// gvtCameraBase - A base class for GraviT cameras.
 /** The base class contains all the methods and variables common
  *  to all cameras in GraviT. The camera class maintains all the camera state. It
@@ -84,9 +87,17 @@ public:
 
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
-  gvt::core::math::Point4f getEyePoint() { return eye_point; };
-  gvt::core::math::Point4f getFocalPoint() { return focal_point; };
-  gvt::core::math::Vector4f getUpVector() { return up_vector; };
+  // clang-format off
+  gvt::core::math::Point4f getEyePoint() {
+    return eye_point;
+  };
+  gvt::core::math::Point4f getFocalPoint() {
+    return focal_point;
+  };
+  gvt::core::math::Vector4f getUpVector() {
+    return up_vector;
+  };
+  // clang-format on
 
 protected:
   gvt::core::math::AffineTransformMatrix<float> cam2wrld; //!< transform from camera to world coords

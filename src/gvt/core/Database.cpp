@@ -75,14 +75,11 @@ void Database::removeItem(Uuid uuid) {
     GVT_DEBUG_CODE(DBG_LOW, for (it = children->begin(); it != children->end(); it++) std::cerr
                                 << "tree item: " << (*it)->UUID().toString() << std::endl;);
     for (it = children->begin(); it != children->end(); ++it) {
-      if ((*it)->UUID() == uuid)
-        break;
+      if ((*it)->UUID() == uuid) break;
     }
     Uuid puid = cnode->parentUUID();
-    GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " "
-                                                                 << (*it)->UUID().toString());
-    if (it != children->end())
-      children->erase(it);
+    GVT_DEBUG(DBG_LOW, "found tree item to remove from parent: " << (*it)->name() << " " << (*it)->UUID().toString());
+    if (it != children->end()) children->erase(it);
     __nodes.erase(uuid);
     delete cnode;
   } else {
@@ -93,8 +90,7 @@ void Database::removeItem(Uuid uuid) {
 DatabaseNode *Database::getChildByName(Uuid parent, String name) {
   ChildList children = __tree[parent];
   for (ChildList::iterator it = children.begin(); it != children.end(); ++it) {
-    if ((*it)->name() == name)
-      return (*it);
+    if ((*it)->name() == name) return (*it);
   }
   return NULL;
 }
@@ -107,8 +103,7 @@ void Database::print(const Uuid &parent, const int depth, std::ostream &os) {
     return;
   }
   std::string offset = "";
-  for (int i = 0; i < depth; i++)
-    offset += "-";
+  for (int i = 0; i < depth; i++) offset += "-";
   os << offset << pnode->UUID().toString() << " : " << pnode->name() << " : " << pnode->value() << std::endl;
   offset += "-";
   ChildList children = __tree[parent];
@@ -125,8 +120,7 @@ void Database::printTree(const Uuid &parent, const int depth, std::ostream &os) 
     return;
   }
   std::string offset = "";
-  for (int i = 0; i < depth; i++)
-    offset += "-";
+  for (int i = 0; i < depth; i++) offset += "-";
   offset += "|";
   os << offset << pnode->UUID().toString() << " : " << pnode->name() << " : " << pnode->value() << std::endl;
   ChildList children = __tree[parent];
@@ -139,27 +133,23 @@ void Database::printTree(const Uuid &parent, const int depth, std::ostream &os) 
 Variant Database::getValue(Uuid id) {
   Variant val;
   DatabaseNode *node = getItem(id);
-  if (node)
-    val = node->value();
+  if (node) val = node->value();
   return val;
 }
 
 void Database::setValue(Uuid id, Variant val) {
   DatabaseNode *node = getItem(id);
-  if (node)
-    node->setValue(val);
+  if (node) node->setValue(val);
 }
 
 Variant Database::getChildValue(Uuid parent, String child) {
   Variant val;
   DatabaseNode *node = getChildByName(parent, child);
-  if (node)
-    val = node->value();
+  if (node) val = node->value();
   return val;
 }
 
 void Database::setChildValue(Uuid parent, String child, Variant value) {
   DatabaseNode *node = getChildByName(parent, child);
-  if (node)
-    node->setValue(value);
+  if (node) node->setValue(value);
 }

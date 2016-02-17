@@ -42,8 +42,7 @@ using namespace gvt::render::data::scene;
 void Image::Write() {
   gvt::render::algorithm::GVT_COMM comm;
 
-  if (!comm.root())
-    return;
+  if (!comm.root()) return;
 
   std::string ext;
   switch (format) {

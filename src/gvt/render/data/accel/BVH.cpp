@@ -59,7 +59,7 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   // std::vector<int> instanceSetID;
 
   for (auto &node : this->instanceSet) {
-    instanceSetBB.push_back((Box3D*)node["bbox"].value().toULongLong());
+    instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
     instanceSetID.push_back(node["id"].value().toInteger());
   }
 }
@@ -74,8 +74,8 @@ BVH::~BVH() {
 
 void BVH::intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) {
   if (root) {
-    ClosestHit hit;
-    trace(ray, root, hit, isect, 0);
+    // ClosestHit hit;
+    trace(ray, root, /*hit,*/ isect, 0);
   }
 }
 
@@ -212,7 +212,7 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
   return splitPoint;
 }
 
-void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit &hit,
+void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
                 gvt::render::actor::isecDomList &isect, int level) {
 
   float t = std::numeric_limits<float>::max();
@@ -221,9 +221,9 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit
     return;
   }
 
-  if (t > hit.distance) {
-    return;
-  }
+  // if (t > hit.distance) {
+  //   return;
+  // }
 
   int instanceCount = node->numInstances;
 
@@ -246,7 +246,7 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, ClosestHit
     assert(node->leftChild && node->rightChild);
 #endif
     int nextLevel = level + 1;
-    trace(ray, node->leftChild, hit, isect, nextLevel);
-    trace(ray, node->rightChild, hit, isect, nextLevel);
+    trace(ray, node->leftChild, /*hit,*/ isect, nextLevel);
+    trace(ray, node->rightChild, /*hit,*/ isect, nextLevel);
   }
 }

@@ -48,9 +48,10 @@ bool Dataset::intersect(Ray &r, isecDomList &inter) {
   if (dataSetBB.intersect(r) || dataSetBB.inBox(r)) {
     r.t = FLT_MAX;
     if (!acceleration) {
-      BOOST_FOREACH (AbstractDomain *d, domainSet)
-        d->intersect(r, inter);
-
+      // clang-format off
+      BOOST_FOREACH(AbstractDomain * d, domainSet)
+      d->intersect(r, inter);
+      // clang-format on
     } else {
       acceleration->intersect(r, inter);
     }
@@ -59,7 +60,6 @@ bool Dataset::intersect(Ray &r, isecDomList &inter) {
   }
   return false;
 }
-
 
 AbstractDomain *Dataset::getDomain(size_t id) {
   GVT_ASSERT_BACKTRACE(id < domainSet.size(), "Getting domain outside bound");

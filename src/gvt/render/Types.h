@@ -24,15 +24,24 @@
 #ifndef GVT_RENDER_TYPES_H
 #define GVT_RENDER_TYPES_H
 
+// clang-format off
+
 namespace gvt {
 namespace render {
 namespace adapter {
 /// render engine used
-enum RenderType { Volume, Surface, Manta, Optix, Embree, Heterogeneous };
+enum RenderType {
+  Volume,
+  Surface,
+  Manta,
+  Optix,
+  Embree,
+  Heterogeneous
+};
 } // namespace adapter
-/// schedule used
 
 namespace scheduler {
+/// schedule used
 enum ScheduleType {
   Image,
   Domain,
@@ -44,11 +53,17 @@ enum ScheduleType {
 };
 } // namespace scheduler
 
-/// top-level acceleration structure to organize domains within GraviT
 namespace accelerator {
-enum AccelType { NoAccel, BVH };
+/// top-level acceleration structure to organize domains within GraviT
+enum AccelType {
+  NoAccel,
+  BVH
+};
 } // namespace accelerator
 
 } // namespace render
 } // namespace gvt
+
+// clang-format on
+
 #endif // GVT_RENDER_TYPES_H

@@ -5,25 +5,33 @@
 //
 
 //
-// version 0.9.9: Replace atof() with custom parser.
-// version 0.9.8: Fix multi-materials(per-face material ID).
-// version 0.9.7: Support multi-materials(per-face material ID) per
+// version 0.9.15: Change API to handle no mtl file case correctly(#58)
+// version 0.9.14: Support specular highlight, bump, displacement and alpha map(#53)
+// version 0.9.13: Report "Material file not found message" in `err`(#46)
+// version 0.9.12: Fix groups being ignored if they have 'usemtl' just before 'g' (#44)
+// version 0.9.11: Invert `Tr` parameter(#43)
+// version 0.9.10: Fix seg fault on windows.
+// version 0.9.9 : Replace atof() with custom parser.
+// version 0.9.8 : Fix multi-materials(per-face material ID).
+// version 0.9.7 : Support multi-materials(per-face material ID) per
 // object/group.
-// version 0.9.6: Support Ni(index of refraction) mtl parameter.
-//                Parse transmittance material parameter correctly.
-// version 0.9.5: Parse multiple group name.
-//                Add support of specifying the base path to load material file.
-// version 0.9.4: Initial suupport of group tag(g)
-// version 0.9.3: Fix parsing triple 'x/y/z'
-// version 0.9.2: Add more .mtl load support
-// version 0.9.1: Add initial .mtl load support
-// version 0.9.0: Initial
+// version 0.9.6 : Support Ni(index of refraction) mtl parameter.
+//                 Parse transmittance material parameter correctly.
+// version 0.9.5 : Parse multiple group name.
+//                 Add support of specifying the base path to load material file.
+// version 0.9.4 : Initial suupport of group tag(g)
+// version 0.9.3 : Fix parsing triple 'x/y/z'
+// version 0.9.2 : Add more .mtl load support
+// version 0.9.1 : Add initial .mtl load support
+// version 0.9.0 : Initial
 //
 
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <cctype>
 
 #include <string>
 #include <vector>
@@ -34,6 +42,8 @@
 #include "tiny_obj_loader.h"
 
 namespace tinyobj {
+
+#define TINYOBJ_SSCANF_BUFFER_SIZE  (4096)
 
 struct vertex_index {
   int v_idx, vt_idx, vn_idx;
@@ -76,7 +86,7 @@ static inline int fixIndex(int idx, int n) {
 static inline std::string parseString(const char *&token) {
   std::string s;
   token += strspn(token, " \t");
-  int e = strcspn(token, " \t\r");
+  size_t e = strcspn(token, " \t\r");
   s = std::string(token, &token[e]);
   token += e;
   return s;
@@ -184,7 +194,7 @@ static bool tryParseDouble(const char *s, const char *s_end, double *result)
 		while ((end_not_reached = (curr != s_end)) && isdigit(*curr))
 		{
 			// NOTE: Don't use powf here, it will absolutely murder precision.
-			mantissa += static_cast<int>(*curr - 0x30) * pow(10, -read);
+			mantissa += static_cast<int>(*curr - 0x30) * pow(10.0, -read);
 			read++; curr++;
 		}
 	}
@@ -227,7 +237,7 @@ static bool tryParseDouble(const char *s, const char *s_end, double *result)
 	}
 
 assemble:
-	*result = (sign == '+'? 1 : -1) * ldexp(mantissa * pow(5, exponent), exponent);
+	*result = (sign == '+'? 1 : -1) * ldexp(mantissa * pow(5.0, exponent), exponent);
 	return true;
 fail:
 	return false;
@@ -325,7 +335,7 @@ updateVertex(std::map<vertex_index, unsigned int> &vertexCache,
     texcoords.push_back(in_texcoords[2 * i.vt_idx + 1]);
   }
 
-  unsigned int idx = positions.size() / 3 - 1;
+  unsigned int idx = static_cast<unsigned int>(positions.size() / 3 - 1);
   vertexCache[i] = idx;
 
   return idx;
@@ -336,7 +346,10 @@ void InitMaterial(material_t &material) {
   material.ambient_texname = "";
   material.diffuse_texname = "";
   material.specular_texname = "";
-  material.normal_texname = "";
+  material.specular_highlight_texname = "";
+  material.bump_texname = "";
+  material.displacement_texname = "";
+  material.alpha_texname = "";
   for (int i = 0; i < 3; i++) {
     material.ambient[i] = 0.f;
     material.diffuse[i] = 0.f;
@@ -403,12 +416,13 @@ static bool exportFaceGroupToShape(
   return true;
 }
 
-std::string LoadMtl(std::map<std::string, int> &material_map,
-                    std::vector<material_t> &materials,
-                    std::istream &inStream) {
-  std::stringstream err;
+void LoadMtl(std::map<std::string, int> &material_map,
+             std::vector<material_t> &materials,
+             std::istream &inStream) {
 
+  // Create a default material anyway.
   material_t material;
+  InitMaterial(material);
 
   int maxchars = 8192;             // Alloc enough size.
   std::vector<char> buf(maxchars); // Alloc enough size.
@@ -448,7 +462,7 @@ std::string LoadMtl(std::map<std::string, int> &material_map,
       // flush previous material.
       if (!material.name.empty()) {
         material_map.insert(
-            std::pair<std::string, int>(material.name, materials.size()));
+            std::pair<std::string, int>(material.name, static_cast<int>(materials.size())));
         materials.push_back(material);
       }
 
@@ -456,9 +470,13 @@ std::string LoadMtl(std::map<std::string, int> &material_map,
       InitMaterial(material);
 
       // set new mtl name
-      char namebuf[4096];
+      char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 7;
+#ifdef _MSC_VER
+      sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
+#else
       sscanf(token, "%s", namebuf);
+#endif
       material.name = namebuf;
       continue;
     }
@@ -547,7 +565,8 @@ std::string LoadMtl(std::map<std::string, int> &material_map,
     }
     if (token[0] == 'T' && token[1] == 'r' && isSpace(token[2])) {
       token += 2;
-      material.dissolve = parseFloat(token);
+      // Invert value of Tr(assume Tr is in range [0, 1])
+      material.dissolve = 1.0f - parseFloat(token);
       continue;
     }
 
@@ -572,10 +591,38 @@ std::string LoadMtl(std::map<std::string, int> &material_map,
       continue;
     }
 
-    // normal texture
+    // specular highlight texture
     if ((0 == strncmp(token, "map_Ns", 6)) && isSpace(token[6])) {
       token += 7;
-      material.normal_texname = token;
+      material.specular_highlight_texname = token;
+      continue;
+    }
+
+    // bump texture
+    if ((0 == strncmp(token, "map_bump", 8)) && isSpace(token[8])) {
+      token += 9;
+      material.bump_texname = token;
+      continue;
+    }
+
+    // alpha texture
+    if ((0 == strncmp(token, "map_d", 5)) && isSpace(token[5])) {
+      token += 6;
+      material.alpha_texname = token;
+      continue;
+    }
+
+    // bump texture
+    if ((0 == strncmp(token, "bump", 4)) && isSpace(token[4])) {
+      token += 5;
+      material.bump_texname = token;
+      continue;
+    }
+
+    // displacement texture
+    if ((0 == strncmp(token, "disp", 4)) && isSpace(token[4])) {
+      token += 5;
+      material.displacement_texname = token;
       continue;
     }
 
@@ -585,7 +632,7 @@ std::string LoadMtl(std::map<std::string, int> &material_map,
       _space = strchr(token, '\t');
     }
     if (_space) {
-      int len = _space - token;
+      std::ptrdiff_t len = _space - token;
       std::string key(token, len);
       std::string value = _space + 1;
       material.unknown_parameter.insert(
@@ -594,15 +641,14 @@ std::string LoadMtl(std::map<std::string, int> &material_map,
   }
   // flush last material.
   material_map.insert(
-      std::pair<std::string, int>(material.name, materials.size()));
+      std::pair<std::string, int>(material.name, static_cast<int>(materials.size())));
   materials.push_back(material);
-
-  return err.str();
 }
 
-std::string MaterialFileReader::operator()(const std::string &matId,
-                                           std::vector<material_t> &materials,
-                                           std::map<std::string, int> &matMap) {
+bool MaterialFileReader::operator()(const std::string &matId,
+                                    std::vector<material_t> &materials,
+                                    std::map<std::string, int> &matMap,
+                                    std::string& err) {
   std::string filepath;
 
   if (!m_mtlBasePath.empty()) {
@@ -612,21 +658,29 @@ std::string MaterialFileReader::operator()(const std::string &matId,
   }
 
   std::ifstream matIStream(filepath.c_str());
-  return LoadMtl(matMap, materials, matIStream);
+  LoadMtl(matMap, materials, matIStream);
+  if (!matIStream) {
+    std::stringstream ss;
+    ss << "WARN: Material file [ " << filepath << " ] not found. Created a default material.";
+    err += ss.str();
+  }
+  return true;
 }
 
-std::string LoadObj(std::vector<shape_t> &shapes,
-                    std::vector<material_t> &materials, // [output]
-                    const char *filename, const char *mtl_basepath) {
+bool LoadObj(std::vector<shape_t> &shapes, // [output]
+             std::vector<material_t> &materials, // [output]
+             std::string &err,
+             const char *filename, const char *mtl_basepath) {
 
   shapes.clear();
 
-  std::stringstream err;
+  std::stringstream errss;
 
   std::ifstream ifs(filename);
   if (!ifs) {
-    err << "Cannot open file [" << filename << "]" << std::endl;
-    return err.str();
+    errss << "Cannot open file [" << filename << "]" << std::endl;
+    err = errss.str();
+    return false;
   }
 
   std::string basePath;
@@ -635,13 +689,14 @@ std::string LoadObj(std::vector<shape_t> &shapes,
   }
   MaterialFileReader matFileReader(basePath);
 
-  return LoadObj(shapes, materials, ifs, matFileReader);
+  return LoadObj(shapes, materials, err, ifs, matFileReader);
 }
 
-std::string LoadObj(std::vector<shape_t> &shapes,
-                    std::vector<material_t> &materials, // [output]
-                    std::istream &inStream, MaterialReader &readMatFn) {
-  std::stringstream err;
+bool LoadObj(std::vector<shape_t> &shapes, // [output]
+             std::vector<material_t> &materials, // [output]
+             std::string& err,
+             std::istream &inStream, MaterialReader &readMatFn) {
+  std::stringstream errss;
 
   std::vector<float> v;
   std::vector<float> vn;
@@ -729,9 +784,9 @@ std::string LoadObj(std::vector<shape_t> &shapes,
       std::vector<vertex_index> face;
       while (!isNewLine(token[0])) {
         vertex_index vi =
-            parseTriple(token, v.size() / 3, vn.size() / 3, vt.size() / 2);
+            parseTriple(token, static_cast<int>(v.size() / 3), static_cast<int>(vn.size() / 3), static_cast<int>(vt.size() / 2));
         face.push_back(vi);
-        int n = strspn(token, " \t\r");
+        size_t n = strspn(token, " \t\r");
         token += n;
       }
 
@@ -743,16 +798,22 @@ std::string LoadObj(std::vector<shape_t> &shapes,
     // use mtl
     if ((0 == strncmp(token, "usemtl", 6)) && isSpace((token[6]))) {
 
-      char namebuf[4096];
+      char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 7;
+#ifdef _MSC_VER
+      sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
+#else
       sscanf(token, "%s", namebuf);
+#endif
 
       // Create face group per material.
       bool ret = exportFaceGroupToShape(shape, vertexCache, v, vn, vt,
                                         faceGroup, material, name, true);
       if (ret) {
-        faceGroup.clear();
+          shapes.push_back(shape);
       }
+      shape = shape_t();
+      faceGroup.clear();
 
       if (material_map.find(namebuf) != material_map.end()) {
         material = material_map[namebuf];
@@ -766,14 +827,21 @@ std::string LoadObj(std::vector<shape_t> &shapes,
 
     // load mtl
     if ((0 == strncmp(token, "mtllib", 6)) && isSpace((token[6]))) {
-      char namebuf[4096];
+      char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 7;
+#ifdef _MSC_VER
+      sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
+#else
       sscanf(token, "%s", namebuf);
+#endif
 
-      std::string err_mtl = readMatFn(namebuf, materials, material_map);
-      if (!err_mtl.empty()) {
+      std::string err_mtl;
+      bool ok = readMatFn(namebuf, materials, material_map, err_mtl);
+      err += err_mtl;
+      
+      if (!ok) {
         faceGroup.clear(); // for safety
-        return err_mtl;
+        return false;
       }
 
       continue;
@@ -828,9 +896,13 @@ std::string LoadObj(std::vector<shape_t> &shapes,
       shape = shape_t();
 
       // @todo { multiple object name? }
-      char namebuf[4096];
+      char namebuf[TINYOBJ_SSCANF_BUFFER_SIZE];
       token += 2;
+#ifdef _MSC_VER
+      sscanf_s(token, "%s", namebuf, (unsigned)_countof(namebuf));
+#else
       sscanf(token, "%s", namebuf);
+#endif
       name = std::string(namebuf);
 
       continue;
@@ -846,6 +918,8 @@ std::string LoadObj(std::vector<shape_t> &shapes,
   }
   faceGroup.clear(); // for safety
 
-  return err.str();
+  err += errss.str();
+  return true;
 }
-}
+
+} // namespace

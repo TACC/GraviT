@@ -35,12 +35,12 @@
 
 /// template for data transforms from source to destination format
 /**
-    template for transforming data between formats, typically used to transform work elements 
-    (e.g. actors, data) between GraviT internal representation and the format required for a 
+    template for transforming data between formats, typically used to transform work elements
+    (e.g. actors, data) between GraviT internal representation and the format required for a
     particular work engine (e.g. Manta, Embree, Optix)
 
-   explicit function template specifications must be defined in the same namespace as the primary 
-   template rather than put all transforms into gvt::core::data, making primary template a macro 
+   explicit function template specifications must be defined in the same namespace as the primary
+   template rather than put all transforms into gvt::core::data, making primary template a macro
    that can be included at the top of each specialization inside its resepctive namespace
 */
 

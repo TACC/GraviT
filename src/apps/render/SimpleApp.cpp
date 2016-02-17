@@ -42,6 +42,9 @@
 #include <gvt/render/data/Domains.h>
 #include <gvt/render/Schedulers.h>
 
+#include <tbb/task_scheduler_init.h>
+#include <thread>
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -81,6 +84,8 @@ using namespace gvt::render::data::primitives;
 void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
+
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
@@ -261,7 +266,7 @@ int main(int argc, char **argv) {
   // TODO: schedule db design could be modified a bit
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "conesched", root.UUID());
   schedNode["type"] = gvt::render::scheduler::Image;
-  //schedNode["type"] = gvt::render::scheduler::Domain;
+// schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -333,8 +338,7 @@ int main(int argc, char **argv) {
   MPE_Log_sync_clocks();
 // MPE_Finish_log("gvtSimplelog");
 #endif
-  if (MPI::COMM_WORLD.Get_size() > 1)
-    MPI_Finalize();
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 
 // bvh intersection list test

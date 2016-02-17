@@ -63,7 +63,6 @@ static std::atomic<size_t> counter(0);
 
 // bool OptixMeshAdapter::init = false;
 
-
 struct OptixRay {
   float origin[3];
   float t_min;
@@ -111,8 +110,7 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
     for (int i = 0; i < devCount; i++) {
       cudaGetDeviceProperties(&prop, i);
-      if (prop.kernelExecTimeoutEnabled == 0)
-        activeDevices.push_back(i);
+      if (prop.kernelExecTimeoutEnabled == 0) activeDevices.push_back(i);
       // Oversubcribe the GPU
       packetSize = prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor;
     }
@@ -134,31 +132,36 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
   std::vector<std::future<void> > _tasks;
 
+  // clang-format off
   for (int i = 0; i < numVerts; i += offset_verts) {
     _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
-      for (int jj = ii; jj < end && jj < numVerts; jj++) {
-        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
-        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
-        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
-      }
-    }, i, i + offset_verts));
+                                                      for (int jj = ii; jj < end && jj < numVerts; jj++) {
+                                                        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+                                                        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+                                                        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+                                                      }
+                                                    },
+                                i, i + offset_verts));
   }
+  // clang-format on
 
   const int offset_tris = 100; // numTris / std::thread::hardware_concurrency();
 
+  // clang-format off
   for (int i = 0; i < numTris; i += offset_tris) {
     _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
-      for (int jj = ii; jj < end && jj < numTris; jj++) {
-        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
-        faces[jj * 3 + 0] = f.get<0>();
-        faces[jj * 3 + 1] = f.get<1>();
-        faces[jj * 3 + 2] = f.get<2>();
-      }
-    }, i, i + offset_tris));
+                                                      for (int jj = ii; jj < end && jj < numTris; jj++) {
+                                                        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+                                                        faces[jj * 3 + 0] = f.get<0>();
+                                                        faces[jj * 3 + 1] = f.get<1>();
+                                                        faces[jj * 3 + 2] = f.get<2>();
+                                                      }
+                                                    },
+                                i, i + offset_tris));
   }
+  // clang-format on
 
-  for (auto &f : _tasks)
-    f.wait();
+  for (auto &f : _tasks) f.wait();
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
@@ -355,8 +358,7 @@ struct OptixParallelTrace {
    */
   void traceShadowRays() {
     ::optix::prime::Query query = adapter->getScene()->createQuery(RTP_QUERY_TYPE_CLOSEST);
-    if (!query.isValid())
-      return;
+    if (!query.isValid()) return;
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
       const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
@@ -650,8 +652,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
 
-  if (_end == 0)
-    _end = rayList.size();
+  if (_end == 0) _end = rayList.size();
 
   this->begin = _begin;
   this->end = _end;
@@ -714,8 +715,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
     }));
   }
 
-  for (auto &t : _tasks)
-    t.wait();
+  for (auto &t : _tasks) t.wait();
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());

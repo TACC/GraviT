@@ -68,14 +68,16 @@ namespace data {
 
 GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
 
+    // clang-format off
     /// return a Manta-compliant 4-float vector
     template <>
-    struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f> {
+struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f> {
 
   static inline Manta::Vec4f transform(const gvt::core::math::Vector4f &r) {
     return Manta::Vec4f(r[0], r[1], r[2], r[3]);
   }
 };
+// clang-format on
 
 /// return a Manta-compliant 4-float vector
 template <> struct transform_impl<gvt::core::math::Point4f, Manta::Vec4f> {

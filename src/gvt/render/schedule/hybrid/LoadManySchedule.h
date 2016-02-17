@@ -26,8 +26,8 @@
  * Author: pnav
  *
  * if a domain has a bunch of rays, add the domain to an empty process.
- * this starts with the adaptive LoadOnce and keeps assigning a domain to procs until the 
- * expected value is under a threshold so at present, it adds the domain to a process that 
+ * this starts with the adaptive LoadOnce and keeps assigning a domain to procs until the
+ * expected value is under a threshold so at present, it adds the domain to a process that
  * has the most rays pending, which might or might not be a domain already loaded (PAN - 20130710)
  *
  * Created on February 4, 2014, 3:41 PM
@@ -54,7 +54,7 @@ can load multiple copies in an effort to distribute high ray load more broadly a
 This schedule has the following issues:
     - the thresholding for multiple loads should be improved, perhaps adapted according to total ray state
     - schedule will prefer the domain with most rays pending even if other domains have nearly as many
-    - schedule can load many copies of data which might not be needed in subsequent processing steps, 
+    - schedule can load many copies of data which might not be needed in subsequent processing steps,
     increasing data loads
 
 \sa LoadAnotherSchedule, LoadOnceSchedule, LoadAnyOnceSchedule
@@ -68,15 +68,14 @@ struct LoadManySchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in LoadMany schedule");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, int> data2proc;
     std::map<int, int> data2size;
     std::map<int, int> size2data;
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
-        // add currently loaded data. this will evict previous entries. 
+        // add currently loaded data. this will evict previous entries.
         // that's okay since we don't want to dup data,
         // we want to reset the map to only one proc per domain unless pending rays demand more
         data2proc[map_recv_bufs[s][0]] = data2proc[map_recv_bufs[s][0]] + s;

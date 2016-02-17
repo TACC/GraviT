@@ -38,9 +38,9 @@ namespace render {
 namespace schedule {
 namespace hybrid {
 /// hybrid schedule that attempts to load domains that have high demand
-/** This schedule attempts to load domains that have high ray demand to any available processes, 
-where a process is 'available' if none of its loaded data is currently requested by any ray. 
-This schedule checks whether the domain is already loaded at a process, and if so, 
+/** This schedule attempts to load domains that have high ray demand to any available processes,
+where a process is 'available' if none of its loaded data is currently requested by any ray.
+This schedule checks whether the domain is already loaded at a process, and if so,
 does not load it again.
 
 \sa LoadAnotherSchedule, LoadAnyOnceSchedule, LoadManySchedule
@@ -54,8 +54,7 @@ struct LoadOnceSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
     GVT_DEBUG(DBG_LOW, "in LoadOnce schedule");
-    for (int i = 0; i < size; ++i)
-      newMap[i] = -1;
+    for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     std::map<int, int> data2proc;
     std::map<int, int> data2size;
@@ -102,8 +101,7 @@ struct LoadOnceSchedule : public HybridScheduleBase {
     // could be dupes in the homeless list, so keep track of what's added
     for (int i = 0; (i < size) & (!homeless.empty()); ++i) {
       if (newMap[i] < 0) {
-        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end())
-          homeless.pop_back();
+        while (!homeless.empty() && data2proc.find(homeless.back()) != data2proc.end()) homeless.pop_back();
         if (!homeless.empty()) {
           newMap[i] = homeless.back();
           data2proc[newMap[i]] = i;

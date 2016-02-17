@@ -88,9 +88,10 @@ public:
     gvt::core::math::Vector3f z = viewDir;      // this is where the z axis should end up
     const gvt::core::math::Vector3f &y = upDir; // where the y axis should end up
     gvt::core::math::Vector3f x = y ^ z;        // lah,
+    // clang-format off
     m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
-                                                      0.f, 0.f, 0.f, 0.f, 1.f)
-            .transpose();
+                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
+    // clang-format on
     update();
   }
 
@@ -102,10 +103,12 @@ public:
     focus = lookAt;
     gvt::core::math::Vector3f z = -(lookAt - eyePos).normalize(); // this is where the z axis should end up
     const gvt::core::math::Vector3f y = upDir;                    // where the y axis should end up
-    gvt::core::math::Vector3f x = (y ^ z).normalize();            // lah,
+    gvt::core::math::Vector3f x = (y ^ z).normalize();
+
+    // clang-format off
     m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
-                                                      0.f, 0.f, 0.f, 0.f, 1.f)
-            .transpose();
+                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
+    // clang-format on
     update();
     // const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
   }

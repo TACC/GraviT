@@ -54,8 +54,7 @@ void AbstractDomain::marchIn(gvt::render::actor::Ray &ray) {
   float t = FLT_MAX;
   ray.setDirection(-ray.direction);
   while (wBox.inBox(ray.origin)) {
-    if (wBox.intersectDistance(ray, t))
-      ray.origin += ray.direction * t;
+    if (wBox.intersectDistance(ray, t)) ray.origin += ray.direction * t;
     ray.origin += ray.direction * gvt::render::actor::Ray::RAY_EPSILON;
   }
   ray.setDirection(-ray.direction);
@@ -65,8 +64,7 @@ void AbstractDomain::marchOut(gvt::render::actor::Ray &ray) {
   gvt::render::data::primitives::Box3D wBox = getWorldBoundingBox();
   float t = FLT_MAX;
 
-  if (wBox.intersectDistance(ray, t))
-    ray.origin += ray.direction * t;
+  if (wBox.intersectDistance(ray, t)) ray.origin += ray.direction * t;
   while (wBox.intersectDistance(ray, t)) {
     ray.origin += ray.direction * t;
     ray.origin += ray.direction * gvt::render::actor::Ray::RAY_EPSILON;
