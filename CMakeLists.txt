@@ -67,7 +67,6 @@ if (GVT_RENDER)
 	option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
 	option(GVT_SIMPLE_APP			"Build the simple application" ON)
-	option(GVT_OBJLOADER_APP			"Build the obj loader application" ON)
 	option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
 	option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
 	add_definitions(-DGVT_RENDER)
@@ -216,7 +215,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/domain/GeometryDomain.h
 	src/gvt/render/data/domain/reader/ObjReader.h
 	src/gvt/render/data/domain/reader/PlyReader.h
-	src/gvt/render/data/domain/reader/TinyObjReaderAdapter.h
+#	src/gvt/render/data/domain/reader/TinyObjReaderAdapter.h
 	src/gvt/render/data/Domains.h
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
@@ -244,7 +243,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/schedule/ImageScheduler.h
 	src/gvt/render/Schedulers.h
 	src/gvt/render/Types.h
-	
+
 	)
 
 
@@ -258,7 +257,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/domain/GeometryDomain.cpp
 	src/gvt/render/data/domain/reader/ObjReader.cpp
 	src/gvt/render/data/domain/reader/PlyReader.cpp
-	src/gvt/render/data/domain/reader/TinyObjReaderAdapter.cpp
+#	src/gvt/render/data/domain/reader/TinyObjReaderAdapter.cpp
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
@@ -358,9 +357,9 @@ if (GVT_RENDER)
   include_directories(${TINYOBJPATH})
 
 	##include TinyObjLoader into libs
-	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${TINYOBJPATH}/lib/libtinyobjloader.a) 
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${TINYOBJPATH}/libtinyobjloader.a)
 	include_directories(${TINYOBJPATH})
-	
+
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES})
@@ -426,25 +425,25 @@ if (GVT_SIMPLE_APP)
 	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
 endif(GVT_SIMPLE_APP)
 
-if (GVT_OBJLOADER_APP)
-  if (GVT_MPE)
-    if (DEFINED ENV{MPEHOME})
-      set(MPE_HOME_DIR $ENV{MPEHOME})
-      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
-      include_directories(${MPE_INCLUDE_DIR})
-      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
-      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
-      set(GVTOBJ_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB2})
-      set(GVTOBJ_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB1})
-    endif(DEFINED ENV{MPEHOME})
-  endif (GVT_MPE)
-	find_package(MPI REQUIRED)
-	include_directories(${MPI_INCLUDE_PATH})
-	set(GVTOBJ_RENDER_LIBS ${GVTOBJ_RENDER_LIBS}  ${MPI_LIBRARIES})
-	set(GVTOBJ_RENDER_SRCS ${GVTOBJ_RENDER_SRCS} src/apps/render/ObjLoaderApp.cpp)
-	add_executable(gvtObjLoaderApp ${GVTOBJ_RENDER_SRCS})
-	target_link_libraries(gvtObjLoaderApp gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
-endif(GVT_OBJLOADER_APP)
+#if (GVT_OBJLOADER_APP)
+#  if (GVT_MPE)
+#    if (DEFINED ENV{MPEHOME})
+#      set(MPE_HOME_DIR $ENV{MPEHOME})
+#      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+#      include_directories(${MPE_INCLUDE_DIR})
+#      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+#      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+#      set(GVTOBJ_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB2})
+#      set(GVTOBJ_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPE_LIB1})
+#    endif(DEFINED ENV{MPEHOME})
+#  endif (GVT_MPE)
+#	find_package(MPI REQUIRED)
+#	include_directories(${MPI_INCLUDE_PATH})
+#	set(GVTOBJ_RENDER_LIBS ${GVTOBJ_RENDER_LIBS}  ${MPI_LIBRARIES})
+#	set(GVTOBJ_RENDER_SRCS ${GVTOBJ_RENDER_SRCS} src/apps/render/ObjLoaderApp.cpp)
+#	add_executable(gvtObjLoaderApp ${GVTOBJ_RENDER_SRCS})
+#	target_link_libraries(gvtObjLoaderApp gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
+#endif(GVT_OBJLOADER_APP)
 
 if (GVT_PLY_APP)
   if (GVT_MPE)
