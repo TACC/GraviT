@@ -112,7 +112,7 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
 	if (i >= localPacketSize) return;
 
     if (ignoreValid || valid[i]) {
-       Ray &r = rays[startIdx + i];
+       Ray &r = rays[ i];
 
       float4 origin = (*(cudaShade->minv)) * r.origin; // transform ray to local space
       float4 direction = (*(cudaShade->minv)) * r.direction;

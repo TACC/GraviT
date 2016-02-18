@@ -893,9 +893,7 @@ struct OptixParallelTrace {
            gvt::render::data::cuda_primitives::Light *cudaLights =
                cudaGetLights(lights);
 
-           cudaMemcpy(validBuff, &(valid[0]),
-        		   packetSize,
-                                          cudaMemcpyHostToDevice);
+
 
                   gvt::render::data::cuda_primitives::CudaShade& cudaShade =
                 		  *(new   gvt::render::data::cuda_primitives::CudaShade());
@@ -946,6 +944,12 @@ struct OptixParallelTrace {
         printf("localPacketSize: %zu localIdx: %d packetSize: %zu raylistSize: %zu workStart: %zu workEnd: %zu\n",
         		localPacketSize,localIdx, packetSize, rayList.size(), workStart, workEnd);
 
+        memset(&(valid[0]),1,sizeof(bool)*packetSize);
+
+        cudaMemcpy(validBuff, &(valid[0]),
+                		   packetSize,
+                                                  cudaMemcpyHostToDevice);
+
 
         // trace a packet of rays, then keep tracing the generated secondary
         // rays to completion
@@ -961,7 +965,6 @@ struct OptixParallelTrace {
         bool resetValid = true;
 
   		cudaShade.rayCount = localPacketSize;
-
   		gvt::render::actor::RayVector::iterator localRayList = rayList.begin() + localIdx;
 
 
@@ -1229,6 +1232,9 @@ struct OptixParallelTrace {
 
 
 #endif
+
+        	  if (validRayLeft)
+        		  printf("Another loop...");
 
         }
       }
