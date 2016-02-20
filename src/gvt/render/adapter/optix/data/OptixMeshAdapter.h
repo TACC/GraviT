@@ -44,16 +44,16 @@
 #include "curand_kernel.h"
 #include "OptixMeshAdapter.cuh"
 
-extern "C" void trace( gvt::render::data::cuda_primitives::CudaShade* cudaShade);
+void shade( gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
 
 curandState* set_random_states(int N);
 
 void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay* optixrays, bool* valid,
                   const int localPacketSize, gvt::render::data::cuda_primitives::Ray* rays,
-                   const size_t startIdx, gvt::render::data::cuda_primitives::CudaShade* cudaShade, bool);
+                    gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx, bool);
 
 
-void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaShade* cudaShade);
+void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
 
 /**
  * /////// CUDA shading API
@@ -65,14 +65,33 @@ namespace adapter {
 namespace optix {
 namespace data {
 
+
+
 struct OptixContext {
 
-  OptixContext() { optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA); }
+
+  OptixContext() {
+	  //cudaSetDevice(1);
+	  //cudaFree(0);
+
+	  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
+
+  }
+
+  void initCuda(int packetSize){
+	  if (!_cudaGvtCtx){
+	      _cudaGvtCtx = new gvt::render::data::cuda_primitives::CudaGvtContext();
+
+		  //cudaSetDevice(1);
+	      _cudaGvtCtx->initCudaBuffers(packetSize);
+	  }
+  }
 
   static OptixContext *singleton() {
     if (!_singleton) {
-    	cudaFree(0);
+
       _singleton = new OptixContext();
+
     }
     return _singleton;
   };
@@ -81,6 +100,8 @@ struct OptixContext {
 
   static OptixContext *_singleton;
   ::optix::prime::Context optix_context_;
+  gvt::render::data::cuda_primitives::CudaGvtContext* _cudaGvtCtx = NULL;
+
 };
 
 class OptixMeshAdapter : public gvt::render::Adapter {
@@ -126,6 +147,9 @@ public:
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                      gvt::core::DBNodeH instNode, size_t _begin = 0, size_t _end = 0);
 
+
+  gvt::render::data::cuda_primitives::Mesh cudaMesh;
+
 protected:
   /**
    * Handle to Optix context.
@@ -162,6 +186,8 @@ protected:
   unsigned geomId;
 
   size_t begin, end;
+
+
 };
 }
 }

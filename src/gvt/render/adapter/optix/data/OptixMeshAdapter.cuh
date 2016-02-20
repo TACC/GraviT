@@ -36,6 +36,16 @@
 #define CUDA_OPTIX
 //#define CPU_OPTIX
 
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 __device__ float cudaRand( );
 
 namespace gvt {
@@ -44,23 +54,59 @@ namespace data {
 namespace cuda_primitives {
 
 
-struct CudaShade {
-	Mesh mesh;
+struct CudaGvtContext {
+
+	void initCudaBuffers(int packetSize);
+
+	CudaGvtContext* toGPU() {
+
+
+		gpuErrchk(cudaMemcpy(devicePtr, this,
+				sizeof(gvt::render::data::cuda_primitives::CudaGvtContext),
+				cudaMemcpyHostToDevice));
+
+		return (CudaGvtContext*)devicePtr;
+	}
+
+	void toHost() {
+
+
+		gpuErrchk(cudaMemcpy(this, devicePtr,
+					sizeof(gvt::render::data::cuda_primitives::CudaGvtContext),
+					cudaMemcpyDeviceToHost));
+
+	}
+
+	CudaGvtContext* devPtr(){
+		return (CudaGvtContext*)devicePtr;
+	}
+
+
+	//shared, allocated once per runtime
 	Ray * rays;
 	Ray * shadowRays;
 	OptixRay* traceRays;
 	OptixHit* traceHits;
-	int* dispatch;
+	Ray * dispatch;
 	Light* lights;
 	bool* valid;
 	uint nLights;
 	int rayCount;
 	int shadowRayCount;
 	int dispatchCount;
-	Matrix3f* normi;
-	Matrix4f* minv;
+	bool validRayLeft;
 
+	 //per domain, allocated once per Adapter instance
+	 //copied in adapter construct, updated per trace
+	 Mesh mesh;
 
+	 //per instance, allocated once per runtime
+	 //copied per trace
+	 Matrix3f* normi;
+	 Matrix4f* minv;
+
+private:
+	 void * devicePtr;
 
 };
 

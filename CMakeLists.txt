@@ -303,6 +303,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cu
 		src/gvt/render/adapter/optix/data/Light.cu
 		src/gvt/render/adapter/optix/data/Material.cu
+		src/gvt/render/adapter/optix/data/Ray.cu
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
@@ -375,6 +376,7 @@ if (GVT_RENDER)
     	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
     	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
     		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
+                -gencode arch=compute_20,code=sm_20
     		-gencode arch=compute_30,code=sm_30
     		-gencode arch=compute_35,code=sm_35
 		    --compiler-options '-fPIC'

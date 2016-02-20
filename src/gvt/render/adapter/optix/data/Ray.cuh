@@ -22,7 +22,7 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 /*
- * File:   Material.cuh
+ * File:   Ray.cuh
  * Author: Roberto Ribeiro
  *
  * Created on February 4, 2016, 19:00 PM
@@ -86,24 +86,12 @@ class Ray {
 public:
 
 
-
-
 	   __device__ void print(){
 		printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin.x ,  origin.y, origin.z,
 				direction.x   ,direction.y , direction.z);
 	  }
 
-	__device__ void setDirection(float4 dir) {
-		direction = dir;
-	 // dir.w = 0;
-	  //direction = normalize(dir);
-	/*  for (int i = 0; i < 3; i++) {
-	    if (direction[i] != 0)
-	      inverseDirection[i] = 1.0 / direction[i];
-	    else
-	      inverseDirection[i] = 0.;
-	  }*/
-	}
+	__device__ void setDirection(float4 dir);
 
 	typedef enum  {
 	    PRIMARY,
@@ -114,7 +102,6 @@ public:
 	  union {
 		struct {
 
-			//const static float RAY_EPSILON;
 
 			float4 origin;
 			float4 direction;
@@ -133,27 +120,8 @@ public:
 	};
 
 
-
-
-/*   __device__ BaseMaterial(){
-
-  }
-  // __device__ Material(const Material &orig);
-   __device__  virtual ~BaseMaterial(){
-
-  }*/
-
-  /*virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
-                                          const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
-                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray,
-                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
-
-
-*/
-
+	  //just to keep track of the gvt domain list in ray
+	  int mapToHostBufferID;
 
 
 };

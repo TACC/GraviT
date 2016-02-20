@@ -99,14 +99,13 @@ curandState *set_random_states(int rayCount) {
   // setup seeds
   setup_kernel<<<numBlocks, threadsPerBlock>>>(devStates, time(NULL));
 
-  printf("Seeds set for %d threads\n", N);
   return devStates;
 }
 
 __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
                    const int localPacketSize,
                    Ray* rays,
-                   const size_t startIdx, CudaShade* cudaShade, bool ignoreValid) {
+                   CudaGvtContext* cudaGvtCtx, bool ignoreValid) {
 
 	int i = getGlobalIdx_2D_2D();
 	if (i >= localPacketSize) return;
@@ -114,8 +113,8 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
     if (ignoreValid || valid[i]) {
        Ray &r = rays[ i];
 
-      float4 origin = (*(cudaShade->minv)) * r.origin; // transform ray to local space
-      float4 direction = (*(cudaShade->minv)) * r.direction;
+      float4 origin = (*(cudaGvtCtx->minv)) * r.origin; // transform ray to local space
+      float4 direction = (*(cudaGvtCtx->minv)) * r.direction;
 
 
       OptixRay optix_ray;
@@ -135,71 +134,50 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
 
 void cudaPrepOptixRays(OptixRay* optixrays, bool* valid,
                   const int localPacketSize, Ray* rays,
-                   const size_t startIdx, CudaShade* cudaShade,bool ignoreValid) {
+                 CudaGvtContext* cudaGvtCtx,bool ignoreValid) {
 
 		dim3 blockDIM = dim3(16, 16);
 		dim3 gridDIM = dim3((localPacketSize / (blockDIM.x * blockDIM.y)) + 1, 1);\
 
-		gvt::render::data::cuda_primitives::CudaShade * cudaShade_devptr;
-
-			cudaMalloc((void **) &cudaShade_devptr,
-					sizeof(gvt::render::data::cuda_primitives::CudaShade));
-
-			cudaMemcpy(cudaShade_devptr, cudaShade,
-					sizeof(gvt::render::data::cuda_primitives::CudaShade),
-					cudaMemcpyHostToDevice);
-
-		printf("Launching cudaPrepOptixRays..\n");
 
 		cudaKernelPrepOptixRays<<<gridDIM,blockDIM , 0>>>(
-				optixrays,valid,localPacketSize,rays,startIdx,cudaShade_devptr,ignoreValid);
+				optixrays,valid,localPacketSize,rays,
+				cudaGvtCtx->toGPU(),ignoreValid);
 
 }
 
-__global__ void cudaKernelFilterShadow( CudaShade* cudaShade) {
+__global__ void cudaKernelFilterShadow( CudaGvtContext* cudaGvtCtx) {
 
 	int tID = getGlobalIdx_2D_2D();
-	if (tID >= cudaShade->shadowRayCount) return;
+	if (tID >= cudaGvtCtx->shadowRayCount) return;
 
-	 if (cudaShade->traceHits[tID].triangle_id < 0) {
+	 if (cudaGvtCtx->traceHits[tID].triangle_id < 0) {
 	          // ray is valid, but did not hit anything, so add to dispatch queue
-	    	  int a = atomicAdd((int *)&(cudaShade->dispatchCount), 1);
-	        	  cudaShade->dispatch[a]=tID;
+	    	  int a = atomicAdd((int *)&(cudaGvtCtx->dispatchCount), 1);
+	    	  cudaGvtCtx->dispatch[a] = cudaGvtCtx->shadowRays[tID];
+	        //	  cudaGvtCtx->dispatch[a]=tID;
 	        }
 }
 
-void cudaProcessShadows(CudaShade* cudaShade) {
+void cudaProcessShadows(CudaGvtContext* cudaGvtCtx) {
 
 		dim3 blockDIM = dim3(16, 16);
-		dim3 gridDIM = dim3((cudaShade->shadowRayCount / (blockDIM.x * blockDIM.y)) + 1, 1);\
+		dim3 gridDIM = dim3((cudaGvtCtx->shadowRayCount / (blockDIM.x * blockDIM.y)) + 1, 1);\
 
-		gvt::render::data::cuda_primitives::CudaShade * cudaShade_devptr;
+		cudaKernelFilterShadow<<<gridDIM,blockDIM , 0>>>(cudaGvtCtx->toGPU());
 
-			cudaMalloc((void **) &cudaShade_devptr,
-					sizeof(gvt::render::data::cuda_primitives::CudaShade));
-
-			cudaMemcpy(cudaShade_devptr, cudaShade,
-					sizeof(gvt::render::data::cuda_primitives::CudaShade),
-					cudaMemcpyHostToDevice);
-
-		printf("Launching cudaProcessShadows..\n");
-
-		cudaKernelFilterShadow<<<gridDIM,blockDIM , 0>>>(cudaShade_devptr);
-
-		cudaMemcpy(cudaShade, cudaShade_devptr,
-					sizeof(gvt::render::data::cuda_primitives::CudaShade),
-					cudaMemcpyDeviceToHost);
+		cudaGvtCtx->toHost();
 }
 
 
 
 __device__ void generateShadowRays(const Ray &r, const float4 &normal,
-                                   int primID, CudaShade* cudaShade) {
+                                   int primID, CudaGvtContext* cudaGvtCtx) {
 
-  for (int l = 0; l < cudaShade->nLights; l++) {
+  for (int l = 0; l < cudaGvtCtx->nLights; l++) {
 
 
-    Light *light = &(cudaShade->lights[l]);
+    Light *light = &(cudaGvtCtx->lights[l]);
 
     // Try to ensure that the shadow ray is on the correct side of the
     // triangle.
@@ -212,10 +190,10 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     const float4 dir = light->light.position - origin;
     const float t_max = length(dir);
 
-    Ray &shadow_ray = push_back(cudaShade->shadowRays, cudaShade->shadowRayCount);
+    Ray &shadow_ray = push_back(cudaGvtCtx->shadowRays, cudaGvtCtx->shadowRayCount);
 
     shadow_ray.origin = r.origin + r.direction * t_shadow;
-    shadow_ray.direction = dir;
+    shadow_ray.setDirection(dir);
     shadow_ray.w = r.w;
     shadow_ray.type = Ray::SHADOW;
     shadow_ray.depth = r.depth;
@@ -223,7 +201,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.id = r.id;
     shadow_ray.t_max = t_max;
 
-    Color c = cudaShade->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
+    Color c = cudaGvtCtx->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
 
     shadow_ray.color.t = 1.0f;
     shadow_ray.color.rgba[0] = c.x;
@@ -236,17 +214,16 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
 
 
 
-__global__ void
-kernel(gvt::render::data::cuda_primitives::CudaShade* cudaShade) {
+__global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx) {
 
 	int tID = getGlobalIdx_2D_2D();
 
-	if (tID >= cudaShade->rayCount) return;
+	if (tID >= cudaGvtCtx->rayCount) return;
 
-    if (cudaShade->valid[tID]) {
+    if (cudaGvtCtx->valid[tID]) {
       // counter++; // tracks rays processed [atomic]
-      Ray &r = cudaShade->rays[tID];
-      if (cudaShade->traceHits[tID].triangle_id >= 0) {
+      Ray &r = cudaGvtCtx->rays[tID];
+      if (cudaGvtCtx->traceHits[tID].triangle_id >= 0) {
 
 
         // ray has hit something
@@ -256,28 +233,28 @@ kernel(gvt::render::data::cuda_primitives::CudaShade* cudaShade) {
         	return;
         }
 
-        float t = cudaShade->traceHits[tID].t;
+        float t = cudaGvtCtx->traceHits[tID].t;
         r.t = t;
 
         float4 manualNormal;
         {
-          const int triangle_id = cudaShade->traceHits[tID].triangle_id;
+          const int triangle_id = cudaGvtCtx->traceHits[tID].triangle_id;
 #ifndef FLAT_SHADING
-          const float u = cudaShade->traceHits[tID].u;
-          const float v = cudaShade->traceHits[tID].v;
+          const float u = cudaGvtCtx->traceHits[tID].u;
+          const float v = cudaGvtCtx->traceHits[tID].v;
           const int3 &normals =
-        		  cudaShade->mesh.faces_to_normals[triangle_id]; // FIXME: need to
+        		  cudaGvtCtx->mesh.faces_to_normals[triangle_id]; // FIXME: need to
                                                    // figure out
                                                    // to store
           // `faces_to_normals`
           // list
-          const float4 &a =   cudaShade->mesh.normals[normals.x];
-          const float4 &b =   cudaShade->mesh.normals[normals.y];
-          const float4 &c =   cudaShade->mesh.normals[normals.z];
+          const float4 &a =   cudaGvtCtx->mesh.normals[normals.x];
+          const float4 &b =   cudaGvtCtx->mesh.normals[normals.y];
+          const float4 &c =   cudaGvtCtx->mesh.normals[normals.z];
           manualNormal = a * u + b * v + c * (1.0f - u - v);
 
           manualNormal =make_float4(
-              (*(cudaShade->normi)) * make_float3(manualNormal.x,
+              (*(cudaGvtCtx->normi)) * make_float3(manualNormal.x,
             		  manualNormal.y,manualNormal.z));
 
           normalize(manualNormal);
@@ -309,8 +286,8 @@ kernel(gvt::render::data::cuda_primitives::CudaShade* cudaShade) {
           r.w = r.w * t;
         }
 
-        generateShadowRays(r, normal, cudaShade->
-        		traceHits[tID].triangle_id, cudaShade);
+        generateShadowRays(r, normal, cudaGvtCtx->
+        		traceHits[tID].triangle_id, cudaGvtCtx);
         int ndepth = r.depth - 1;
         float p = 1.f - cudaRand();
         // replace current ray with generated secondary ray
@@ -325,53 +302,43 @@ kernel(gvt::render::data::cuda_primitives::CudaShade* cudaShade) {
           r.origin = r.origin + r.direction * t_secondary;
 
 
-         float4 dir = normalize(cudaShade->mesh.mat->material.
+         float4 dir = normalize(cudaGvtCtx->mesh.mat->material.
                   		  CosWeightedRandomHemisphereDirection2(normal));
 
           r.setDirection(dir);
 
           r.w = r.w * (r.direction * normal);
           r.depth = ndepth;
+          if (!cudaGvtCtx->validRayLeft)
+        	  cudaGvtCtx->validRayLeft = true;
 
         } else {
-        	cudaShade->valid[tID] = false;
+        	cudaGvtCtx->valid[tID] = false;
         }
       } else {
         // ray is valid, but did not hit anything, so add to dispatch
-    	  int a = atomicAdd((int *)&(cudaShade->dispatchCount), 1);
-    	  cudaShade->dispatch[a]=tID;
+    	  int a = atomicAdd((int *)&(cudaGvtCtx->dispatchCount), 1);
+    	  cudaGvtCtx->dispatch[a] = r;
+    	  //cudaGvtCtx->dispatch[a]=tID;
 
-    	cudaShade->valid[tID] = false;
+    	cudaGvtCtx->valid[tID] = false;
 
       }
     }
 
 }
 
-extern "C" void trace(
-		gvt::render::data::cuda_primitives::CudaShade* cudaShade) {
+void shade(
+		gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx) {
 
-	gvt::render::data::cuda_primitives::CudaShade * cudaShade_devptr;
-
-	cudaMalloc((void **) &cudaShade_devptr,
-			sizeof(gvt::render::data::cuda_primitives::CudaShade));
-
-	cudaMemcpy(cudaShade_devptr, cudaShade,
-			sizeof(gvt::render::data::cuda_primitives::CudaShade),
-			cudaMemcpyHostToDevice);
-
-	int N= cudaShade->rayCount;
+	int N= cudaGvtCtx->rayCount;
 
 	dim3 blockDIM = dim3(16, 16);
 	dim3 gridDIM = dim3((N / (blockDIM.x * blockDIM.y)) + 1, 1);
 
-	printf("Running shading kernel...\n");
+	kernel<<<gridDIM,blockDIM , 0>>>(cudaGvtCtx->toGPU());
 
-	kernel<<<gridDIM,blockDIM , 0>>>(cudaShade_devptr);
-
-	cudaMemcpy(cudaShade, cudaShade_devptr,
-			sizeof(gvt::render::data::cuda_primitives::CudaShade),
-			cudaMemcpyDeviceToHost);
+	cudaGvtCtx->toHost();
 
 
 }
