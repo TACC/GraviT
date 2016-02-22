@@ -70,6 +70,14 @@
 
 #include <float.h>
 
+boost::timer::cpu_timer shading;
+boost::timer::cpu_timer copydata;
+boost::timer::cpu_timer clearDispatch;
+boost::timer::cpu_timer convertingRays;
+boost::timer::cpu_timer convertingRaysDispatch;
+
+
+
 void cudaRayToGvtRay(gvt::render::data::cuda_primitives::Ray& cudaRay,
 		gvt::render::actor::Ray& gvtRay){
 
@@ -257,6 +265,8 @@ cudaGetRays(gvt::render::actor::RayVector::iterator gvtRayVector, int localRayCo
 		  int localIdx) {
 
 
+
+	convertingRays.resume();
   std::vector< gvt::render::data::cuda_primitives::Ray> cudaRays;
 
   for (int i = 0; i < localRayCount; i++) {
@@ -269,12 +279,15 @@ cudaGetRays(gvt::render::actor::RayVector::iterator gvtRayVector, int localRayCo
 
   }
 
+  convertingRays.stop();
 
-
+  copydata.resume();
  gpuErrchk(cudaMemcpy(cudaRays_devPtr, &cudaRays[0],
              sizeof(gvt::render::data::cuda_primitives::Ray) *
              localRayCount,
              cudaMemcpyHostToDevice));
+
+  copydata.stop();
 
 
 }
@@ -502,7 +515,8 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
       if (prop.kernelExecTimeoutEnabled == 0)
         activeDevices.push_back(i);
       // Oversubcribe the GPU
-      packetSize = prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor;
+      packetSize = prop.multiProcessorCount *
+    		  prop.maxThreadsPerMultiProcessor;
     }
     if (!activeDevices.size()) {
       activeDevices.push_back(0);
@@ -561,6 +575,8 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
   for (auto &f : _tasks)
     f.wait();
+
+  printf("Copying geometry to device...\n");
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
@@ -816,10 +832,21 @@ void operator()() {
 				"OptixMeshAdapter: thread trace time: %w\n");
 #endif
 
+
+		  shading = boost::timer::cpu_timer();
+		  copydata =  boost::timer::cpu_timer();
+		  clearDispatch = boost::timer::cpu_timer();
+		  convertingRays =boost::timer::cpu_timer();
+		  convertingRaysDispatch =boost::timer::cpu_timer();
+
 		localDispatch.reserve((end - begin) * 2);
+		gvt::render::data::cuda_primitives::Ray *disp_tmp =
+				new gvt::render::data::cuda_primitives::Ray[packetSize * 2];
 
 		gvt::render::data::cuda_primitives::CudaGvtContext& cudaGvtCtx =
 				*(OptixContext::singleton()->_cudaGvtCtx);
+
+		copydata.start();
 
 		//Mesh instance specific data
 		cudaMemcpy(cudaGvtCtx.normi, &(normi->n[0]),
@@ -828,7 +855,10 @@ void operator()() {
 		cudaMemcpy(cudaGvtCtx.minv, &(minv->n[0]),
 				sizeof(gvt::render::data::cuda_primitives::Matrix4f),
 				cudaMemcpyHostToDevice);
+
 		cudaGvtCtx.mesh = adapter->cudaMesh;
+
+		copydata.stop();
 
 		for (size_t localIdx = 0; localIdx < end; localIdx += packetSize) {
 
@@ -836,18 +866,26 @@ void operator()() {
 					(localIdx + packetSize > end) ?
 							(end - localIdx) : packetSize;
 
-//			printf(
-//					"localPacketSize: %zu localIdx: %d packetSize: %zu raylistSize: %zu workEnd: %zu\n",
-//					localPacketSize, localIdx, packetSize, rayList.size(), end);
+			printf(
+					"localPacketSize: %zu localIdx: %d packetSize: %zu raylistSize: %zu workEnd: %zu\n",
+					localPacketSize, localIdx, packetSize, rayList.size(), end);
 
+
+			copydata.resume();
 			cudaMemset(cudaGvtCtx.valid, 1, sizeof(bool) * packetSize);
 
 			cudaGvtCtx.rayCount = localPacketSize;
 			gvt::render::actor::RayVector::iterator localRayList =
 					rayList.begin() + localIdx;
 
+			copydata.stop();
+
 			cudaGetRays(localRayList, localPacketSize, cudaGvtCtx.rays,
 					localIdx);
+
+
+		    shading.resume();
+
 
 			cudaGvtCtx.validRayLeft = true;
 			while (cudaGvtCtx.validRayLeft) {
@@ -858,7 +896,6 @@ void operator()() {
 				cudaGvtCtx.shadowRayCount = 0;
 
 				traceRays(cudaGvtCtx);
-
 				shade(&cudaGvtCtx);
 				traceShadowRays(cudaGvtCtx);
 
@@ -867,20 +904,27 @@ void operator()() {
 
 			}
 
+		    shading.stop();
+
+		    clearDispatch.resume();
 			//Clear dispatch
 			{
 
-				gvt::render::data::cuda_primitives::Ray *disp_tmp =
-						new gvt::render::data::cuda_primitives::Ray[cudaGvtCtx.dispatchCount];
+
+
+				copydata.resume();
 
 				//int* disp = new int[cudaGvtCtx.dispatchCount];
 				cudaMemcpy(&disp_tmp[0], cudaGvtCtx.dispatch,
 						sizeof(gvt::render::data::cuda_primitives::Ray)
 								* cudaGvtCtx.dispatchCount,
 						cudaMemcpyDeviceToHost);
+				copydata.stop();
 
+				convertingRaysDispatch.resume();
 				for (int i = 0; i < cudaGvtCtx.dispatchCount; i++) {
 
+					//
 					gvt::render::data::cuda_primitives::Ray& r = disp_tmp[i];
 					Ray gvtRay;
 					cudaRayToGvtRay(r, gvtRay);
@@ -891,11 +935,15 @@ void operator()() {
 						gvtRay.domains =
 								rayList[r.mapToHostBufferID].domains;
 					}
-					localDispatch.push_back(gvtRay);
-				}
 
-				delete[] disp_tmp;
+					localDispatch.push_back(gvtRay);
+
+				}
+				convertingRaysDispatch.stop();
+
 			}
+		    clearDispatch.stop();
+
 		}
 
 #ifdef GVT_USE_DEBUG
@@ -931,6 +979,20 @@ void operator()() {
 		moved_rays.insert(moved_rays.end(), localDispatch.begin(),
 				localDispatch.end());
 		moved.unlock();
+
+
+
+	    std::cout << "adapater optix-cuda: tracing-shading time: " << shading.format();
+	    std::cout << "adapater optix-cuda: copy data to device time: " << copydata.format();
+	    std::cout << "adapater optix-cuda: clearDispatch time: " << clearDispatch.format();
+	    std::cout << "adapater optix-cuda: convertingRaysDispatch time: " << convertingRaysDispatch.format();
+	    std::cout << "adapater optix-cuda: convertingRays time: " << convertingRays.format();
+
+
+		delete[] disp_tmp;
+
+
+
 	}
 };
 

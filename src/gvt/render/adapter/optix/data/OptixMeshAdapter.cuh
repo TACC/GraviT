@@ -92,8 +92,8 @@ struct CudaGvtContext {
 	bool* valid;
 	uint nLights;
 	int rayCount;
-	int shadowRayCount;
-	int dispatchCount;
+	volatile int shadowRayCount;
+	volatile int dispatchCount;
 	bool validRayLeft;
 
 	 //per domain, allocated once per Adapter instance

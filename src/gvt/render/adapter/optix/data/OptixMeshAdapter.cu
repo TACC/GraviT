@@ -50,13 +50,6 @@ using namespace render;
 using namespace data;
 using namespace cuda_primitives;
 
-__device__ Ray &push_back(Ray *array, int &i) {
-
-	register int a = atomicAdd((int *)&i, 1);
-
-  return array[a];
-}
-
 __device__ int getGlobalIdx_2D_2D() {
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
   int threadId = blockId * (blockDim.x * blockDim.y) +
@@ -190,7 +183,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     const float4 dir = light->light.position - origin;
     const float t_max = length(dir);
 
-    Ray &shadow_ray = push_back(cudaGvtCtx->shadowRays, cudaGvtCtx->shadowRayCount);
+    Ray shadow_ray;
 
     shadow_ray.origin = r.origin + r.direction * t_shadow;
     shadow_ray.setDirection(dir);
@@ -208,6 +201,10 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.color.rgba[1] = c.y;
     shadow_ray.color.rgba[2] = c.z;
     shadow_ray.color.rgba[3] = 1.0f;
+
+    int a = atomicAdd((int *)&(cudaGvtCtx->shadowRayCount), 1);
+    cudaGvtCtx->shadowRays[a] = shadow_ray;
+
 
   }
 }
