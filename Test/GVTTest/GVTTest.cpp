@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
   // timer stuff
   my_timer_t startTime, endTime;
   double rendertime = 0.0;
+  double warmupframetime = 0.0;
   double iotime = 0.0;
   double modeltime = 0.0;
   // geometry data
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
   string filename("");
   string outputfile("");
   string scheduletype("image");
-  // initialize gravit context
+  // initialize gravit context database structure
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
     std::cout << "Something went wrong initializing the context" << std::endl;
@@ -139,6 +140,11 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
   gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+  gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+  gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
+  gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
+  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
 
   // parse the command line
   if ((argc < 2)) 
@@ -306,11 +312,15 @@ int main(int argc, char **argv) {
       {
         outputfile = argv[++i];
       }
+      else if (arg == "-sched")
+      {
+        scheduletype = argv[++i];
+      }
       else if (arg == "-fov")
       {
         cam_fovy = (float)(atof(argv[++i]) * M_PI/180.0);
       }
-      else if (arg == "-cp")
+      else if (arg == "-cp") // camera location
       {
         if (++i < argc)
         {
@@ -373,6 +383,27 @@ int main(int argc, char **argv) {
           cam_up = {cux,cuy,cuz,1.0};
         }
       }
+      else if (arg=="-lp") // light position
+      {
+        if (++i < argc)
+        {
+          std::string arg2(argv[i]);
+          size_t pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          pos = arg2.find(",");
+          if(pos!=std::string::npos)
+          {
+            arg2.replace(pos,1," ");
+          }
+          float lpx,lpy,lpz;
+          std::stringstream ss(arg2);
+          ss >> lpx >> lpy >> lpz;
+          light_pos = {lpx,lpy,lpz,0.0};
+        }
+      }
     }
   }
 #if 1
@@ -383,25 +414,25 @@ int main(int argc, char **argv) {
 #endif
   timeCurrent(&startTime);
   // add lights, camera, and film to the database
-  gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = Vector4f(512.0, 512.0, 2048.0, 0.0);
+  lightNode["position"] = light_pos;
   lightNode["color"] = light_color;
   // camera
-  gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = cam_pos;
   camNode["focus"] = cam_focus;
   camNode["upVector"] = cam_up;
   camNode["fov"] = cam_fovy;
-  //camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
-  gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = width;
   filmNode["height"] = height;
-
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
+  // schedule
+  if(scheduletype.compare("image") == 0)
+  {
+    schedNode["type"] = gvt::render::scheduler::Image;
+  }
+  else if(scheduletype.compare("domain") == 0)
+  {
+    schedNode["type"] = gvt::render::scheduler::Domain;
+  }
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -437,7 +468,6 @@ int main(int argc, char **argv) {
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
-    //  std::cout << "starting image scheduler" << std::endl;
     timeCurrent(&startTime);
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < warmupframes; z++) {
@@ -446,7 +476,7 @@ int main(int argc, char **argv) {
       tracer();
     }
     timeCurrent(&endTime);
-    std::cout << " warmup frame took " << timeDifferenceMS(&startTime, &endTime) << " (ms)" << std::endl;
+    warmupframetime = timeDifferenceMS(&startTime,&endTime);
     timeCurrent(&startTime);
     for (int z = 0; z < benchmarkframes; z++) {
       mycamera.AllocateCameraRays();
@@ -460,9 +490,23 @@ int main(int argc, char **argv) {
     break;
   }
   case gvt::render::scheduler::Domain: {
-    std::cout << "starting domain scheduler" << std::endl;
     timeCurrent(&startTime);
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
+    //gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    for (int z = 0; z < warmupframes; z++) {
+      mycamera.AllocateCameraRays();
+      mycamera.generateRays();
+      tracer();
+    }
+    timeCurrent(&endTime);
+    warmupframetime = timeDifferenceMS(&startTime,&endTime);
+    timeCurrent(&startTime);
+    for (int z = 0; z < benchmarkframes; z++) {
+      mycamera.AllocateCameraRays();
+      mycamera.generateRays();
+      myimage.clear();
+      tracer();
+    }
     timeCurrent(&endTime);
     rendertime += timeDifferenceMS(&startTime, &endTime);
     break;
@@ -479,7 +523,7 @@ int main(int argc, char **argv) {
   myimage.Write();
   std::cout << scheduletype << "," << width << "," << height << "," << warmupframes << ",";
   std::cout << benchmarkframes << "," << iotime << "," << modeltime << ",";
-  std::cout << millisecondsperframe << "," << framespersecond << std::endl;
+  std::cout << warmupframetime << "," << millisecondsperframe << "," << framespersecond << std::endl;
 #ifdef GVT_USE_MPI
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 #endif

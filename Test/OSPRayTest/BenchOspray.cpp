@@ -65,6 +65,7 @@ int main(int argc, const char **argv) {
   // timer stuff
   my_timer_t startTime, endTime;
   double rendertime = 0.0;
+  double warmupframetime = 0.0;
   double iotime = 0.0;
   double modeltime = 0.0;
   // empty vertex list
@@ -317,8 +318,11 @@ int main(int argc, const char **argv) {
   modeltime += timeDifferenceMS(&startTime, &endTime);
 
   // warmup
+  timeCurrent(&startTime);
   for (int frame = 0; frame < warmupframes; frame++)
     ospRenderFrame(framebuffer, renderer, OSP_FB_COLOR | OSP_FB_ACCUM);
+  timeCurrent(&endTime);
+  warmupframetime = timeDifferenceMS(&startTime, &endTime);
   // benchmark
   timeCurrent(&startTime);
   for (int frame = 0; frame < benchframes; frame++)
@@ -332,7 +336,7 @@ int main(int argc, const char **argv) {
   // dump out csv of values
   std::cout << renderertype << "," << width << "," << height << "," << warmupframes << "," << benchframes << ","
             << iotime;
-  std::cout << "," << modeltime << "," << millisecondsperframe << "," << framespersecond << std::endl;
+  std::cout << "," << modeltime << "," << warmupframetime << "," << millisecondsperframe << "," << framespersecond << std::endl;
   // std::cout << millionsoftriangles << " million triangles" << std::endl;
   // std::cout << "iotime (ms) " << iotime << " modeltime (ms) " << modeltime << std::endl;
   // std::cout << millisecondsperframe << " (ms)/frame " << framespersecond << " fps " << std::endl;
