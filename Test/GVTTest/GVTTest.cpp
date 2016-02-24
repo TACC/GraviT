@@ -130,7 +130,9 @@ int main(int argc, char **argv) {
   string filepath("");
   string filename("");
   string outputfile("");
+  // gravit behavior
   string scheduletype("image");
+  string adapter("embree");
   // initialize gravit context database structure
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
@@ -312,6 +314,10 @@ int main(int argc, char **argv) {
       {
         outputfile = argv[++i];
       }
+      else if (arg == "-adapt")
+      {
+        adapter = argv[++i];
+      }
       else if (arg == "-sched")
       {
         scheduletype = argv[++i];
@@ -433,18 +439,45 @@ int main(int argc, char **argv) {
   {
     schedNode["type"] = gvt::render::scheduler::Domain;
   }
-
+  // adapter
+  if(adapter.compare("embree") == 0)
+  {
+    std::cout << " embree adapter " << std::endl;
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-  int adapterType = gvt::render::adapter::Embree;
-#elif GVT_RENDER_ADAPTER_MANTA
-  int adapterType = gvt::render::adapter::Manta;
-#elif GVT_RENDER_ADAPTER_OPTIX
-  int adapterType = gvt::render::adapter::Optix;
-#elif
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+    schedNode["adapter"] = gvt::render::adapter::Embree;
+#else
+    std::cout << "Embree adapter missing. recompile" << std::endl;
+    exit(1);
 #endif
+  }
+  else if(adapter.compare("manta") == 0)
+  {
+    std::cout << " manta adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_MANTA
+    schedNode["adapter"] = gvt::render::adapter::Manta;
+#else
+    std::cout << "Manta adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  }
+  else if(adapter.compare("optix") == 0)
+  {
+    std::cout << " optix adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+    schedNode["adapter"] = gvt::render::adapter::Optix;
+#else
+    std::cout << "Optix adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  }
+  else
+  {
+    std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
+    exit(1);
+  }
 
-  schedNode["adapter"] = gvt::render::adapter::Embree;
+  //schedNode["adapter"] = adapterType;
+  //schedNode["adapter"] = gvt::render::adapter::Embree;
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
@@ -459,13 +492,10 @@ int main(int argc, char **argv) {
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), outputfile);
 
-  // mycamera.AllocateCameraRays();
-  // mycamera.generateRays();
   timeCurrent(&endTime);
   modeltime += timeDifferenceMS(&startTime, &endTime);
-
-  // int schedType = gvt::core::variant_toInteger(root["Schedule"]["type"].value());
   int schedType = root["Schedule"]["type"].value().toInteger();
+
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     timeCurrent(&startTime);
