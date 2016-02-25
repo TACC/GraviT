@@ -73,7 +73,7 @@ Ray::Ray(const Ray &ray) {
   //  w = ray.w;
   //  type = ray.type;
   //  depth = ray.depth;
-  std::memcpy(data, ray.data, 16 * 4 + 7 * 4);
+  std::memcpy(data, ray.data, 16 * 4 + 8 * 4);
   domains = ray.domains;
 }
 
@@ -82,7 +82,7 @@ Ray::Ray(Ray &&ray) {
   //    std::memmove(&direction,&ray.direction,sizeof(Vector4f));
   //    std::memmove(&inverseDirection,&ray.inverseDirection,sizeof(Vector4f));
   //    std::memmove(&color,&ray.color,sizeof(Vector4f));
-  std::memmove(data, ray.data, 16 * 4 + 7 * 4);
+  std::memmove(data, ray.data, 16 * 4 + 8 * 4);
   std::swap(domains, ray.domains);
   //  t = ray.t;
   //  id = ray.id;

@@ -130,7 +130,7 @@ void cudaPrepOptixRays(OptixRay* optixrays, bool* valid,
                  CudaGvtContext* cudaGvtCtx,bool ignoreValid) {
 
 		dim3 blockDIM = dim3(16, 16);
-		dim3 gridDIM = dim3((localPacketSize / (blockDIM.x * blockDIM.y)) + 1, 1);\
+		dim3 gridDIM = dim3((localPacketSize / (blockDIM.x * blockDIM.y)) + 1, 1);
 
 
 		cudaKernelPrepOptixRays<<<gridDIM,blockDIM , 0>>>(
@@ -155,7 +155,7 @@ __global__ void cudaKernelFilterShadow( CudaGvtContext* cudaGvtCtx) {
 void cudaProcessShadows(CudaGvtContext* cudaGvtCtx) {
 
 		dim3 blockDIM = dim3(16, 16);
-		dim3 gridDIM = dim3((cudaGvtCtx->shadowRayCount / (blockDIM.x * blockDIM.y)) + 1, 1);\
+		dim3 gridDIM = dim3((cudaGvtCtx->shadowRayCount / (blockDIM.x * blockDIM.y)) + 1, 1);
 
 		cudaKernelFilterShadow<<<gridDIM,blockDIM , 0>>>(cudaGvtCtx->toGPU());
 
@@ -185,14 +185,15 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
 
     Ray shadow_ray;
 
-    shadow_ray.origin = r.origin + r.direction * t_shadow;
+    shadow_ray.origin = origin;
     shadow_ray.setDirection(dir);
     shadow_ray.w = r.w;
     shadow_ray.type = Ray::SHADOW;
     shadow_ray.depth = r.depth;
     shadow_ray.t = r.t;
-    shadow_ray.id = r.id;
+    //shadow_ray.id = r.id;
     shadow_ray.t_max = t_max;
+    shadow_ray.mapToHostBufferID = r.mapToHostBufferID;
 
     Color c = cudaGvtCtx->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
 
@@ -254,7 +255,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
               (*(cudaGvtCtx->normi)) * make_float3(manualNormal.x,
             		  manualNormal.y,manualNormal.z));
 
-          normalize(manualNormal);
+          manualNormal=normalize(manualNormal);
 
 #else
           int I = mesh->faces[triangle_id].get<0>();
@@ -283,7 +284,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
           r.w = r.w * t;
         }
 
-        generateShadowRays(r, normal, cudaGvtCtx->
+       generateShadowRays(r, normal, cudaGvtCtx->
         		traceHits[tID].triangle_id, cudaGvtCtx);
         int ndepth = r.depth - 1;
         float p = 1.f - cudaRand();
@@ -316,7 +317,6 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
         // ray is valid, but did not hit anything, so add to dispatch
     	  int a = atomicAdd((int *)&(cudaGvtCtx->dispatchCount), 1);
     	  cudaGvtCtx->dispatch[a] = r;
-    	  //cudaGvtCtx->dispatch[a]=tID;
 
     	cudaGvtCtx->valid[tID] = false;
 

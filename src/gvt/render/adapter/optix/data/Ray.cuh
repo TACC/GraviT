@@ -76,8 +76,9 @@ struct OptixHit {
 
 struct ColorAccumulator {
 
-	  float rgba[4];
 	  float t;
+	  float rgba[4];
+
 
 
 };
@@ -85,29 +86,21 @@ struct ColorAccumulator {
 class Ray {
 public:
 
-
-	   __device__ void print(){
-		printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin.x ,  origin.y, origin.z,
-				direction.x   ,direction.y , direction.z);
-	  }
-
-	__device__ void setDirection(float4 dir);
-
 	typedef enum  {
 	    PRIMARY,
 	    SHADOW,
 	    SECONDARY
 	  } RayType;
 
-	  union {
+
 		struct {
 
 
 			float4 origin;
 			float4 direction;
-			float4 inverseDirection;
+			//float4 inverseDirection;
 			ColorAccumulator color;
-			int id;    ///<! index into framebuffer
+			//int id;    ///<! index into framebuffer
 			int depth; ///<! sample rate
 			float w;   ///<! weight of image contribution
 			float t;
@@ -116,17 +109,19 @@ public:
 			int type;
 
 		};
-		unsigned char data[16 * 4 + 8 * 4];
-	};
 
 
 	  //just to keep track of the gvt domain list in ray
 	  int mapToHostBufferID;
 
+	   __device__ void print(){
+			printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin.x ,  origin.y, origin.z,
+					direction.x   ,direction.y , direction.z);
+		  }
 
-};
+		__device__ void setDirection(float4 dir);
 
-
+	   };
 
 }
 }

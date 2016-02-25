@@ -89,7 +89,7 @@ public:
   /// add color but do not accumulate opacity. To accumulate opacity, use accumulate()
   void add(const ColorAccumulator &);
   /// add color and accumulate opacity. To only add color, use add()
-  virtual void accumulate(const ColorAccumulator &) = 0;
+   void accumulate(const ColorAccumulator &) {};
   bool operator<(const ColorAccumulator &) const;
   bool operator>(const ColorAccumulator &) const;
   /// pack color buffer for communication over MPI

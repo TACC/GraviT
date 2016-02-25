@@ -40,24 +40,24 @@ namespace cuda_primitives {
 */
 
 __device__ void Ray::setDirection(float4 dir) {
-		direction = dir;
+		//direction = dir;
 	  dir.w = 0;
 	  direction = normalize(dir);
 	  //for (int i = 0; i < 3; i++) {
-	    if (direction.x != 0)
-	      inverseDirection.x = 1.0 / direction.x;
-	    else
-	      inverseDirection.x = 0.;
-
-	    if (direction.y != 0)
-	    	      inverseDirection.y = 1.0 / direction.y;
-	    	    else
-	    	      inverseDirection.y = 0.;
-
-	    if (direction.z != 0)
-	    	      inverseDirection.z = 1.0 / direction.z;
-	    	    else
-	    	      inverseDirection.z = 0.;
+//	    if (direction.x != 0)
+//	      inverseDirection.x = 1.0 / direction.x;
+//	    else
+//	      inverseDirection.x = 0.;
+//
+//	    if (direction.y != 0)
+//	    	      inverseDirection.y = 1.0 / direction.y;
+//	    	    else
+//	    	      inverseDirection.y = 0.;
+//
+//	    if (direction.z != 0)
+//	    	      inverseDirection.z = 1.0 / direction.z;
+//	    	    else
+//	    	      inverseDirection.z = 0.;
 	  //}
 	}
 
