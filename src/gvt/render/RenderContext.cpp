@@ -62,9 +62,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("width");
     n += gvt::core::CoreContext::createNode("height");
     n += gvt::core::CoreContext::createNode("viewAngle");
-    n += gvt::core::CoreContext::createNode("camera", glm::vec4());
-    n += gvt::core::CoreContext::createNode("focus", glm::vec4());
-    n += gvt::core::CoreContext::createNode("up", glm::vec4());
+    n += gvt::core::CoreContext::createNode("camera", glm::vec3());
+    n += gvt::core::CoreContext::createNode("focus", glm::vec3());
+    n += gvt::core::CoreContext::createNode("up", glm::vec3());
     n += gvt::core::CoreContext::createNode("parallelScale");
     n += gvt::core::CoreContext::createNode("nearPlane");
     n += gvt::core::CoreContext::createNode("farPlane");

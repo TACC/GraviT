@@ -266,8 +266,8 @@ struct embreeParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * r.origin; // transform ray to local space
-        const auto direction = (*minv) * r.direction;
+        const auto origin = (*minv) * glm::vec4(r.origin, 1.f); // transform ray to local space
+        const auto direction = (*minv) * glm::vec4(r.direction, 0.f);
 
         //      const auto &origin = r.origin; // transform ray to local space
         //      const auto &direction = r.direction;
@@ -297,7 +297,7 @@ struct embreeParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec4 &normal, int primID,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal, int primID,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
@@ -308,8 +308,8 @@ struct embreeParallelTrace {
       const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
       const float t_shadow = multiplier * r.t;
 
-      const glm::vec4 origin = r.origin + r.direction * t_shadow;
-      const glm::vec4 dir = light->position - origin;
+      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 dir = light->position - origin;
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
@@ -512,10 +512,10 @@ struct embreeParallelTrace {
                 // from gvt mesh
                 // for some reason the embree normals aren't working, so just
                 // going to manually calculate the triangle normal
-                // glm::vec4 embreeNormal = glm::vec4(ray4.Ngx[pi], ray4.Ngy[pi],
+                // glm::vec3 embreeNormal = glm::vec3(ray4.Ngx[pi], ray4.Ngy[pi],
                 // ray4.Ngz[pi], 0.0);
 
-                glm::vec4 manualNormal;
+                glm::vec3 manualNormal;
                 {
                   const int triangle_id = ray4.primID[pi];
 #ifndef FLAT_SHADING
@@ -526,31 +526,31 @@ struct embreeParallelTrace {
                                                                                             // to store
                                                                                             // `faces_to_normals`
                                                                                             // list
-                  const glm::vec4 &a = mesh->normals[normals.get<1>()];
-                  const glm::vec4 &b = mesh->normals[normals.get<2>()];
-                  const glm::vec4 &c = mesh->normals[normals.get<0>()];
+                  const glm::vec3 &a = mesh->normals[normals.get<1>()];
+                  const glm::vec3 &b = mesh->normals[normals.get<2>()];
+                  const glm::vec3 &c = mesh->normals[normals.get<0>()];
                   manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                  manualNormal = glm::vec4(glm::normalize((*normi) * (glm::vec3)manualNormal), 0.f);
+                  manualNormal = glm::normalize((*normi) * manualNormal);
 #else
                   int I = mesh->faces[triangle_id].get<0>();
                   int J = mesh->faces[triangle_id].get<1>();
                   int K = mesh->faces[triangle_id].get<2>();
 
-                  glm::vec4 a = mesh->vertices[I];
-                  glm::vec4 b = mesh->vertices[J];
-                  glm::vec4 c = mesh->vertices[K];
-                  glm::vec4 u = b - a;
-                  glm::vec4 v = c - a;
-                  rayList glm::vec4 normal;
+                  glm::vec3 a = mesh->vertices[I];
+                  glm::vec3 b = mesh->vertices[J];
+                  glm::vec3 c = mesh->vertices[K];
+                  glm::vec3 u = b - a;
+                  glm::vec3 v = c - a;
+                  rayList glm::vec3 normal;
                   normal[0] = u[1] * v[2] - u[2] * v[1];
                   normal[1] = u[2] * v[0] - u[0] * v[2];
                   normal[2] = u[0] * v[1] - u[1] * v[0];
                   normal[3] = 0.0f;
-                  manualNormal = glm::vec4(glm::normalize((*normi) * (glm::vec3)normal), 0.f)
+                  manualNormal = glm::normalize((*normi) * normal);
 #endif
                 }
-                const glm::vec4 &normal = manualNormal;
+                const glm::vec3 &normal = manualNormal;
 
                 // reduce contribution of the color that the shadow rays get
                 if (r.type == gvt::render::actor::Ray::SECONDARY) {
@@ -672,10 +672,10 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   std::vector<gvt::render::data::scene::Light *> lights;
   lights.reserve(2);
   for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().tovec4();
+    auto color = lightNode["color"].value().tovec3();
 
     if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().tovec4();
+      auto pos = lightNode["position"].value().tovec3();
       lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));

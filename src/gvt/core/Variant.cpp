@@ -36,7 +36,6 @@ Variant::Variant(unsigned long long ull) : coreData(ull) {}
 Variant::Variant(String s) : coreData(s) {}
 Variant::Variant(Uuid u) : coreData(u) {}
 Variant::Variant(glm::vec3 v) : coreData(v) {}
-Variant::Variant(glm::vec4 v) : coreData(v) {}
 
 int Variant::toInteger() const { return boost::get<int>(coreData); }
 
@@ -55,8 +54,6 @@ String Variant::toString() const { return boost::get<String>(coreData); }
 Uuid Variant::toUuid() const { return boost::get<Uuid>(coreData); }
 
 glm::vec3 Variant::tovec3() const { return boost::get<glm::vec3>(coreData); }
-
-glm::vec4 Variant::tovec4() const { return boost::get<glm::vec4>(coreData); }
 
 bool Variant::operator==(const Variant &v) const { return coreData == v.coreData; }
 

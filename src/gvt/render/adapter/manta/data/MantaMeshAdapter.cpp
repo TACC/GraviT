@@ -265,11 +265,11 @@ struct parallelTrace {
             float t = mRays.getMinT(pindex);
             rayPacket[pindex].t = t;
 
-            // glm::vec4 normal =
+            // glm::vec3 normal =
             // dom->toWorld(gvt::render::adapter::manta::data::transform<Manta::Vector,
-            // glm::vec4>(mRays.getNormal(pindex)));
-            glm::vec4 normal =
-                glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec4>(mRays.getNormal(pindex))));
+            // glm::vec3>(mRays.getNormal(pindex)));
+            glm::vec3 normal =
+                glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec3>(mRays.getNormal(pindex))));
 
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) {
               t = (t > 1) ? 1.f / t : t;
@@ -458,12 +458,12 @@ struct mantaParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec4 &normal,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-      const glm::vec4 origin = r.origin + r.direction * r.t;
-      glm::vec4 dir = light->position - origin;
+      const glm::vec3 origin = r.origin + r.direction * r.t;
+      glm::vec3 dir = light->position - origin;
       const float t_max = dir.length();
       shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
       Ray &shadow_ray = shadowRays.back();
@@ -641,8 +641,8 @@ struct mantaParallelTrace {
               //
               // for some reason the manta normals aren't working, so just going to manually calculate the triangle
               // normal
-              glm::vec4 normal =
-                  glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec4>(mRays.getNormal(pi))));
+              glm::vec3 normal =
+                  glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec3>(mRays.getNormal(pi))));
 
               if (r.type == gvt::render::actor::Ray::SECONDARY) {
                 t = (t > 1) ? 1.f / t : t;
@@ -770,10 +770,10 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   std::vector<gvt::render::data::scene::Light *> lights;
   lights.reserve(2);
   for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().tovec4();
+    auto color = lightNode["color"].value().tovec3();
 
     if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().tovec4();
+      auto pos = lightNode["position"].value().tovec3();
       lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));

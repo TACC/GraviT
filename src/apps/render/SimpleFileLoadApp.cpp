@@ -133,8 +133,8 @@ int main(int argc, char **argv) {
   instnode["normi"] = (unsigned long long)normi;
 
   // transform mesh bounding box
-  auto il = (*m) * mbox->bounds[0];
-  auto ih = (*m) * mbox->bounds[1];
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
@@ -142,14 +142,14 @@ int main(int argc, char **argv) {
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "light", lightNodes.UUID());
-  lightNode["position"] = glm::vec4(0.0, 0.1, 0.5, 0.0);
-  lightNode["color"] = glm::vec4(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(0.0, 0.1, 0.5);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   // set the camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "cam", root.UUID());
-  camNode["eyePoint"] = glm::vec4(0.0, 0.1, 0.3, 1.0);
-  camNode["focus"] = glm::vec4(0.0, 0.1, -0.3, 1.0);
-  camNode["upVector"] = glm::vec4(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(0.0, 0.1, 0.3);
+  camNode["focus"] = glm::vec3(0.0, 0.1, -0.3);
+  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
   // set image width/height
@@ -188,10 +188,10 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  glm::vec4 cameraposition = camNode["eyePoint"].value().tovec4();
-  glm::vec4 focus = camNode["focus"].value().tovec4();
+  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
-  glm::vec4 up = camNode["upVector"].value().tovec4();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());

@@ -51,14 +51,14 @@ public:
   Material(const Material &orig);
   virtual ~Material();
 
-  virtual glm::vec4 shade(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                           const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
-  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
 
-  glm::vec4 CosWeightedRandomHemisphereDirection2(glm::vec4 n) {
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n) {
     float Xi1 = (float)rand() / (float)RAND_MAX;
     float Xi2 = (float)rand() / (float)RAND_MAX;
 
@@ -81,7 +81,7 @@ public:
     glm::vec3 x = glm::cross(h, y);
     glm::vec3 z = glm::cross(x, y);
 
-    glm::vec4 direction = glm::vec4(x * xs + y * ys + z * zs, 0.f);
+    glm::vec3 direction = x * xs + y * ys + z * zs;
     return glm::normalize(direction);
   }
 
@@ -90,56 +90,56 @@ protected:
 
 class Lambert : public Material {
 public:
-  Lambert(const glm::vec4 &kd = glm::vec4());
+  Lambert(const glm::vec3 &kd = glm::vec3());
   Lambert(const Lambert &orig);
   virtual ~Lambert();
 
-  virtual glm::vec4 shade(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                           const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
 
 protected:
-  glm::vec4 kd;
+  glm::vec3 kd;
 };
 
 class Phong : public Material {
 public:
-  Phong(const glm::vec4 &kd = glm::vec4(), const glm::vec4 &ks = glm::vec4(), const float &alpha = 1.f);
+  Phong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
   Phong(const Phong &orig);
   virtual ~Phong();
 
-  virtual glm::vec4 shade(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                           const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
 
 protected:
-  glm::vec4 kd;
-  glm::vec4 ks;
+  glm::vec3 kd;
+  glm::vec3 ks;
   float alpha;
 };
 
 class BlinnPhong : public Material {
 public:
-  BlinnPhong(const glm::vec4 &kd = glm::vec4(), const glm::vec4 &ks = glm::vec4(), const float &alpha = 1.f);
+  BlinnPhong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
   BlinnPhong(const BlinnPhong &orig);
   virtual ~BlinnPhong();
 
-  virtual glm::vec4 shade(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                           const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec4 &sufaceNormal,
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
 
 protected:
-  glm::vec4 kd;
-  glm::vec4 ks;
+  glm::vec3 kd;
+  glm::vec3 ks;
   float alpha;
 };
 }

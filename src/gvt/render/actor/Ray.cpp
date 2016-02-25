@@ -38,7 +38,7 @@ using namespace gvt::render::actor;
 
 const float Ray::RAY_EPSILON = 1.e-6;
 
-Ray::Ray(glm::vec4 origin, glm::vec4 direction, float contribution, RayType type, int depth)
+Ray::Ray(glm::vec3 origin, glm::vec3 direction, float contribution, RayType type, int depth)
     : type(type), w(contribution), depth(depth) {
 
   this->origin = origin;
@@ -49,8 +49,8 @@ Ray::Ray(glm::vec4 origin, glm::vec4 direction, float contribution, RayType type
 }
 
 Ray::Ray(Ray &ray, glm::mat4 &m) {
-  origin = m * ray.origin;
-  direction = glm::normalize(m * ray.direction);
+  origin = glm::vec3(m * glm::vec4(ray.origin, 1.f));
+  direction = glm::vec3(glm::normalize(m * glm::vec4(ray.direction, 0.f)));
   setDirection(direction);
   t = ray.t;
   color = ray.color;
@@ -77,10 +77,10 @@ Ray::Ray(const Ray &ray) {
 }
 
 Ray::Ray(Ray &&ray) {
-  //    std::memmove(&origin,&ray.origin,sizeof(glm::vec4));
-  //    std::memmove(&direction,&ray.direction,sizeof(glm::vec4));
-  //    std::memmove(&inverseDirection,&ray.inverseDirection,sizeof(glm::vec4));
-  //    std::memmove(&color,&ray.color,sizeof(glm::vec4));
+  //    std::memmove(&origin,&ray.origin,sizeof(glm::vec3));
+  //    std::memmove(&direction,&ray.direction,sizeof(glm::vec3));
+  //    std::memmove(&inverseDirection,&ray.inverseDirection,sizeof(glm::vec3));
+  //    std::memmove(&color,&ray.color,sizeof(glm::vec3));
   std::memmove(data, ray.data, 16 * 4 + 7 * 4);
   std::swap(domains, ray.domains);
   //  t = ray.t;
@@ -94,10 +94,10 @@ Ray::~Ray() {}
 
 Ray::Ray(const unsigned char *buf) {
   // GVT_DEBUG(DBG_ALWAYS, "in Ray::Ray(const unsigned char* buf)");
-  std::memcpy(glm::value_ptr(origin), buf, sizeof(float) * 4);
-  buf += sizeof(float) * 4;
-  std::memcpy(glm::value_ptr(direction), buf, sizeof(float) * 4);
-  buf += sizeof(float) * 4;
+  std::memcpy(glm::value_ptr(origin), buf, sizeof(float) * 3);
+  buf += sizeof(float) * 3;
+  std::memcpy(glm::value_ptr(direction), buf, sizeof(float) * 3);
+  buf += sizeof(float) * 3;
   id = *((int *)buf);
   buf += sizeof(int);
   depth = *((int *)buf);
@@ -118,7 +118,7 @@ Ray::Ray(const unsigned char *buf) {
 }
 
 int Ray::packedSize() {
-  int total_size = sizeof(float) * 8 + color.packedSize();
+  int total_size = sizeof(float) * 6 + color.packedSize();
   total_size += 4 * sizeof(int) + 2 * sizeof(double);
   total_size += domains.size() * (sizeof(float) + sizeof(int));
   // total_size += sizeof (isecDom) * domains.size();
@@ -130,10 +130,10 @@ int Ray::pack(unsigned char *buffer) {
   unsigned char *buf = buffer;
   unsigned char *buf0 = buffer;
 
-  std::memcpy(buf, glm::value_ptr(origin), sizeof(float) * 4);
-  buf += sizeof(float) * 4;
-  std::memcpy(buf, glm::value_ptr(direction), sizeof(float) * 4);
-  buf += sizeof(float) * 4;
+  std::memcpy(buf, glm::value_ptr(origin), sizeof(float) * 3);
+  buf += sizeof(float) * 3;
+  std::memcpy(buf, glm::value_ptr(direction), sizeof(float) * 3);
+  buf += sizeof(float) * 3;
 
   *((int *)buf) = id;
   buf += sizeof(int);
@@ -163,9 +163,7 @@ int Ray::pack(unsigned char *buffer) {
   return packedSize();
 }
 
-void Ray::setDirection(glm::vec4 dir) {
-  inverseDirection[3] = 0;
-  dir[3] = 0;
+void Ray::setDirection(glm::vec3 dir) {
   direction = glm::normalize(dir);
   for (int i = 0; i < 3; i++) {
     if (direction[i] != 0)
@@ -175,6 +173,6 @@ void Ray::setDirection(glm::vec4 dir) {
   }
 }
 
-void Ray::setDirection(double *dir) { setDirection(glm::vec4(dir[0], dir[1], dir[2], dir[3])); }
+void Ray::setDirection(double *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
 
-void Ray::setDirection(float *dir) { setDirection(glm::vec4(dir[0], dir[1], dir[2], dir[3])); }
+void Ray::setDirection(float *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }

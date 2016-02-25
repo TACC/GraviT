@@ -35,7 +35,6 @@
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
-#include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
 #include <set>
 #include <vector>
@@ -182,7 +181,7 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec4(1.0, 1.0, 1.0, 1.0)));
+      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -199,10 +198,10 @@ int main(int argc, char **argv) {
         xmax = MAX(vert->x, xmax);
         ymax = MAX(vert->y, ymax);
         zmax = MAX(vert->z, zmax);
-        mesh->addVertex(glm::vec4(vert->x, vert->y, vert->z, 1.0));
+        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
       }
-      glm::vec4 lower(xmin, ymin, zmin, 1.f);
-      glm::vec4 upper(xmax, ymax, zmax, 1.f);
+      glm::vec3 lower(xmin, ymin, zmin);
+      glm::vec3 upper(xmax, ymax, zmax);
       Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
       // add faces to mesh
       for (i = 0; i < nfaces; i++) {
@@ -230,8 +229,8 @@ int main(int argc, char **argv) {
     instnode["matInv"] = (unsigned long long)minv;
     *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
     instnode["normi"] = (unsigned long long)normi;
-    auto il = (*m) * mbox->bounds[0];
-    auto ih = (*m) * mbox->bounds[1];
+    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
@@ -240,13 +239,13 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec4(512.0, 512.0, 2048.0, 0.0);
-  lightNode["color"] = glm::vec4(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec4(512.0, 512.0, 4096.0, 1.0);
-  camNode["focus"] = glm::vec4(512.0, 512.0, 0.0, 1.0);
-  camNode["upVector"] = glm::vec4(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
+  camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
+  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
@@ -275,10 +274,10 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  glm::vec4 cameraposition = camNode["eyePoint"].value().tovec4();
-  glm::vec4 focus = camNode["focus"].value().tovec4();
+  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
-  glm::vec4 up = camNode["upVector"].value().tovec4();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
@@ -344,12 +343,12 @@ void test_bvh(gvtPerspectiveCamera &mycamera) {
   rays.push_back(mycamera.rays[100 * 512 + 100]);
   rays.push_back(mycamera.rays[182 * 512 + 182]);
   rays.push_back(mycamera.rays[256 * 512 + 256]);
-  auto dir = glm::normalize(glm::vec4(0.0, 0.0, 0.0, 0.0) - glm::vec4(1.0, 1.0, 1.0, 0.0));
-  rays.push_back(gvt::render::actor::Ray(glm::vec4(1.0, 1.0, 1.0, 1.0), dir));
+  auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
+  rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
   rays.push_back(mycamera.rays[300 * 512 + 300]);
   rays.push_back(mycamera.rays[400 * 512 + 400]);
   rays.push_back(mycamera.rays[470 * 512 + 470]);
-  rays.push_back(gvt::render::actor::Ray(glm::vec4(0.0, 0.0, 1.0, 1.0), glm::vec4(0.0, 0.0, -1.0, 1.0)));
+  rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
   rays.push_back(mycamera.rays[144231]);
 
   // test rays and print out which instances were hit

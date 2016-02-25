@@ -34,20 +34,20 @@
 #include <gvt/core/Math.h>
 
 // Manta includes
-#include <Model/Primitives/KenslerShirleyTriangle.h>
-#include <Interface/MantaInterface.h>
-#include <Interface/Scene.h>
-#include <Interface/Object.h>
-#include <Interface/Context.h>
-#include <Core/Geometry/BBox.h>
 #include <Core/Exceptions/Exception.h>
 #include <Core/Exceptions/InternalError.h>
+#include <Core/Geometry/BBox.h>
+#include <Interface/Context.h>
+#include <Interface/LightSet.h>
+#include <Interface/MantaInterface.h>
+#include <Interface/Object.h>
+#include <Interface/Scene.h>
 #include <Model/Groups/DynBVH.h>
 #include <Model/Groups/Mesh.h>
-#include <Model/Materials/Phong.h>
-#include <Model/Readers/PlyReader.h>
-#include <Interface/LightSet.h>
 #include <Model/Lights/PointLight.h>
+#include <Model/Materials/Phong.h>
+#include <Model/Primitives/KenslerShirleyTriangle.h>
+#include <Model/Readers/PlyReader.h>
 // end Manta includes
 
 #include <fstream>
@@ -69,7 +69,7 @@ PlyReader::PlyReader(std::string filename) {
   for (int i = 0; i < mesh->vertices.size(); i++) {
 
     Manta::Vector v = mesh->vertices[i];
-    glm::vec4 vertex(v[0], v[1], v[2], 1.f);
+    glm::vec3 vertex(v[0], v[1], v[2]);
     plyMesh->addVertex(vertex);
   }
 

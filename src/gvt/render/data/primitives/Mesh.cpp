@@ -47,33 +47,33 @@ Mesh::Mesh(const Mesh &orig) {
 
 Mesh::~Mesh() { delete mat; }
 
-void Mesh::addVertexNormalTexUV(glm::vec4 vertex, glm::vec4 normal, glm::vec4 texUV) {
+void Mesh::addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal, glm::vec3 texUV) {
   vertices.push_back(vertex);
   normals.push_back(normal);
   mapuv.push_back(texUV);
   boundingBox.expand(vertex);
 }
 
-void Mesh::addVertex(glm::vec4 vertex) {
+void Mesh::addVertex(glm::vec3 vertex) {
   vertices.push_back(vertex);
   boundingBox.expand(vertex);
 }
 
-void Mesh::addNormal(glm::vec4 normal) { normals.push_back(normal); }
+void Mesh::addNormal(glm::vec3 normal) { normals.push_back(normal); }
 
-void Mesh::addTexUV(glm::vec4 texUV) { mapuv.push_back(texUV); }
+void Mesh::addTexUV(glm::vec3 texUV) { mapuv.push_back(texUV); }
 
-void Mesh::setNormal(int which, glm::vec4 normal) {
+void Mesh::setNormal(int which, glm::vec3 normal) {
   GVT_ASSERT((which > vertices.size()), "Setting normal outside the bounds");
   normals[which] = normal;
 }
 
-void Mesh::setTexUV(int which, glm::vec4 texUV) {
+void Mesh::setTexUV(int which, glm::vec3 texUV) {
   GVT_ASSERT((which > vertices.size()), "Setting texture outside the bounds");
   this->mapuv[which] = texUV;
 }
 
-void Mesh::setVertex(int which, glm::vec4 vertex, glm::vec4 normal, glm::vec4 texUV) {
+void Mesh::setVertex(int which, glm::vec3 vertex, glm::vec3 normal, glm::vec3 texUV) {
   GVT_ASSERT((which > vertices.size()), "Setting vertex outside the bounds");
   vertices[which] = vertex;
   boundingBox.expand(vertex);
@@ -100,18 +100,18 @@ void Mesh::generateNormals() {
   normals.resize(vertices.size());
   face_normals.resize(faces.size());
   faces_to_normals.resize(faces.size());
-  for (int i = 0; i < normals.size(); ++i) normals[i] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+  for (int i = 0; i < normals.size(); ++i) normals[i] = glm::vec3(0.0f, 0.0f, 0.0f);
 
   for (int i = 0; i < faces.size(); ++i) {
     int I = faces[i].get<0>();
     int J = faces[i].get<1>();
     int K = faces[i].get<2>();
-    glm::vec4 const &a = vertices[I];
-    glm::vec4 const &b = vertices[J];
-    glm::vec4 const &c = vertices[K];
-    glm::vec4 u = b - a;
-    glm::vec4 v = c - a;
-    glm::vec4 normal;
+    glm::vec3 const &a = vertices[I];
+    glm::vec3 const &b = vertices[J];
+    glm::vec3 const &c = vertices[K];
+    glm::vec3 u = b - a;
+    glm::vec3 v = c - a;
+    glm::vec3 normal;
     normal[0] = u[1] * v[2] - u[2] * v[1];
     normal[1] = u[2] * v[0] - u[0] * v[2];
     normal[2] = u[0] * v[1] - u[1] * v[0];
@@ -133,12 +133,12 @@ void Mesh::generateNormals() {
   haveNormals = true;
 }
 
-Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec4 &normal, const Light *lsource) {
+Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource) {
   // XXX TODO: shadeFace returns constant color, fix?
 
   if (!faces_to_materials.size()) return shade(r, normal, lsource);
 
-  Color c(0.5f, 0.5f, 0.5f, 0.0f);
+  Color c(0.5f, 0.5f, 0.5f);
   Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
   if (m) {
     c = m->shade(r, normal, lsource);
@@ -146,7 +146,7 @@ Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec4 &normal, 
   return c;
 }
 
-Color Mesh::shade(const Ray &r, const glm::vec4 &normal, const Light *lsource) {
+Color Mesh::shade(const Ray &r, const glm::vec3 &normal, const Light *lsource) {
   return mat->shade(r, normal, lsource);
 }
 
@@ -155,7 +155,7 @@ Box3D Mesh::computeBoundingBox() {
   Box3D box;
   for (int i = 0; i < vertices.size(); i++) {
 
-    glm::vec4 p = vertices[i];
+    glm::vec3 p = vertices[i];
 
     box.expand(p);
   }

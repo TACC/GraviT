@@ -31,34 +31,33 @@
 #include "gvt/render/data/scene/Light.h"
 #include "gvt/render/data/DerivedTypes.h"
 
-
 using namespace gvt::render::actor;
 using namespace gvt::render::data::scene;
 
-Light::Light(const glm::vec4 position) : position(position) {}
+Light::Light(const glm::vec3 position) : position(position) {}
 
 Light::Light(const Light &orig) : position(orig.position) {}
 
 Light::~Light() {}
 
-glm::vec4 Light::contribution(const Ray &ray) const { return Color(); }
+glm::vec3 Light::contribution(const Ray &ray) const { return Color(); }
 
-PointLight::PointLight(const glm::vec4 position, const glm::vec4 color) : Light(position), color(color) {}
+PointLight::PointLight(const glm::vec3 position, const glm::vec3 color) : Light(position), color(color) {}
 
 PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) {}
 
 PointLight::~PointLight() {}
 
-glm::vec4 PointLight::contribution(const Ray &ray) const {
-  float distance = 1.f / ((glm::vec4)position - ray.origin).length();
+glm::vec3 PointLight::contribution(const Ray &ray) const {
+  float distance = 1.f / glm::length(position - ray.origin);
   distance = (distance > 1.f) ? 1.f : distance;
   return color * (distance + 0.5f);
 }
 
-AmbientLight::AmbientLight(const glm::vec4 color) : Light(), color(color) {}
+AmbientLight::AmbientLight(const glm::vec3 color) : Light(), color(color) {}
 
 AmbientLight::AmbientLight(const AmbientLight &orig) : Light(orig), color(orig.color) {}
 
 AmbientLight::~AmbientLight() {}
 
-glm::vec4 AmbientLight::contribution(const Ray &ray) const { return color; }
+glm::vec3 AmbientLight::contribution(const Ray &ray) const { return color; }

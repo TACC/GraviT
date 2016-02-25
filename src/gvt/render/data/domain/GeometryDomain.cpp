@@ -35,7 +35,6 @@ using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::data::scene;
 
-
 void GeometryDomain::free() {
   if (!isLoaded) return;
   for (int i = lights.size() - 1; i >= 0; i--) {
@@ -59,8 +58,8 @@ bool GeometryDomain::load() {
     mesh = reader.getMesh();
   }
 
-  lights.push_back(new PointLight(glm::vec4(5.0, 5.0, 5.0, 1.f), Color(1.f, 1.f, 1.f, 1.f)));
-  mesh->setMaterial(new Lambert(Color(1.f, .0f, .0f, 1.f)));
+  lights.push_back(new PointLight(glm::vec3(5.0, 5.0, 5.0), Color(1.f, 1.f, 1.f)));
+  mesh->setMaterial(new Lambert(Color(1.f, .0f, .0f)));
   boundingBox = *(mesh->getBoundingBox());
   isLoaded = true;
   return isLoaded;

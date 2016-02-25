@@ -32,12 +32,12 @@
 
 #include <gvt/render/data/domain/reader/ObjReader.h>
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <boost/regex.h>
 #include <boost/regex.hpp>
+#include <fstream>
+#include <iostream>
 #include <map>
+#include <sstream>
 
 using namespace gvtapps::render;
 
@@ -85,9 +85,11 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
     if (elems.empty()) continue;
 
     if (elems[0] == "F") {
-      scene.camera.setFilmSize(std::atoi(elems[1].c_str()), std::atoi(elems[2].c_str()));
+
+      // TODO : Replace by context
+      // scene.camera.setFilmSize(std::atoi(elems[1].c_str()), std::atoi(elems[2].c_str()));
     } else if (elems[0] == "C") {
-      glm::vec4 pos, look, up, focus;
+      glm::vec3 pos, look, up, focus;
       float fov = std::atof(elems[10].c_str()) * M_PI / 180.0;
       pos[0] = std::atof(elems[1].c_str());
       pos[1] = std::atof(elems[2].c_str());
@@ -102,9 +104,10 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       up[2] = std::atof(elems[9].c_str());
       up[3] = 0.f;
 
-      scene.camera.setLook(pos, look, up);
-      scene.camera.setFOV(fov);
-      scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
+      // TODO : Replace by context
+      // scene.camera.setLook(pos, look, up);
+      // scene.camera.setFOV(fov);
+      // scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
 
     } else if (elems[0] == "G") {
       GVT_DEBUG(DBG_ALWAYS, "Geometry file" << elems[1]);
@@ -116,19 +119,21 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         gvt::render::data::primitives::Mesh *mesh;
 
-        std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = scene.objMeshes.find(elems[1]);
+        // TODO : Replace by context
+        /*
+      std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = scene.objMeshes.find(elems[1]);
 
-        if (meshIt != scene.objMeshes.end()) {
-          mesh = meshIt->second;
-        } else {
-          gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
-          mesh = objReader.getMesh();
-          scene.objMeshes[elems[1]] = mesh;
-        }
+      if (meshIt != scene.objMeshes.end()) {
+        mesh = meshIt->second;
+      } else {
+        gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
+        mesh = objReader.getMesh();
+        scene.objMeshes[elems[1]] = mesh;
+      }
 
-        scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
-
-        glm::vec4 t;
+      scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
+      */
+        glm::vec3 t;
         t[0] = std::atof(elems[2].c_str());
         t[1] = std::atof(elems[3].c_str());
         t[2] = std::atof(elems[4].c_str());
@@ -160,7 +165,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
         GVT_DEBUG(DBG_ALWAYS, "Found ply file : " << elems[1].find(".ply"));
       }
     } else if (elems[0] == "LP") {
-      glm::vec4 pos, color;
+      glm::vec3 pos, color;
       pos[0] = std::atof(elems[1].c_str());
       pos[1] = std::atof(elems[2].c_str());
       pos[2] = std::atof(elems[3].c_str());
@@ -169,9 +174,10 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       color[1] = std::atof(elems[5].c_str());
       color[2] = std::atof(elems[6].c_str());
       color[3] = 1.f;
-      scene.lightSet.push_back(new gvt::render::data::scene::PointLight(pos, color));
+      // TODO : Replace by context
+      // scene.lightSet.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (elems[0] == "LA") {
-      glm::vec4 pos[2], color;
+      glm::vec3 pos[2], color;
       pos[0][0] = std::atof(elems[1].c_str());
       pos[0][1] = std::atof(elems[2].c_str());
       pos[0][2] = std::atof(elems[3].c_str());

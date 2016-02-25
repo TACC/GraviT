@@ -227,8 +227,8 @@ struct parallelTrace {
             float t = mRays.getMinT(pindex);
             rayPacket[pindex].t = t;
 
-            glm::vec4 normal = dom->toWorld(
-                gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec4>(mRays.getNormal(pindex)));
+            glm::vec3 normal = dom->toWorld(
+                gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec3>(mRays.getNormal(pindex)));
 
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) {
               t = (t > 1) ? 1.f / t : t;

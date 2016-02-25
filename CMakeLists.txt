@@ -200,9 +200,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/algorithm/ImageTracer.h
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
-	src/gvt/render/Attributes.h
 	src/gvt/render/RenderContext.h
-	src/gvt/render/data/Dataset.h
 	src/gvt/render/data/DerivedTypes.h
 	src/gvt/render/data/domain/AbstractDomain.h
 	src/gvt/render/data/domain/Cell.h
@@ -214,7 +212,6 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/primitives/BBox.h
 	src/gvt/render/data/primitives/Material.h
 	src/gvt/render/data/primitives/Mesh.h
-	src/gvt/render/data/scene/Camera.h
 	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
@@ -241,9 +238,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
-	src/gvt/render/Attributes.cpp
 	src/gvt/render/RenderContext.cpp
-	src/gvt/render/data/Dataset.cpp
 	src/gvt/render/data/domain/AbstractDomain.cpp
 	src/gvt/render/data/domain/Cell.cpp
 	src/gvt/render/data/domain/GeometryDomain.cpp
@@ -252,7 +247,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
-	src/gvt/render/data/scene/Camera.cpp
 	src/gvt/render/data/scene/gvtCamera.cpp
 	src/gvt/render/data/scene/ColorAccumulator.cpp
 	src/gvt/render/data/scene/Image.cpp

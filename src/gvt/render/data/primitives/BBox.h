@@ -43,23 +43,23 @@ namespace primitives {
 /// bounding box for data and acceleration structures
 class Box3D {
 public:
-  glm::vec4 bounds[2];
+  glm::vec3 bounds[2];
 
   Box3D();
-  Box3D(glm::vec4 vmin, glm::vec4 vmax);
+  Box3D(glm::vec3 vmin, glm::vec3 vmax);
 
   Box3D(const Box3D &other);
   bool intersect(const gvt::render::actor::Ray &r) const;
   bool intersect(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
   bool inBox(const gvt::render::actor::Ray &r) const;
-  bool inBox(const glm::vec4 &r) const;
-  glm::vec4 getHitpoint(const gvt::render::actor::Ray &r) const;
+  bool inBox(const glm::vec3 &r) const;
+  glm::vec3 getHitpoint(const gvt::render::actor::Ray &r) const;
   bool intersectDistance(const gvt::render::actor::Ray &r, float &t) const;
   bool intersectDistance(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
-  void expand(glm::vec4 &v);
+  void expand(glm::vec3 &v);
   int wideRangingBoxDir() const;
-  glm::vec4 centroid() const;
+  glm::vec3 centroid() const;
   float surfaceArea() const;
 
   friend std::ostream &operator<<(std::ostream &os, const Box3D &bbox) {

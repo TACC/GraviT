@@ -33,19 +33,19 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/render/Adapter.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/accel/BVH.h>
+#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
-#include <gvt/render/data/accel/BVH.h>
-#include <gvt/render/Adapter.h>
 
 #include <boost/foreach.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/timer/timer.hpp>
 #include <boost/range/algorithm.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/timer/timer.hpp>
 
 #include <algorithm>
 #include <future>
@@ -56,11 +56,11 @@
 #include <deque>
 #include <map>
 
+#include <tbb/blocked_range.h>
+#include <tbb/mutex.h>
+#include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
 #include <tbb/tick_count.h>
-#include <tbb/blocked_range.h>
-#include <tbb/parallel_for.h>
-#include <tbb/mutex.h>
 
 namespace gvt {
 namespace render {
@@ -341,18 +341,6 @@ public:
         }*/
       }
 
-      // for (auto &q : local_queue) {
-      //   const int dom = q.first;
-      //   const size_t size = q.second.size();
-      //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-      //   // queue[dom].reserve(queue[dom].size() + size);
-      //   queue[dom].insert(queue[dom].end(),
-      //                     std::make_move_iterator(q.second.begin()),
-      //                     std::make_move_iterator(q.second.end()));
-
-      //   // std::move(q.second.begin(), q.second.end(),
-      //   // std::back_inserter(queue[dom]));
-      // }
     });
     // clang-format on
     rays.clear();

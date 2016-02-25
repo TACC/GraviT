@@ -42,77 +42,77 @@ Material::Material(const Material &orig) {}
 
 Material::~Material() {}
 
-glm::vec4 Material::shade(const Ray &ray, const glm::vec4 &sufaceNormal, const Light *lightSource) {
-  return glm::vec4();
+glm::vec3 Material::shade(const Ray &ray, const glm::vec3 &sufaceNormal, const Light *lightSource) {
+  return glm::vec3();
 }
 
-RayVector Material::ao(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector Material::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-RayVector Material::secondary(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector Material::secondary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-Lambert::Lambert(const glm::vec4 &kd) : Material(), kd(kd) {}
+Lambert::Lambert(const glm::vec3 &kd) : Material(), kd(kd) {}
 
 Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
 
 Lambert::~Lambert() {}
 
-glm::vec4 Lambert::shade(const Ray &ray, const glm::vec4 &N, const Light *lightSource) {
+glm::vec3 Lambert::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
 
-  glm::vec4 V = glm::normalize(ray.direction);
+  glm::vec3 V = glm::normalize(ray.direction);
   float NdotL = std::max(0.f, std::abs(glm::dot(N, V)));
   Color lightSourceContrib = lightSource->contribution(ray);
   Color diffuse = (lightSourceContrib * kd) * (NdotL * ray.w);
   return diffuse;
 }
 
-RayVector Lambert::ao(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector Lambert::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-RayVector Lambert::secundary(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector Lambert::secundary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-Phong::Phong(const glm::vec4 &kd, const glm::vec4 &ks, const float &alpha) : Material(), kd(kd), ks(ks), alpha(alpha) {}
+Phong::Phong(const glm::vec3 &kd, const glm::vec3 &ks, const float &alpha) : Material(), kd(kd), ks(ks), alpha(alpha) {}
 
 Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
 
 Phong::~Phong() {}
 
-glm::vec4 Phong::shade(const Ray &ray, const glm::vec4 &N, const Light *lightSource) {
-  glm::vec4 hitPoint = (glm::vec4)ray.origin + (ray.direction * ray.t);
-  glm::vec4 L = glm::normalize(lightSource->position - hitPoint);
+glm::vec3 Phong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
+  glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
+  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
 
   float NdotL = std::max(0.f, glm::dot(N, L));
-  glm::vec4 R = ((N * 2.f) * NdotL) - L;
+  glm::vec3 R = ((N * 2.f) * NdotL) - L;
   float VdotR = std::max(0.f, glm::dot(R, (-ray.direction)));
   float power = VdotR * std::pow(VdotR, alpha);
 
-  glm::vec4 lightSourceContrib = lightSource->contribution(ray); //  distance;
+  glm::vec3 lightSourceContrib = lightSource->contribution(ray); //  distance;
 
   Color finalColor = (lightSourceContrib * kd) * (NdotL * ray.w);
   finalColor += (lightSourceContrib * ks) * (power * ray.w);
   return finalColor;
 }
 
-RayVector Phong::ao(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector Phong::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-RayVector Phong::secundary(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector Phong::secundary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-BlinnPhong::BlinnPhong(const glm::vec4 &kd, const glm::vec4 &ks, const float &alpha)
+BlinnPhong::BlinnPhong(const glm::vec3 &kd, const glm::vec3 &ks, const float &alpha)
     : Material(), kd(kd), ks(ks), alpha(alpha) {}
 
 BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
 
 BlinnPhong::~BlinnPhong() {}
 
-glm::vec4 BlinnPhong::shade(const Ray &ray, const glm::vec4 &N, const Light *lightSource) {
-  glm::vec4 hitPoint = (glm::vec4)ray.origin + (ray.direction * ray.t);
-  glm::vec4 L = glm::normalize(lightSource->position - hitPoint);
+glm::vec3 BlinnPhong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
+  glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
+  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
   float NdotL = std::max(0.f, glm::dot(N, L));
 
-  glm::vec4 H = glm::normalize(L - ray.direction);
+  glm::vec3 H = glm::normalize(L - ray.direction);
 
   float NdotH = glm::dot(H, N);
   float power = NdotH * std::pow(NdotH, alpha);
 
-  glm::vec4 lightSourceContrib = lightSource->contribution(ray);
+  glm::vec3 lightSourceContrib = lightSource->contribution(ray);
 
   Color diffuse = (lightSourceContrib * kd) * (NdotL * ray.w);
   Color specular = (lightSourceContrib * ks) * (power * ray.w);
@@ -121,6 +121,6 @@ glm::vec4 BlinnPhong::shade(const Ray &ray, const glm::vec4 &N, const Light *lig
   return finalColor;
 }
 
-RayVector BlinnPhong::ao(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector BlinnPhong::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-RayVector BlinnPhong::secundary(const Ray &ray, const glm::vec4 &sufaceNormal, float samples) { return RayVector(); }
+RayVector BlinnPhong::secundary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }

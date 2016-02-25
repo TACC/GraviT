@@ -120,7 +120,7 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
 #ifdef DEBUG_ACCEL
 #ifdef DEBUG_ACCEL_DOMAIN_SET
   for (int i = start; i < end; ++i) {
-    glm::vec4 centroid = instanceSet[i]->worldCentroid();
+    glm::vec3 centroid = instanceSet[i]->worldCentroid();
     bool lessThan = (centroid[splitAxis] < splitPoint);
     std::cout << "[Lvl" << level << "][SP:" << splitPoint << "][" << i << "][id:" << instanceSet[i]->getDomainID()
               << "][centroid: " << centroid[splitAxis] << "][isLess: " << lessThan << "]\t";
@@ -128,7 +128,7 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
   std::cout << "\n";
 #else
   for (int i = start; i < end; ++i) {
-    glm::vec4 centroid = instanceSet[i]["centroid"].value().tovec4();
+    glm::vec3 centroid = instanceSet[i]["centroid"].value().tovec3();
     bool lessThan = (centroid[splitAxis] < splitPoint);
     int id = instanceSet[i]["id"].value().toInteger();
     std::cout << "[Lvl" << level << "][SP:" << splitPoint << "][" << i << "][id:" << id

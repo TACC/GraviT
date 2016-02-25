@@ -72,19 +72,19 @@ public:
   Mesh(const Mesh &orig);
 
   virtual ~Mesh();
-  virtual void setVertex(int which, glm::vec4 vertex,
-                         glm::vec4 normal = glm::vec4(),
-                         glm::vec4 texUV = glm::vec4());
-  virtual void setNormal(int which, glm::vec4 normal = glm::vec4());
-  virtual void setTexUV(int which, glm::vec4 texUV = glm::vec4());
+  virtual void setVertex(int which, glm::vec3 vertex,
+                         glm::vec3 normal = glm::vec3(),
+                         glm::vec3 texUV = glm::vec3());
+  virtual void setNormal(int which, glm::vec3 normal = glm::vec3());
+  virtual void setTexUV(int which, glm::vec3 texUV = glm::vec3());
   virtual void setMaterial(gvt::render::data::primitives::Material *mat);
 
-  virtual void addVertexNormalTexUV(glm::vec4 vertex,
-                                    glm::vec4 normal = glm::vec4(),
-                                    glm::vec4 texUV = glm::vec4());
-  virtual void addVertex(glm::vec4 vertex);
-  virtual void addNormal(glm::vec4 normal);
-  virtual void addTexUV(glm::vec4 texUV);
+  virtual void addVertexNormalTexUV(glm::vec3 vertex,
+                                    glm::vec3 normal = glm::vec3(),
+                                    glm::vec3 texUV = glm::vec3());
+  virtual void addVertex(glm::vec3 vertex);
+  virtual void addNormal(glm::vec3 normal);
+  virtual void addTexUV(glm::vec3 texUV);
   virtual void addFace(int v0, int v1, int v2);
   virtual void addFaceToNormals(FaceToNormals);
 
@@ -93,21 +93,21 @@ public:
   virtual void generateNormals();
 
   virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
-  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const glm::vec4 &normal,
+  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
                                          const gvt::render::data::scene::Light *lsource);
 
   virtual gvt::render::data::Color shadeFace(const int face_id, const gvt::render::actor::Ray &r,
-                                             const glm::vec4 &normal,
+                                             const glm::vec3 &normal,
                                              const gvt::render::data::scene::Light *lsource);
 
 public:
   gvt::render::data::primitives::Material *mat;
-  boost::container::vector<glm::vec4> vertices;
-  boost::container::vector<glm::vec4> mapuv;
-  boost::container::vector<glm::vec4> normals;
+  boost::container::vector<glm::vec3> vertices;
+  boost::container::vector<glm::vec3> mapuv;
+  boost::container::vector<glm::vec3> normals;
   boost::container::vector<Face> faces;
   boost::container::vector<FaceToNormals> faces_to_normals;
-  boost::container::vector<glm::vec4> face_normals;
+  boost::container::vector<glm::vec3> face_normals;
   boost::container::vector<Material *> faces_to_materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;

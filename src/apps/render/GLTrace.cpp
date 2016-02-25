@@ -54,12 +54,11 @@
 #include "ConfigFileLoader.h"
 #include <gvt/core/Math.h>
 #include <gvt/core/mpi/Wrapper.h>
-#include <gvt/render/Attributes.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
-#include <gvt/render/data/scene/Camera.h>
 #include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 
 #include "ParseCommandLine.h"
 
@@ -236,11 +235,11 @@ void PrintHelpAndSettings() {
  * camera manipulation routines
  */
 
-void Translate(glm::vec4 &eye, glm::vec4 &focus, const float k) {
-  glm::vec4 v = camNode["upVector"].value().tovec4();
+void Translate(glm::vec3 &eye, glm::vec3 &focus, const float k) {
+  glm::vec3 v = camNode["upVector"].value().tovec3();
 
-  glm::vec4 w = focus - eye; // Cam direction
-  glm::vec4 move_dir;        // Cross(w,v)
+  glm::vec3 w = focus - eye; // Cam direction
+  glm::vec3 move_dir;        // Cross(w,v)
 
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
@@ -248,31 +247,31 @@ void Translate(glm::vec4 &eye, glm::vec4 &focus, const float k) {
   move_dir[3] = 0.0;
   move_dir = glm::normalize(move_dir);
 
-  glm::vec4 t = k * move_dir;
+  glm::vec3 t = k * move_dir;
   eye += t;
   focus += t;
 }
 
-void TranslateLeft(glm::vec4 &eye, glm::vec4 &focus, const float k) { Translate(eye, focus, -k); }
+void TranslateLeft(glm::vec3 &eye, glm::vec3 &focus, const float k) { Translate(eye, focus, -k); }
 
-void TranslateRight(glm::vec4 &eye, glm::vec4 &focus, const float k) { Translate(eye, focus, k); }
+void TranslateRight(glm::vec3 &eye, glm::vec3 &focus, const float k) { Translate(eye, focus, k); }
 
-void TranslateForward(glm::vec4 &eye, glm::vec4 &focus, const float k) {
-  glm::vec4 t = k * (focus - eye);
+void TranslateForward(glm::vec3 &eye, glm::vec3 &focus, const float k) {
+  glm::vec3 t = k * (focus - eye);
   eye += t;
   focus += t;
 }
 
-void TranslateBackward(glm::vec4 &eye, glm::vec4 &focus, const float k) {
-  glm::vec4 t = -k * (focus - eye);
+void TranslateBackward(glm::vec3 &eye, glm::vec3 &focus, const float k) {
+  glm::vec3 t = -k * (focus - eye);
   eye += t;
   focus += t;
 }
 
-void Rotate(glm::vec4 &eye, glm::vec4 &focus, const float angle, const glm::vec4 &axis) {
-  glm::vec4 p = focus - eye;
+void Rotate(glm::vec3 &eye, glm::vec3 &focus, const float angle, const glm::vec3 &axis) {
+  glm::vec3 p = focus - eye;
 
-  glm::vec4 t = angle * axis;
+  glm::vec3 t = angle * axis;
 
   // glm::mat4 mAA;
   // mAA = glm::mat4::createRotation(t[0], 1.0, 0.0, 0.0) * glm::mat4::createRotation(t[1], 0.0, 1.0, 0.0) *
@@ -285,17 +284,17 @@ void Rotate(glm::vec4 &eye, glm::vec4 &focus, const float angle, const glm::vec4
   // Rotate focus point
 
   if (cameraRotationMode)
-    focus = eye + mAA * p;
+    focus = eye + glm::vec3(mAA * glm::vec4(p, 0.f));
   else
-    eye = focus + (mAA * (-p));
+    eye = focus + glm::vec3(mAA * glm::vec4(-p, 0.f));
 }
 
-void RotateLeft(glm::vec4 &eye, glm::vec4 &focus, float angle) {
-  glm::vec4 v = camNode["upVector"].value().tovec4();
+void RotateLeft(glm::vec3 &eye, glm::vec3 &focus, float angle) {
+  glm::vec3 v = camNode["upVector"].value().tovec3();
 
-  glm::vec4 w = focus - eye; // Cam direction
-  glm::vec4 move_dir_x;      // Cross(w,v)
-  glm::vec4 move_dir_y;      // Cross(move_dir_x,w)
+  glm::vec3 w = focus - eye; // Cam direction
+  glm::vec3 move_dir_x;      // Cross(w,v)
+  glm::vec3 move_dir_y;      // Cross(move_dir_x,w)
 
   move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
   move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
@@ -312,12 +311,12 @@ void RotateLeft(glm::vec4 &eye, glm::vec4 &focus, float angle) {
   Rotate(eye, focus, angle, move_dir_y);
 }
 
-void RotateRight(glm::vec4 &eye, glm::vec4 &focus, float angle) {
-  glm::vec4 v = camNode["upVector"].value().tovec4();
+void RotateRight(glm::vec3 &eye, glm::vec3 &focus, float angle) {
+  glm::vec3 v = camNode["upVector"].value().tovec3();
 
-  glm::vec4 w = focus - eye; // Cam direction
-  glm::vec4 move_dir_x;      // Cross(w,v)
-  glm::vec4 move_dir_y;      // Cross(move_dir_x,w)
+  glm::vec3 w = focus - eye; // Cam direction
+  glm::vec3 move_dir_x;      // Cross(w,v)
+  glm::vec3 move_dir_y;      // Cross(move_dir_x,w)
 
   move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
   move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
@@ -334,11 +333,11 @@ void RotateRight(glm::vec4 &eye, glm::vec4 &focus, float angle) {
   Rotate(eye, focus, -angle, move_dir_y);
 }
 
-void RotateUp(glm::vec4 &eye, glm::vec4 &focus, float angle) {
-  glm::vec4 v = camNode["upVector"].value().tovec4();
+void RotateUp(glm::vec3 &eye, glm::vec3 &focus, float angle) {
+  glm::vec3 v = camNode["upVector"].value().tovec3();
 
-  glm::vec4 w = focus - eye; // Cam direction
-  glm::vec4 move_dir;        // Cross(w,v)
+  glm::vec3 w = focus - eye; // Cam direction
+  glm::vec3 move_dir;        // Cross(w,v)
 
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
@@ -349,11 +348,11 @@ void RotateUp(glm::vec4 &eye, glm::vec4 &focus, float angle) {
   Rotate(eye, focus, angle, move_dir);
 }
 
-void RotateDown(glm::vec4 &eye, glm::vec4 &focus, float angle) {
-  glm::vec4 v = camNode["upVector"].value().tovec4();
+void RotateDown(glm::vec3 &eye, glm::vec3 &focus, float angle) {
+  glm::vec3 v = camNode["upVector"].value().tovec3();
 
-  glm::vec4 w = focus - eye; // Cam direction
-  glm::vec4 move_dir;        // Cross(w,v)
+  glm::vec3 w = focus - eye; // Cam direction
+  glm::vec3 move_dir;        // Cross(w,v)
 
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
@@ -395,24 +394,24 @@ void SyncCamera() {
 
   unsigned char *v_new = new unsigned char[4 * sizeof(float)];
 
-  glm::vec4 eye = camNode["eyePoint"].value().tovec4();
+  glm::vec3 eye = camNode["eyePoint"].value().tovec3();
   MPI_Bcast(glm::value_ptr(eye), 4, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
   if (mpi_rank != opengl_rank) camNode["eyePoint"] = eye;
 
-  glm::vec4 focus = camNode["focus"].value().tovec4();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
   MPI_Bcast(glm::value_ptr(focus), 4, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
   if (mpi_rank != opengl_rank) camNode["focus"] = focus;
 
-  glm::vec4 upVector = camNode["upVector"].value().tovec4();
+  glm::vec3 upVector = camNode["upVector"].value().tovec3();
   MPI_Bcast(glm::value_ptr(upVector), 4, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
   if (mpi_rank != opengl_rank) camNode["upVector"] = upVector;
 }
 
-void UpdateCamera(glm::vec4 focus, glm::vec4 eye1, glm::vec4 up) {
+void UpdateCamera(glm::vec3 focus, glm::vec3 eye1, glm::vec3 up) {
 
   if (update) {
 
-    //      glm::vec4 old_focus = camNode["focus"].value().tovec4();
+    //      glm::vec3 old_focus = camNode["focus"].value().tovec3();
     //      std::cout << "old_focus: " << old_focus[0] << " "
     //                << old_focus[1] << " "
     //                << old_focus[2] << endl;
@@ -421,7 +420,7 @@ void UpdateCamera(glm::vec4 focus, glm::vec4 eye1, glm::vec4 up) {
     //                << focus[1] << " "
     //                << focus[2] << endl;
 
-    //      glm::vec4 old_eyePoint = camNode["eyePoint"].value().tovec4();
+    //      glm::vec3 old_eyePoint = camNode["eyePoint"].value().tovec3();
     //      std::cout << "old_eyePoint: " << old_eyePoint[0] << " "
     //                << old_eyePoint[1] << " "
     //                << old_eyePoint[2] << endl;
@@ -434,7 +433,7 @@ void UpdateCamera(glm::vec4 focus, glm::vec4 eye1, glm::vec4 up) {
     camNode["focus"] = focus;
 
     // cam dir
-    glm::vec4 v = glm::normalize(focus - eye1);
+    glm::vec3 v = glm::normalize(focus - eye1);
     float dot = glm::dot(v, glm::normalize(up));
 
     // if cam dir and up are converging to non-ortho,
@@ -443,7 +442,7 @@ void UpdateCamera(glm::vec4 focus, glm::vec4 eye1, glm::vec4 up) {
 
       // Using vector orthgonal to cam dir, so calculating rotation axis
       // for cam dir
-      glm::vec4 rot = glm::vec4(glm::cross(glm::vec3(v), glm::vec3(glm::normalize(up))), 0.0f);
+      glm::vec3 rot = glm::cross(v, glm::normalize(up));
 
       // rotate it 90 deg
       rot = (float)(90.0 * M_PI / 180.0) * rot;
@@ -458,7 +457,7 @@ void UpdateCamera(glm::vec4 focus, glm::vec4 eye1, glm::vec4 up) {
                       glm::rotate(glm::mat4(1.f), rot[2], glm::vec3(0, 0, 1));
 
       // apply rotation
-      up = mAA * v;
+      up = glm::vec3(mAA * glm::vec4(v, 0.f));
     }
 
     camNode["upVector"] = up;
@@ -469,7 +468,7 @@ void UpdateCamera(glm::vec4 focus, glm::vec4 eye1, glm::vec4 up) {
   }
 
   if (renderMode == BVH_RENDER_MODE) {
-    glm::vec4 up = camNode["upVector"].value().tovec4();
+    glm::vec3 up = camNode["upVector"].value().tovec3();
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -500,9 +499,9 @@ static void mouseFunc(int button, int state, int x, int y) {
 }
 
 static void motionFunc(int x, int y) {
-  glm::vec4 eye1 = camNode["eyePoint"].value().tovec4();
-  glm::vec4 focus = camNode["focus"].value().tovec4();
-  glm::vec4 up = camNode["upVector"].value().tovec4();
+  glm::vec3 eye1 = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
 
   const double minInterval = 0.2;
   if (mouseButton0) {
@@ -555,9 +554,9 @@ void reshape(int w, int h) {
 
   } else {
 
-    glm::vec4 eye1 = camNode["eyePoint"].value().tovec4();
-    glm::vec4 focus = camNode["focus"].value().tovec4();
-    glm::vec4 up = camNode["upVector"].value().tovec4();
+    glm::vec3 eye1 = camNode["eyePoint"].value().tovec3();
+    glm::vec3 focus = camNode["focus"].value().tovec3();
+    glm::vec3 up = camNode["upVector"].value().tovec3();
     float fov = camNode["fov"].value().toFloat() * (180 / M_PI);
     // simply calculating the zfar according to camera view dir for now
     float zfar = (focus - eye1).length() * 1.5;
@@ -573,9 +572,9 @@ void reshape(int w, int h) {
 }
 
 void specialkey(int key, int x, int y) {
-  glm::vec4 eye1 = camNode["eyePoint"].value().tovec4();
-  glm::vec4 focus = camNode["focus"].value().tovec4();
-  glm::vec4 up = camNode["upVector"].value().tovec4();
+  glm::vec3 eye1 = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
 
   switch (key) {
   case GLUT_KEY_LEFT:
@@ -615,9 +614,9 @@ void UpdateRenderMode() {
 
   } else {
 
-    glm::vec4 eye1 = camNode["eyePoint"].value().tovec4();
-    glm::vec4 focus = camNode["focus"].value().tovec4();
-    glm::vec4 up = camNode["upVector"].value().tovec4();
+    glm::vec3 eye1 = camNode["eyePoint"].value().tovec3();
+    glm::vec3 focus = camNode["focus"].value().tovec3();
+    glm::vec3 up = camNode["upVector"].value().tovec3();
     float fov = camNode["fov"].value().toFloat() * (180 / M_PI);
     // simply calculating the zfar according to camera view dir for now
     float zfar = (focus - eye1).length() * 1.5;
@@ -634,9 +633,9 @@ void UpdateRenderMode() {
 }
 
 void keyboard(unsigned char key, int x, int y) {
-  glm::vec4 eye1 = camNode["eyePoint"].value().tovec4();
-  glm::vec4 focus = camNode["focus"].value().tovec4();
-  glm::vec4 up = camNode["upVector"].value().tovec4();
+  glm::vec3 eye1 = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
 
   switch (key) {
   case ESCAPE:
@@ -758,9 +757,9 @@ void Render() {
 
   // setup gvtCamera from database entries
 
-  glm::vec4 cameraposition = camNode["eyePoint"].value().tovec4();
-  glm::vec4 focus = camNode["focus"].value().tovec4();
-  glm::vec4 up = camNode["upVector"].value().tovec4();
+  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
 
   float fov = camNode["fov"].value().toFloat();
   mycamera.lookAt(cameraposition, focus, up);
@@ -854,6 +853,8 @@ void dispfunc(void) {
 }
 
 void ConfigSceneFromFile(std::string filename) {
+// NEed to modify COnfigLo
+#if 0
   gvtapps::render::ConfigFileLoader cl(filename);
   gvt::render::data::Dataset &scene = cl.scene;
 
@@ -897,13 +898,13 @@ void ConfigSceneFromFile(std::string filename) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
   gvt::render::data::scene::PointLight *lp = (gvt::render::data::scene::PointLight *)scene.getLight(0);
-  lightNode["position"] = glm::vec4(lp->position);
-  lightNode["color"] = glm::vec4(lp->color);
+  lightNode["position"] = glm::vec3(lp->position);
+  lightNode["color"] = glm::vec3(lp->color);
 
   // camera
   gvt::core::DBNodeH _camNode = root["Camera"];
-  _camNode["eyePoint"] = glm::vec4(scene.camera.getEye());
-  _camNode["focus"] = glm::vec4(scene.camera.getFocus());
+  _camNode["eyePoint"] = glm::vec3(scene.camera.getEye());
+  _camNode["focus"] = glm::vec3(scene.camera.getFocus());
   _camNode["upVector"] = scene.camera.getUp();
   _camNode["fov"] = (float)(45.0 * M_PI / 180.0); // TODO
 
@@ -912,6 +913,7 @@ void ConfigSceneFromFile(std::string filename) {
 
   filmNode["width"] = int(scene.camera.getFilmSizeWidth());
   filmNode["height"] = int(scene.camera.getFilmSizeHeight());
+#endif
 }
 
 void ConfigSceneCubeCone() {
@@ -924,16 +926,16 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec4(0.5, 0.5, 0.5, 1.0)));
+    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
     int numPoints = 7;
-    glm::vec4 points[7];
-    points[0] = glm::vec4(0.5, 0.0, 0.0, 1.0);
-    points[1] = glm::vec4(-0.5, 0.5, 0.0, 1.0);
-    points[2] = glm::vec4(-0.5, 0.25, 0.433013, 1.0);
-    points[3] = glm::vec4(-0.5, -0.25, 0.43013, 1.0);
-    points[4] = glm::vec4(-0.5, -0.5, 0.0, 1.0);
-    points[5] = glm::vec4(-0.5, -0.25, -0.433013, 1.0);
-    points[6] = glm::vec4(-0.5, 0.25, -0.433013, 1.0);
+    glm::vec3 points[7];
+    points[0] = glm::vec3(0.5, 0.0, 0.0);
+    points[1] = glm::vec3(-0.5, 0.5, 0.0);
+    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
+    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
+    points[4] = glm::vec3(-0.5, -0.5, 0.0);
+    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
+    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
 
     for (int i = 0; i < numPoints; i++) {
       mesh->addVertex(points[i]);
@@ -947,7 +949,7 @@ void ConfigSceneCubeCone() {
     mesh->generateNormals();
 
     // calculate bbox
-    glm::vec4 lower = points[0], upper = points[0];
+    glm::vec3 lower = points[0], upper = points[0];
     for (int i = 1; i < numPoints; i++) {
       for (int j = 0; j < 3; j++) {
         lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
@@ -964,17 +966,17 @@ void ConfigSceneCubeCone() {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec4(0.5, 0.5, 0.5, 1.0)));
+    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
     int numPoints = 8;
-    glm::vec4 points[8];
-    points[0] = glm::vec4(-0.5, -0.5, 0.5, 1.0);
-    points[1] = glm::vec4(0.5, -0.5, 0.5, 1.0);
-    points[2] = glm::vec4(0.5, 0.5, 0.5, 1.0);
-    points[3] = glm::vec4(-0.5, 0.5, 0.5, 1.0);
-    points[4] = glm::vec4(-0.5, -0.5, -0.5, 1.0);
-    points[5] = glm::vec4(0.5, -0.5, -0.5, 1.0);
-    points[6] = glm::vec4(0.5, 0.5, -0.5, 1.0);
-    points[7] = glm::vec4(-0.5, 0.5, -0.5, 1.0);
+    glm::vec3 points[8];
+    points[0] = glm::vec3(-0.5, -0.5, 0.5);
+    points[1] = glm::vec3(0.5, -0.5, 0.5);
+    points[2] = glm::vec3(0.5, 0.5, 0.5);
+    points[3] = glm::vec3(-0.5, 0.5, 0.5);
+    points[4] = glm::vec3(-0.5, -0.5, -0.5);
+    points[5] = glm::vec3(0.5, -0.5, -0.5);
+    points[6] = glm::vec3(0.5, 0.5, -0.5);
+    points[7] = glm::vec3(-0.5, 0.5, -0.5);
 
     for (int i = 0; i < numPoints; i++) {
       mesh->addVertex(points[i]);
@@ -995,7 +997,7 @@ void ConfigSceneCubeCone() {
     mesh->generateNormals();
 
     // calculate bbox
-    glm::vec4 lower = points[0], upper = points[0];
+    glm::vec3 lower = points[0], upper = points[0];
     for (int i = 1; i < numPoints; i++) {
       for (int j = 0; j < 3; j++) {
         lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
@@ -1039,8 +1041,8 @@ void ConfigSceneCubeCone() {
       *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
       instnode["normi"] = (unsigned long long)normi;
 
-      auto il = (*m) * mbox->bounds[0];
-      auto ih = (*m) * mbox->bounds[1];
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
@@ -1050,14 +1052,14 @@ void ConfigSceneCubeCone() {
   // add lights, camera, and film to the database
 
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
-  lightNode["position"] = glm::vec4(1.0, 0.0, 0.0, 0.0);
-  lightNode["color"] = glm::vec4(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   gvt::core::DBNodeH _camNode = root["Camera"];
 
-  _camNode["eyePoint"] = glm::vec4(4.0, 0.0, 0.0, 1.0);
-  _camNode["focus"] = glm::vec4(0.0, 0.0, 0.0, 1.0);
-  _camNode["upVector"] = glm::vec4(0.0, 1.0, 0.0, 0.0);
+  _camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
+  _camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
+  _camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
   gvt::core::DBNodeH filmNode = root["Film"];
@@ -1074,16 +1076,16 @@ void ConfigSceneCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec4(0.5, 0.5, 0.5, 1.0)));
+    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
     int numPoints = 7;
-    glm::vec4 points[7];
-    points[0] = glm::vec4(0.5, 0.0, 0.0, 1.0);
-    points[1] = glm::vec4(-0.5, 0.5, 0.0, 1.0);
-    points[2] = glm::vec4(-0.5, 0.25, 0.433013, 1.0);
-    points[3] = glm::vec4(-0.5, -0.25, 0.43013, 1.0);
-    points[4] = glm::vec4(-0.5, -0.5, 0.0, 1.0);
-    points[5] = glm::vec4(-0.5, -0.25, -0.433013, 1.0);
-    points[6] = glm::vec4(-0.5, 0.25, -0.433013, 1.0);
+    glm::vec3 points[7];
+    points[0] = glm::vec3(0.5, 0.0, 0.0);
+    points[1] = glm::vec3(-0.5, 0.5, 0.0);
+    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
+    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
+    points[4] = glm::vec3(-0.5, -0.5, 0.0);
+    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
+    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
 
     for (int i = 0; i < numPoints; i++) {
       mesh->addVertex(points[i]);
@@ -1097,7 +1099,7 @@ void ConfigSceneCone() {
     mesh->generateNormals();
 
     // calculate bbox
-    glm::vec4 lower = points[0], upper = points[0];
+    glm::vec3 lower = points[0], upper = points[0];
     for (int i = 1; i < numPoints; i++) {
       for (int j = 0; j < 3; j++) {
         lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
@@ -1138,8 +1140,8 @@ void ConfigSceneCone() {
   *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   instnode["normi"] = (unsigned long long)normi;
 
-  auto il = (*m) * mbox->bounds[0];
-  auto ih = (*m) * mbox->bounds[1];
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
@@ -1147,14 +1149,14 @@ void ConfigSceneCone() {
   // add lights, camera, and film to the database
 
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
-  lightNode["position"] = glm::vec4(1.0, 0.0, 0.0, 0.0);
-  lightNode["color"] = glm::vec4(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   gvt::core::DBNodeH _camNode = root["Camera"];
 
-  _camNode["eyePoint"] = glm::vec4(4.0, 0.0, 0.0, 1.0);
-  _camNode["focus"] = glm::vec4(0.0, 0.0, 0.0, 1.0);
-  _camNode["upVector"] = glm::vec4(0.0, 1.0, 0.0, 0.0);
+  _camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
+  _camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
+  _camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
   gvt::core::DBNodeH filmNode = root["Film"];
@@ -1221,7 +1223,7 @@ void ConfigEnzo(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec4(1.0, 1.0, 1.0, 1.0)));
+      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -1238,10 +1240,10 @@ void ConfigEnzo(std::string rootdir) {
         xmax = MAX(vert->x, xmax);
         ymax = MAX(vert->y, ymax);
         zmax = MAX(vert->z, zmax);
-        mesh->addVertex(glm::vec4(vert->x, vert->y, vert->z, 1.0));
+        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
       }
-      glm::vec4 lower(xmin, ymin, zmin, 1.f);
-      glm::vec4 upper(xmax, ymax, zmax, 1.f);
+      glm::vec3 lower(xmin, ymin, zmin);
+      glm::vec3 upper(xmax, ymax, zmax);
       Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
       // add faces to mesh
       for (i = 0; i < nfaces; i++) {
@@ -1269,8 +1271,8 @@ void ConfigEnzo(std::string rootdir) {
     instnode["matInv"] = (unsigned long long)minv;
     *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
     instnode["normi"] = (unsigned long long)normi;
-    auto il = (*m) * mbox->bounds[0];
-    auto ih = (*m) * mbox->bounds[1];
+    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
@@ -1279,13 +1281,13 @@ void ConfigEnzo(std::string rootdir) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = root["Lights"];
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec4(512.0, 512.0, 2048.0, 0.0);
-  lightNode["color"] = glm::vec4(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
   // camera
   gvt::core::DBNodeH camNode = root["Camera"];
-  camNode["eyePoint"] = glm::vec4(512.0, 512.0, 4096.0, 1.0);
-  camNode["focus"] = glm::vec4(512.0, 512.0, 0.0, 1.0);
-  camNode["upVector"] = glm::vec4(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
+  camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
+  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = root["Film"];
@@ -1384,12 +1386,12 @@ int main(int argc, char *argv[]) {
 
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
-    camNode["eyePoint"] = glm::vec4(eye[0], eye[1], eye[2], 1.f);
+    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   if (cmd.isSet("look")) {
     std::vector<float> eye = cmd.getValue<float>("look");
-    camNode["focus"] = glm::vec4(eye[0], eye[1], eye[2], 1.f);
+    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   width = root["Film"]["width"].value().toInteger();
@@ -1448,9 +1450,9 @@ int main(int argc, char *argv[]) {
 
     } else {
 
-      glm::vec4 eye1 = camNode["eyePoint"].value().tovec4();
-      glm::vec4 focus = camNode["focus"].value().tovec4();
-      glm::vec4 up = camNode["upVector"].value().tovec4();
+      glm::vec3 eye1 = camNode["eyePoint"].value().tovec3();
+      glm::vec3 focus = camNode["focus"].value().tovec3();
+      glm::vec3 up = camNode["upVector"].value().tovec3();
       float fov = camNode["fov"].value().toFloat() * (180 / M_PI);
       // simply calculating the zfar according to camera view dir for now
       float zfar = (focus - eye1).length() * 1.5;

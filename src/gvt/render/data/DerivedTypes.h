@@ -37,7 +37,7 @@ namespace gvt {
 namespace render {
 namespace data {
 /// color used in geometric rendering
-typedef glm::vec4 Color;
+typedef glm::vec3 Color;
 }
 }
 }

@@ -66,11 +66,11 @@ public:
 
   virtual gvt::render::actor::Ray toWorld(gvt::render::actor::Ray &r);
 
-  virtual glm::vec4 toLocal(const glm::vec4 &r);
+  virtual glm::vec3 toLocal(const glm::vec3 &r);
 
-  virtual glm::vec4 toWorld(const glm::vec4 &r);
+  virtual glm::vec3 toWorld(const glm::vec3 &r);
 
-  virtual glm::vec4 localToWorldNormal(const glm::vec4 &v);
+  virtual glm::vec3 localToWorldNormal(const glm::vec3 &v);
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox();
 
   virtual void setBoundingBox(gvt::render::data::primitives::Box3D bb);
@@ -83,11 +83,11 @@ public:
 
   virtual void setDomainID(int id);
 
-  virtual void translate(glm::vec4 t);
-  virtual void rotate(glm::vec4 t);
-  virtual void scale(glm::vec4 t);
+  virtual void translate(glm::vec3 t);
+  virtual void rotate(glm::vec3 t);
+  virtual void scale(glm::vec3 t);
 
-  virtual glm::vec4 worldCentroid() const;
+  virtual glm::vec3 worldCentroid() const;
 
   // Public variables
   glm::mat4 m;

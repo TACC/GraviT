@@ -50,7 +50,6 @@ public:
   Variant(String);
   Variant(Uuid);
   Variant(glm::vec3);
-  Variant(glm::vec4);
 
   int toInteger() const;
   long toLong() const;
@@ -61,7 +60,6 @@ public:
   Uuid toUuid() const;
   unsigned long long toULongLong() const;
   glm::vec3 tovec3() const;
-  glm::vec4 tovec4() const;
 
   bool operator==(const Variant &) const;
   bool operator!=(const Variant &) const;
@@ -69,7 +67,7 @@ public:
   friend std::ostream &operator<<(std::ostream &, const Variant &);
 
 protected:
-  boost::variant<int, long, float, double, bool, unsigned long long, String, Uuid, glm::vec3, glm::vec4> coreData;
+  boost::variant<int, long, float, double, bool, unsigned long long, String, Uuid, glm::vec3> coreData;
 };
 }
 }

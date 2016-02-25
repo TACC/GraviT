@@ -29,15 +29,15 @@ using namespace gvt::render::actor;
 
 // Camera base class methods
 gvtCameraBase::gvtCameraBase() {
-  eye_point = glm::vec4(0, 0, 0, 1);
-  focal_point = glm::vec4(0, 0, 0, 1);
-  up_vector = glm::vec4(0, 1, 0, 0);
-  view_direction = glm::vec4(0, 0, -1, 0);
+  eye_point = glm::vec3(0, 0, 0);
+  focal_point = glm::vec3(0, 0, 0);
+  up_vector = glm::vec3(0, 1, 0);
+  view_direction = glm::vec3(0, 0, -1);
   filmsize[0] = 512;
   filmsize[1] = 512;
-  u = glm::vec4(1, 0, 0, 0);
-  v = glm::vec4(0, 1, 0, 0);
-  w = glm::vec4(0, 0, 1, 0);
+  u = glm::vec3(1, 0, 0);
+  v = glm::vec3(0, 1, 0);
+  w = glm::vec3(0, 0, 1);
   cam2wrld = glm::mat4(1.f);
   wrld2cam = glm::mat4(1.f);
   INVRAND_MAX = 1.0 / (float)RAND_MAX;
@@ -97,7 +97,7 @@ void gvtCameraBase::buildTransform() {
   up_vector[0] = w[1] * u[2] - u[1] * w[2];
   up_vector[1] = w[2] * u[0] - u[2] * w[0];
   up_vector[2] = w[0] * u[1] - u[0] * w[1];
-  up_vector[3] = 0.0;
+  // up_vector[3] = 0.0;
   v = glm::normalize(up_vector);
 #endif
 
@@ -105,7 +105,7 @@ void gvtCameraBase::buildTransform() {
   up_vector[0] = u[1] * w[2] - w[1] * u[2];
   up_vector[1] = u[2] * w[0] - w[2] * u[0];
   up_vector[2] = u[0] * w[1] - w[0] * u[1];
-  up_vector[3] = 0.0;
+  // up_vector[3] = 0.0;
   v = glm::normalize(up_vector);
 #endif
 
@@ -115,7 +115,7 @@ void gvtCameraBase::buildTransform() {
   cam2wrld[0][3] = eye_point[0];
   cam2wrld[1][3] = eye_point[1];
   cam2wrld[2][3] = eye_point[2];
-  cam2wrld[3][3] = eye_point[3];
+  cam2wrld[3][3] = 1.f; // eye_point[3];
   //
   // Third column in the camera to world transformation matrix contains the
   // unit vector from the eye_point to the focal_point.
@@ -123,17 +123,17 @@ void gvtCameraBase::buildTransform() {
   cam2wrld[0][2] = w[0];
   cam2wrld[1][2] = w[1];
   cam2wrld[2][2] = w[2];
-  cam2wrld[3][2] = w[3];
+  cam2wrld[3][2] = 0.f;
   //
   cam2wrld[0][1] = v[0];
   cam2wrld[1][1] = v[1];
   cam2wrld[2][1] = v[2];
-  cam2wrld[3][1] = v[3];
+  cam2wrld[3][1] = 0.f;
   //
   cam2wrld[0][0] = u[0];
   cam2wrld[1][0] = u[1];
   cam2wrld[2][0] = u[2];
-  cam2wrld[3][0] = u[3];
+  cam2wrld[3][0] = 0.f;
   //
   // invert for world to camera transform
   //
@@ -150,8 +150,8 @@ void gvtCameraBase::setFilmsize(int width, int height) {
 }
 int gvtCameraBase::getFilmSizeWidth() { return filmsize[0]; }
 int gvtCameraBase::getFilmSizeHeight() { return filmsize[1]; }
-void gvtCameraBase::setEye(const glm::vec4 &eye) { eye_point = eye; }
-void gvtCameraBase::lookAt(glm::vec4 eye, glm::vec4 focus, glm::vec4 up) {
+void gvtCameraBase::setEye(const glm::vec3 &eye) { eye_point = eye; }
+void gvtCameraBase::lookAt(glm::vec3 eye, glm::vec3 focus, glm::vec3 up) {
   eye_point = eye;
   focal_point = focus;
   view_direction = focal_point - eye_point;
@@ -191,10 +191,10 @@ void gvtPerspectiveCamera::generateRays() {
   float x, y;
   // these basis directions are scaled by the aspect ratio and
   // the field of view.
-  glm::vec4 camera_vert_basis_vector = glm::vec4(0, 1, 0, 0) * tanf(field_of_view * 0.5);
-  glm::vec4 camera_horiz_basis_vector = glm::vec4(1, 0, 0, 0) * tanf(field_of_view * 0.5) * aspectRatio;
-  glm::vec4 camera_normal_basis_vector = glm::vec4(0, 0, 1, 0);
-  glm::vec4 camera_space_ray_direction;
+  glm::vec3 camera_vert_basis_vector = glm::vec3(0, 1, 0) * tanf(field_of_view * 0.5);
+  glm::vec3 camera_horiz_basis_vector = glm::vec3(1, 0, 0) * tanf(field_of_view * 0.5) * aspectRatio;
+  glm::vec3 camera_normal_basis_vector = glm::vec3(0, 0, 1);
+  glm::vec3 camera_space_ray_direction;
   for (j = 0; j < buffer_height; j++)
     for (i = 0; i < buffer_width; i++) {
       // select a ray and load it up
@@ -211,7 +211,7 @@ void gvtPerspectiveCamera::generateRays() {
       camera_space_ray_direction =
           camera_normal_basis_vector + x * camera_horiz_basis_vector + y * camera_vert_basis_vector;
       // transform ray to world coordinate space;
-      ray.setDirection(cam2wrld * camera_space_ray_direction);
+      ray.setDirection(glm::vec3(cam2wrld * glm::vec4(camera_space_ray_direction, 0.f)));
       ray.depth = depth;
     }
 }
