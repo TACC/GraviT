@@ -66,9 +66,9 @@ public:
 
     int width, height;
     int view_angle;
-    gvt::core::math::Point4f camera;
-    gvt::core::math::Point4f focus;
-    gvt::core::math::Vector4f up;
+    glm::vec4 camera;
+    glm::vec4 focus;
+    glm::vec4 up;
 
     float parallelScale;
     float nearPlane;

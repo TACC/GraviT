@@ -44,13 +44,13 @@ namespace scene {
 */
 class Light {
 public:
-  Light(const gvt::core::math::Point4f position = gvt::core::math::Point4f());
+  Light(const glm::vec4 position = glm::vec4());
   Light(const Light &orig);
   virtual ~Light();
 
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
+  virtual glm::vec4 contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Point4f position;
+  glm::vec4 position;
 
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
@@ -60,25 +60,25 @@ public:
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public Light {
 public:
-  AmbientLight(const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
+  AmbientLight(const glm::vec4 color = glm::vec4(1.f, 1.f, 1.f, 0.f));
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
+  virtual glm::vec4 contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Vector4f color;
+  glm::vec4 color;
 };
 /// point light source
 class PointLight : public Light {
 public:
-  PointLight(const gvt::core::math::Point4f position = gvt::core::math::Point4f(),
-             const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
+  PointLight(const glm::vec4 position = glm::vec4(),
+             const glm::vec4 color = glm::vec4(1.f, 1.f, 1.f, 0.f));
   PointLight(const PointLight &orig);
   virtual ~PointLight();
 
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
+  virtual glm::vec4 contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Vector4f color;
+  glm::vec4 color;
 };
 }
 }

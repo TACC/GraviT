@@ -75,8 +75,8 @@ public:
    */
   MantaMeshAdapter(gvt::core::DBNodeH node);
 
-  // MantaMeshAdapter(std::string filename ="",gvt::core::math::AffineTransformMatrix<float> m =
-  // gvt::core::math::AffineTransformMatrix<float>(true));
+  // MantaMeshAdapter(std::string filename ="",glm::mat4 m =
+  // glm::mat4(true));
   // MantaMeshAdapter(const MantaMeshAdapter& other);
 
   /**

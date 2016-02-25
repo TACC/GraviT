@@ -43,23 +43,23 @@ namespace primitives {
 /// bounding box for data and acceleration structures
 class Box3D {
 public:
-  gvt::core::math::Point4f bounds[2];
+  glm::vec4 bounds[2];
 
   Box3D();
-  Box3D(gvt::core::math::Point4f vmin, gvt::core::math::Point4f vmax);
+  Box3D(glm::vec4 vmin, glm::vec4 vmax);
 
   Box3D(const Box3D &other);
   bool intersect(const gvt::render::actor::Ray &r) const;
   bool intersect(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
   bool inBox(const gvt::render::actor::Ray &r) const;
-  bool inBox(const gvt::core::math::Point4f &r) const;
-  gvt::core::math::Point4f getHitpoint(const gvt::render::actor::Ray &r) const;
+  bool inBox(const glm::vec4 &r) const;
+  glm::vec4 getHitpoint(const gvt::render::actor::Ray &r) const;
   bool intersectDistance(const gvt::render::actor::Ray &r, float &t) const;
   bool intersectDistance(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
-  void expand(gvt::core::math::Point4f &v);
+  void expand(glm::vec4 &v);
   int wideRangingBoxDir() const;
-  gvt::core::math::Point4f centroid() const;
+  glm::vec4 centroid() const;
   float surfaceArea() const;
 
   friend std::ostream &operator<<(std::ostream &os, const Box3D &bbox) {

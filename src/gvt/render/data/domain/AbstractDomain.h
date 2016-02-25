@@ -46,7 +46,7 @@ subdivided for the engine's use. Domains are not subdivided within GraviT.
 */
 class AbstractDomain {
 protected:
-  AbstractDomain(gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true));
+  AbstractDomain(glm::mat4 m = glm::mat4(true));
   AbstractDomain(const AbstractDomain &other);
   virtual ~AbstractDomain();
 
@@ -66,11 +66,11 @@ public:
 
   virtual gvt::render::actor::Ray toWorld(gvt::render::actor::Ray &r);
 
-  virtual gvt::core::math::Vector4f toLocal(const gvt::core::math::Vector4f &r);
+  virtual glm::vec4 toLocal(const glm::vec4 &r);
 
-  virtual gvt::core::math::Vector4f toWorld(const gvt::core::math::Vector4f &r);
+  virtual glm::vec4 toWorld(const glm::vec4 &r);
 
-  virtual gvt::core::math::Vector4f localToWorldNormal(const gvt::core::math::Vector4f &v);
+  virtual glm::vec4 localToWorldNormal(const glm::vec4 &v);
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox();
 
   virtual void setBoundingBox(gvt::render::data::primitives::Box3D bb);
@@ -83,16 +83,16 @@ public:
 
   virtual void setDomainID(int id);
 
-  virtual void translate(gvt::core::math::Vector4f t);
-  virtual void rotate(gvt::core::math::Vector4f t);
-  virtual void scale(gvt::core::math::Vector4f t);
+  virtual void translate(glm::vec4 t);
+  virtual void rotate(glm::vec4 t);
+  virtual void scale(glm::vec4 t);
 
-  virtual gvt::core::math::Point4f worldCentroid() const;
+  virtual glm::vec4 worldCentroid() const;
 
   // Public variables
-  gvt::core::math::AffineTransformMatrix<float> m;
-  gvt::core::math::AffineTransformMatrix<float> minv;
-  gvt::core::math::Matrix3f normi;
+  glm::mat4 m;
+  glm::mat4 minv;
+  glm::mat3 normi;
   gvt::render::data::primitives::Box3D boundingBox;
 
   boost::mutex _inqueue;

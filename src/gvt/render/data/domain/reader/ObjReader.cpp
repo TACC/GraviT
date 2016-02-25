@@ -38,7 +38,6 @@
 
 #include <tiny_obj_loader.h>
 
-using namespace gvt::core::math;
 using namespace gvt::render::data::domain::reader;
 using namespace gvt::render::data::primitives;
 
@@ -70,7 +69,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   // file.open(filename.c_str());
   // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  objMesh = new Mesh(new Lambert(Vector4f(0.8, 0.8, 0.8, 1.0)));
+  objMesh = new Mesh(new Lambert(glm::vec4(0.8, 0.8, 0.8, 1.0)));
 
   // while (file.good()) {
   //   std::string line;
@@ -144,16 +143,16 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
 
     for (size_t v = 0; v < shapes[i].mesh.positions.size() / 3; v++) {
 
-      objMesh->vertices.push_back(Point4f(shapes[i].mesh.positions[3 * v + 0], shapes[i].mesh.positions[3 * v + 1],
-                                          shapes[i].mesh.positions[3 * v + 2]));
+      objMesh->vertices.push_back(glm::vec4(shapes[i].mesh.positions[3 * v + 0], shapes[i].mesh.positions[3 * v + 1],
+                                            shapes[i].mesh.positions[3 * v + 2], 1.f));
 
       objMesh->boundingBox.expand(objMesh->vertices[objMesh->vertices.size() - 1]);
 
       if (!shapes[i].mesh.normals.empty()) {
-        Vector4f n(shapes[i].mesh.normals[3 * v + 0], shapes[i].mesh.normals[3 * v + 1],
-                   shapes[i].mesh.normals[3 * v + 2], 0);
+        glm::vec4 n(shapes[i].mesh.normals[3 * v + 0], shapes[i].mesh.normals[3 * v + 1],
+                    shapes[i].mesh.normals[3 * v + 2], 0.f);
 
-        n.normalize();
+        n = glm::normalize(n);
 
         objMesh->normals.push_back(n);
       }
@@ -190,7 +189,7 @@ void ObjReader::parseVertex(std::string line) {
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing vertex");
   objMesh->addVertex(
-      Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
+      glm::vec4(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
 }
 
 void ObjReader::parseVertexNormal(std::string line) {
@@ -198,14 +197,14 @@ void ObjReader::parseVertexNormal(std::string line) {
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing vertex normal");
   objMesh->addNormal(
-      Vector4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
+      glm::vec4(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str()), 1.0f));
 }
 
 void ObjReader::parseVertexTexture(std::string line) {
   std::vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 3, "Error parsing texture map");
-  objMesh->addTexUV(Point4f(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), 0, 0));
+  objMesh->addTexUV(glm::vec4(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), 0, 0));
 }
 
 void ObjReader::parseFace(std::string line) {

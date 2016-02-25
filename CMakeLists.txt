@@ -115,7 +115,9 @@ SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
 find_package(TBB REQUIRED)
 
+
 include_directories(${TBB_INCLUDE_DIRS})
+include_directories(${GLM_DIR})
 
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
@@ -166,14 +168,6 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/Database.h
 	src/gvt/core/DatabaseNode.h
 	src/gvt/core/Debug.h
-	src/gvt/core/math/Angle.h
-	src/gvt/core/math/Constants.h
-	src/gvt/core/math/Function.h
-	src/gvt/core/math/Matrix.h
-	src/gvt/core/math/MatrixOperation.inl
-	src/gvt/core/math/Unit.h
-	src/gvt/core/math/Vector.h
-	src/gvt/core/math/VectorOperators.inl
 	src/gvt/core/Math.h
 	src/gvt/core/mpi/Comm.h
 	src/gvt/core/mpi/CommData.h

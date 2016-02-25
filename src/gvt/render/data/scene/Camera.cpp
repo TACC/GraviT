@@ -25,7 +25,6 @@
 
 #include <gvt/core/Math.h>
 
-using namespace gvt::core::math;
 using namespace gvt::render::actor;
 using namespace gvt::render::data::scene;
 using namespace std;
@@ -45,12 +44,12 @@ struct cameraGenerateRays {
   inline float frand() { return (((float)rand() / RAND_MAX) - 0.5f) * 2.0f; }
 
   void operator()() {
-    AffineTransformMatrix<float> m = cam->m; // rotation matrix
+    glm::mat4 m = cam->m; // rotation matrix
     int depth = cam->depth;
     RayVector &rays = cam->rays;
-    Vector4f eye = cam->eye;
-    Vector4f look = cam->look;       // direction to look
-    Vector4f u = cam->u, v = cam->v; // u and v in the
+    glm::vec4 eye = cam->eye;
+    glm::vec4 look = cam->look;       // direction to look
+    glm::vec4 u = cam->u, v = cam->v; // u and v in the
 
     const float divider = cam->trcUpSampling;
     const float offset = 1.0 / divider;
@@ -58,7 +57,7 @@ struct cameraGenerateRays {
     const float w = 1.0 / (divider * divider);
     const float buffer_width = cam->getFilmSizeWidth();
     const float buffer_height = cam->getFilmSizeHeight();
-    Vector4f dir;
+    glm::vec4 dir;
     for (size_t j = start; j < end; j++) {
       for (int i = 0; i < buffer_width; i++) {
         int idx = j * buffer_width + i;
@@ -69,7 +68,7 @@ struct cameraGenerateRays {
             float x = x1 / float(buffer_width) - 0.5;
             float y = y1 / float(buffer_height) - 0.5;
 
-            dir = m * ((look + x * u + y * v)).normalize();
+            dir = m * glm::normalize(look + x * u + y * v);
 
             Ray &ray = rays[idx];
             ray.id = idx;

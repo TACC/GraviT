@@ -70,7 +70,7 @@ private:
     CentroidLessThan(float splitPoint, int splitAxis) : splitPoint(splitPoint), splitAxis(splitAxis) {}
     bool operator()(const gvt::core::DBNodeH inst) const {
       gvt::core::DBNodeH i2 = inst;
-      gvt::core::math::Point4f centroid = i2["centroid"].value().toPoint4f();
+      glm::vec4 centroid = i2["centroid"].value().tovec4();
       return (centroid[splitAxis] < splitPoint);
     }
 

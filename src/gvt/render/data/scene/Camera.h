@@ -45,11 +45,11 @@ public:
   Camera() {
     aspectRatio = 1;
     normalizedHeight = 1;
-    eye = gvt::core::math::Vector4f(0, 0, 0, 1);
-    u = gvt::core::math::Vector4f(1, 0, 0, 0);
-    v = gvt::core::math::Vector4f(0, 1, 0, 0);
-    look = gvt::core::math::Vector4f(0, 0, -1, 1);
-    focus = gvt::core::math::Vector4f(0, 0, -1, 1);
+    eye = glm::vec4(0, 0, 0, 1);
+    u = glm::vec4(1, 0, 0, 0);
+    v = glm::vec4(0, 1, 0, 0);
+    look = glm::vec4(0, 0, -1, 1);
+    focus = glm::vec4(0, 0, -1, 1);
   }
 
   void SetCamera(gvt::render::actor::RayVector &rays, float rate);
@@ -65,7 +65,7 @@ public:
 
   float getFilmSizeHeight(void) { return filmsize[1]; }
 
-  void setEye(const gvt::core::math::Vector4f &eye) { this->eye = eye; }
+  void setEye(const glm::vec4 &eye) { this->eye = eye; }
 
   void setLook(double r, double i, double j, double k) {
     // set look matrix
@@ -84,59 +84,58 @@ public:
     update();
   }
 
-  void setLook(const gvt::core::math::Vector4f &viewDir, const gvt::core::math::Vector4f &upDir) {
-    gvt::core::math::Vector3f z = viewDir;      // this is where the z axis should end up
-    const gvt::core::math::Vector3f &y = upDir; // where the y axis should end up
-    gvt::core::math::Vector3f x = y ^ z;        // lah,
-    // clang-format off
-    m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
-                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
-    // clang-format on
-    update();
+  void setLook(const glm::vec4 &viewDir, const glm::vec4 &upDir) {
+    // glm::vec3 z = viewDir;      // this is where the z axis should end up
+    // const glm::vec3 &y = upDir; // where the y axis should end up
+    // glm::vec3 x = y ^ z;        // lah,
+    // // clang-format off
+    // m = glm::mat4(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
+    //                                                   0.f, 0.f, 0.f, 0.f, 1.f);
+    // // clang-format on
+    // update();
   }
 
-  void setLook(gvt::core::math::Vector4f &eyePos, gvt::core::math::Vector4f &lookAt,
-               const gvt::core::math::Vector4f &upDir) {
-    eye = eyePos;
-    look = lookAt;
-    up = upDir;
-    focus = lookAt;
-    gvt::core::math::Vector3f z = -(lookAt - eyePos).normalize(); // this is where the z axis should end up
-    const gvt::core::math::Vector3f y = upDir;                    // where the y axis should end up
-    gvt::core::math::Vector3f x = (y ^ z).normalize();
-
-    // clang-format off
-    m = gvt::core::math::AffineTransformMatrix<float>(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
-                                                      0.f, 0.f, 0.f, 0.f, 1.f).transpose();
-    // clang-format on
-    update();
-    // const gvt::core::math::AffineTransformMatrix<float> minv = m.inverse();
+  void setLook(glm::vec4 &eyePos, glm::vec4 &lookAt, const glm::vec4 &upDir) {
+    // eye = eyePos;
+    // look = lookAt;
+    // up = upDir;
+    // focus = lookAt;
+    // glm::vec3 z = glm::normalize(-(lookAt - eyePos)); // this is where the z axis should end up
+    // const glm::vec3 y = upDir;                        // where the y axis should end up
+    // glm::vec3 x = glm::normalize(y ^ z);
+    //
+    // // clang-format off
+    // m = glm::mat4(x[0], x[1], x[2], 0.f, y[0], y[1], y[2], 0.f, z[0], z[1], z[2],
+    //                                                   0.f, 0.f, 0.f, 0.f, 1.f).transpose();
+    // // clang-format on
+    // update();
+    // // const glm::mat4 minv = m.inverse();
   }
 
   void setFOV(double fov) {
-    normalizedHeight = tan(fov / 2.0);
-    update();
+    // normalizedHeight = tan(fov / 2.0);
+    // update();
   }
 
   void setAspectRatio(double ar) {
-    aspectRatio = ar;
-    update();
+    // aspectRatio = ar;
+    // update();
   }
 
   double getAspectRatio() { return aspectRatio; }
 
-  const gvt::core::math::Vector4f &getEye() const { return eye; }
+  const glm::vec4 &getEye() const { return eye; }
 
-  const gvt::core::math::Vector4f &getFocus() const { return focus; }
-  const gvt::core::math::Vector4f &getLook() const { return look; }
+  const glm::vec4 &getFocus() const { return focus; }
+  const glm::vec4 &getLook() const { return look; }
 
-  const gvt::core::math::Vector4f &getU() const { return u; }
+  const glm::vec4 &getU() const { return u; }
 
-  const gvt::core::math::Vector4f &getV() const { return v; }
+  const glm::vec4 &getV() const { return v; }
 
-  const gvt::core::math::Vector4f &getUp() const { return up; }
+  const glm::vec4 &getUp() const { return up; }
 
-  const gvt::core::math::AffineTransformMatrix<float> getMatrix() { return m; }
+  const glm::mat4 getMatrix() { return m; }
 
   float frand() { return .1f; }
 
@@ -146,22 +145,22 @@ public:
 
   boost::mutex rmutex;
 
-  gvt::core::math::AffineTransformMatrix<float> m; // rotation matrix
-  double normalizedHeight;                         // dimensions of image place at unit dist from eye
+  glm::mat4 m;             // rotation matrix
+  double normalizedHeight; // dimensions of image place at unit dist from eye
   double aspectRatio;
 
   void update() {
     // using the above three values calculate look,u,v
-    u = m * gvt::core::math::Vector3f(1, 0, 0) * normalizedHeight * aspectRatio;
-    v = m * gvt::core::math::Vector3f(0, 1, 0) * normalizedHeight;
-    look = gvt::core::math::Vector3f(0, 0, -1);
+    // u = m * glm::vec3(1, 0, 0) * normalizedHeight * aspectRatio;
+    // v = m * glm::vec3(0, 1, 0) * normalizedHeight;
+    // look = glm::vec3(0, 0, -1);
   }
 
-  gvt::core::math::Vector4f eye;
-  gvt::core::math::Vector4f look;  // direction to look
-  gvt::core::math::Vector4f focus; // focal point
-  gvt::core::math::Vector4f up;    // direction to look
-  gvt::core::math::Vector4f u, v;  // u and v in the
+  glm::vec4 eye;
+  glm::vec4 look;  // direction to look
+  glm::vec4 focus; // focal point
+  glm::vec4 up;    // direction to look
+  glm::vec4 u, v;  // u and v in the
 
   gvt::render::actor::RayVector rays;
   float rate;

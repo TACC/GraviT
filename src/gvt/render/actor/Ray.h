@@ -88,10 +88,10 @@ public:
   const static float RAY_EPSILON;
   // clang-format on
 
-  Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
-      gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), float contribution = 1.f,
+  Ray(glm::vec4 origin = glm::vec4(0, 0, 0, 1),
+      glm::vec4 direction = glm::vec4(0, 0, 0, 0), float contribution = 1.f,
       RayType type = PRIMARY, int depth = 10);
-  Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
+  Ray(Ray &ray, glm::mat4 &m);
   Ray(const Ray &orig);
   Ray(Ray &&ray);
   Ray(const unsigned char *buf);
@@ -100,7 +100,7 @@ public:
 
   virtual ~Ray();
 
-  void setDirection(gvt::core::math::Vector4f dir);
+  void setDirection(glm::vec4 dir);
   void setDirection(double *dir);
   void setDirection(float *dir);
 
@@ -117,9 +117,9 @@ public:
 
   union {
     struct {
-      mutable gvt::core::math::Point4f origin;
-      mutable gvt::core::math::Vector4f direction;
-      mutable gvt::core::math::Vector4f inverseDirection;
+      mutable glm::vec4 origin;
+      mutable glm::vec4 direction;
+      mutable glm::vec4 inverseDirection;
       mutable GVT_COLOR_ACCUM color;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate

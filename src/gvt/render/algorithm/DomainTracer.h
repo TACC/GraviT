@@ -369,8 +369,8 @@ public:
 
   // FIXME: update FindNeighbors to use mpiInstanceMap
   virtual void FindNeighbors() {
-    gvt::core::math::Vector3f topo;
-    topo = rootnode["Dataset"]["topology"].value().toVector3f();
+    glm::vec3 topo;
+    topo = rootnode["Dataset"]["topology"].value().tovec3();
     int total = topo[2], plane = topo[1], row = topo[0]; // XXX TODO:
     // int total = gvt::render::Attributes::rta->GetTopology()[2],
     //   plane = gvt::render::Attributes::rta->GetTopology()[1],

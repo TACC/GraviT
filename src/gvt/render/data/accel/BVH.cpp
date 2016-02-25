@@ -37,7 +37,7 @@
 using namespace gvt::render::data::accel;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::data::domain;
-using namespace gvt::core::math;
+
 
 #define TRAVERSAL_COST 0.5 // TODO: best value?
 #define LEAF_SIZE 1        // TODO: best value?
@@ -120,7 +120,7 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
 #ifdef DEBUG_ACCEL
 #ifdef DEBUG_ACCEL_DOMAIN_SET
   for (int i = start; i < end; ++i) {
-    gvt::core::math::Point4f centroid = instanceSet[i]->worldCentroid();
+    glm::vec4 centroid = instanceSet[i]->worldCentroid();
     bool lessThan = (centroid[splitAxis] < splitPoint);
     std::cout << "[Lvl" << level << "][SP:" << splitPoint << "][" << i << "][id:" << instanceSet[i]->getDomainID()
               << "][centroid: " << centroid[splitAxis] << "][isLess: " << lessThan << "]\t";
@@ -128,7 +128,7 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
   std::cout << "\n";
 #else
   for (int i = start; i < end; ++i) {
-    gvt::core::math::Point4f centroid = instanceSet[i]["centroid"].value().toPoint4f();
+    glm::vec4 centroid = instanceSet[i]["centroid"].value().tovec4();
     bool lessThan = (centroid[splitAxis] < splitPoint);
     int id = instanceSet[i]["id"].value().toInteger();
     std::cout << "[Lvl" << level << "][SP:" << splitPoint << "][" << i << "][id:" << id

@@ -26,15 +26,15 @@
 
 using namespace gvt::render::data::domain;
 
-AbstractDomain::AbstractDomain(gvt::core::math::AffineTransformMatrix<float> m) : m(m), domainID(-1), isLoaded(false) {
-  minv = m.inverse();
-  normi = m.upper33().inverse().transpose();
+AbstractDomain::AbstractDomain(glm::mat4 m) : m(m), domainID(-1), isLoaded(false) {
+  // minv = m.inverse();
+  // normi = m.upper33().inverse().transpose();
 }
 
 AbstractDomain::AbstractDomain(const AbstractDomain &other) {
-  m = other.m;
-  minv = other.minv;
-  normi = other.normi;
+  // m = other.m;
+  // minv = other.minv;
+  // normi = other.normi;
 }
 
 AbstractDomain::~AbstractDomain() {}
@@ -102,45 +102,42 @@ gvt::render::actor::Ray AbstractDomain::toWorld(gvt::render::actor::Ray &r) {
   return ray;
 }
 
-gvt::core::math::Vector4f AbstractDomain::toLocal(const gvt::core::math::Vector4f &r) {
-  gvt::core::math::Vector4f ret = minv * r;
-  ret.normalize();
+glm::vec4 AbstractDomain::toLocal(const glm::vec4 &r) {
+  glm::vec4 ret = minv * r;
   return ret;
 }
 
-gvt::core::math::Vector4f AbstractDomain::toWorld(const gvt::core::math::Vector4f &r) {
-  gvt::core::math::Vector4f ret = m * r;
-  ret.normalize();
+glm::vec4 AbstractDomain::toWorld(const glm::vec4 &r) {
+  glm::vec4 ret = m * r;
   return ret;
 }
 
-gvt::core::math::Vector4f AbstractDomain::localToWorldNormal(const gvt::core::math::Vector4f &v) {
-  gvt::core::math::Vector3f ret = normi * (gvt::core::math::Vector3f)v;
-  ret.normalize();
-  return ret;
+glm::vec4 AbstractDomain::localToWorldNormal(const glm::vec4 &v) {
+  glm::vec3 ret = normi * glm::vec3(v);
+  return glm::vec4(ret, 0.f);
 }
 
-void AbstractDomain::translate(gvt::core::math::Vector4f t) {
-  m = m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(t[0], t[1], t[2]);
-
-  GVT_DEBUG(DBG_ALWAYS, "M : \n" << m);
-
-  minv = m.inverse();
-  normi = m.upper33().inverse().transpose();
+void AbstractDomain::translate(glm::vec4 t) {
+  // m = m * glm::mat4::createTranslation(t[0], t[1], t[2]);
+  //
+  // GVT_DEBUG(DBG_ALWAYS, "M : \n" << m);
+  //
+  // minv = m.inverse();
+  // normi = m.upper33().inverse().transpose();
 }
 
-void AbstractDomain::rotate(gvt::core::math::Vector4f t) {
-  m = m * gvt::core::math::AffineTransformMatrix<float>::createRotation(t[0], 1.0, 0.0, 0.0) *
-      gvt::core::math::AffineTransformMatrix<float>::createRotation(t[1], 0.0, 1.0, 0.0) *
-      gvt::core::math::AffineTransformMatrix<float>::createRotation(t[2], 0.0, 0.0, 1.0);
-  minv = m.inverse();
-  normi = m.upper33().inverse().transpose();
+void AbstractDomain::rotate(glm::vec4 t) {
+  // m = m * glm::mat4::createRotation(t[0], 1.0, 0.0, 0.0) *
+  //     glm::mat4::createRotation(t[1], 0.0, 1.0, 0.0) *
+  //     glm::mat4::createRotation(t[2], 0.0, 0.0, 1.0);
+  // minv = m.inverse();
+  // normi = m.upper33().inverse().transpose();
 }
 
-void AbstractDomain::scale(gvt::core::math::Vector4f t) {
-  m = m * gvt::core::math::AffineTransformMatrix<float>::createScale(t[0], t[1], t[2]);
-  minv = m.inverse();
-  normi = m.upper33().inverse().transpose();
+void AbstractDomain::scale(glm::vec4 t) {
+  // m = m * glm::mat4::createScale(t[0], t[1], t[2]);
+  // minv = m.inverse();
+  // normi = m.upper33().inverse().transpose();
 }
 
 gvt::render::data::primitives::Box3D AbstractDomain::getWorldBoundingBox() { return getBounds(1); }
@@ -165,7 +162,7 @@ int AbstractDomain::getDomainID() { return domainID; }
 
 void AbstractDomain::setDomainID(int id) { domainID = id; }
 
-gvt::core::math::Point4f AbstractDomain::worldCentroid() const {
+glm::vec4 AbstractDomain::worldCentroid() const {
   gvt::render::data::primitives::Box3D bbox = getBounds(1);
-  return (0.5 * bbox.bounds[0]) + (0.5 * bbox.bounds[1]);
+  return (0.5f * bbox.bounds[0]) + (0.5f * bbox.bounds[1]);
 }

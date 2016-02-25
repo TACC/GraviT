@@ -71,47 +71,47 @@ GVT_TRANSFORM_TEMPLATE // see gvt/core/data/Transform.h
     // clang-format off
     /// return a Manta-compliant 4-float vector
     template <>
-struct transform_impl<gvt::core::math::Vector4f, Manta::Vec4f> {
+struct transform_impl<glm::vec4, Manta::Vec4f> {
 
-  static inline Manta::Vec4f transform(const gvt::core::math::Vector4f &r) {
+  static inline Manta::Vec4f transform(const glm::vec4 &r) {
     return Manta::Vec4f(r[0], r[1], r[2], r[3]);
   }
 };
 // clang-format on
 
 /// return a Manta-compliant 4-float vector
-template <> struct transform_impl<gvt::core::math::Point4f, Manta::Vec4f> {
+template <> struct transform_impl<glm::vec4, Manta::Vec4f> {
 
-  static inline Manta::Vec4f transform(const gvt::core::math::Point4f &r) {
+  static inline Manta::Vec4f transform(const glm::vec4 &r) {
     return Manta::Vec4f(r[0], r[1], r[2], r[3]);
   }
 };
 
 /// return a Manta-compliant vector
-template <> struct transform_impl<gvt::core::math::Point4f, Manta::Vector> {
+template <> struct transform_impl<glm::vec4, Manta::Vector> {
 
-  static inline Manta::Vector transform(const gvt::core::math::Point4f &r) { return Manta::Vector(r[0], r[1], r[2]); }
+  static inline Manta::Vector transform(const glm::vec4 &r) { return Manta::Vector(r[0], r[1], r[2]); }
 };
 
 /// return a Manta-compliant vector
-template <> struct transform_impl<gvt::core::math::Vector4f, Manta::Vector> {
+template <> struct transform_impl<glm::vec4, Manta::Vector> {
 
-  static inline Manta::Vector transform(const gvt::core::math::Vector4f &r) { return Manta::Vector(r[0], r[1], r[2]); }
+  static inline Manta::Vector transform(const glm::vec4 &r) { return Manta::Vector(r[0], r[1], r[2]); }
 };
 
 /// return a GraviT-compliant Point
-template <> struct transform_impl<Manta::Vector, gvt::core::math::Point4f> {
+template <> struct transform_impl<Manta::Vector, glm::vec4> {
 
-  static inline gvt::core::math::Point4f transform(const Manta::Vector &r) {
-    return gvt::core::math::Point4f(r[0], r[1], r[2], 1.f);
+  static inline glm::vec4 transform(const Manta::Vector &r) {
+    return glm::vec4(r[0], r[1], r[2], 1.f);
   }
 };
 
 /// return a GraviT-compliant Vector
-template <> struct transform_impl<Manta::Vector, gvt::core::math::Vector4f> {
+template <> struct transform_impl<Manta::Vector, glm::vec4> {
 
-  static inline gvt::core::math::Vector4f transform(const Manta::Vector &r) {
-    return gvt::core::math::Point4f(r[0], r[1], r[2], 0.f);
+  static inline glm::vec4 transform(const Manta::Vector &r) {
+    return glm::vec4(r[0], r[1], r[2], 0.f);
     // return Manta::Vector(r[0], r[1], r[2]);
   }
 };
@@ -121,9 +121,9 @@ template <> struct transform_impl<gvt::render::actor::Ray, Manta::Ray> {
   static inline Manta::Ray transform(const gvt::render::actor::Ray &r) {
     Manta::Ray ray;
     const Manta::Vector orig =
-        gvt::render::adapter::manta::data::transform<gvt::core::math::Point4f, Manta::Vector>(r.origin);
+        gvt::render::adapter::manta::data::transform<glm::vec4, Manta::Vector>(r.origin);
     const Manta::Vector dir =
-        gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(r.direction);
+        gvt::render::adapter::manta::data::transform<glm::vec4, Manta::Vector>(r.direction);
     ray.set(orig, dir);
     return ray;
   }
@@ -133,8 +133,8 @@ template <> struct transform_impl<gvt::render::actor::Ray, Manta::Ray> {
 template <> struct transform_impl<Manta::Ray, gvt::render::actor::Ray> {
   static inline gvt::render::actor::Ray transform(const Manta::Ray &r) {
     return gvt::render::actor::Ray(
-        gvt::render::adapter::manta::data::transform<Manta::Vector, gvt::core::math::Point4f>(r.origin()),
-        gvt::render::adapter::manta::data::transform<Manta::Vector, gvt::core::math::Vector4f>(r.direction()));
+        gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec4>(r.origin()),
+        gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec4>(r.direction()));
   }
 };
 
@@ -146,7 +146,7 @@ template <> struct transform_impl<Manta::PointLight *, gvt::render::data::scene:
 
     return new Manta::PointLight(Manta::Vector(ls->position[0], ls->position[1], ls->position[2]),
                                  Manta::Color(Manta::RGBColor(ls->color[0], ls->color[1], ls->color[2])));
-    // return gvt::core::math::Point4f(r[0], r[1], r[2], 0.f);
+    // return glm::vec4(r[0], r[1], r[2], 0.f);
     // return Manta::Vector(r[0], r[1], r[2]);
   }
 };
@@ -184,8 +184,8 @@ template <> struct transform_impl<Manta::Mesh *, gvt::render::data::primitives::
     int count_vertex = 0;
 
     for (int i = 0; i < mesh->vertices.size(); i++) {
-      gvt::core::math::Point4f vertex =
-          gvt::render::adapter::manta::data::transform<Manta::Vector, gvt::core::math::Point4f>(mesh->vertices[i]);
+      glm::vec4 vertex =
+          gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec4>(mesh->vertices[i]);
       gvtmesh->addVertex(vertex);
     }
 
@@ -206,12 +206,12 @@ template <> struct transform_impl<gvt::render::data::primitives::Mesh *, Manta::
 
     for (int i = 0; i < mesh->vertices.size(); i++) {
       Manta::Vector v0 =
-          gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(mesh->vertices[i]);
+          gvt::render::adapter::manta::data::transform<glm::vec4, Manta::Vector>(mesh->vertices[i]);
       m->vertices.push_back(v0);
     }
     for (int i = 0; i < mesh->normals.size(); i++) {
       Manta::Vector v0 =
-          gvt::render::adapter::manta::data::transform<gvt::core::math::Vector4f, Manta::Vector>(mesh->normals[i]);
+          gvt::render::adapter::manta::data::transform<glm::vec4, Manta::Vector>(mesh->normals[i]);
       m->vertexNormals.push_back(v0);
     }
     for (int i = 0; i < mesh->faces.size(); i++) {

@@ -87,7 +87,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
     if (elems[0] == "F") {
       scene.camera.setFilmSize(std::atoi(elems[1].c_str()), std::atoi(elems[2].c_str()));
     } else if (elems[0] == "C") {
-      gvt::core::math::Vector4f pos, look, up, focus;
+      glm::vec4 pos, look, up, focus;
       float fov = std::atof(elems[10].c_str()) * M_PI / 180.0;
       pos[0] = std::atof(elems[1].c_str());
       pos[1] = std::atof(elems[2].c_str());
@@ -128,7 +128,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
 
-        gvt::core::math::Vector4f t;
+        glm::vec4 t;
         t[0] = std::atof(elems[2].c_str());
         t[1] = std::atof(elems[3].c_str());
         t[2] = std::atof(elems[4].c_str());
@@ -160,7 +160,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
         GVT_DEBUG(DBG_ALWAYS, "Found ply file : " << elems[1].find(".ply"));
       }
     } else if (elems[0] == "LP") {
-      gvt::core::math::Vector4f pos, color;
+      glm::vec4 pos, color;
       pos[0] = std::atof(elems[1].c_str());
       pos[1] = std::atof(elems[2].c_str());
       pos[2] = std::atof(elems[3].c_str());
@@ -171,7 +171,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       color[3] = 1.f;
       scene.lightSet.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (elems[0] == "LA") {
-      gvt::core::math::Vector4f pos[2], color;
+      glm::vec4 pos[2], color;
       pos[0][0] = std::atof(elems[1].c_str());
       pos[0][1] = std::atof(elems[2].c_str());
       pos[0][2] = std::atof(elems[3].c_str());

@@ -103,8 +103,7 @@ MantaDomain::MantaDomain(GeometryDomain *domain) : GeometryDomain(*domain) {
                                scene /*scene*/, 0 /*thread_storage*/, rng /*rngs*/, 0 /*samplegenerator*/);
 }
 
-MantaDomain::MantaDomain(std::string filename, gvt::core::math::AffineTransformMatrix<float> m)
-    : gvt::render::data::domain::GeometryDomain(filename, m) {}
+MantaDomain::MantaDomain(std::string filename, glm::mat4 m) : gvt::render::data::domain::GeometryDomain(filename, m) {}
 
 MantaDomain::MantaDomain(const MantaDomain &other) : gvt::render::data::domain::GeometryDomain(other) {}
 
@@ -228,9 +227,8 @@ struct parallelTrace {
             float t = mRays.getMinT(pindex);
             rayPacket[pindex].t = t;
 
-            gvt::core::math::Vector4f normal =
-                dom->toWorld(gvt::render::adapter::manta::data::transform<Manta::Vector, gvt::core::math::Vector4f>(
-                    mRays.getNormal(pindex)));
+            glm::vec4 normal = dom->toWorld(
+                gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec4>(mRays.getNormal(pindex)));
 
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) {
               t = (t > 1) ? 1.f / t : t;
@@ -259,8 +257,7 @@ struct parallelTrace {
               ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SECONDARY;
               ray.origin = ray.origin + ray.direction * ray.t;
-              ray.setDirection(
-                  dom->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+              ray.setDirection(dom->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
               ray.w = ray.w * (ray.direction * normal);
               ray.depth = ndepth;
               localQueue.push_back(ray);

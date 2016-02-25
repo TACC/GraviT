@@ -29,16 +29,16 @@
  * used by changing line 242.
  *
 */
-#include <gvt/render/RenderContext.h>
-#include <gvt/render/Types.h>
-#include <vector>
 #include <algorithm>
-#include <set>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/mpi/Wrapper.h>
+#include <gvt/render/RenderContext.h>
+#include <gvt/render/Schedulers.h>
+#include <gvt/render/Types.h>
 #include <gvt/render/data/Dataset.h>
 #include <gvt/render/data/Domains.h>
-#include <gvt/render/Schedulers.h>
+#include <set>
+#include <vector>
 
 #include <tbb/task_scheduler_init.h>
 #include <thread>
@@ -59,20 +59,20 @@
 #include "mpe.h"
 #endif
 #include <gvt/render/algorithm/Tracers.h>
-#include <gvt/render/data/scene/gvtCamera.h>
-#include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 
 #include <boost/range/algorithm.hpp>
 
 #include <iostream>
 #include <math.h>
-#include <stdio.h>
 #include <ply.h>
+#include <stdio.h>
 
 using namespace std;
 using namespace gvt::render;
-using namespace gvt::core::math;
+
 using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(Vector4f(1.0, 1.0, 1.0, 1.0)));
+      Mesh *mesh = new Mesh(new Lambert(glm::vec4(1.0, 1.0, 1.0, 1.0)));
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -199,10 +199,10 @@ int main(int argc, char **argv) {
         xmax = MAX(vert->x, xmax);
         ymax = MAX(vert->y, ymax);
         zmax = MAX(vert->z, zmax);
-        mesh->addVertex(Point4f(vert->x, vert->y, vert->z, 1.0));
+        mesh->addVertex(glm::vec4(vert->x, vert->y, vert->z, 1.0));
       }
-      Point4f lower(xmin, ymin, zmin);
-      Point4f upper(xmax, ymax, zmax);
+      glm::vec4 lower(xmin, ymin, zmin, 1.f);
+      glm::vec4 upper(xmax, ymax, zmax, 1.f);
       Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
       // add faces to mesh
       for (i = 0; i < nfaces; i++) {
@@ -222,13 +222,13 @@ int main(int argc, char **argv) {
     Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
     instnode["id"] = k;
     instnode["meshRef"] = meshNode.UUID();
-    auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
-    auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
-    auto normi = new gvt::core::math::Matrix3f();
+    auto m = new glm::mat4(1.f);
+    auto minv = new glm::mat4(1.f);
+    auto normi = new glm::mat3(1.f);
     instnode["mat"] = (unsigned long long)m;
-    *minv = m->inverse();
+    *minv = glm::inverse(*m);
     instnode["matInv"] = (unsigned long long)minv;
-    *normi = m->upper33().inverse().transpose();
+    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
     instnode["normi"] = (unsigned long long)normi;
     auto il = (*m) * mbox->bounds[0];
     auto ih = (*m) * mbox->bounds[1];
@@ -240,13 +240,13 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = Vector4f(512.0, 512.0, 2048.0, 0.0);
-  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec4(512.0, 512.0, 2048.0, 0.0);
+  lightNode["color"] = glm::vec4(1.0, 1.0, 1.0, 0.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = Point4f(512.0, 512.0, 4096.0, 1.0);
-  camNode["focus"] = Point4f(512.0, 512.0, 0.0, 1.0);
-  camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec4(512.0, 512.0, 4096.0, 1.0);
+  camNode["focus"] = glm::vec4(512.0, 512.0, 0.0, 1.0);
+  camNode["upVector"] = glm::vec4(0.0, 1.0, 0.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
@@ -275,10 +275,10 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
-  Point4f focus = camNode["focus"].value().toPoint4f();
+  glm::vec4 cameraposition = camNode["eyePoint"].value().tovec4();
+  glm::vec4 focus = camNode["focus"].value().tovec4();
   float fov = camNode["fov"].value().toFloat();
-  Vector4f up = camNode["upVector"].value().toVector4f();
+  glm::vec4 up = camNode["upVector"].value().tovec4();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
@@ -344,14 +344,12 @@ void test_bvh(gvtPerspectiveCamera &mycamera) {
   rays.push_back(mycamera.rays[100 * 512 + 100]);
   rays.push_back(mycamera.rays[182 * 512 + 182]);
   rays.push_back(mycamera.rays[256 * 512 + 256]);
-  auto dir =
-      (gvt::core::math::Vector4f(0.0, 0.0, 0.0, 0.0) - gvt::core::math::Vector4f(1.0, 1.0, 1.0, 0.0)).normalize();
-  rays.push_back(gvt::render::actor::Ray(gvt::core::math::Point4f(1.0, 1.0, 1.0, 1.0), dir));
+  auto dir = glm::normalize(glm::vec4(0.0, 0.0, 0.0, 0.0) - glm::vec4(1.0, 1.0, 1.0, 0.0));
+  rays.push_back(gvt::render::actor::Ray(glm::vec4(1.0, 1.0, 1.0, 1.0), dir));
   rays.push_back(mycamera.rays[300 * 512 + 300]);
   rays.push_back(mycamera.rays[400 * 512 + 400]);
   rays.push_back(mycamera.rays[470 * 512 + 470]);
-  rays.push_back(gvt::render::actor::Ray(gvt::core::math::Point4f(0.0, 0.0, 1.0, 1.0),
-                                         gvt::core::math::Vector4f(0.0, 0.0, -1.0, 1.0)));
+  rays.push_back(gvt::render::actor::Ray(glm::vec4(0.0, 0.0, 1.0, 1.0), glm::vec4(0.0, 0.0, -1.0, 1.0)));
   rays.push_back(mycamera.rays[144231]);
 
   // test rays and print out which instances were hit

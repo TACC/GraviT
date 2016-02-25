@@ -30,7 +30,6 @@
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/primitives/Mesh.h>
 
-using namespace gvt::core::math;
 using namespace gvt::render::actor;
 using namespace gvt::render::data;
 using namespace gvt::render::data::primitives;
@@ -48,38 +47,38 @@ Mesh::Mesh(const Mesh &orig) {
 
 Mesh::~Mesh() { delete mat; }
 
-void Mesh::addVertexNormalTexUV(Point4f vertex, Vector4f normal, Point4f texUV) {
+void Mesh::addVertexNormalTexUV(glm::vec4 vertex, glm::vec4 normal, glm::vec4 texUV) {
   vertices.push_back(vertex);
   normals.push_back(normal);
   mapuv.push_back(texUV);
   boundingBox.expand(vertex);
 }
 
-void Mesh::addVertex(Point4f vertex) {
+void Mesh::addVertex(glm::vec4 vertex) {
   vertices.push_back(vertex);
   boundingBox.expand(vertex);
 }
 
-void Mesh::addNormal(Vector4f normal) { normals.push_back(normal); }
+void Mesh::addNormal(glm::vec4 normal) { normals.push_back(normal); }
 
-void Mesh::addTexUV(Point4f texUV) { mapuv.push_back(texUV); }
+void Mesh::addTexUV(glm::vec4 texUV) { mapuv.push_back(texUV); }
 
-void Mesh::setNormal(int which, Vector4f normal) {
+void Mesh::setNormal(int which, glm::vec4 normal) {
   GVT_ASSERT((which > vertices.size()), "Setting normal outside the bounds");
   normals[which] = normal;
 }
 
-void Mesh::setTexUV(int which, Point4f texUV) {
+void Mesh::setTexUV(int which, glm::vec4 texUV) {
   GVT_ASSERT((which > vertices.size()), "Setting texture outside the bounds");
   this->mapuv[which] = texUV;
 }
 
-void Mesh::setVertex(int which, Point4f vertex, Vector4f normal, Point4f texUV) {
+void Mesh::setVertex(int which, glm::vec4 vertex, glm::vec4 normal, glm::vec4 texUV) {
   GVT_ASSERT((which > vertices.size()), "Setting vertex outside the bounds");
   vertices[which] = vertex;
   boundingBox.expand(vertex);
-  if (normal.length2()) normals[which] = normal;
-  if (texUV.length2()) this->mapuv[which] = texUV;
+  if (glm::length(normal)) normals[which] = normal;
+  if (glm::length(texUV)) this->mapuv[which] = texUV;
 }
 
 void Mesh::setMaterial(Material *mat) { this->mat = mat; }
@@ -101,34 +100,40 @@ void Mesh::generateNormals() {
   normals.resize(vertices.size());
   face_normals.resize(faces.size());
   faces_to_normals.resize(faces.size());
-  for (int i = 0; i < normals.size(); ++i) normals[i] = Vector4f(0.0f, 0.0f, 0.0f, 0.0f);
+  for (int i = 0; i < normals.size(); ++i) normals[i] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
   for (int i = 0; i < faces.size(); ++i) {
     int I = faces[i].get<0>();
     int J = faces[i].get<1>();
     int K = faces[i].get<2>();
-    Vector4f a = vertices[I];
-    Vector4f b = vertices[J];
-    Vector4f c = vertices[K];
-    Vector4f u = b - a;
-    Vector4f v = c - a;
-    Vector4f normal;
-    normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
-    normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
-    normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
-    normal.n[3] = 0.0f;
-    normal.normalize();
+    glm::vec4 const &a = vertices[I];
+    glm::vec4 const &b = vertices[J];
+    glm::vec4 const &c = vertices[K];
+    glm::vec4 u = b - a;
+    glm::vec4 v = c - a;
+    glm::vec4 normal;
+    normal[0] = u[1] * v[2] - u[2] * v[1];
+    normal[1] = u[2] * v[0] - u[0] * v[2];
+    normal[2] = u[0] * v[1] - u[1] * v[0];
+    normal[3] = 0.0f;
+    normal = glm::normalize(normal);
+
+    // glm::vec3 const &a = Triangle.Position[0];
+    // glm::vec3 const &b = Triangle.Position[1];
+    // glm::vec3 const &c = Triangle.Position[2];
+    // Triangle.Normal = glm::normalize(glm::cross(c - a, b - a));
+
     face_normals[i] = normal;
     normals[I] += normal;
     normals[J] += normal;
     normals[K] += normal;
     faces_to_normals[i] = FaceToNormals(I, J, K);
   }
-  for (int i = 0; i < normals.size(); ++i) normals[i].normalize();
+  for (int i = 0; i < normals.size(); ++i) normals[i] = glm::normalize(normals[i]);
   haveNormals = true;
 }
 
-Color Mesh::shadeFace(const int face_id, const Ray &r, const Vector4f &normal, const Light *lsource) {
+Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec4 &normal, const Light *lsource) {
   // XXX TODO: shadeFace returns constant color, fix?
 
   if (!faces_to_materials.size()) return shade(r, normal, lsource);
@@ -141,14 +146,16 @@ Color Mesh::shadeFace(const int face_id, const Ray &r, const Vector4f &normal, c
   return c;
 }
 
-Color Mesh::shade(const Ray &r, const Vector4f &normal, const Light *lsource) { return mat->shade(r, normal, lsource); }
+Color Mesh::shade(const Ray &r, const glm::vec4 &normal, const Light *lsource) {
+  return mat->shade(r, normal, lsource);
+}
 
 Box3D Mesh::computeBoundingBox() {
 
   Box3D box;
   for (int i = 0; i < vertices.size(); i++) {
 
-    Point4f p = vertices[i];
+    glm::vec4 p = vertices[i];
 
     box.expand(p);
   }

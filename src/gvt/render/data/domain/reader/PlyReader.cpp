@@ -69,7 +69,7 @@ PlyReader::PlyReader(std::string filename) {
   for (int i = 0; i < mesh->vertices.size(); i++) {
 
     Manta::Vector v = mesh->vertices[i];
-    gvt::core::math::Vector4f vertex(v[0], v[1], v[2], 1.f);
+    glm::vec4 vertex(v[0], v[1], v[2], 1.f);
     plyMesh->addVertex(vertex);
   }
 

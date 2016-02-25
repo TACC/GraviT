@@ -40,8 +40,8 @@
 #include <gvt/render/data/scene/Light.h>
 
 #include <atomic>
-#include <thread>
 #include <future>
+#include <thread>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -57,7 +57,6 @@
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::optix::data;
 using namespace gvt::render::data::primitives;
-using namespace gvt::core::math;
 
 static std::atomic<size_t> counter(0);
 
@@ -224,17 +223,17 @@ struct OptixParallelTrace {
   /**
    * Stored transformation matrix in the current instance
    */
-  const gvt::core::math::AffineTransformMatrix<float> *m;
+  const glm::mat4 *m;
 
   /**
    * Stored inverse transformation matrix in the current instance
    */
-  const gvt::core::math::AffineTransformMatrix<float> *minv;
+  const glm::mat4 *minv;
 
   /**
    * Stored upper33 inverse matrix in the current instance
    */
-  const gvt::core::math::Matrix3f *normi;
+  const glm::mat3 *normi;
 
   /**
    * Stored transformation matrix in the current instance
@@ -272,11 +271,9 @@ struct OptixParallelTrace {
    */
   OptixParallelTrace(gvt::render::adapter::optix::data::OptixMeshAdapter *adapter,
                      gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode,
-                     gvt::core::math::AffineTransformMatrix<float> *m,
-                     gvt::core::math::AffineTransformMatrix<float> *minv, gvt::core::math::Matrix3f *normi,
-                     std::vector<gvt::render::data::scene::Light *> &lights, std::atomic<size_t> &counter,
-                     const size_t begin, const size_t end)
+                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode, glm::mat4 *m,
+                     glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+                     std::atomic<size_t> &counter, const size_t begin, const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
         instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
         packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
@@ -321,7 +318,7 @@ struct OptixParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal, int primID,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec4 &normal, int primID,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
@@ -332,8 +329,8 @@ struct OptixParallelTrace {
       const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
       const float t_shadow = multiplier * r.t;
 
-      const Point4f origin = r.origin + r.direction * t_shadow;
-      const Vector4f dir = light->position - origin;
+      const glm::vec4 origin = r.origin + r.direction * t_shadow;
+      const glm::vec4 dir = light->position - origin;
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
@@ -533,7 +530,7 @@ struct OptixParallelTrace {
                 float t = hits[pi].t;
                 r.t = t;
 
-                Vector4f manualNormal;
+                glm::vec4 manualNormal;
                 {
                   const int triangle_id = hits[pi].triangle_id;
 #ifndef FLAT_SHADING
@@ -544,32 +541,31 @@ struct OptixParallelTrace {
                                                                                             // to store
                   // `faces_to_normals`
                   // list
-                  const Vector4f &a = mesh->normals[normals.get<0>()];
-                  const Vector4f &b = mesh->normals[normals.get<1>()];
-                  const Vector4f &c = mesh->normals[normals.get<2>()];
+                  const glm::vec4 &a = mesh->normals[normals.get<0>()];
+                  const glm::vec4 &b = mesh->normals[normals.get<1>()];
+                  const glm::vec4 &c = mesh->normals[normals.get<2>()];
                   manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                  manualNormal = (*normi) * (gvt::core::math::Vector3f)manualNormal;
-                  manualNormal.normalize();
+                  manualNormal = glm::normalize((*normi) * glm::vec3(manualNormal));
 #else
                   int I = mesh->faces[triangle_id].get<0>();
                   int J = mesh->faces[triangle_id].get<1>();
                   int K = mesh->faces[triangle_id].get<2>();
 
-                  Vector4f a = mesh->vertices[I];
-                  Vector4f b = mesh->vertices[J];
-                  Vector4f c = mesh->vertices[K];
-                  Vector4f u = b - a;
-                  Vector4f v = c - a;
-                  Vector4f normal;
+                  glm::vec4 a = mesh->vertices[I];
+                  glm::vec4 b = mesh->vertices[J];
+                  glm::vec4 c = mesh->vertices[K];
+                  glm::vec4 u = b - a;
+                  glm::vec4 v = c - a;
+                  glm::vec4 normal;
                   normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
                   normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
                   normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
                   normal.n[3] = 0.0f;
-                  manualNormal = normal.normalize();
+                  manualNormal = glm::normalize((*normi) * glm::vec3(normal));
 #endif
                 }
-                const Vector4f &normal = manualNormal;
+                const glm::vec4 &normal = manualNormal;
 
                 // reduce contribution of the color that the shadow rays get
                 if (r.type == gvt::render::actor::Ray::SECONDARY) {
@@ -591,7 +587,7 @@ struct OptixParallelTrace {
                   const float t_secondary = multiplier * r.t;
                   r.origin = r.origin + r.direction * t_secondary;
 
-                  r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                  r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
 
                   r.w = r.w * (r.direction * normal);
                   r.depth = ndepth;
@@ -671,11 +667,9 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
 
   // pull out instance transform data
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: getting instance transform data");
-  gvt::core::math::AffineTransformMatrix<float> *m =
-      (gvt::core::math::AffineTransformMatrix<float> *)instNode["mat"].value().toULongLong();
-  gvt::core::math::AffineTransformMatrix<float> *minv =
-      (gvt::core::math::AffineTransformMatrix<float> *)instNode["matInv"].value().toULongLong();
-  gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f *)instNode["normi"].value().toULongLong();
+  glm::mat4 *m = (glm::mat4 *)instNode["mat"].value().toULongLong();
+  glm::mat4 *minv = (glm::mat4 *)instNode["matInv"].value().toULongLong();
+  glm::mat3 *normi = (glm::mat3 *)instNode["normi"].value().toULongLong();
 
   //
   // TODO: wrap this db light array -> class light array conversion in some sort
@@ -686,10 +680,10 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   std::vector<gvt::render::data::scene::Light *> lights;
   lights.reserve(2);
   for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().toVector4f();
+    auto color = lightNode["color"].value().tovec4();
 
     if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().toVector4f();
+      auto pos = lightNode["position"].value().tovec4();
       lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));
