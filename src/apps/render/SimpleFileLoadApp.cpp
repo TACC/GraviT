@@ -136,9 +136,13 @@ int main(int argc, char **argv) {
 
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "light", lightNodes.UUID());
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
   lightNode["position"] = Vector4f(0.0, 0.1, 0.5, 0.0);
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  lightNode["normal"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  lightNode["width"] = 10;
+  lightNode["height"] = 10;
+
 
   // set the camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "cam", root.UUID());

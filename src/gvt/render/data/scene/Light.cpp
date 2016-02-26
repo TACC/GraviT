@@ -55,10 +55,31 @@ Vector4f PointLight::contribution(const Ray &ray) const {
   return color * (distance + 0.5f);
 }
 
-AmbientLight::AmbientLight(const Vector4f color) : Light(), color(color) {}
+AmbientLight::AmbientLight(const Vector4f color) : Light(position), color(color) {}
 
 AmbientLight::AmbientLight(const AmbientLight &orig) : Light(orig), color(orig.color) {}
 
 AmbientLight::~AmbientLight() {}
 
 Vector4f AmbientLight::contribution(const Ray &ray) const { return color; }
+
+
+AreaLight::AreaLight(const Point4f position, const Vector4f color, Vector4f lightNormal, int lightHeight, int lightWidth) : Light(position), color(color) {}
+
+AreaLight::AreaLight(const AreaLight &orig) : Light(orig), color(orig.color) {}
+
+AreaLight::~AreaLight() {}
+
+Point4f AreaLight::GetPosition()
+{
+  // put sauce here
+  return position;
+}
+
+Vector4f AreaLight::contribution(const Ray &ray) const {
+  float distance = 1.f / ((Vector4f)position - ray.origin).length();
+  distance = (distance > 1.f) ? 1.f : distance;
+  return color * (distance + 0.5f);
+}
+
+

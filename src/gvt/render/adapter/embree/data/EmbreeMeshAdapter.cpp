@@ -686,6 +686,13 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
     } else if (lightNode.name() == std::string("AmbientLight")) {
       lights.push_back(new gvt::render::data::scene::AmbientLight(color));
     }
+    else if (lightNode.name() == std::string("AreaLight")) {
+      auto pos = lightNode["position"].value().toVector4f();
+      auto normal = lightNode["position"].value().toVector4f();
+      auto width = lightNode["width"].value().toInteger();
+      auto height = lightNode["height"].value().toInteger();
+      lights.push_back(new gvt::render::data::scene::AreaLight((*minv) * pos, color,(*minv) * normal,width,height));
+    }
   }
 
   //  tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rayList.begin(), rayList.end()),

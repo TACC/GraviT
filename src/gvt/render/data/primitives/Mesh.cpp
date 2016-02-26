@@ -136,12 +136,25 @@ Color Mesh::shadeFace(const int face_id, const Ray &r, const Vector4f &normal, c
   Color c(0.5f, 0.5f, 0.5f, 0.0f);
   Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
   if (m) {
-    c = m->shade(r, normal, lsource);
+    c = m->shade(r, normal, lsource, lsource->position);
   }
   return c;
 }
 
-Color Mesh::shade(const Ray &r, const Vector4f &normal, const Light *lsource) { return mat->shade(r, normal, lsource); }
+Color Mesh::shadeFaceAreaLight(const int face_id, const Ray &r, const Vector4f &normal, const Light *lsource, const Point4f areaLightPosition) {
+  // XXX TODO: shadeFace returns constant color, fix?
+
+  if (!faces_to_materials.size()) return shade(r, normal, lsource);
+
+  Color c(0.5f, 0.5f, 0.5f, 0.0f);
+  Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
+  if (m) {
+    c = m->shade(r, normal, lsource, lsource->position);
+  }
+  return c;
+}
+
+Color Mesh::shade(const Ray &r, const Vector4f &normal, const Light *lsource) { return mat->shade(r, normal, lsource,lsource->position); }
 
 Box3D Mesh::computeBoundingBox() {
 
