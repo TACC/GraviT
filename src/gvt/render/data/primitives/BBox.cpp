@@ -78,8 +78,6 @@ Box3D::Box3D() {
     bounds[0][i] = std::numeric_limits<float>::max();
     bounds[1][i] = -std::numeric_limits<float>::max();
   }
-  bounds[0][3] = 1;
-  bounds[1][3] = 1;
 }
 
 glm::vec3 Box3D::getHitpoint(const Ray &ray) const {
@@ -89,14 +87,14 @@ glm::vec3 Box3D::getHitpoint(const Ray &ray) const {
 }
 
 Box3D::Box3D(glm::vec3 vmin, glm::vec3 vmax) {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     bounds[0][i] = fastmin(vmin[i], vmax[i]);
     bounds[1][i] = fastmax(vmin[i], vmax[i]);
   }
 }
 
 Box3D::Box3D(const Box3D &other) {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     bounds[0][i] = fastmin(other.bounds[0][i], other.bounds[1][i]);
     bounds[1][i] = fastmax(other.bounds[0][i], other.bounds[1][i]);
   }

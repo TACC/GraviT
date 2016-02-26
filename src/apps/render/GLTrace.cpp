@@ -244,7 +244,6 @@ void Translate(glm::vec3 &eye, glm::vec3 &focus, const float k) {
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
   move_dir[2] = w[0] * v[1] - w[1] * v[0];
-  move_dir[3] = 0.0;
   move_dir = glm::normalize(move_dir);
 
   glm::vec3 t = k * move_dir;
@@ -299,13 +298,13 @@ void RotateLeft(glm::vec3 &eye, glm::vec3 &focus, float angle) {
   move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
   move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
   move_dir_x[2] = w[0] * v[1] - w[1] * v[0];
-  move_dir_x[3] = 0.0;
+
   move_dir_x = glm::normalize(move_dir_x);
 
   move_dir_y[0] = move_dir_x[1] * w[2] - move_dir_x[2] * w[1];
   move_dir_y[1] = move_dir_x[2] * w[0] - move_dir_x[0] * w[2];
   move_dir_y[2] = move_dir_x[0] * w[1] - move_dir_x[1] * w[0];
-  move_dir_y[3] = 0.0;
+
   move_dir_y = glm::normalize(move_dir_y);
 
   Rotate(eye, focus, angle, move_dir_y);
@@ -321,13 +320,13 @@ void RotateRight(glm::vec3 &eye, glm::vec3 &focus, float angle) {
   move_dir_x[0] = w[1] * v[2] - w[2] * v[1];
   move_dir_x[1] = w[2] * v[0] - w[0] * v[2];
   move_dir_x[2] = w[0] * v[1] - w[1] * v[0];
-  move_dir_x[3] = 0.0;
+
   move_dir_x = glm::normalize(move_dir_x);
 
   move_dir_y[0] = move_dir_x[1] * w[2] - move_dir_x[2] * w[1];
   move_dir_y[1] = move_dir_x[2] * w[0] - move_dir_x[0] * w[2];
   move_dir_y[2] = move_dir_x[0] * w[1] - move_dir_x[1] * w[0];
-  move_dir_y[3] = 0.0;
+
   move_dir_y = glm::normalize(move_dir_y);
 
   Rotate(eye, focus, -angle, move_dir_y);
@@ -342,7 +341,7 @@ void RotateUp(glm::vec3 &eye, glm::vec3 &focus, float angle) {
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
   move_dir[2] = w[0] * v[1] - w[1] * v[0];
-  move_dir[3] = 0.0;
+
   move_dir = glm::normalize(move_dir);
 
   Rotate(eye, focus, angle, move_dir);
@@ -357,7 +356,7 @@ void RotateDown(glm::vec3 &eye, glm::vec3 &focus, float angle) {
   move_dir[0] = w[1] * v[2] - w[2] * v[1];
   move_dir[1] = w[2] * v[0] - w[0] * v[2];
   move_dir[2] = w[0] * v[1] - w[1] * v[0];
-  move_dir[3] = 0.0;
+
   move_dir = glm::normalize(move_dir);
 
   Rotate(eye, focus, -angle, move_dir);

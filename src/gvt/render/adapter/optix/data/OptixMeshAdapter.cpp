@@ -561,7 +561,6 @@ struct OptixParallelTrace {
                   normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
                   normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
                   normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
-                  normal.n[3] = 0.0f;
                   manualNormal = glm::normalize((*normi) * glm::vec3(normal));
 #endif
                 }

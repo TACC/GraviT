@@ -75,7 +75,6 @@ void gvtCameraBase::buildTransform() {
   u[0] = v[1] * w[2] - v[2] * w[1];
   u[1] = v[2] * w[0] - v[0] * w[2];
   u[2] = v[0] * w[1] - v[1] * w[0];
-  u[3] = 0.0;
   u = glm::normalize(u);
 
 #endif
@@ -84,7 +83,7 @@ void gvtCameraBase::buildTransform() {
   u[0] = w[1] * v[2] - w[2] * v[1];
   u[1] = w[2] * v[0] - w[0] * v[2];
   u[2] = w[0] * v[1] - w[1] * v[0];
-  u[3] = 0.0;
+
   u = glm::normalize(u);
 #endif
 

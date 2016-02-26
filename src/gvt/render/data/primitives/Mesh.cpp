@@ -84,9 +84,9 @@ void Mesh::setVertex(int which, glm::vec3 vertex, glm::vec3 normal, glm::vec3 te
 void Mesh::setMaterial(Material *mat) { this->mat = mat; }
 
 void Mesh::addFace(int v0, int v1, int v2) {
-  GVT_ASSERT(v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));
-  GVT_ASSERT(v1 - 1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1 - 1));
-  GVT_ASSERT(v2 - 1 < vertices.size(), "Vertex index 2 outside bounds : " << (v2 - 1));
+  GVT_ASSERT((v0 - 1 >= 0) && v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));
+  GVT_ASSERT((v1 - 1 >= 0) && v1 - 1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1 - 1));
+  GVT_ASSERT((v2 - 1 >= 0) && v2 - 1 < vertices.size(), "Vertex index 2 outside bounds : " << (v2 - 1));
   faces.push_back(Face(v0 - 1, v1 - 1, v2 - 1));
 }
 
@@ -115,7 +115,6 @@ void Mesh::generateNormals() {
     normal[0] = u[1] * v[2] - u[2] * v[1];
     normal[1] = u[2] * v[0] - u[0] * v[2];
     normal[2] = u[0] * v[1] - u[1] * v[0];
-    normal[3] = 0.0f;
     normal = glm::normalize(normal);
 
     // glm::vec3 const &a = Triangle.Position[0];
