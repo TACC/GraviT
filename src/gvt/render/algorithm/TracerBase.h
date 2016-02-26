@@ -105,7 +105,7 @@ public:
   int width = rootnode["Film"]["width"].value().toInteger();
   int height = rootnode["Film"]["height"].value().toInteger();
 
-  float sample_ratio;
+  float sample_ratio = 1;
 
   tbb::mutex raymutex;
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
@@ -317,7 +317,7 @@ public:
         } else if (instNode) {
 
           tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-          for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
+          for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i] * sample_ratio;
           colorBuf[r.id].rgba[3] = 1.f;
           colorBuf[r.id].clamp();
         }

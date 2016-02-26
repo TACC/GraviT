@@ -53,7 +53,8 @@ public:
 
   virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
                                           const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
+                                          const gvt::render::data::scene::Light *lightSource,
+                                          const gvt::core::math::Point4f lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray,
@@ -97,7 +98,8 @@ public:
 
   virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
                                           const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
+                                          const gvt::render::data::scene::Light *lightSource,
+                                          const gvt::core::math::Point4f lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
@@ -116,7 +118,8 @@ public:
 
   virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
                                           const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
+                                          const gvt::render::data::scene::Light *lightSource,
+                                          const gvt::core::math::Point4f lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
@@ -137,7 +140,8 @@ public:
 
   virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
                                           const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
+                                          const gvt::render::data::scene::Light *lightSource,
+                                          const gvt::core::math::Point4f lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
                                            const gvt::core::math::Vector4f &sufaceNormal, float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,

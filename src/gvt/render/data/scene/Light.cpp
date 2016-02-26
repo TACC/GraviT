@@ -43,22 +43,94 @@ Light::~Light() {}
 
 Vector4f Light::contribution(const Ray &ray) const { return Color(); }
 
-PointLight::PointLight(const Point4f position, const Vector4f color) : Light(position), color(color) {}
+PointLight::PointLight(const Point4f position, const Vector4f color) : Light(position), color(color) {LightT = Point;}
 
-PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) {}
+PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) {LightT = Point;}
 
 PointLight::~PointLight() {}
 
 Vector4f PointLight::contribution(const Ray &ray) const {
   float distance = 1.f / ((Vector4f)position - ray.origin).length();
   distance = (distance > 1.f) ? 1.f : distance;
+
   return color * (distance + 0.5f);
 }
 
-AmbientLight::AmbientLight(const Vector4f color) : Light(), color(color) {}
+AmbientLight::AmbientLight(const Vector4f color) : Light(position), color(color) {}
 
 AmbientLight::AmbientLight(const AmbientLight &orig) : Light(orig), color(orig.color) {}
 
 AmbientLight::~AmbientLight() {}
 
 Vector4f AmbientLight::contribution(const Ray &ray) const { return color; }
+
+
+AreaLight::AreaLight(const Point4f position, const Vector4f color, Vector4f lightNormal, float lightHeight, float lightWidth) : 
+                                            Light(position), color(color),LightNormal(lightNormal),LightWidth(lightWidth),LightHeight(lightHeight) 
+{
+  LightT = Area;
+  
+  v = LightNormal;
+  Vector4f up(0,1,0,0);
+
+  // check if v is the same as up
+  if(v == up)
+  {
+    //identiy
+    u[0] = 1;
+    u[1] = 0;
+    u[2] = 0;
+    w[0] = 0;
+    w[1] = 0;
+    w[2] = 1;
+  }
+  else
+  {
+    u[0] = up[1]* v[2] - v[1] *up[2];
+    u[1] = up[2]* v[0] - v[2] *up[0];
+    u[2] = up[0]* v[1] - v[0] *up[1];
+
+    // right cross lightNormal
+    w[0] = v[1]* u[2] - u[1] *v[2];
+    w[1] = v[2]* u[0] - u[2] *v[0];
+    w[2] = v[0]* u[1] - u[0] *v[1];
+  }
+}
+
+AreaLight::AreaLight(const AreaLight &orig):Light(orig)
+{
+  u = orig.u;
+  v = orig.v;
+  w = orig.w;
+
+  LightT = orig.LightT;
+  color = orig.color;
+  LightNormal = orig.LightNormal;
+  LightWidth = orig.LightWidth;
+  LightHeight = orig.LightHeight;
+}
+
+AreaLight::~AreaLight() {}
+
+Point4f AreaLight::GetPosition(unsigned int * seedVal)
+{
+  // generate points on plane then transform
+  float xLocation = (randEngine.fastrand(seedVal,0,1)-0.5)*LightWidth;
+  float yLocation = 0;
+  float zLocation = (randEngine.fastrand(seedVal,0,1)-0.5)*LightHeight;
+  
+  // x coord
+  float xCoord = xLocation *u[0] + zLocation * w[0]; 
+  float yCoord = xLocation *u[1] + zLocation * w[1]; 
+  float zCoord = xLocation *u[2] + zLocation * w[2];
+
+  return Point4f(position[0]+xCoord,position[1] + yCoord,position[2]+zCoord,position[3]);
+}
+
+Vector4f AreaLight::contribution(const Ray &ray) const {
+  float distance = 1.f / ((Vector4f)position - ray.origin).length();
+  distance = (distance > 1.f) ? 1.f : distance;
+  return color * (distance + 0.5f);
+}
+
+
