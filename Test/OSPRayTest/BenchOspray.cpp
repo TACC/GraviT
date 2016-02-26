@@ -262,7 +262,7 @@ int main(int argc, const char **argv) {
   //
   timeCurrent(&startTime);
   if (filepath.empty()) {
-    std::cout << " empty filepath render blank screen " << std::endl;
+    // empty filepath render blank screen 
     mesh = ospNewGeometry("triangles");
     OSPData data = ospNewData(0, OSP_FLOAT3A, vertex);
     ospCommit(data);

@@ -242,7 +242,6 @@ int main(int argc, char **argv) {
           timeCurrent(&startTime);
           gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
           Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 1.0, 1.0)));
-          std::cout << nverts << " verts " << nfaces << " faces " << std::endl;
           for (int i = 0; i < nverts; i++) {
             mesh->addVertex(Point4f(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2], 1.0));
           }
@@ -475,9 +474,39 @@ int main(int argc, char **argv) {
     std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
     exit(1);
   }
-
-  //schedNode["adapter"] = adapterType;
-  //schedNode["adapter"] = gvt::render::adapter::Embree;
+  // add empty mesh in case of no file path. Render empty image.
+  if(filepath.empty()) {
+    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
+    Mesh *mesh = new Mesh(new Lambert(Vector4f(0.5, 0.5, 1.0, 1.0)));
+    Point4f lower = {0.,0.,0.,0.};
+    Point4f upper = {1.,1.,1.,0.};
+    //findbounds(vertexarray, nverts, &lower, &upper);
+    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+    mesh->generateNormals();
+    EnzoMeshNode["file"] = string(filepath);
+    EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
+    EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+    // add instance
+    gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+    gvt::core::DBNodeH meshNode = EnzoMeshNode;
+    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+    instnode["id"] = 0;
+    instnode["meshRef"] = meshNode.UUID();
+    auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
+    auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
+    auto normi = new gvt::core::math::Matrix3f();
+    instnode["mat"] = (unsigned long long)m;
+    *minv = m->inverse();
+    instnode["matInv"] = (unsigned long long)minv;
+    *normi = m->upper33().inverse().transpose();
+    instnode["normi"] = (unsigned long long)normi;
+    auto il = (*m) * mbox->bounds[0];
+    auto ih = (*m) * mbox->bounds[1];
+    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+    instnode["bbox"] = (unsigned long long)ibox;
+    instnode["centroid"] = ibox->centroid();
+    numtriangles += nfaces;
+  }
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
@@ -491,6 +520,7 @@ int main(int argc, char **argv) {
 
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), outputfile);
+  // if empty file path add empty mesh and other data.
 
   timeCurrent(&endTime);
   modeltime += timeDifferenceMS(&startTime, &endTime);
