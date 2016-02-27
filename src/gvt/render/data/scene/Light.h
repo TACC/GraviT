@@ -63,12 +63,8 @@ public:
     gvt::render::data::primitives::Box3D bb(position, position);
     return bb;
   }
-
-  LightType GetLightType() {return lightType;}
-  gvt::core::math::Point4f position;
-private:
-  
-  LightType lightType = Point;
+  LightType LightT;
+  gvt::core::math::Point4f position;  
 };
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public Light {
@@ -80,9 +76,6 @@ public:
   virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
 
   gvt::core::math::Vector4f color;
-
-private:
-  LightType lightType = Point;
 };
 /// point light source
 class PointLight : public Light {
@@ -93,29 +86,34 @@ public:
 
   virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Vector4f color;
-
-private:
-  LightType lightType = Point;
+  gvt::core::math::Vector4f color; 
 };
 
 class AreaLight : public Light {
 public:
   AreaLight(const gvt::core::math::Point4f position, const gvt::core::math::Vector4f color
-            ,gvt::core::math::Vector4f lightNormal, int lightHeight, int lightWidth);
+            ,gvt::core::math::Vector4f lightNormal, float lightHeight, float lightWidth);
   AreaLight(const AreaLight &orig);
   virtual ~AreaLight();
 
   virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
 
   gvt::core::math::Point4f virtual GetPosition();
-  
-private:
-  LightType lightType = Area;
+
   gvt::core::math::Vector4f color;
   gvt::core::math::Vector4f LightNormal;
-  int lightWidth;
-  int lightHeight;
+  float LightWidth;
+  float LightHeight;
+  inline int fastrand() 
+  {
+    g_seed = (214013 * g_seed + 2531011);
+    return (g_seed >> 16) & 0x7FFF;
+  }
+
+protected:
+  unsigned int g_seed;
+  inline void fast_srand(int seed) { g_seed = seed; }
+  gvt::core::math::Vector4f u,v,w;
 };
 }
 }

@@ -70,7 +70,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   // file.open(filename.c_str());
   // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  objMesh = new Mesh(new Phong(Vector4f(0.8, 0.8, 0.8, 1.0),Vector4f(0.8, 0.1, 0.1, 1.0),1.2));
+  objMesh = new Mesh(new Lambert(Vector4f(0.8, 0.8, 0.8, 1.0)));
 
   // while (file.good()) {
   //   std::string line;

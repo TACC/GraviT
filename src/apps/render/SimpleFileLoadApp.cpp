@@ -137,11 +137,11 @@ int main(int argc, char **argv) {
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
-  lightNode["position"] = Vector4f(0.0, 0.1, 0.5, 0.0);
+  lightNode["position"] = Vector4f(-0.2, 0.1, 0.9, 0.0);
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
   lightNode["normal"] = Vector4f(0.0, 1.0, 0.0, 0.0);
-  lightNode["width"] = 10;
-  lightNode["height"] = 10;
+  lightNode["width"] = float(0.05);
+  lightNode["height"] = float(0.05);
 
 
   // set the camera
@@ -191,6 +191,7 @@ int main(int argc, char **argv) {
   Point4f focus = camNode["focus"].value().toPoint4f();
   float fov = camNode["fov"].value().toFloat();
   Vector4f up = camNode["upVector"].value().toVector4f();
+  mycamera.setSamples(9);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());

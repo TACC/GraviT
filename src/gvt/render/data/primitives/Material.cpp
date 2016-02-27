@@ -58,7 +58,7 @@ Lambert::~Lambert() {}
 Vector4f Lambert::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
 
   Vector4f hitPoint = (Vector4f)ray.origin + ray.direction*ray.t;
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion- hitPoint;
   L = L.normalize();
   float NdotL = std::max(0.f, (N * L));
 
@@ -81,7 +81,7 @@ Phong::~Phong() {}
 
 Vector4f Phong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
   Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion - hitPoint;
 
   L = L.normalize();
   
@@ -112,7 +112,7 @@ BlinnPhong::~BlinnPhong() {}
 
 Vector4f BlinnPhong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
   Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion - hitPoint;
   L = L.normalize();
   float NdotL = std::max(0.f, (N * L));
 

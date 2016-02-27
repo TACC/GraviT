@@ -85,6 +85,8 @@ public:
    *  to world transformation and its inverse are constructed. */
   void lookAt(gvt::core::math::Point4f eye, gvt::core::math::Point4f focus, gvt::core::math::Vector4f up);
 
+  void setSamples(int pathSamples);
+
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
   // clang-format off
@@ -100,6 +102,7 @@ public:
   // clang-format on
 
 protected:
+  int samples;
   gvt::core::math::AffineTransformMatrix<float> cam2wrld; //!< transform from camera to world coords
   gvt::core::math::AffineTransformMatrix<float> wrld2cam; //!< transform from world to camera coords
   gvt::core::math::Point4f eye_point;                     //!< camera location in world coordinates

@@ -308,11 +308,26 @@ struct embreeParallelTrace {
       // triangle.
       // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
       // Using about 8 * ULP(t).
+     
+      gvt::render::data::Color c;
+      Point4f lightPos;
+      if(light->LightT == gvt::render::data::scene::Light::Area)
+      {
+        lightPos  = ((gvt::render::data::scene::AreaLight *) light)->GetPosition();
+        c = mesh->shadeFaceAreaLight(primID, r, normal, light, lightPos);
+      }
+      else
+      {
+         // FIXME: remove dependency on mesh->shadeFace
+        c = mesh->shadeFace(primID, r, normal, light);
+        lightPos = light->position;
+      }
+
       const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
       const float t_shadow = multiplier * r.t;
 
       const Point4f origin = r.origin + r.direction * t_shadow;
-      const Vector4f dir = light->position - origin;
+      const Vector4f dir = lightPos - origin;
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
@@ -322,9 +337,9 @@ struct embreeParallelTrace {
       shadow_ray.t = r.t;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
+     
 
-      // FIXME: remove dependency on mesh->shadeFace
-      gvt::render::data::Color c = mesh->shadeFace(primID, r, normal, light);
+     
       // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
       // normal, lights[lindex]);
       shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
@@ -646,7 +661,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   this->end = _end;
 
   std::atomic<size_t> sharedIdx(begin); // shared index into rayList
-  const size_t numThreads = std::thread::hardware_concurrency();
+  const size_t numThreads = 1;
   const size_t workSize = std::max((size_t)8, (size_t)((end - begin) / (numThreads * 8))); // size of 'chunk'
                                                                                            // of rays to work
                                                                                            // on
@@ -688,9 +703,9 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
     }
     else if (lightNode.name() == std::string("AreaLight")) {
       auto pos = lightNode["position"].value().toVector4f();
-      auto normal = lightNode["position"].value().toVector4f();
-      auto width = lightNode["width"].value().toInteger();
-      auto height = lightNode["height"].value().toInteger();
+      auto normal = lightNode["normal"].value().toVector4f();
+      auto width = lightNode["width"].value().toFloat();
+      auto height = lightNode["height"].value().toFloat();
       lights.push_back(new gvt::render::data::scene::AreaLight((*minv) * pos, color,(*minv) * normal,width,height));
     }
   }
