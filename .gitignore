@@ -3,3 +3,4 @@
 # ignore cmake build dir
 build*
 gravit.sublime*
+.DS_Store

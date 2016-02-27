@@ -68,8 +68,9 @@ if (GVT_RENDER)
 	option(GVT_GLRENDER_APP			"Build the interactive X application" OFF)
 	option(GVT_SIMPLE_APP			"Build the simple application" ON)
 	option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
+	option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
 	add_definitions(-DGVT_RENDER)
-endif(GVT_RENDER) 
+endif(GVT_RENDER)
 
 
 
@@ -101,7 +102,7 @@ if(GVT_MPE)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
 endif(GVT_MPE)
 # the compiler is ususally set through environment vars outside the cmake file
-# so this is redundant. CMake detects the compiler. 
+# so this is redundant. CMake detects the compiler.
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
 set(GVT_VECTOR_TARGET "AVX" CACHE STRING "Target Vector ISA on host (SSE,AVX,AVX2)")
 mark_as_advanced(GVT_USE_ICC)
@@ -112,6 +113,10 @@ set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
+find_package(TBB REQUIRED)
+
+include_directories(${TBB_INCLUDE_DIRS})
+
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
@@ -122,6 +127,12 @@ find_path(TINYOBJPATH "tiny_obj_loader.h" ${GVT_THIRDPARTY_TOBJ})
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
 	MESSAGE(SEND_ERRORS "tiny obj reader not found")
 endif (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
+
+set(GVT_THIRDPARTY_PLY "${CMAKE_SOURCE_DIR}/third-party/ply")
+find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_PLY})
+if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+	MESSAGE(SEND ERRORS "ply reader header not found")
+endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -171,7 +182,10 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/schedule/SchedulerBase.h
 	src/gvt/core/schedule/TaskScheduling.h
 	src/gvt/core/Schedule.h
+	src/gvt/core/String.h
 	src/gvt/core/Types.h
+	src/gvt/core/Uuid.h
+	src/gvt/core/Variant.h
 	)
 
 
@@ -180,6 +194,8 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 	src/gvt/core/Database.cpp
 	src/gvt/core/DatabaseNode.cpp
 	src/gvt/core/schedule/TaskScheduling.cpp
+	src/gvt/core/Uuid.cpp
+	src/gvt/core/Variant.cpp
 	)
 
 
@@ -225,6 +241,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/schedule/HybridScheduler.h
 	src/gvt/render/schedule/ImageScheduler.h
 	src/gvt/render/Schedulers.h
+	src/gvt/render/Types.h
 	)
 
 
@@ -264,6 +281,7 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
 		)
+
 endif(GVT_RENDER_ADAPTER_MANTA)
 
 
@@ -277,15 +295,11 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
-#		src/gvt/render/adapter/optix/data/Transforms.cu
-#                src/gvt/render/adapter/optix/data/domain/CudaHelpers.cu
 		)
-	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} 
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.cpp
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
 		)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/optix/data/domain/OptixDomain.h
 		)
 endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
@@ -293,25 +307,32 @@ endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 if (GVT_RENDER_ADAPTER_EMBREE)
   add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
 	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.h
 		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.h
-		src/gvt/render/adapter/embree/data/Transforms.h
 		src/gvt/render/adapter/embree/Wrapper.h
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-		src/gvt/render/adapter/embree/data/domain/EmbreeDomain.cpp
 		src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.cpp
 		)
 endif(GVT_RENDER_ADAPTER_EMBREE)
+
+if (GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
+	set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		src/gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.h
+		src/gvt/render/adapter/heterogeneous/Wrapper.h
+		)
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+		src/gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.cpp
+		)
+endif(GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
 if (GVT_CORE)
     find_package(Boost REQUIRED COMPONENTS system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES})
+    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
 	add_library(gvtCore STATIC
-		${GVT_CORE_HDRS} 
+		${GVT_CORE_HDRS}
 		${GVT_CORE_SRCS}
 		)
 
@@ -325,15 +346,17 @@ endif(GVT_CORE)
 
 
 if (GVT_RENDER)
-	# TODO: PlyReader in gvtRender requires Manta, 
+	# TODO: PlyReader in gvtRender requires Manta,
 	#       should only need Manta if including Manta adapter
 	find_package(Manta REQUIRED)
-	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${MANTA_TARGET_LINK_LIBRARIES}) 
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${MANTA_TARGET_LINK_LIBRARIES})
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader)
+  include_directories(${TINYOBJPATH})
 
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES})
-	
+
     if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
     	find_package(CUDA REQUIRED)
     	find_package(OptiX REQUIRED)
@@ -361,7 +384,7 @@ if (GVT_RENDER)
 	endif(GVT_RENDER_ADAPTER_EMBREE)
 
 	add_library(gvtRender STATIC
-		${GVT_CORE_HDRS} 
+		${GVT_CORE_HDRS}
 		${GVT_CORE_SRCS}
 		${GVT_RENDER_HDRS}
 		${GVT_RENDER_SRCS}
@@ -394,6 +417,28 @@ if (GVT_SIMPLE_APP)
 	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
 	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
 endif(GVT_SIMPLE_APP)
+
+if (GVT_PLY_APP)
+  if (GVT_MPE)
+    if (DEFINED ENV{MPEHOME})
+      set(MPE_HOME_DIR $ENV{MPEHOME})
+      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
+      include_directories(${MPE_INCLUDE_DIR})
+      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
+      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
+      set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS} ${MPE_LIB1})
+    endif(DEFINED ENV{MPEHOME})
+  endif (GVT_MPE)
+	find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+	set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTPLY_RENDER_SRCS ${GVTPLY_RENDER_SRCS}
+		src/apps/render/PlyApp.cpp
+		${PLYPATH}/ply.c)
+	add_executable(gvtPly ${GVTPLY_RENDER_SRCS})
+	target_link_libraries(gvtPly gvtCore gvtRender ${GVTPLY_RENDER_LIBS} )
+endif(GVT_PLY_APP)
 
 if (GVT_SIMPLE_FILE_LOAD_APP)
   if (GVT_MPE)
@@ -437,6 +482,7 @@ if (GVT_GLRENDER_APP)
 	set(GVTGLAPP_RENDER_SRCS ${GVTGLAPP_RENDER_SRCS}
 		src/apps/render/ConfigFileLoader.cpp
 		src/apps/render/GLTrace.cpp
+                ${PLYPATH}/ply.c
 		)
 
 	add_executable(glTracer
@@ -450,74 +496,3 @@ if (GVT_GLRENDER_APP)
 		RUNTIME DESTINATION bin
 		)
 endif(GVT_GLRENDER_APP)
-
-if (GVT_RENDER_APP)
-    find_package(MPI REQUIRED)
-    include_directories(${MPI_INCLUDE_PATH} ${TINYOBJPATH})
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPI_LIBRARIES} tinyobjloader)
-  if (GVT_MPE)
-    if (DEFINED ENV{MPEHOME})
-      set(MPE_HOME_DIR $ENV{MPEHOME})
-      set (MPE_INCLUDE_DIR ${MPE_HOME_DIR}/include)
-      include_directories(${MPE_INCLUDE_DIR})
-      FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
-      FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
-      #SET(MPE_LIBRARIES "${MPE_LIB1} ${MPE_LIB2}")
-      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB1})
-      set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${MPE_LIB2})
-    endif(DEFINED ENV{MPEHOME})
-  endif (GVT_MPE)
-    find_package(Boost REQUIRED COMPONENTS thread timer system)
-    include_directories(${Boost_INCLUDE_DIRS})
-
-    set(GVTAPP_RENDER_LIBS ${GVTAPP_RENDER_LIBS} ${Boost_LIBRARIES})
-
-	if(GVT_RENDER_ADAPTER_OPTIX_PRIME) 
-		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-			src/apps/render/ConfigFileLoader.h
-			src/apps/render/OptixRayTracer.h
-			)
-
-		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-			src/apps/render/ConfigFileLoader.cpp
-			src/apps/render/GVTTrace.cpp
-			src/apps/render/OptixRayTracer.cpp
-			)
-	endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
-	if(GVT_RENDER_ADAPTER_MANTA)
-		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-			src/apps/render/ConfigFileLoader.h
-			src/apps/render/MantaRayTracer.h
-			)
-
-		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-			src/apps/render/ConfigFileLoader.cpp
-			src/apps/render/GVTTrace.cpp
-			src/apps/render/MantaRayTracer.cpp
-			)
-        endif(GVT_RENDER_ADAPTER_MANTA)
-
-	if(GVT_RENDER_ADAPTER_EMBREE)
-		set(GVTAPP_RENDER_HDRS ${GVTAPP_RENDER_HDRS}
-			src/apps/render/ConfigFileLoader.h
-			src/apps/render/EmbreeRayTracer.h
-			)
-
-		set(GVTAPP_RENDER_SRCS ${GVTAPP_RENDER_SRCS}
-			src/apps/render/ConfigFileLoader.cpp
-			src/apps/render/GVTTrace.cpp
-			src/apps/render/EmbreeRayTracer.cpp
-			)
-        endif(GVT_RENDER_ADAPTER_EMBREE)
-
-	add_executable(gvtTracer
-		${GVTAPP_RENDER_HDRS}
-		${GVTAPP_RENDER_SRCS}
-		)
-
-	target_link_libraries(gvtTracer ${GVTAPP_RENDER_LIBS} gvtCore gvtRender)
-
-	install(TARGETS gvtTracer
-		RUNTIME DESTINATION bin
-		)
-endif(GVT_RENDER_APP)

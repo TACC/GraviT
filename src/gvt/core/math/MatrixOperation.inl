@@ -1,33 +1,33 @@
-/* ======================================================================================= 
+/* =======================================================================================
    This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
 
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin  
+   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
    All rights reserved.
-                                                                                           
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file     
-   except in compliance with the License.                                                  
-   A copy of the License is included with this software in the file LICENSE.               
-   If your copy does not contain the License, you may obtain a copy of the License at:     
-                                                                                           
-       http://opensource.org/licenses/BSD-3-Clause                                         
-                                                                                           
-   Unless required by applicable law or agreed to in writing, software distributed under   
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
-   KIND, either express or implied.                                                        
-   See the License for the specific language governing permissions and limitations under   
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and limitations under
    limitations under the License.
 
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863, 
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-/* 
+/*
  * File:   MatrixOperation.inl
  * Author: jbarbosa
  *
  * Created on May 3, 2014, 1:05 PM
  */
-
+// clang-format off
 template <class T>
 inline bool operator ==(const gvt::core::math::Matrix3<T>& a, const gvt::core::math::Matrix3<T>& b) {
     return !memcmp(a.n, b.n, 9 * sizeof (T));
@@ -40,9 +40,11 @@ inline bool operator !=(const gvt::core::math::Matrix3<T>& a, const gvt::core::m
 
 template <class T>
 inline std::ostream& operator <<(std::ostream& os, const gvt::core::math::Matrix3<T>& m) {
-    os << m.n[0] << " " << m.n[1] << " " << m.n[2];
-    os << m.n[3] << " " << m.n[4] << " " << m.n[5];
-    os << m.n[6] << " " << m.n[7] << " " << m.n[8];
+    os << "{{" << m.n[0] << " " << m.n[1] << " " << m.n[2] << "} ";
+    os << "{" << m.n[3] << " " << m.n[4] << " " << m.n[5] << "} ";
+    os << "{" << m.n[6] << " " << m.n[7] << " " << m.n[8] << "}}";
+
+
     return os;
 }
 
@@ -132,12 +134,13 @@ inline bool operator !=(const gvt::core::math::AffineTransformMatrix<T>& a, cons
     return memcmp(a.n, b.n, 16 * sizeof (T));
 }
 
+
 template <class T>
 inline std::ostream& operator <<(std::ostream& os, const gvt::core::math::AffineTransformMatrix<T>& m) {
-    return os << m.n[ 0] << " " << m.n[ 1] << " " << m.n[ 2] << " " << m.n[ 3] << std::endl <<
-            m.n[ 4] << " " << m.n[ 5] << " " << m.n[ 6] << " " << m.n[ 7] << std::endl <<
-            m.n[ 8] << " " << m.n[ 9] << " " << m.n[10] << " " << m.n[11] << std::endl <<
-            m.n[12] << " " << m.n[13] << " " << m.n[14] << " " << m.n[15] << std::endl;
+    return os << "{{" << m.n[ 0] << " " << m.n[ 1] << " " << m.n[ 2] << " " << m.n[ 3] << "} {" <<
+            m.n[ 4] << " " << m.n[ 5] << " " << m.n[ 6] << " " << m.n[ 7] << "} {" <<
+            m.n[ 8] << " " << m.n[ 9] << " " << m.n[10] << " " << m.n[11] << "} {" <<
+            m.n[12] << " " << m.n[13] << " " << m.n[14] << " " << m.n[15] << "}}";
 }
 
 template <class T>
@@ -148,4 +151,4 @@ inline std::istream& operator >>(std::istream& is, gvt::core::math::AffineTransf
     is >> m.n[12] >> m.n[13] >> m.n[14] >> m.n[15];
     return is;
 }
-
+// clang-format on
