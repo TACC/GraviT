@@ -85,10 +85,6 @@ public:
    *  to world transformation and its inverse are constructed. */
   void lookAt(gvt::core::math::Point4f eye, gvt::core::math::Point4f focus, gvt::core::math::Vector4f up);
 
-  void setSamples(int pathSamples);
-
-  void setJitterWindowSize(int windowSize);
-
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
   // clang-format off
@@ -102,9 +98,8 @@ public:
     return up_vector;
   };
   // clang-format on
+
 protected:
-  int samples;
-  int jitterWindowSize;
   gvt::core::math::AffineTransformMatrix<float> cam2wrld; //!< transform from camera to world coords
   gvt::core::math::AffineTransformMatrix<float> wrld2cam; //!< transform from world to camera coords
   gvt::core::math::Point4f eye_point;                     //!< camera location in world coordinates
@@ -115,7 +110,6 @@ protected:
   int depth;                         //!< legacy variable from previous cameras. Initializes ray depth
   gvt::core::math::Vector4f u, v, w; //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
-  TLRand randEngine;
   //
   void buildTransform(); //!< Build the transformation matrix and inverse
 };

@@ -35,6 +35,5 @@
 #include <gvt/core/math/Constants.h>
 #include <gvt/core/math/Vector.h>
 #include <gvt/core/math/Matrix.h>
-#include <gvt/core/math/TLRand.h>
 
 #endif /* GVT_CORE_MATH_H */

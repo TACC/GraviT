@@ -162,13 +162,6 @@ public:
   }
 
   virtual void operator()() {
-
-    if(sample_ratio == 0)
-    {
-      assert(sample_ratio != 0);
-      GVT_DEBUG(DBG_ALWAYS, "Sample Ratio has not being set");
-    }
-   
     boost::timer::cpu_timer t_sched;
     t_sched.start();
     boost::timer::cpu_timer t_trace;

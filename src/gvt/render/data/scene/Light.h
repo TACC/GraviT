@@ -34,8 +34,6 @@
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/core/Math.h>
-#include <boost/thread/tss.hpp>
-
 
 namespace gvt {
 namespace render {
@@ -46,32 +44,23 @@ namespace scene {
 */
 class Light {
 public:
-
-  enum LightType 
-  { 
-    Point, 
-    Area 
-  }; 
-
-  Light(const gvt::core::math::Point4f position);
+  Light(const gvt::core::math::Point4f position = gvt::core::math::Point4f());
   Light(const Light &orig);
   virtual ~Light();
 
   virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
 
-  
+  gvt::core::math::Point4f position;
 
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
     return bb;
   }
-  LightType LightT;
-  gvt::core::math::Point4f position;  
 };
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public Light {
 public:
-  AmbientLight(const gvt::core::math::Vector4f color);
+  AmbientLight(const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 
@@ -82,34 +71,14 @@ public:
 /// point light source
 class PointLight : public Light {
 public:
-  PointLight(const gvt::core::math::Point4f position, const gvt::core::math::Vector4f color);
+  PointLight(const gvt::core::math::Point4f position = gvt::core::math::Point4f(),
+             const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
   PointLight(const PointLight &orig);
   virtual ~PointLight();
 
   virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Vector4f color; 
-};
-
-class AreaLight : public Light {
-public:
-  AreaLight(const gvt::core::math::Point4f position, const gvt::core::math::Vector4f color
-            ,gvt::core::math::Vector4f lightNormal, float lightHeight, float lightWidth);
-  AreaLight(const AreaLight &orig);
-  virtual ~AreaLight();
-
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
-
-  gvt::core::math::Point4f virtual GetPosition(unsigned int * seedVal);
-
   gvt::core::math::Vector4f color;
-  gvt::core::math::Vector4f LightNormal;
-  float LightWidth;
-  float LightHeight;
-
-protected:
-  gvt::core::math::Vector4f u,v,w;
-  TLRand randEngine;
 };
 }
 }

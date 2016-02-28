@@ -94,17 +94,11 @@ public:
 
   virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
   virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal,
-                                         const gvt::render::data::scene::Light *lsource,
-                                         const gvt::core::math::Point4f areaLightPosition);
+                                         const gvt::render::data::scene::Light *lsource);
 
   virtual gvt::render::data::Color shadeFace(const int face_id, const gvt::render::actor::Ray &r,
                                              const gvt::core::math::Vector4f &normal,
                                              const gvt::render::data::scene::Light *lsource);
-
-   virtual gvt::render::data::Color shadeFaceAreaLight(const int face_id, const gvt::render::actor::Ray &r,
-                                             const gvt::core::math::Vector4f &normal,
-                                             const gvt::render::data::scene::Light *lsource,
-                                             const gvt::core::math::Point4f areaLightPosition);
 
 public:
   gvt::render::data::primitives::Material *mat;
