@@ -43,7 +43,7 @@ Material::Material(const Material &orig) {}
 
 Material::~Material() {}
 
-Vector4f Material::shade(const Ray &ray, const Vector4f &sufaceNormal, const Light *lightSource) { return Vector4f(); }
+Vector4f Material::shade(const Ray &ray, const Vector4f &sufaceNormal, const Light *lightSource ,const gvt::core::math::Point4f lightPostion) { return Vector4f(); }
 
 RayVector Material::ao(const Ray &ray, const Vector4f &sufaceNormal, float samples) { return RayVector(); }
 
@@ -55,13 +55,17 @@ Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
 
 Lambert::~Lambert() {}
 
-Vector4f Lambert::shade(const Ray &ray, const Vector4f &N, const Light *lightSource) {
+Vector4f Lambert::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
 
-  Point4f V = ray.direction;
-  V = V.normalize();
-  float NdotL = std::max(0.f, std::abs(N * V));
-  Color lightSourceContrib = lightSource->contribution(ray);
-  Color diffuse = prod(lightSourceContrib, kd * NdotL) * ray.w;
+  Vector4f hitPoint = (Vector4f)ray.origin + ray.direction*ray.t;
+  Vector4f L = (Vector4f)lightPostion- hitPoint;
+  L = L.normalize();
+  float NdotL = std::max(0.f, (N * L));
+
+  Vector4f lightSourceContrib = lightSource->contribution(ray);
+
+  Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
+
   return diffuse;
 }
 
@@ -75,18 +79,19 @@ Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alph
 
 Phong::~Phong() {}
 
-Vector4f Phong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource) {
+Vector4f Phong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
   Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion - hitPoint;
 
   L = L.normalize();
-  float NdotL = std::max(0.f, (N * L));
-  Vector4f R = ((N * 2.f) * NdotL) - L;
-  float VdotR = std::max(0.f, (R * (-ray.direction)));
-  float power = VdotR * std::pow(VdotR, alpha);
+  
+  Vector4f R = ((N * 2.f) * (N * L)) - L;
+  float VdotR = std::max(0.f, (R * (-ray.direction.normalize())));
+  float power = std::pow(VdotR, alpha);
 
   Vector4f lightSourceContrib = lightSource->contribution(ray); //  distance;
 
+  float NdotL = std::max(0.f, (N * L));
   Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
   Color specular = prod((lightSourceContrib * power), ks) * ray.w;
 
@@ -105,16 +110,17 @@ BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks
 
 BlinnPhong::~BlinnPhong() {}
 
-Vector4f BlinnPhong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource) {
+Vector4f BlinnPhong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
   Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion - hitPoint;
   L = L.normalize();
   float NdotL = std::max(0.f, (N * L));
 
   Vector4f H = (L - ray.direction).normalize();
 
   float NdotH = (H * N);
-  float power = NdotH * std::pow(NdotH, alpha);
+  NdotH = std::max(0.f,NdotH);
+  float power = std::pow(NdotH, alpha);
 
   Vector4f lightSourceContrib = lightSource->contribution(ray);
 
