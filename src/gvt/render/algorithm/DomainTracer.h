@@ -161,7 +161,7 @@ public:
     }
   }
 
-  virtual void operator()() {   
+  virtual void operator()() {
     boost::timer::cpu_timer t_sched;
     t_sched.start();
     boost::timer::cpu_timer t_trace;

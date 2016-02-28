@@ -232,7 +232,7 @@ struct embreeParallelTrace {
                       const size_t begin, const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
         instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(adapter->getPacketSize()), begin(begin), end(end)  {}
+        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
   /**
    * Convert a set of rays from a vector into a RTCRay4 ray packet.
    *

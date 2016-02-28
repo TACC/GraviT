@@ -34,8 +34,6 @@
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/core/Math.h>
-#include <boost/thread/tss.hpp>
-
 
 namespace gvt {
 namespace render {
@@ -53,7 +51,7 @@ public:
     Area 
   }; 
 
-  Light(const gvt::core::math::Point4f position);
+  Light(const gvt::core::math::Point4f position = gvt::core::math::Point4f());
   Light(const Light &orig);
   virtual ~Light();
 
@@ -71,7 +69,7 @@ public:
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public Light {
 public:
-  AmbientLight(const gvt::core::math::Vector4f color);
+  AmbientLight(const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 
@@ -82,7 +80,8 @@ public:
 /// point light source
 class PointLight : public Light {
 public:
-  PointLight(const gvt::core::math::Point4f position, const gvt::core::math::Vector4f color);
+  PointLight(const gvt::core::math::Point4f position = gvt::core::math::Point4f(),
+             const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
   PointLight(const PointLight &orig);
   virtual ~PointLight();
 

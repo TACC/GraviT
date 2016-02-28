@@ -135,12 +135,19 @@ int main(int argc, char **argv) {
 
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
-  lightNode["position"] = Vector4f(-0.2, 0.1, 0.9, 0.0);
+
+  //area Light
+  // gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
+  // lightNode["position"] = Vector4f(-0.2, 0.1, 0.9, 0.0);
+  // lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  // lightNode["normal"] = Vector4f(0.0, 0.0, 1.0, 0.0);
+  // lightNode["width"] = float(0.05);
+  // lightNode["height"] = float(0.05);
+
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "light", lightNodes.UUID());
+  lightNode["position"] = Vector4f(0.0, 0.1, 0.5, 0.0);
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
-  lightNode["normal"] = Vector4f(0.0, 0.0, 1.0, 0.0);
-  lightNode["width"] = float(0.05);
-  lightNode["height"] = float(0.05);
+
 
 
   // set the camera
@@ -186,7 +193,7 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
 
-  int samplesSqureRoot = 10;
+  int samplesSqureRoot = 1;
 
   gvtPerspectiveCamera mycamera;
   Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
@@ -194,7 +201,7 @@ int main(int argc, char **argv) {
   float fov = camNode["fov"].value().toFloat();
   Vector4f up = camNode["upVector"].value().toVector4f();
   mycamera.setSamples(samplesSqureRoot);
-  mycamera.setJitterWindowSize(0.01);
+  mycamera.setJitterWindowSize(0.00);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());

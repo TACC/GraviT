@@ -56,7 +56,7 @@ Vector4f PointLight::contribution(const Ray &ray) const {
   return color * (distance + 0.5f);
 }
 
-AmbientLight::AmbientLight(const Vector4f color) : Light(position), color(color) {}
+AmbientLight::AmbientLight(const Vector4f color) : Light(), color(color) {}
 
 AmbientLight::AmbientLight(const AmbientLight &orig) : Light(orig), color(orig.color) {}
 

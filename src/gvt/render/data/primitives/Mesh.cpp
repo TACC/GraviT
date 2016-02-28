@@ -136,7 +136,6 @@ Color Mesh::shadeFace(const int face_id, const Ray &r, const Vector4f &normal, c
   Color c(0.5f, 0.5f, 0.5f, 0.0f);
   Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
   if (m) {
-    std::cout<<"here"<<std::endl;
     c = m->shade(r, normal, lsource, lsource->position);
   }
   return c;
