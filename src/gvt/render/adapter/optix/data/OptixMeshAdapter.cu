@@ -91,6 +91,7 @@ curandState *set_random_states(int rayCount) {
 
   // setup seeds
   setup_kernel<<<numBlocks, threadsPerBlock>>>(devStates, time(NULL));
+  gpuErrchk(cudaGetLastError());
 
   return devStates;
 }
@@ -127,15 +128,18 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
 
 void cudaPrepOptixRays(OptixRay* optixrays, bool* valid,
                   const int localPacketSize, Ray* rays,
-                 CudaGvtContext* cudaGvtCtx,bool ignoreValid) {
+                 CudaGvtContext* cudaGvtCtx,bool ignoreValid, cudaStream_t& stream) {
 
 		dim3 blockDIM = dim3(16, 16);
 		dim3 gridDIM = dim3((localPacketSize / (blockDIM.x * blockDIM.y)) + 1, 1);
 
 
-		cudaKernelPrepOptixRays<<<gridDIM,blockDIM , 0>>>(
+		cudaKernelPrepOptixRays<<<gridDIM,blockDIM , 0, stream>>>(
 				optixrays,valid,localPacketSize,rays,
 				cudaGvtCtx->toGPU(),ignoreValid);
+
+		  gpuErrchk(cudaGetLastError());
+
 
 }
 
@@ -157,7 +161,8 @@ void cudaProcessShadows(CudaGvtContext* cudaGvtCtx) {
 		dim3 blockDIM = dim3(16, 16);
 		dim3 gridDIM = dim3((cudaGvtCtx->shadowRayCount / (blockDIM.x * blockDIM.y)) + 1, 1);
 
-		cudaKernelFilterShadow<<<gridDIM,blockDIM , 0>>>(cudaGvtCtx->toGPU());
+		cudaKernelFilterShadow<<<gridDIM,blockDIM , 0, cudaGvtCtx->stream>>>(cudaGvtCtx->toGPU());
+		gpuErrchk(cudaGetLastError());
 
 		cudaGvtCtx->toHost();
 }
@@ -222,7 +227,6 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
       // counter++; // tracks rays processed [atomic]
       Ray &r = cudaGvtCtx->rays[tID];
       if (cudaGvtCtx->traceHits[tID].triangle_id >= 0) {
-
 
         // ray has hit something
         // shadow ray hit something, so it should be dropped
@@ -333,7 +337,8 @@ void shade(
 	dim3 blockDIM = dim3(16, 16);
 	dim3 gridDIM = dim3((N / (blockDIM.x * blockDIM.y)) + 1, 1);
 
-	kernel<<<gridDIM,blockDIM , 0>>>(cudaGvtCtx->toGPU());
+	kernel<<<gridDIM,blockDIM , 0, cudaGvtCtx->stream >>>(cudaGvtCtx->toGPU());
+	  gpuErrchk(cudaGetLastError());
 
 	cudaGvtCtx->toHost();
 

@@ -33,15 +33,12 @@
 
 #include "curand_kernel.h"
 
-#define CUDA_OPTIX
-//#define CPU_OPTIX
-
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
    if (code != cudaSuccess)
    {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      fprintf(stderr,"gpu-assert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
 }
@@ -61,9 +58,11 @@ struct CudaGvtContext {
 	CudaGvtContext* toGPU() {
 
 
-		gpuErrchk(cudaMemcpy(devicePtr, this,
+		gpuErrchk(cudaMemcpyAsync(devicePtr, this,
 				sizeof(gvt::render::data::cuda_primitives::CudaGvtContext),
-				cudaMemcpyHostToDevice));
+				cudaMemcpyHostToDevice, stream));
+
+		//cudaStreamSynchronize(stream);
 
 		return (CudaGvtContext*)devicePtr;
 	}
@@ -71,10 +70,11 @@ struct CudaGvtContext {
 	void toHost() {
 
 
-		gpuErrchk(cudaMemcpy(this, devicePtr,
+		gpuErrchk(cudaMemcpyAsync(this, devicePtr,
 					sizeof(gvt::render::data::cuda_primitives::CudaGvtContext),
-					cudaMemcpyDeviceToHost));
+					cudaMemcpyDeviceToHost, stream));
 
+		//cudaStreamSynchronize(stream);
 	}
 
 	CudaGvtContext* devPtr(){
@@ -104,6 +104,9 @@ struct CudaGvtContext {
 	 //copied per trace
 	 Matrix3f* normi;
 	 Matrix4f* minv;
+
+
+	 cudaStream_t stream;
 
 private:
 	 void * devicePtr;

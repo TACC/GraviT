@@ -50,7 +50,8 @@ curandState* set_random_states(int N);
 
 void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay* optixrays, bool* valid,
                   const int localPacketSize, gvt::render::data::cuda_primitives::Ray* rays,
-                    gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx, bool);
+                    gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx, bool,
+                    cudaStream_t& stream);
 
 
 void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
@@ -79,11 +80,17 @@ struct OptixContext {
   }
 
   void initCuda(int packetSize){
-	  if (!_cudaGvtCtx){
-	      _cudaGvtCtx = new gvt::render::data::cuda_primitives::CudaGvtContext();
+	  if (!_cudaGvtCtx[0]){
+//	      _cudaGvtCtx[0] = new gvt::render::data::cuda_primitives::CudaGvtContext();
+//	      _cudaGvtCtx[1] = new gvt::render::data::cuda_primitives::CudaGvtContext();
+
+	      cudaMallocHost(&(_cudaGvtCtx[0]), sizeof (gvt::render::data::cuda_primitives::CudaGvtContext));
+	      cudaMallocHost(&(_cudaGvtCtx[1]), sizeof (gvt::render::data::cuda_primitives::CudaGvtContext));
+
 
 		  //cudaSetDevice(1);
-	      _cudaGvtCtx->initCudaBuffers(packetSize);
+	      _cudaGvtCtx[0]->initCudaBuffers(packetSize);
+	      _cudaGvtCtx[1]->initCudaBuffers(packetSize);
 	  }
   }
 
@@ -100,7 +107,7 @@ struct OptixContext {
 
   static OptixContext *_singleton;
   ::optix::prime::Context optix_context_;
-  gvt::render::data::cuda_primitives::CudaGvtContext* _cudaGvtCtx = NULL;
+  gvt::render::data::cuda_primitives::CudaGvtContext* _cudaGvtCtx[2] = {NULL, NULL};
 
 };
 
