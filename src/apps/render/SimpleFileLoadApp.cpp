@@ -68,7 +68,6 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
-
   tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
   MPI_Init(&argc, &argv);
@@ -139,7 +138,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
   lightNode["position"] = Vector4f(-0.2, 0.1, 0.9, 0.0);
   lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
-  lightNode["normal"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  lightNode["normal"] = Vector4f(0.0, 0.0, 1.0, 0.0);
   lightNode["width"] = float(0.05);
   lightNode["height"] = float(0.05);
 
@@ -186,12 +185,16 @@ int main(int argc, char **argv) {
   // the following starts the system
 
   // setup gvtCamera from database entries
+
+  int samplesSqureRoot = 10;
+
   gvtPerspectiveCamera mycamera;
   Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
   Point4f focus = camNode["focus"].value().toPoint4f();
   float fov = camNode["fov"].value().toFloat();
   Vector4f up = camNode["upVector"].value().toVector4f();
-  mycamera.setSamples(9);
+  mycamera.setSamples(samplesSqureRoot);
+  mycamera.setJitterWindowSize(0.01);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
@@ -206,12 +209,16 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
+    auto tracer = gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage);
+    tracer.sample_ratio = 1.0/float(samplesSqureRoot*samplesSqureRoot);
+    tracer();
     break;
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    auto tracer = gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage);
+    tracer.sample_ratio = 1.0/float(samplesSqureRoot*samplesSqureRoot);
+    tracer();
     break;
   }
   default: {

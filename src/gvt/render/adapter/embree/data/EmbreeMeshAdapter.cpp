@@ -76,14 +76,6 @@ struct embTriangle {
   int v0, v1, v2;
 };
 
-static unsigned int g_seed;
-inline void fast_srand(int seed) { g_seed = seed; }
-// fastrand routine returns one integer, similar output value range as C lib.
-inline int fastrand() {
-  g_seed = (214013 * g_seed + 2531011);
-  return (g_seed >> 16) & 0x7FFF;
-}
-
 EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
 
@@ -240,8 +232,7 @@ struct embreeParallelTrace {
                       const size_t begin, const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
         instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
-
+        packetSize(adapter->getPacketSize()), begin(begin), end(end)  {}
   /**
    * Convert a set of rays from a vector into a RTCRay4 ray packet.
    *
@@ -301,7 +292,7 @@ struct embreeParallelTrace {
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
   void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal, int primID,
-                          gvt::render::data::primitives::Mesh *mesh) {
+                          gvt::render::data::primitives::Mesh *mesh, unsigned int *randSeed) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
       // Try to ensure that the shadow ray is on the correct side of the
@@ -313,7 +304,7 @@ struct embreeParallelTrace {
       Point4f lightPos;
       if(light->LightT == gvt::render::data::scene::Light::Area)
       {
-        lightPos  = ((gvt::render::data::scene::AreaLight *) light)->GetPosition();
+        lightPos  = ((gvt::render::data::scene::AreaLight *) light)->GetPosition(randSeed);
         c = mesh->shadeFaceAreaLight(primID, r, normal, light, lightPos);
       }
       else
@@ -442,7 +433,9 @@ struct embreeParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
-    fast_srand(begin);
+
+    TLRand randEngine;
+    randEngine.SetSeed(begin);
     // std::random_device rd;
 
     // //
@@ -576,13 +569,16 @@ struct embreeParallelTrace {
                   t = (t > 1) ? 1.f / t : t;
                   r.w = r.w * t;
                 }
-                generateShadowRays(r, normal, ray4.primID[pi], mesh);
+                unsigned int * randSeed = randEngine.ReturnSeed();
+
+                generateShadowRays(r, normal, ray4.primID[pi], mesh, randSeed);
 
                 int ndepth = r.depth - 1;
 
-                float p = 1.f - float(fastrand()) / float(RAND_MAX); //(float(rand()) / RAND_MAX);
+                float p = 1.f - randEngine.fastrand(0,1); //(float(rand()) / RAND_MAX);
                 // replace current ray with generated secondary ray
-                if (ndepth > 0 && r.w > p) {
+                if(false){
+                //if (ndepth > 0 && r.w > p) {
                   r.domains.clear();
                   r.type = gvt::render::actor::Ray::SECONDARY;
                   const float multiplier =
@@ -661,7 +657,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   this->end = _end;
 
   std::atomic<size_t> sharedIdx(begin); // shared index into rayList
-  const size_t numThreads = 1;
+  const size_t numThreads = std::thread::hardware_concurrency();
   const size_t workSize = std::max((size_t)8, (size_t)((end - begin) / (numThreads * 8))); // size of 'chunk'
                                                                                            // of rays to work
                                                                                            // on

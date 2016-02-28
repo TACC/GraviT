@@ -34,6 +34,8 @@
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/core/Math.h>
+#include <boost/thread/tss.hpp>
+
 
 namespace gvt {
 namespace render {
@@ -98,22 +100,16 @@ public:
 
   virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Point4f virtual GetPosition();
+  gvt::core::math::Point4f virtual GetPosition(unsigned int * seedVal);
 
   gvt::core::math::Vector4f color;
   gvt::core::math::Vector4f LightNormal;
   float LightWidth;
   float LightHeight;
-  inline int fastrand() 
-  {
-    g_seed = (214013 * g_seed + 2531011);
-    return (g_seed >> 16) & 0x7FFF;
-  }
 
 protected:
-  unsigned int g_seed;
-  inline void fast_srand(int seed) { g_seed = seed; }
   gvt::core::math::Vector4f u,v,w;
+  TLRand randEngine;
 };
 }
 }

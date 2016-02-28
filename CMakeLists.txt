@@ -173,6 +173,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/math/MatrixOperation.inl
 	src/gvt/core/math/Unit.h
 	src/gvt/core/math/Vector.h
+	src/gvt/core/math/TLRand.h
 	src/gvt/core/math/VectorOperators.inl
 	src/gvt/core/Math.h
 	src/gvt/core/mpi/Comm.h

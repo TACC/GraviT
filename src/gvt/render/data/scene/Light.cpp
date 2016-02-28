@@ -68,7 +68,6 @@ Vector4f AmbientLight::contribution(const Ray &ray) const { return color; }
 AreaLight::AreaLight(const Point4f position, const Vector4f color, Vector4f lightNormal, float lightHeight, float lightWidth) : 
                                             Light(position), color(color),LightNormal(lightNormal),LightWidth(lightWidth),LightHeight(lightHeight) 
 {
-
   LightT = Area;
   
   v = LightNormal;
@@ -98,24 +97,33 @@ AreaLight::AreaLight(const Point4f position, const Vector4f color, Vector4f ligh
   }
 }
 
-AreaLight::AreaLight(const AreaLight &orig) : Light(orig), color(orig.color) {LightT = Area; fast_srand(0);}
+AreaLight::AreaLight(const AreaLight &orig):Light(orig)
+{
+  u = orig.u;
+  v = orig.v;
+  w = orig.w;
+
+  LightT = orig.LightT;
+  color = orig.color;
+  LightNormal = orig.LightNormal;
+  LightWidth = orig.LightWidth;
+  LightHeight = orig.LightHeight;
+}
 
 AreaLight::~AreaLight() {}
 
-Point4f AreaLight::GetPosition()
+Point4f AreaLight::GetPosition(unsigned int * seedVal)
 {
   // generate points on plane then transform
-  //TODO:removed rand()
-  float xLocation = ((float)rand()/float(RAND_MAX)-0.5)*LightWidth;
+  float xLocation = (randEngine.fastrand(seedVal,0,1)-0.5)*LightWidth;
   float yLocation = 0;
-  float zLocation = ((float)rand()/float(RAND_MAX)-0.5)*LightHeight;
+  float zLocation = (randEngine.fastrand(seedVal,0,1)-0.5)*LightHeight;
   
   // x coord
   float xCoord = xLocation *u[0] + zLocation * w[0]; 
   float yCoord = xLocation *u[1] + zLocation * w[1]; 
   float zCoord = xLocation *u[2] + zLocation * w[2];
 
-  //std::cout<< xCoord << ":" <<yCoord <<" :"<< zCoord<<std::endl;
   return Point4f(position[0]+xCoord,position[1] + yCoord,position[2]+zCoord,position[3]);
 }
 
