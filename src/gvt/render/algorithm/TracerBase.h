@@ -32,7 +32,6 @@
 #define GVT_RENDER_ALGORITHM_TRACER_BASE_H
 
 #include <gvt/core/Debug.h>
-#include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/Adapter.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
@@ -159,9 +158,6 @@ public:
     const gvt::render::data::primitives::Box3D domBB =
         (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
                    : gvt::render::data::primitives::Box3D();
-
-    // tbb::parallel_for(size_t(0), size_t(rays.size()),
-    //      [&] (size_t index) {
 
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {

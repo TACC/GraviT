@@ -36,11 +36,10 @@
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
-#include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/render/RenderContext.h>
+#include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/Schedulers.h>
-#include <gvt/render/RenderContext.h>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>

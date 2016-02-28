@@ -33,9 +33,8 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/mpi/Wrapper.h>
-#include <gvt/core/schedule/TaskScheduling.h>
-#include <gvt/render/algorithm/TracerBase.h>
 #include <gvt/render/Schedulers.h>
+#include <gvt/render/algorithm/TracerBase.h>
 
 #include <boost/foreach.hpp>
 

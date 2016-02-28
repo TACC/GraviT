@@ -29,7 +29,6 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
-#include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/manta/data/Transforms.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
@@ -187,7 +186,7 @@ struct parallelTrace {
     //                }
 
     while (!rayList.empty()) {
-      boost::unique_lock<boost::mutex> queue(dom->_inqueue);
+      std::unique_lock<std::mutex> queue(dom->_inqueue);
       std::size_t range = std::min(workSize, rayList.size());
       localQueue.assign(rayList.begin(), rayList.begin() + range);
       rayList.erase(rayList.begin(), rayList.begin() + range);
@@ -274,7 +273,7 @@ struct parallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
 
-    boost::unique_lock<boost::mutex> moved(dom->_outqueue);
+    std::unique_lock<std::mutex> moved(dom->_outqueue);
     moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }

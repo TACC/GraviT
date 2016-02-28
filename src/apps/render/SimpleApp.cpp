@@ -376,7 +376,7 @@ void test_bvh(gvtPerspectiveCamera &mycamera) {
 
     gvt::render::actor::isecDomList &isect = r.domains;
     bvh->intersect(r, isect);
-    boost::sort(isect);
+    std::sort(isect.begin(), isect.end());
     cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
     for (auto i : isect) {
       cout << i.domain << " ";
@@ -391,7 +391,7 @@ void test_bvh(gvtPerspectiveCamera &mycamera) {
 
         gvt::render::actor::isecDomList& isect = r.domains;
         bvh->intersect(r, isect);
-        boost::sort(isect);
+        std::sort(isect);
 
         if(isect.size() > 1) {
             cout << "bvh: r[" << z << "]: " << r << endl;

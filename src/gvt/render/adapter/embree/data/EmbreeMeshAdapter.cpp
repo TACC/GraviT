@@ -33,8 +33,6 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 
-#include <gvt/core/schedule/TaskScheduling.h> // used for threads
-
 #include <gvt/render/actor/Ray.h>
 // #include <gvt/render/adapter/embree/data/Transforms.h>
 #include <gvt/render/data/DerivedTypes.h>
@@ -623,7 +621,7 @@ struct embreeParallelTrace {
 #endif
 
     // copy localDispatch rays to outgoing rays queue
-    boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
+    std::unique_lock<std::mutex> moved(adapter->_outqueue);
     moved_rays.insert(moved_rays.end(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }

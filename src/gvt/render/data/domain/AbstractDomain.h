@@ -95,8 +95,8 @@ public:
   glm::mat3 normi;
   gvt::render::data::primitives::Box3D boundingBox;
 
-  boost::mutex _inqueue;
-  boost::mutex _outqueue;
+  std::mutex _inqueue;
+  std::mutex _outqueue;
 
   int domainID;
 
