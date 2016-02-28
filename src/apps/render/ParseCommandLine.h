@@ -183,7 +183,7 @@ struct ParseCommandLine {
     }
     return 0;
   }
-  template <typename T> std::vector<T> getValue(const std::string name) { return std::Vector<T>(); };
+  template <typename T> std::vector<T> getValue(const std::string name) { return std::vector<T>(); };
 
   template <typename T> T get(const std::string name) { return; };
 
