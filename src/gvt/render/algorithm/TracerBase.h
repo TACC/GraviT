@@ -161,53 +161,23 @@ public:
 
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
-                        //        gvt::render::actor::Ray &r = rays[index];
-
                         std::map<int, gvt::render::actor::RayVector> local_queue;
 
                         for (gvt::render::actor::Ray &r : raysit) {
-                          if (domID >= 0 && r.domains.empty()) {
-                            float tmin, tmax; // = FLT_MAX;
-                            if (domBB.intersectDistance(r, tmin, tmax)) {
-                              r.origin += r.direction * tmax;
-                            }
-                          }
+                          float t = FLT_MAX;
+                          int next = acceleration->intersect(r, domID, t);
 
-                          if (r.domains.empty()) {
-                            acceleration->intersect(r, r.domains);
-                            boost::sort(r.domains);
-                          }
-
-                          if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
-                            r.domains.erase(r.domains.begin());
-                          }
-
-                          if (!r.domains.empty()) {
-
-                            int firstDomainOnList = (*r.domains.begin());
-                            r.domains.erase(r.domains.begin());
-                            // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
-                            local_queue[firstDomainOnList].push_back(r);
-
-                          } else if (instNode) {
-
+                          if (next != -1) {
+                            r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
+                            local_queue[next].push_back(r);
+                          } else {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
                             for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                            colorBuf[r.id].rgba[3] = 1.f;
+                            colorBuf[r.id].rgba[3] = r.w;
                             colorBuf[r.id].clamp();
                           }
                         }
-
-                        // std::deque<int> _doms;
-                        // std::transform(local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
-                        //                [](const std::map<int, gvt::render::actor::RayVector>::value_type &pair) {
-                        //                return pair.first;
-                        //                });
-                        //
-                        // while (!_doms.empty()) {
                         for (auto &q : local_queue) {
-                          //_doms.erase(_doms.begin());
-
                           queue_mutex[q.first].lock();
                           queue[q.first].insert(queue[q.first].end(),
                                                 std::make_move_iterator(local_queue[q.first].begin()),

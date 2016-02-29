@@ -55,6 +55,7 @@ public:
   \param isect list of leaves intersected
   */
   virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect);
+  virtual int intersect(const gvt::render::actor::Ray &ray, int from, float &t);
 
 private:
   struct Node {
@@ -86,6 +87,7 @@ private:
   /// traverse ray through BVH. Called by intersect().
   void trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
              gvt::render::actor::isecDomList &isect, int level);
+  int trace(const gvt::render::actor::Ray &ray, const Node *node, int cid, float &t);
 
   std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
   std::vector<int> instanceSetID;
