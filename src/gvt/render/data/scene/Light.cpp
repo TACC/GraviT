@@ -54,8 +54,10 @@ PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) 
 PointLight::~PointLight() {}
 
 glm::vec3 PointLight::contribution(const Ray &ray) const {
-  float d = 1.f / glm::length(position - ray.origin); // + ray.direction * ray.t));
-  return color * d;                                   // * distance; // + 0.5f);
+  float d = glm::length(position - (ray.origin + ray.direction * ray.t));
+  float att = 1.f / d; // FIX THIS it should be squared
+  if (att > 1.f) att = 1.f;
+  return color * att; // * distance; // + 0.5f);
 }
 
 AmbientLight::AmbientLight(const glm::vec3 color) : Light(), color(color) {}

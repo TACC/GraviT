@@ -235,11 +235,6 @@ int main(int argc, char **argv) {
       instnode["matInv"] = (unsigned long long)minv;
       *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
       instnode["normi"] = (unsigned long long)normi;
-
-      std::cout << " m  : " << *m << std::endl;
-      std::cout << " mi : " << *minv << std::endl;
-      std::cout << " im : " << *normi << std::endl;
-
       auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
       auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
@@ -306,7 +301,7 @@ int main(int argc, char **argv) {
   MPE_Log_event(readend, 0, NULL);
 #endif
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "cone");
+  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "enzo");
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
@@ -315,10 +310,12 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    for (int z = 0; z < 1; z++) {
+    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
+    for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
-      gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
+      myimage.clear();
+      tracer();
     }
     break;
   }
@@ -327,7 +324,16 @@ int main(int argc, char **argv) {
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderstart, 0, NULL);
 #endif
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    std::cout << "starting image scheduler" << std::endl;
+    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
+    for (int z = 0; z < 10; z++) {
+      mycamera.AllocateCameraRays();
+      mycamera.generateRays();
+      myimage.clear();
+      tracer();
+    }
+    break;
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderend, 0, NULL);
 #endif

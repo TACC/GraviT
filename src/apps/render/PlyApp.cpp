@@ -253,8 +253,8 @@ int main(int argc, char **argv) {
   filmNode["height"] = 1080;
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-  // schedNode["type"] = gvt::render::scheduler::Image;
-  schedNode["type"] = gvt::render::scheduler::Domain;
+  schedNode["type"] = gvt::render::scheduler::Image;
+// schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
