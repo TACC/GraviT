@@ -28,12 +28,13 @@
 #ifndef GVT_RENDER_DATA_DOMAIN_ABSTRACT_DOMAIN_H
 #define GVT_RENDER_DATA_DOMAIN_ABSTRACT_DOMAIN_H
 
-#include <gvt/render/data/Primitives.h>
 #include <gvt/core/Math.h>
+#include <gvt/render/data/Primitives.h>
+#include <mutex>
 #include <vector>
 
-#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 namespace gvt {
 namespace render {
