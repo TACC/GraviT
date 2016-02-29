@@ -57,9 +57,9 @@ Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
 Lambert::~Lambert() {}
 
 glm::vec3 Lambert::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
-
-  glm::vec3 V = glm::normalize(ray.direction);
-  float NdotL = std::max(0.f, std::abs(glm::dot(N, V)));
+  glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
+  glm::vec3 L = lightSource->position - hitPoint;
+  float NdotL = std::max(0.f, std::abs(glm::dot(N, L)));
   Color lightSourceContrib = lightSource->contribution(ray);
   Color diffuse = (lightSourceContrib * kd) * (NdotL * ray.w);
   return diffuse;
@@ -109,7 +109,7 @@ glm::vec3 BlinnPhong::shade(const Ray &ray, const glm::vec3 &N, const Light *lig
 
   glm::vec3 H = glm::normalize(L - ray.direction);
 
-  float NdotH = glm::dot(H, N);
+  float NdotH = std::max(0.f, glm::dot(H, N));
   float power = NdotH * std::pow(NdotH, alpha);
 
   glm::vec3 lightSourceContrib = lightSource->contribution(ray);
