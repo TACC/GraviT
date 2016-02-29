@@ -54,12 +54,8 @@ PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) 
 PointLight::~PointLight() {}
 
 glm::vec3 PointLight::contribution(const Ray &ray) const {
-  // std::lock_guard<std::mutex> _lock(mcout);
-  float d = glm::length(position - (ray.origin + ray.direction * ray.t));
-  // std::cout << "D " << d << std::endl;
-  float distance = 1.f / d;                     // * d);
-  distance = (distance > 1.f) ? 1.f : distance; // * distance);
-  return color * distance;                      // * distance; // + 0.5f);
+  float d = 1.f / glm::length(position - ray.origin); // + ray.direction * ray.t));
+  return color * d;                                   // * distance; // + 0.5f);
 }
 
 AmbientLight::AmbientLight(const glm::vec3 color) : Light(), color(color) {}
