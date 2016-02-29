@@ -28,8 +28,13 @@
  * Created on April 18, 2014, 3:18 PM
  */
 
-#include "gvt/render/data/scene/Light.h"
+#include <mutex>
+#include <thread>
+
+std::mutex mcout;
+
 #include "gvt/render/data/DerivedTypes.h"
+#include "gvt/render/data/scene/Light.h"
 
 using namespace gvt::render::actor;
 using namespace gvt::render::data::scene;
@@ -49,9 +54,12 @@ PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) 
 PointLight::~PointLight() {}
 
 glm::vec3 PointLight::contribution(const Ray &ray) const {
-  float distance = 1.f / glm::length(position - ray.origin);
-  distance = (distance > 1.f) ? 1.f : distance;
-  return color * (distance + 0.5f);
+  // std::lock_guard<std::mutex> _lock(mcout);
+  float d = glm::length(position - (ray.origin + ray.direction * ray.t));
+  // std::cout << "D " << d << std::endl;
+  float distance = 1.f / d;                     // * d);
+  distance = (distance > 1.f) ? 1.f : distance; // * distance);
+  return color * distance;                      // * distance; // + 0.5f);
 }
 
 AmbientLight::AmbientLight(const glm::vec3 color) : Light(), color(color) {}

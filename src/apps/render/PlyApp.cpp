@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
   char txt[16];
   std::string temp;
   std::string filename, filepath, rootdir;
-  rootdir = "/home/jbarbosa/r/EnzoPlyData/";
+  rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
   // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
   // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
   // myfile = fopen(filename.c_str(),"r");
