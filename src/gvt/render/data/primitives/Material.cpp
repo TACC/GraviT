@@ -43,7 +43,7 @@ Material::Material(const Material &orig) {}
 
 Material::~Material() {}
 
-Vector4f Material::shade(const Ray &ray, const Vector4f &sufaceNormal, const Light *lightSource) { return Vector4f(); }
+Vector4f Material::shade(const Ray &ray, const Vector4f &sufaceNormal, const Light *lightSource ,const gvt::core::math::Point4f lightPostion) { return Vector4f(); }
 
 RayVector Material::ao(const Ray &ray, const Vector4f &sufaceNormal, float samples) { return RayVector(); }
 
@@ -55,10 +55,10 @@ Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
 
 Lambert::~Lambert() {}
 
-Vector4f Lambert::shade(const Ray &ray, const Vector4f &N, const Light *lightSource) {
+Vector4f Lambert::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
 
   Vector4f hitPoint = (Vector4f)ray.origin + ray.direction*ray.t;
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion- hitPoint;
   L = L.normalize();
   float NdotL = std::max(0.f, (N * L));
 
@@ -79,9 +79,9 @@ Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alph
 
 Phong::~Phong() {}
 
-Vector4f Phong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource) {
+Vector4f Phong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
   Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion - hitPoint;
 
   L = L.normalize();
   
@@ -110,9 +110,9 @@ BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks
 
 BlinnPhong::~BlinnPhong() {}
 
-Vector4f BlinnPhong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource) {
+Vector4f BlinnPhong::shade(const Ray &ray, const Vector4f &N, const Light *lightSource, const Point4f lightPostion) {
   Vector4f hitPoint = (Vector4f)ray.origin + (ray.direction * ray.t);
-  Vector4f L = (Vector4f)lightSource->position - hitPoint;
+  Vector4f L = (Vector4f)lightPostion - hitPoint;
   L = L.normalize();
   float NdotL = std::max(0.f, (N * L));
 
