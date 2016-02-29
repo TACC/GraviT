@@ -103,7 +103,7 @@ public:
   int width = rootnode["Film"]["width"].value().toInteger();
   int height = rootnode["Film"]["height"].value().toInteger();
 
-  float sample_ratio;
+  float sample_ratio = 1.f;
 
   tbb::mutex raymutex;
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance

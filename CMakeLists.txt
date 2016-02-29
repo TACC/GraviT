@@ -168,6 +168,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/Database.h
 	src/gvt/core/DatabaseNode.h
 	src/gvt/core/Debug.h
+	src/gvt/core/math/TLRand.h
 	src/gvt/core/Math.h
 	src/gvt/core/mpi/Comm.h
 	src/gvt/core/mpi/CommData.h

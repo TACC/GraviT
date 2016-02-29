@@ -52,7 +52,7 @@ public:
   virtual ~Material();
 
   virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource);
+                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
   virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
@@ -95,7 +95,7 @@ public:
   virtual ~Lambert();
 
   virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource);
+                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
@@ -112,7 +112,7 @@ public:
   virtual ~Phong();
 
   virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource);
+                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
@@ -131,7 +131,7 @@ public:
   virtual ~BlinnPhong();
 
   virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource);
+                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
   virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                            float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,

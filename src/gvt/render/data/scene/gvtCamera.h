@@ -85,6 +85,10 @@ public:
    *  to world transformation and its inverse are constructed. */
   void lookAt(glm::vec3 eye, glm::vec3 focus, glm::vec3 up);
 
+  void setSamples(int pathSamples);
+
+  void setJitterWindowSize(int windowSize);
+
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
   // clang-format off
@@ -98,8 +102,9 @@ public:
     return up_vector;
   };
   // clang-format on
-
 protected:
+  int samples;
+  int jitterWindowSize;
   glm::mat4 cam2wrld; //!< transform from camera to world coords
   glm::mat4 wrld2cam; //!< transform from world to camera coords
   glm::vec3 eye_point;                     //!< camera location in world coordinates
@@ -110,6 +115,7 @@ protected:
   int depth;                         //!< legacy variable from previous cameras. Initializes ray depth
   glm::vec3 u, v, w; //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
+  TLRand randEngine;
   //
   void buildTransform(); //!< Build the transformation matrix and inverse
 };

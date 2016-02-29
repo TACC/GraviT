@@ -282,7 +282,7 @@ struct parallelTrace {
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(light->position - ray.origin);
-              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
+              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light,light->position);
               ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
               // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
               localQueue.push_back(ray);
@@ -467,7 +467,7 @@ struct mantaParallelTrace {
       shadow_ray.t = r.t;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
-      gvt::render::data::Color c = mesh->mat->shade(r, normal, light);
+      gvt::render::data::Color c = mesh->mat->shade(r, normal, light, light->position);
       shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
     }
   }
@@ -654,7 +654,7 @@ struct mantaParallelTrace {
                 ray.type = gvt::render::actor::Ray::SHADOW;
                 ray.origin = ray.origin + ray.direction * ray.t;
                 ray.setDirection(light->position - ray.origin);
-                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
+                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
                 ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
                 // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
                 // localQueue.push_back(ray);

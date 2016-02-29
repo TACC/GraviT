@@ -240,7 +240,7 @@ struct parallelTrace {
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(lights[lindex]->position - ray.origin);
-              gvt::render::data::Color c = dom->getMesh()->shade(ray, normal, lights[lindex]);
+              gvt::render::data::Color c = dom->getMesh()->shade(ray, normal, lights[lindex],lights[lindex]->position);
               // ray.color = COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
               ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
               localQueue.push_back(ray);

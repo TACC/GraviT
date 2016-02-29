@@ -68,7 +68,6 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
-
   tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
   MPI_Init(&argc, &argv);
@@ -124,8 +123,6 @@ int main(int argc, char **argv) {
   //*m = *m * glm::mat4::createScale(scale, scale, scale);
   *m = glm::scale(*m, glm::vec3(scale, scale, scale));
 
-  std::cout << *m << std::endl;
-
   instnode["mat"] = (unsigned long long)m;
   *minv = glm::inverse(*m);
   instnode["matInv"] = (unsigned long long)minv;
@@ -141,6 +138,15 @@ int main(int argc, char **argv) {
 
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+
+  //area Light
+  // gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
+  // lightNode["position"] = glm::vec3(-0.2, 0.1, 0.9, 0.0);
+  // lightNode["color"] = glm::vec3(1.0, 1.0, 1.0, 0.0);
+  // lightNode["normal"] = glm::vec3(0.0, 0.0, 1.0, 0.0);
+  // lightNode["width"] = float(0.05);
+  // lightNode["height"] = float(0.05);
+
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "light", lightNodes.UUID());
   lightNode["position"] = glm::vec3(0.0, 0.1, 0.5);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
@@ -187,11 +193,16 @@ int main(int argc, char **argv) {
   // the following starts the system
 
   // setup gvtCamera from database entries
+
+  int samplesSqureRoot = 1;
+
   gvtPerspectiveCamera mycamera;
   glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
   glm::vec3 up = camNode["upVector"].value().tovec3();
+  mycamera.setSamples(samplesSqureRoot);
+  mycamera.setJitterWindowSize(0.00);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
@@ -206,12 +217,16 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
+    auto tracer = gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage);
+    tracer.sample_ratio = 1.0/float(samplesSqureRoot*samplesSqureRoot);
+    tracer();
     break;
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    auto tracer = gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage);
+    tracer.sample_ratio = 1.0/float(samplesSqureRoot*samplesSqureRoot);
+    tracer();
     break;
   }
   default: {
