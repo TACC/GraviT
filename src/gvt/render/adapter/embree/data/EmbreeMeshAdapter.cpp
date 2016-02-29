@@ -561,7 +561,6 @@ struct embreeParallelTrace {
                 float p = 1.f - float(fastrand()) / float(RAND_MAX); //(float(rand()) / RAND_MAX);
                 // replace current ray with generated secondary ray
                 if (ndepth > 0 && r.w > p) {
-                  r.domains.clear();
                   r.type = gvt::render::actor::Ray::SECONDARY;
                   const float multiplier =
                       1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static

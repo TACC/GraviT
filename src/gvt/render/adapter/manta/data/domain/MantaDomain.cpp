@@ -237,7 +237,6 @@ struct parallelTrace {
             std::vector<gvt::render::data::scene::Light *> lights = dom->getLights();
             for (int lindex = 0; lindex < lights.size(); lindex++) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(lights[lindex]->position - ray.origin);
@@ -253,7 +252,6 @@ struct parallelTrace {
 
             if (ndepth > 0 && rayPacket[pindex].w > p) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SECONDARY;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(dom->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));

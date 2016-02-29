@@ -279,7 +279,6 @@ struct parallelTrace {
             // for (int lindex = 0; lindex < lights.size(); lindex++)
             for (gvt::render::data::scene::Light *light : lights) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(light->position - ray.origin);
@@ -295,7 +294,6 @@ struct parallelTrace {
 
             if (ndepth > 0 && rayPacket[pindex].w > p) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SECONDARY;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
@@ -653,7 +651,6 @@ struct mantaParallelTrace {
               // for (int lindex = 0; lindex < lights.size(); lindex++)
               for (gvt::render::data::scene::Light *light : lights) {
                 gvt::render::actor::Ray ray(r);
-                ray.domains.clear();
                 ray.type = gvt::render::actor::Ray::SHADOW;
                 ray.origin = ray.origin + ray.direction * ray.t;
                 ray.setDirection(light->position - ray.origin);
@@ -669,9 +666,6 @@ struct mantaParallelTrace {
 
               // replace current ray with generated secondary ray
               if (ndepth > 0 && r.w > p) {
-
-                // gvt::render::actor::Ray ray(rayPacket[pindex]);
-                r.domains.clear();
                 r.type = gvt::render::actor::Ray::SECONDARY;
                 r.origin = r.origin + r.direction * r.t;
                 r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));

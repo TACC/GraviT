@@ -253,8 +253,8 @@ int main(int argc, char **argv) {
   filmNode["height"] = 1080;
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
+  // schedNode["type"] = gvt::render::scheduler::Image;
+  schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -309,7 +309,16 @@ int main(int argc, char **argv) {
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderstart, 0, NULL);
 #endif
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    std::cout << "starting image scheduler" << std::endl;
+    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
+    for (int z = 0; z < 10; z++) {
+      mycamera.AllocateCameraRays();
+      mycamera.generateRays();
+      myimage.clear();
+      tracer();
+    }
+    break;
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderend, 0, NULL);
 #endif
@@ -329,60 +338,60 @@ int main(int argc, char **argv) {
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 
-// bvh intersection list test
-void test_bvh(gvtPerspectiveCamera &mycamera) {
-  gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-
-  cout << "\n-- bvh test --" << endl;
-
-  auto ilist = root["Instances"].getChildren();
-  auto bvh = new gvt::render::data::accel::BVH(ilist);
-
-  // list of rays to test
-  std::vector<gvt::render::actor::Ray> rays;
-  rays.push_back(mycamera.rays[100 * 512 + 100]);
-  rays.push_back(mycamera.rays[182 * 512 + 182]);
-  rays.push_back(mycamera.rays[256 * 512 + 256]);
-  auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
-  rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
-  rays.push_back(mycamera.rays[300 * 512 + 300]);
-  rays.push_back(mycamera.rays[400 * 512 + 400]);
-  rays.push_back(mycamera.rays[470 * 512 + 470]);
-  rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
-  rays.push_back(mycamera.rays[144231]);
-
-  // test rays and print out which instances were hit
-  for (size_t z = 0; z < rays.size(); z++) {
-    gvt::render::actor::Ray &r = rays[z];
-    cout << "bvh: r[" << z << "]: " << r << endl;
-
-    gvt::render::actor::isecDomList &isect = r.domains;
-    bvh->intersect(r, isect);
-    std::sort(isect.begin(), isect.end());
-    cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-    for (auto i : isect) {
-      cout << i.domain << " ";
-    }
-    cout << endl;
-  }
-
-#if 0
-    cout << "- check all rays" << endl;
-    for(int z=0; z<mycamera.rays.size(); z++) {
-        gvt::render::actor::Ray &r = mycamera.rays[z];
-
-        gvt::render::actor::isecDomList& isect = r.domains;
-        bvh->intersect(r, isect);
-        std::sort(isect);
-
-        if(isect.size() > 1) {
-            cout << "bvh: r[" << z << "]: " << r << endl;
-            cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-            for(auto i : isect) { cout << i.domain << " "; }
-            cout << endl;
-        }
-    }
-#endif
-
-  cout << "--------------\n\n" << endl;
-}
+// // bvh intersection list test
+// void test_bvh(gvtPerspectiveCamera &mycamera) {
+//   gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
+//
+//   cout << "\n-- bvh test --" << endl;
+//
+//   auto ilist = root["Instances"].getChildren();
+//   auto bvh = new gvt::render::data::accel::BVH(ilist);
+//
+//   // list of rays to test
+//   std::vector<gvt::render::actor::Ray> rays;
+//   rays.push_back(mycamera.rays[100 * 512 + 100]);
+//   rays.push_back(mycamera.rays[182 * 512 + 182]);
+//   rays.push_back(mycamera.rays[256 * 512 + 256]);
+//   auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
+//   rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
+//   rays.push_back(mycamera.rays[300 * 512 + 300]);
+//   rays.push_back(mycamera.rays[400 * 512 + 400]);
+//   rays.push_back(mycamera.rays[470 * 512 + 470]);
+//   rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
+//   rays.push_back(mycamera.rays[144231]);
+//
+//   // test rays and print out which instances were hit
+//   for (size_t z = 0; z < rays.size(); z++) {
+//     gvt::render::actor::Ray &r = rays[z];
+//     cout << "bvh: r[" << z << "]: " << r << endl;
+//
+//     gvt::render::actor::isecDomList &isect = r.domains;
+//     bvh->intersect(r, isect);
+//     std::sort(isect.begin(), isect.end());
+//     cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
+//     for (auto i : isect) {
+//       cout << i.domain << " ";
+//     }
+//     cout << endl;
+//   }
+//
+// #if 0
+//     cout << "- check all rays" << endl;
+//     for(int z=0; z<mycamera.rays.size(); z++) {
+//         gvt::render::actor::Ray &r = mycamera.rays[z];
+//
+//         gvt::render::actor::isecDomList& isect = r.domains;
+//         bvh->intersect(r, isect);
+//         std::sort(isect);
+//
+//         if(isect.size() > 1) {
+//             cout << "bvh: r[" << z << "]: " << r << endl;
+//             cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
+//             for(auto i : isect) { cout << i.domain << " "; }
+//             cout << endl;
+//         }
+//     }
+// #endif
+//
+//   cout << "--------------\n\n" << endl;
+// }
