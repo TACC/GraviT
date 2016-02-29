@@ -194,7 +194,13 @@ protected:
 
   size_t begin, end;
 
+	gvt::render::data::cuda_primitives::Ray* disp_Buff[2];
 
+		gvt::render::data::cuda_primitives::Ray* cudaRaysBuff[2];
+
+		gvt::core::math::AffineTransformMatrix<float> *m_pinned;
+		gvt::core::math::AffineTransformMatrix<float> *minv_pinned;
+		gvt::core::math::Matrix3f *normi_pinned;
 };
 }
 }
