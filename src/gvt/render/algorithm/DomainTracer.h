@@ -376,10 +376,10 @@ public:
       }
     }
 
-    std::cout << "image scheduler: select time: " << t_sort.format();
-    std::cout << "image scheduler: trace time: " << t_trace.format();
-    std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
-    std::cout << "image scheduler: send time: " << t_send.format();
+    std::cout << "domain scheduler: select time: " << t_sort.format();
+    std::cout << "domain scheduler: trace time: " << t_trace.format();
+    std::cout << "domain scheduler: shuffle time: " << t_shuffle.format();
+    std::cout << "domain scheduler: send time: " << t_send.format();
 
 // add colors to the framebuffer
 #ifdef GVT_USE_MPE
@@ -391,8 +391,8 @@ public:
 #ifdef GVT_USE_MPE
     MPE_Log_event(framebufferend, 0, NULL);
 #endif
-    std::cout << "image scheduler: gather time: " << t_gather.format();
-    std::cout << "image scheduler: frame time: " << t_frame.format();
+    std::cout << "domain scheduler: gather time: " << t_gather.format();
+    std::cout << "domain scheduler: frame time: " << t_frame.format();
   }
 
   // FIXME: update FindNeighbors to use mpiInstanceMap

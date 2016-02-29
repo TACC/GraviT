@@ -69,6 +69,8 @@
 #include <ply.h>
 #include <stdio.h>
 
+#include "ParseCommandLine.h"
+
 using namespace std;
 using namespace gvt::render;
 
@@ -113,6 +115,19 @@ int main(int argc, char **argv) {
 
   tbb::task_scheduler_init init(std::thread::hardware_concurrency());
 
+  ParseCommandLine cmd("gvtPly");
+
+  cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
+  cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
+  cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("file", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path");
+  cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+
+  cmd.addconflict("image", "domain");
+
+  cmd.parse(argc, argv);
+
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
   Vertex *vert;
@@ -126,7 +141,7 @@ int main(int argc, char **argv) {
   char txt[16];
   std::string temp;
   std::string filename, filepath, rootdir;
-  rootdir = "/Users/jbarbosa/r/EnzoPlyData/";
+  rootdir = cmd.get<std::string>("file");
   // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
   // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
   // myfile = fopen(filename.c_str(),"r");
@@ -253,8 +268,10 @@ int main(int argc, char **argv) {
   filmNode["height"] = 1080;
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
+  if (cmd.isSet("domain"))
+    schedNode["type"] = gvt::render::scheduler::Domain;
+  else
+    schedNode["type"] = gvt::render::scheduler::Image;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
