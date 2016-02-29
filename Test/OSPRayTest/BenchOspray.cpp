@@ -40,8 +40,7 @@
  * -ld <x,y,z> direction light goes. direction vector similar to camera direction.
  *
  *   for example
- *   bin/osptest -i /work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData -o spoot -cp -1000.0,0.0,-1000.0 -fov 50.0 -cd
- *0.,0.0,-1.0 -cu 0.,1.,0. -ld 0,-0.5,-1
+ *    bin/osptest -i $WORK/DAVEDATA/EnzoPlyData -o spoot.ppm -cp 512,512,4096 -cd 0,0,-1 -fov 25.0 -ld 0,0,-1 -renderer obj -geom 1920x1080
  *
  * Tests Performed:
  * 	1) rendering blank screen with no geometry.
@@ -69,14 +68,14 @@ int main(int argc, const char **argv) {
   double iotime = 0.0;
   double modeltime = 0.0;
   // empty vertex list
-  float vertex[1];
-  float color[1];
-  int32_t index[1];
   float *vertexarray;
   float *colorarray;
   int32_t *indexarray;
   int nverts, nfaces;
   int numtriangles = 0;
+  float vertex[1];
+  float color[1];
+  int32_t index[1];
   // file related things
   std::string filepath("");
   std::string outputfile("");
@@ -115,6 +114,7 @@ int main(int argc, const char **argv) {
               ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
               timeCurrent(&endTime);
               iotime += timeDifferenceMS(&startTime, &endTime);
+              std::cout << " file " << timeDifferenceMS(&startTime, &endTime)<< std::endl;
               timeCurrent(&startTime);
               mesh = ospNewGeometry("triangles");
               OSPData data = ospNewData(nverts, OSP_FLOAT3, vertexarray);

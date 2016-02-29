@@ -125,7 +125,6 @@ void ReadPlyData(std::string filename, float *&vertexarray, float *&colorarray, 
   PlyFile *in_ply;
   std::string elem_name;
   int elem_count, i, j;
-  // int elem_count,nfaces,nverts,i,j;
   int32_t *index;
   Vertex *vert;
   Face *face;

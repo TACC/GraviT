@@ -25,6 +25,8 @@
  * A simple GraviT application to do some testing.
  * This is supposed to be as close to the osptest application as I can get it.
  *
+ * run like this:
+ * bin/gvttest -i $WORK/DAVEDATA/EnzoPlyData -o gvtspoot.ppm -cp 512,512,4096 -cd 0,0,-1 -fp 512,512,0 -fov 25.0 -ld 0,0,-1  -geom 1920x1080 -lp 512,512,2048 -sched image -adapt embree
 */
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Types.h>
@@ -107,13 +109,6 @@ int main(int argc, char **argv) {
   int height = 1080;
   int warmupframes = 1;
   int benchmarkframes = 10;
-  // camera and light
-  Point4f cam_pos = {0.,0.,0.,0.};
-  Point4f cam_focus = {0.,0.,-1.0,0.};
-  float cam_fovy = (float)(25.0 * M_PI / 180.0);
-  Vector4f cam_up = {0.,1.,0.,1.};
-  Vector4f light_pos = cam_pos;
-  Vector4f light_color = {1.,1.,1.,1.};
   // timer stuff
   my_timer_t startTime, endTime;
   double rendertime = 0.0;
@@ -126,6 +121,13 @@ int main(int argc, char **argv) {
   int32_t *indexarray;
   int numtriangles = 0;
   int nverts, nfaces;
+  // camera and light
+  Point4f cam_pos = {0.,0.,0.,0.};
+  Point4f cam_focus = {0.,0.,-1.0,0.};
+  float cam_fovy = (float)(25.0 * M_PI / 180.0);
+  Vector4f cam_up = {0.,1.,0.,1.};
+  Vector4f light_pos = cam_pos;
+  Vector4f light_color = {1.,1.,1.,1.};
   // file related things
   string filepath("");
   string filename("");
@@ -181,6 +183,7 @@ int main(int argc, char **argv) {
               ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
               timeCurrent(&endTime);
               iotime += timeDifferenceMS(&startTime, &endTime);
+              std::cout << k << " file " << timeDifferenceMS(&startTime, &endTime)<< std::endl;
 
               timeCurrent(&startTime);
               sprintf(txt, "%d", k);
