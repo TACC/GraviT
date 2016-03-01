@@ -42,7 +42,8 @@ Material::Material(const Material &orig) {}
 
 Material::~Material() {}
 
-glm::vec3 Material::shade(const Ray &ray, const glm::vec3 &sufaceNormal, const Light *lightSource) {
+glm::vec3 Material::shade(const Ray &ray, const glm::vec3 &sufaceNormal, const Light *lightSource,
+                          const glm::vec3 lightPostion) {
   return glm::vec3();
 }
 
@@ -56,7 +57,7 @@ Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
 
 Lambert::~Lambert() {}
 
-glm::vec3 Lambert::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
+glm::vec3 Lambert::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource, const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
   glm::vec3 L = lightSource->position - hitPoint;
   float NdotL = std::max(0.f, std::abs(glm::dot(N, L)));
@@ -75,9 +76,9 @@ Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alph
 
 Phong::~Phong() {}
 
-glm::vec3 Phong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
+glm::vec3 Phong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource, const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
-  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
+  glm::vec3 L = glm::normalize(lightPostion - hitPoint);
 
   float NdotL = std::max(0.f, glm::dot(N, L));
   glm::vec3 R = ((N * 2.f) * NdotL) - L;
@@ -102,9 +103,10 @@ BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks
 
 BlinnPhong::~BlinnPhong() {}
 
-glm::vec3 BlinnPhong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource) {
+glm::vec3 BlinnPhong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource,
+                            const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
-  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
+  glm::vec3 L = glm::normalize(lightPostion - hitPoint);
   float NdotL = std::max(0.f, glm::dot(N, L));
 
   glm::vec3 H = glm::normalize(L - ray.direction);

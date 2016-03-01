@@ -350,15 +350,15 @@ void cudaGetRays(size_t& localDispatchSize,
 						gvtRay.setDirection(gvtRay.direction);
 						gvtRay.id = originalRay.id;
 
-						if (gvtRay.type
-								!= gvt::render::data::cuda_primitives::Ray::SHADOW
-								&& originalRay.domains.size() != 0) {
-
-							gvtRay.domains = originalRay.domains;
-						} else {
-							gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
-							gvtRay.domains.clear();
-						}
+//						if (gvtRay.type
+//								!= gvt::render::data::cuda_primitives::Ray::SHADOW
+//								&& originalRay.domains.size() != 0) {
+//
+//							gvtRay.domains = originalRay.domains;
+//						} else {
+//							gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
+//							gvtRay.domains.clear();
+//						}
 
 						//avoid contructor
 						//localDispatch.push_back(gvtR);

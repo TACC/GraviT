@@ -40,6 +40,8 @@
 #include <glm/vec4.hpp>
 #include <iostream>
 
+#include <gvt/core/math/TLRand.h>
+
 namespace glm {
 inline std::ostream &operator<<(std::ostream &os, const glm::vec3 &v) {
   return os << "{" << v[0] << ", " << v[1] << ", " << v[2] << "}";

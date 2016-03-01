@@ -98,6 +98,12 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
   } else if (type == String("PointLight")) {
     n += gvt::core::CoreContext::createNode("position");
     n += gvt::core::CoreContext::createNode("color");
+  } else if (type == String("AreaLight")) {
+    n += gvt::core::CoreContext::createNode("position");
+    n += gvt::core::CoreContext::createNode("color");
+    n += gvt::core::CoreContext::createNode("normal");
+    n += gvt::core::CoreContext::createNode("height");
+    n += gvt::core::CoreContext::createNode("width");
   } else if (type == String("Schedule")) {
     n += gvt::core::CoreContext::createNode("type");
     n += gvt::core::CoreContext::createNode("adapter");

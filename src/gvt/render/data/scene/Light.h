@@ -44,18 +44,27 @@ namespace scene {
 */
 class Light {
 public:
+
+  enum LightType 
+  { 
+    Point, 
+    Area 
+  }; 
+
   Light(const glm::vec3 position = glm::vec3());
   Light(const Light &orig);
   virtual ~Light();
 
   virtual glm::vec3 contribution(const gvt::render::actor::Ray &ray) const;
 
-  glm::vec3 position;
+  
 
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
     return bb;
   }
+  LightType LightT;
+  glm::vec3 position;  
 };
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public Light {
@@ -77,7 +86,28 @@ public:
 
   virtual glm::vec3 contribution(const gvt::render::actor::Ray &ray) const;
 
+  glm::vec3 color; 
+};
+
+class AreaLight : public Light {
+public:
+  AreaLight(const glm::vec3 position, const glm::vec3 color
+            , glm::vec3 lightNormal, float lightHeight, float lightWidth);
+  AreaLight(const AreaLight &orig);
+  virtual ~AreaLight();
+
+  virtual glm::vec3 contribution(const gvt::render::actor::Ray &ray) const;
+
+  glm::vec3 virtual GetPosition(unsigned int * seedVal);
+
   glm::vec3 color;
+  glm::vec3 LightNormal;
+  float LightWidth;
+  float LightHeight;
+
+protected:
+  glm::vec3 u,v,w;
+  TLRand randEngine;
 };
 }
 }

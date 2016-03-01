@@ -279,11 +279,10 @@ struct parallelTrace {
             // for (int lindex = 0; lindex < lights.size(); lindex++)
             for (gvt::render::data::scene::Light *light : lights) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(light->position - ray.origin);
-              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
+              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light,light->position);
               ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
               // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
               localQueue.push_back(ray);
@@ -295,7 +294,6 @@ struct parallelTrace {
 
             if (ndepth > 0 && rayPacket[pindex].w > p) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SECONDARY;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
@@ -469,7 +467,7 @@ struct mantaParallelTrace {
       shadow_ray.t = r.t;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
-      gvt::render::data::Color c = mesh->mat->shade(r, normal, light);
+      gvt::render::data::Color c = mesh->mat->shade(r, normal, light, light->position);
       shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
     }
   }
@@ -653,11 +651,10 @@ struct mantaParallelTrace {
               // for (int lindex = 0; lindex < lights.size(); lindex++)
               for (gvt::render::data::scene::Light *light : lights) {
                 gvt::render::actor::Ray ray(r);
-                ray.domains.clear();
                 ray.type = gvt::render::actor::Ray::SHADOW;
                 ray.origin = ray.origin + ray.direction * ray.t;
                 ray.setDirection(light->position - ray.origin);
-                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
+                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
                 ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
                 // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
                 // localQueue.push_back(ray);
@@ -669,9 +666,6 @@ struct mantaParallelTrace {
 
               // replace current ray with generated secondary ray
               if (ndepth > 0 && r.w > p) {
-
-                // gvt::render::actor::Ray ray(rayPacket[pindex]);
-                r.domains.clear();
                 r.type = gvt::render::actor::Ray::SECONDARY;
                 r.origin = r.origin + r.direction * r.t;
                 r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));

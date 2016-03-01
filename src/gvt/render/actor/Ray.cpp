@@ -42,124 +42,30 @@ Ray::Ray(glm::vec3 origin, glm::vec3 direction, float contribution, RayType type
     : type(type), w(contribution), depth(depth) {
 
   this->origin = origin;
-  this->direction = glm::normalize(direction);
   setDirection(direction);
   t = FLT_MAX;
   id = -1;
 }
 
 Ray::Ray(Ray &ray, glm::mat4 &m) {
+  std::memcpy(data, ray.data, 21 * 4);
   origin = glm::vec3(m * glm::vec4(ray.origin, 1.f));
-  direction = glm::vec3(glm::normalize(m * glm::vec4(ray.direction, 0.f)));
-  setDirection(direction);
-  t = ray.t;
-  color = ray.color;
-  domains = ray.domains;
-  id = ray.id;
-  type = ray.type;
-  w = ray.w;
-  depth = ray.depth;
+  setDirection(glm::vec3(glm::normalize(m * glm::vec4(ray.direction, 0.f))));
 }
 
-Ray::Ray(const Ray &ray) {
-  //  origin = ray.origin;
-  //  direction = ray.direction;
-  //  inverseDirection = ray.inverseDirection;
-  //  t = ray.t;
-  //  color = ray.color;
-  //  domains = ray.domains;
-  //  id = ray.id;
-  //  w = ray.w;
-  //  type = ray.type;
-  //  depth = ray.depth;
-  std::memcpy(data, ray.data, 16 * 4 + 8 * 4);
-  domains = ray.domains;
-}
+Ray::Ray(const Ray &ray) { std::memcpy(data, ray.data, 21 * 4); }
 
-Ray::Ray(Ray &&ray) {
-  //    std::memmove(&origin,&ray.origin,sizeof(Point4f));
-  //    std::memmove(&direction,&ray.direction,sizeof(Vector4f));
-  //    std::memmove(&inverseDirection,&ray.inverseDirection,sizeof(Vector4f));
-  //    std::memmove(&color,&ray.color,sizeof(Vector4f));
-  std::memmove(data, ray.data, 16 * 4 + 8 * 4);
-  std::swap(domains, ray.domains);
-  //  t = ray.t;
-  //  id = ray.id;
-  //  w = ray.w;
-  //  type = ray.type;
-  //  depth = ray.depth;
-}
+Ray::Ray(Ray &&ray) { std::memmove(data, ray.data, 21 * 4); }
 
 Ray::~Ray() {}
 
-Ray::Ray(const unsigned char *buf) {
-  // GVT_DEBUG(DBG_ALWAYS, "in Ray::Ray(const unsigned char* buf)");
-  std::memcpy(glm::value_ptr(origin), buf, sizeof(float) * 3);
-  buf += sizeof(float) * 3;
-  std::memcpy(glm::value_ptr(direction), buf, sizeof(float) * 3);
-  buf += sizeof(float) * 3;
-  id = *((int *)buf);
-  buf += sizeof(int);
-  depth = *((int *)buf);
-  buf += sizeof(int);
-  type = *((int *)buf);
-  buf += sizeof(int);
-  w = *((double *)buf);
-  buf += sizeof(double);
-  t = *((double *)buf);
-  buf += sizeof(double);
-  color = GVT_COLOR_ACCUM(buf);
-  buf += color.packedSize();
-  int domain_size = *((int *)buf);
-  buf += sizeof(int);
-  for (int i = 0; i < domain_size; ++i, buf += sizeof(isecDom)) {
-    domains.push_back(isecDom(*(int *)buf, *(float *)((int *)buf + sizeof(int))));
-  }
-}
+Ray::Ray(const unsigned char *buf) { std::memcpy(data, buf, 21 * 4); }
 
-int Ray::packedSize() {
-  int total_size = sizeof(float) * 6 + color.packedSize();
-  total_size += 4 * sizeof(int) + 2 * sizeof(double);
-  total_size += domains.size() * (sizeof(float) + sizeof(int));
-  // total_size += sizeof (isecDom) * domains.size();
-  return total_size;
-}
+int Ray::packedSize() { return 21 * 4; }
 
 int Ray::pack(unsigned char *buffer) {
-
   unsigned char *buf = buffer;
-  unsigned char *buf0 = buffer;
-
-  std::memcpy(buf, glm::value_ptr(origin), sizeof(float) * 3);
-  buf += sizeof(float) * 3;
-  std::memcpy(buf, glm::value_ptr(direction), sizeof(float) * 3);
-  buf += sizeof(float) * 3;
-
-  *((int *)buf) = id;
-  buf += sizeof(int);
-  *((int *)buf) = depth;
-  buf += sizeof(int);
-  *((int *)buf) = type;
-  buf += sizeof(int);
-  *((double *)buf) = w;
-  buf += sizeof(double);
-  *((double *)buf) = t;
-  buf += sizeof(double);
-  buf += color.pack(buf);
-  *((int *)buf) = domains.size();
-  buf += sizeof(int);
-
-  for (auto &dom : domains) {
-    *((int *)buf) = dom;
-    buf += sizeof(int);
-    *((float *)buf) = dom;
-    buf += sizeof(float);
-  }
-
-  if (packedSize() != (buf - buf0)) {
-    std::cout << " error in pack " << buf - buf0 << " " << packedSize() << std::endl;
-    exit(0);
-  }
+  std::memcpy(buf, data, 21 * 4);
   return packedSize();
 }
 

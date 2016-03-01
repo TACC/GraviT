@@ -128,9 +128,8 @@ public:
       mutable float t_max;
       int type;
     };
-    unsigned char data[16 * 4 + 8 * 4];
+    unsigned char data[21 * 4];
   };
-  isecDomList domains;
 
 protected:
 };

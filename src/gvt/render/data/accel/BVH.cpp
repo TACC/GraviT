@@ -27,17 +27,16 @@
 
 #include <gvt/render/data/accel/BVH.h>
 
-#include <limits>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 #include <boost/range/algorithm.hpp>
 
 using namespace gvt::render::data::accel;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::data::domain;
-
 
 #define TRAVERSAL_COST 0.5 // TODO: best value?
 #define LEAF_SIZE 1        // TODO: best value?
@@ -248,5 +247,45 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestH
     int nextLevel = level + 1;
     trace(ray, node->leftChild, /*hit,*/ isect, nextLevel);
     trace(ray, node->rightChild, /*hit,*/ isect, nextLevel);
+  }
+}
+
+int BVH::intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
+  if (root) {
+    int rid = trace(ray, root, from, t);
+    return rid;
+  }
+  return -1;
+}
+
+int BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, int cid, float &t) {
+
+  float tlocal = std::numeric_limits<float>::max();
+
+  if (!(node->bbox.intersectDistance(ray, tlocal) && (tlocal > gvt::render::actor::Ray::RAY_EPSILON) && (tlocal < t))) {
+    return -1;
+  }
+
+  if (node->numInstances > 0) { // leaf node
+    int start = node->instanceSetIdx;
+    int end = start + node->numInstances;
+    float best = t;
+    int rid = -1;
+    for (int i = start; i < end; ++i) {
+      if (cid == instanceSetID[i]) continue;
+      Box3D *ibbox = instanceSetBB[i];
+      float tlocal;
+      if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
+        best = tlocal;
+        rid = instanceSetID[i];
+      }
+    }
+    if (rid != -1) t = best;
+    return rid;
+  } else {
+    int rid = trace(ray, node->leftChild, cid, t);
+    int lid = trace(ray, node->rightChild, cid, t);
+    if (lid != -1) return lid;
+    return rid;
   }
 }

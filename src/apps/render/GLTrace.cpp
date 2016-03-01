@@ -1310,10 +1310,13 @@ int main(int argc, char *argv[]) {
   cmd.addoption("enzo", ParseCommandLine::PATH, "Data path");
   cmd.addoption("simple", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("scene", ParseCommandLine::PATH, "Use scene file");
+  cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
 
   cmd.addconflict("enzo", "simple");
   cmd.addconflict("enzo", "scene");
   cmd.addconflict("simple", "scene");
+  cmd.addconflict("image", "domain");
 
   // cmd.addrequire("simple", "eye");
   // cmd.addrequire("simple", "look");
@@ -1363,7 +1366,10 @@ int main(int argc, char *argv[]) {
   // ConfigEnzo();
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Schedule", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
+  if (cmd.isSet("domain"))
+    schedNode["type"] = gvt::render::scheduler::Domain;
+  else
+    schedNode["type"] = gvt::render::scheduler::Image;
 // schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
