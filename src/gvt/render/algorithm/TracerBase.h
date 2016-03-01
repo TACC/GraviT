@@ -58,6 +58,7 @@
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
+#include <tbb/partitioner.h>
 #include <tbb/tick_count.h>
 
 namespace gvt {
@@ -153,13 +154,14 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
-    const size_t raycount = rays.size();
+    const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
     const gvt::render::data::primitives::Box3D domBB =
         (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
                    : gvt::render::data::primitives::Box3D();
 
-    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
+    static tbb::affinity_partitioner ap;
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
                         std::map<int, gvt::render::actor::RayVector> local_queue;
 
@@ -184,7 +186,8 @@ public:
                                                 std::make_move_iterator(local_queue[q.first].end()));
                           queue_mutex[q.first].unlock();
                         }
-                      });
+                      },
+                      ap);
 
     rays.clear();
   }
