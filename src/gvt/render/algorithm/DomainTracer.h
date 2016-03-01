@@ -150,7 +150,7 @@ public:
   inline void FilterRaysLocally() {
     auto nullNode = gvt::core::DBNodeH(); // temporary workaround until
                                           // shuffleRays is fully replaced
-    shuffleRays(rays, nullNode);
+    shuffleRays(rays,-1);
 
     for (auto e : queue) {
       if (mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
@@ -331,7 +331,7 @@ public:
 #ifdef GVT_USE_MPE
             MPE_Log_event(shufflestart, 0, NULL);
 #endif
-            shuffleRays(moved_rays, instancenodes[instTarget]);
+            shuffleRays(moved_rays, instTarget);
 #ifdef GVT_USE_MPE
             MPE_Log_event(shuffleend, 0, NULL);
 #endif

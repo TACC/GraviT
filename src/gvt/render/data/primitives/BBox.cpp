@@ -141,20 +141,25 @@ void Box3D::expand(glm::vec3 &v) {
 
 bool Box3D::intersectDistance(const Ray &ray, float &t) const {
 
-  float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
-
+  /*float t1 = (bounds[0].x - ray.origin.x) * ray.inverseDirection.x;
   float t3 = (bounds[0].y - ray.origin.y) * ray.inverseDirection.y;
   float t5 = (bounds[0].z - ray.origin.z) * ray.inverseDirection.z;
   float t2 = (bounds[1].x - ray.origin.x) * ray.inverseDirection.x;
   float t4 = (bounds[1].y - ray.origin.y) * ray.inverseDirection.y;
   float t6 = (bounds[1].z - ray.origin.z) * ray.inverseDirection.z;
+*/
 
-  float tmin = fastmax(fastmax(fastmin(t1, t2), fastmin(t3, t4)), fastmin(t5, t6));
-  float tmax = fastmin(fastmin(fastmax(t1, t2), fastmax(t3, t4)), fastmax(t5, t6));
+  glm::vec3 l = (bounds[0] - ray.origin) * ray.inverseDirection;
+  glm::vec3 u = (bounds[1] - ray.origin) * ray.inverseDirection;
+  glm::vec3 m = glm::min(l,u);
+  glm::vec3 M = glm::max(l,u);
+
+  float tmin = fastmax(fastmax(m.x,m.y),m.z);
+  float tmax = fastmin(fastmin(M.x,M.y),M.z);
 
   if (tmax < 0 || tmin > tmax) return false;
 
-  t = (tmin > 0) ? tmin : tmax;
+  t = (tmin > 0) ? tmin : -1;
 
   return (t > FLT_EPSILON);
 }

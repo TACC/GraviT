@@ -28,6 +28,8 @@
 #ifndef GVT_RENDER_DATA_ACCEL_BVH_H
 #define GVT_RENDER_DATA_ACCEL_BVH_H
 
+#include <stack>
+
 #include <gvt/core/Math.h>
 #include <gvt/render/data/accel/AbstractAccel.h>
 #include <gvt/render/data/primitives/BBox.h>
@@ -58,7 +60,37 @@ public:
   // virtual int intersect(const gvt::render::actor::Ray &ray, int from, float &t);
   inline int intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
     if (root) {
-      int rid = trace(ray, root, from, t);
+      Node* stack[instanceSet.size() * 2];
+      Node** stackptr = stack;
+      *(stackptr++) = nullptr;
+      Node* cur = root;
+      float best = t;
+      int rid = -1;
+
+      while(cur) {
+          float tlocal = std::numeric_limits<float>::max();
+          if (!(cur->bbox.intersectDistance(ray, tlocal))) {
+              cur = *(--stackptr);
+              continue;
+          }
+          if (cur->numInstances > 0) { // leaf node
+              int start = cur->instanceSetIdx;
+              int end = start + cur->numInstances;
+              for (int i = start; i < end; ++i) {
+                  if (from == instanceSetID[i]) continue;
+                  primitives::Box3D *ibbox = instanceSetBB[i];
+                  float tlocal;
+                  if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
+                      t = best = tlocal;
+                      rid = instanceSetID[i];
+                  }
+              }
+              cur = *(--stackptr);
+          } else {
+              *(stackptr++) = cur->rightChild;
+              cur = cur->leftChild;
+          }
+      }
       return rid;
     }
     return -1;
@@ -94,37 +126,44 @@ private:
   /// traverse ray through BVH. Called by intersect().
   void trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
              gvt::render::actor::isecDomList &isect, int level);
-  inline int trace(const gvt::render::actor::Ray &ray, const Node *node, int cid, float &t) {
+  inline int trace(const gvt::render::actor::Ray &ray, Node *node, int cid, float &t) {
 
-    float tlocal = std::numeric_limits<float>::max();
-
-    if (!(node->bbox.intersectDistance(ray, tlocal) && (tlocal > gvt::render::actor::Ray::RAY_EPSILON) &&
-          (tlocal < t))) {
-      return -1;
-    }
-
-    if (node->numInstances > 0) { // leaf node
-      int start = node->instanceSetIdx;
-      int end = start + node->numInstances;
+      Node* stack[instanceSet.size() * 2];
+      Node** stackptr = stack;
+      *(stackptr++) = nullptr;
+      Node* cur = node;
       float best = t;
       int rid = -1;
-      for (int i = start; i < end; ++i) {
-        if (cid == instanceSetID[i]) continue;
-        primitives::Box3D *ibbox = instanceSetBB[i];
-        float tlocal;
-        if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
-          best = tlocal;
-          rid = instanceSetID[i];
-        }
+
+      while(cur) {
+
+
+          float tlocal = std::numeric_limits<float>::max();
+
+          if (!(cur->bbox.intersectDistance(ray, tlocal))) {
+              cur = *(--stackptr);
+              continue;
+          }
+          if (cur->numInstances > 0) { // leaf node
+              int start = cur->instanceSetIdx;
+              int end = start + cur->numInstances;
+              for (int i = start; i < end; ++i) {
+                  if (cid == instanceSetID[i]) continue;
+                  primitives::Box3D *ibbox = instanceSetBB[i];
+                  float tlocal;
+                  if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
+                      t = best = tlocal;
+                      rid = instanceSetID[i];
+                  }
+              }
+              //if (rid != -1) t = best;
+              cur = *(--stackptr);
+          } else {
+              *(stackptr++) = cur->rightChild;
+              cur = cur->leftChild;
+          }
       }
-      if (rid != -1) t = best;
       return rid;
-    } else {
-      int rid = trace(ray, node->leftChild, cid, t);
-      int lid = trace(ray, node->rightChild, cid, t);
-      if (lid != -1) return lid;
-      return rid;
-    }
   }
 
   std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;

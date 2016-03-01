@@ -142,25 +142,25 @@ public:
   };
   // clang-format on
 
-  virtual void FilterRaysLocally(void) {
+  inline void FilterRaysLocally(void) {
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
-    shuffleRays(rays, gvt::core::DBNodeH());
+    shuffleRays(rays, -1);
   }
 
   /**
    * Given a queue of rays, intersects them against the accel structure
    * to find out what instance they will hit next
    */
-  virtual void shuffleRays(gvt::render::actor::RayVector &rays, gvt::core::DBNodeH instNode) {
+  inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
-    const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
-    const gvt::render::data::primitives::Box3D domBB =
-        (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
-                   : gvt::render::data::primitives::Box3D();
+    //const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
+    //const gvt::render::data::primitives::Box3D domBB =
+    //    (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
+    //               : gvt::render::data::primitives::Box3D();
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
 
     static tbb::simple_partitioner ap;
