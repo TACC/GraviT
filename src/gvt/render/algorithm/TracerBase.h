@@ -33,10 +33,6 @@
 
 //#define TBB_PREVIEW_STATIC_PARTITIONER 1
 
-#ifndef MAX
-#define MAX(A, B) (A > B) ? A : B
-#endif
-
 #include <gvt/core/Debug.h>
 #include <gvt/render/Adapter.h>
 #include <gvt/render/RenderContext.h>
