@@ -66,10 +66,10 @@ static std::atomic<size_t> counter(0);
 static boost::atomic<size_t> counter_b(0);
 
 // MantaMeshAdapter::MantaMeshAdapter(GeometryDomain* domain) : GeometryDomain(*domain)
-MantaMeshAdapter::MantaMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
+MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::prmitives::Mesh *mesh) : Adapter(mesh) {
   GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converting mesh node " << node.UUID().toString());
 
-  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
+  // Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
 
   GVT_ASSERT(mesh, "MantaMeshAdapter: mesh pointer in the database is null");
 
@@ -185,7 +185,7 @@ struct parallelTrace {
   const glm::mat4 *minv;
   const glm::mat3 *normi;
   const std::vector<gvt::render::data::scene::Light *> &lights;
-  gvt::core::DBNodeH instNode;
+  const gvt::render::data::primitives::Mesh *mesh;
 
   boost::atomic<size_t> &counter;
 
@@ -194,12 +194,11 @@ struct parallelTrace {
       gvt::render::adapter::manta::data::MantaMeshAdapter *adapter, gvt::render::actor::RayVector &rayList,
       gvt::render::actor::RayVector &moved_rays, const size_t workSize, boost::atomic<size_t> &counter, glm::mat4 *m,
       glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
-      gvt::core::DBNodeH instNode)
+      gvt::render::data::primitives::Mesh *mesh)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), counter(counter), m(m),
-        minv(minv), normi(normi), lights(lights), instNode(instNode) {}
+        minv(minv), normi(normi), lights(lights), mesh(mesh) {}
 
   void operator()() {
-    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
     const size_t maxPacketSize = 64;
 
     Manta::RenderContext &renderContext = *adapter->getRenderContext();
@@ -282,7 +281,7 @@ struct parallelTrace {
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(light->position - ray.origin);
-              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light,light->position);
+              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
               ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
               // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
               localQueue.push_back(ray);
@@ -404,8 +403,8 @@ struct mantaParallelTrace {
                      std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode, glm::mat4 *m,
                      glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
                      std::atomic<size_t> &counter)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
-        instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize), m(m),
+        minv(minv), normi(normi), lights(lights), counter(counter),
         packetSize(64) // TODO: packetSize(adapter->getPacketSize())
   {}
 
@@ -726,7 +725,8 @@ struct mantaParallelTrace {
 // void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList,
 // gvt::render::actor::RayVector& moved_rays)
 void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
+                             glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                             std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: trace time: %w\n");
 #endif
@@ -743,51 +743,13 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   const size_t workload =
       std::max((size_t)1, (size_t)(rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: trace: instNode: "
-                            << instNode.UUID().toString() << ", rays: " << rayList.size() << ", workSize: " << workSize
-                            << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
-
-  // pull out information out of the database, create local structs that will be passed into the parallel struct
-  gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
-
-  // pull out instance transform data
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: getting instance transform data");
-  glm::mat4 *m = (glm::mat4 *)instNode["mat"].value().toULongLong();
-  glm::mat4 *minv = (glm::mat4 *)instNode["matInv"].value().toULongLong();
-  glm::mat3 *normi = (glm::mat3 *)instNode["normi"].value().toULongLong();
-
-  //
-  // TODO: wrap this db light array -> class light array conversion in some sort of helper function
-  // `convertLights`: pull out lights list and convert into gvt::Lights format for now
-  auto lightNodes = root["Lights"].getChildren();
-  std::vector<gvt::render::data::scene::Light *> lights;
-  lights.reserve(2);
-  for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().tovec3();
-
-    if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().tovec3();
-      lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-    } else if (lightNode.name() == std::string("AmbientLight")) {
-      lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-    }
-  }
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converted " << lightNodes.size()
-                                                       << " light nodes into structs: size: " << lights.size());
-  // end `convertLights`
-  //
-
-  // # notes
-  // 20150819-2344: alim: boost threads vs c++11 threads don't seem to have much of a runtime difference
-  // - I was not re-using the c++11 threads though, was creating new ones every time
-
   for (size_t rc = 0; rc < numThreads; ++rc) {
     // gvt::core::schedule::asyncExec::instance()->run_task(
     //         mantaParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights,
     //         counter)
     //         );
     gvt::core::schedule::asyncExec::instance()->run_task(
-        parallelTrace(this, rayList, moved_rays, workload, counter_b, m, minv, normi, lights, instNode));
+        parallelTrace(this, rayList, moved_rays, workload, counter_b, m, minv, normi, lights, mesh));
   }
 
   gvt::core::schedule::asyncExec::instance()->sync();

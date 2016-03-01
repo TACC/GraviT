@@ -80,20 +80,13 @@ public:
   size_t rays_start, rays_end;
 
   // caches meshes that are converted into the adapter's format
-  std::map<gvt::core::Uuid, gvt::render::Adapter *> adapterCache;
-  std::map<int,gvt::core::Uuid> meshRef;
+  std::map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
+
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
     int ray_portion = rays.size() / mpi.world_size;
     rays_start = mpi.rank * ray_portion;
     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size()
                                                 : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
-    size_t i =0;
-    for(auto n : instancenodes) {
-    
-        meshRef[i++] = n["meshRef"].deRef().UUID();
-    }
-
-
   }
 
   // organize the rays into queues
@@ -158,12 +151,14 @@ public:
 
       if (instTarget >= 0) {
         gvt::render::Adapter *adapter = 0;
-        gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
+        // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
+
+        gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
 
         // TODO: Make cache generic needs to accept any kind of adpater
 
         // 'getAdapterFromCache' functionality
-        auto it = adapterCache.find(meshRef[instTarget]);
+        auto it = adapterCache.find(mesh);
         if (it != adapterCache.end()) {
           adapter = it->second;
         }
@@ -172,30 +167,30 @@ public:
           switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
           case gvt::render::adapter::Embree:
-            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
+            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
           case gvt::render::adapter::Manta:
-            adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
+            adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
           case gvt::render::adapter::Optix:
-            adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
+            adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
             break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
           case gvt::render::adapter::Heterogeneous:
-            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(meshNode);
+            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
             break;
 #endif
           default:
             GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
           }
 
-          adapterCache[meshRef[instTarget]] = adapter;
+          adapterCache[mesh] = adapter;
         }
 
         GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
@@ -208,7 +203,8 @@ public:
 #ifdef GVT_USE_DEBUG
           boost::timer::auto_cpu_timer t("Tracing rays in adapter: %w\n");
 #endif
-          adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
+          adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
+                         instMinvN[instTarget], lights);
 
           this->queue[instTarget].clear();
 

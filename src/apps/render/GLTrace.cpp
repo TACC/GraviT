@@ -720,16 +720,18 @@ void RenderBVH() {
 
   int schedType = rootNode["Schedule"]["type"].value().toInteger();
 
-  std::map<gvt::core::Uuid, size_t> mpiInstanceMap;
+  std::map<int, size_t> mpiInstanceMap;
   if (schedType == gvt::render::scheduler::Domain)
     mpiInstanceMap = ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> *)tracer)->mpiInstanceMap;
 
-  for (gvt::core::DBNodeH instance : rootNode["Instances"].getChildren()) {
+  size_t i = 0;
+  for (gvt::core::DBNodeH instance :
+       ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> *)tracer)->instancenodes) {
 
     int mpiNode = 0;
 
     if (schedType == gvt::render::scheduler::Domain && MPI::COMM_WORLD.Get_size() > 1) {
-      mpiNode = mpiInstanceMap[instance.UUID()];
+      mpiNode = mpiInstanceMap[i++];
       GLfloat c[3] = { 0, 0, 0 };
       c[mpiNode % 3] = float((((mpiNode + 1) * 230) % 255)) / float(255);
       glColor3fv(c);

@@ -31,7 +31,6 @@
 //#include <gvt/render/adapter/heterogeneous/data/Transforms.h>
 //#include <gvt/render/adapter/heterogeneous/data/domain/EmbreeDomain.h>
 #include <gvt/render/adapter/heterogeneous/data/HeterogeneousMeshAdapter.h>
-#include <gvt/render/data/Dataset.h>
 
 /// single include for all Heterogeneous-specific headers
 

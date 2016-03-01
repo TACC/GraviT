@@ -26,6 +26,10 @@
 
 #include <gvt/core/DatabaseNode.h>
 #include <gvt/render/actor/Ray.h>
+#include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/data/primitives/Mesh.h>
+#include <gvt/render/data/scene/ColorAccumulator.h>
+#include <gvt/render/data/scene/Light.h>
 
 #include <mutex>
 #include <thread>
@@ -39,13 +43,13 @@ protected:
   /**
    * Data node (ex: Mesh, Volume)
    */
-  gvt::core::DBNodeH node;
+  gvt::render::data::primitives::Mesh *mesh;
 
 public:
   /**
    * Construct an adapter with a given data node
    */
-  Adapter(gvt::core::DBNodeH node) : node(node) {}
+  Adapter(gvt::render::data::primitives::Mesh *mesh) : mesh(mesh) {}
 
   /**
    * Destroy the adapter
@@ -59,8 +63,9 @@ public:
    * \param moved_rays outgoing rays [rays that did not hit anything]
    * \param instNode instance db node containing dataRef and transforms
    */
-  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode, size_t begin = 0, size_t end = 0) = 0;
+  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
+                     glm::mat4 *minv, glm::mat3 *, std::vector<gvt::render::data::scene::Light *> &lights,
+                     size_t begin = 0, size_t end = 0) = 0;
 
   std::mutex _inqueue;
   std::mutex _outqueue;

@@ -31,9 +31,9 @@
 #include "gvt/render/Adapter.h"
 
 #include <gvt/render/adapter/manta/override/DynBVH.h>
+#include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/domain/GeometryDomain.h>
-#include <gvt/render/data/Primitives.h>
 
 // begin Manta includes
 #include <Core/Exceptions/Exception.h>
@@ -73,7 +73,7 @@ public:
    *
    * Initializes Manta the first time it is called.
    */
-  MantaMeshAdapter(gvt::core::DBNodeH node);
+  MantaMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
 
   // MantaMeshAdapter(std::string filename ="",glm::mat4 m =
   // glm::mat4(true));
@@ -106,8 +106,9 @@ public:
    * \param moved_rays outgoing rays [rays that did not hit anything]
    * \param instNode instance db node containing dataRef and transforms
    */
-  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode, size_t _begin = 0, size_t _end = 0);
+  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
+                     glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+                     size_t begin = 0, size_t end = 0);
   // void trace(gvt::render::actor::RayVector& rayList,
   // gvt::render::actor::RayVector& moved_rays);
   //

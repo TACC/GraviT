@@ -26,11 +26,11 @@
    =======================================================================================
    */
 #include "HeterogeneousMeshAdapter.h"
-#include <thread>
+#include <atomic>
+#include <cmath>
 #include <future>
 #include <mutex>
-#include <cmath>
-#include <atomic>
+#include <thread>
 
 #include <tbb/task_group.h>
 
@@ -38,10 +38,9 @@ using namespace gvt::render::actor;
 using namespace gvt::render::adapter::heterogeneous::data;
 using namespace gvt::render::data::primitives;
 
-
-HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
-  _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(node);
-  _optix = new gvt::render::adapter::optix::data::OptixMeshAdapter(node);
+HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
+  _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+  _optix = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
 }
 
 HeterogeneousMeshAdapter::~HeterogeneousMeshAdapter() {
@@ -50,7 +49,8 @@ HeterogeneousMeshAdapter::~HeterogeneousMeshAdapter() {
 }
 
 void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                                     gvt::core::DBNodeH instNode, size_t begin, size_t end) {
+                                     glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                                     std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("HeterogeneousMeshAdapter: trace time: %w\n");
 #endif
@@ -81,7 +81,7 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
           if (end >= size) end = size;
 
           gput++;
-          _optix->trace(rayList, mOptix, instNode, start, end);
+          _optix->trace(rayList, mOptix, m, minv, normi, lights, start, end);
         }
       }
     }); //);
@@ -99,7 +99,7 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
           if (end >= size) end = size;
 
           cput++;
-          _embree->trace(rayList, moved_rays, instNode, start, end);
+          _embree->trace(rayList, moved_rays, m, minv, normi, lights, start, end);
         }
       }
     }); //);
