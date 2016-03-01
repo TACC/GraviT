@@ -31,7 +31,11 @@
 #ifndef GVT_RENDER_ALGORITHM_TRACER_BASE_H
 #define GVT_RENDER_ALGORITHM_TRACER_BASE_H
 
-#define TBB_PREVIEW_STATIC_PARTITIONER 1
+//#define TBB_PREVIEW_STATIC_PARTITIONER 1
+
+#ifndef MAX
+#define MAX(A, B) (A > B) ? A : B
+#endif
 
 #include <gvt/core/Debug.h>
 #include <gvt/render/Adapter.h>

@@ -30,6 +30,14 @@
 #include "gvt/core/Types.h"
 #include <gvt/core/Database.h>
 
+#ifndef MAX
+#define MAX(a, b) ((a > b) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define MIN(a, b) ((a < b) ? (a) : (b))
+#endif
+
 namespace gvt {
 namespace core {
 /// context base class for GraviT internal state
