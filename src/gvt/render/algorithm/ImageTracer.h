@@ -90,7 +90,7 @@ public:
 
   // organize the rays into queues
   // if using mpi, only keep the rays for the current rank
-  virtual void FilterRaysLocally() {
+  inline void FilterRaysLocally() {
     auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
 
     if (mpi) {
@@ -105,7 +105,7 @@ public:
     }
   }
 
-  virtual void operator()() {
+  inline void operator()() {
     boost::timer::cpu_timer t_frame;
     t_frame.start();
     boost::timer::cpu_timer t_trace;
@@ -114,6 +114,8 @@ public:
     t_sort.stop();
     boost::timer::cpu_timer t_shuffle;
     t_shuffle.stop();
+    boost::timer::cpu_timer t_gather;
+    t_gather.stop();
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
@@ -215,12 +217,16 @@ public:
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
+    t_gather.resume();
     this->gatherFramebuffers(this->rays.size());
+    t_gather.stop();
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+
     std::cout << "image scheduler: select time: " << t_sort.format();
     std::cout << "image scheduler: trace time: " << t_trace.format();
     std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
+    std::cout << "image scheduler: gather time: " << t_gather.format();
     std::cout << "image scheduler: frame time: " << t_frame.format();
   }
 };
