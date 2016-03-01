@@ -28,9 +28,9 @@
 #ifndef GVT_RENDER_DATA_ACCEL_BVH_H
 #define GVT_RENDER_DATA_ACCEL_BVH_H
 
+#include <gvt/core/Math.h>
 #include <gvt/render/data/accel/AbstractAccel.h>
 #include <gvt/render/data/primitives/BBox.h>
-#include <gvt/core/Math.h>
 
 namespace gvt {
 namespace render {
@@ -70,7 +70,7 @@ private:
     CentroidLessThan(float splitPoint, int splitAxis) : splitPoint(splitPoint), splitAxis(splitAxis) {}
     bool operator()(const gvt::core::DBNodeH inst) const {
       gvt::core::DBNodeH i2 = inst;
-      gvt::core::math::Point4f centroid = i2["centroid"].value().toPoint4f();
+      glm::vec3 centroid = i2["centroid"].value().tovec3();
       return (centroid[splitAxis] < splitPoint);
     }
 

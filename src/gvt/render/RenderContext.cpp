@@ -28,7 +28,7 @@
 using gvt::core::DBNodeH;
 using gvt::core::String;
 using gvt::core::Uuid;
-using namespace gvt::core::math;
+
 using namespace gvt::render;
 
 RenderContext::RenderContext() : gvt::core::CoreContext() {}
@@ -62,9 +62,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("width");
     n += gvt::core::CoreContext::createNode("height");
     n += gvt::core::CoreContext::createNode("viewAngle");
-    n += gvt::core::CoreContext::createNode("camera", Point4f());
-    n += gvt::core::CoreContext::createNode("focus", Point4f());
-    n += gvt::core::CoreContext::createNode("up", Vector4f());
+    n += gvt::core::CoreContext::createNode("camera", glm::vec3());
+    n += gvt::core::CoreContext::createNode("focus", glm::vec3());
+    n += gvt::core::CoreContext::createNode("up", glm::vec3());
     n += gvt::core::CoreContext::createNode("parallelScale");
     n += gvt::core::CoreContext::createNode("nearPlane");
     n += gvt::core::CoreContext::createNode("farPlane");

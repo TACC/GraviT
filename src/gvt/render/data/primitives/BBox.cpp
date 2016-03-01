@@ -28,18 +28,17 @@
 
 #include <limits>
 
-using namespace gvt::core::math;
 using namespace gvt::render::actor;
 using namespace gvt::render::data::primitives;
 
-int inline GetIntersection(float fDst1, float fDst2, Point4f P1, Point4f P2, Point4f &Hit) {
+int inline GetIntersection(float fDst1, float fDst2, glm::vec3 P1, glm::vec3 P2, glm::vec3 &Hit) {
   if ((fDst1 * fDst2) >= 0.0f) return 0;
   if (fDst1 == fDst2) return 0;
   Hit = P1 + (P2 - P1) * (-fDst1 / (fDst2 - fDst1));
   return 1;
 }
 
-int inline InBox(Point4f Hit, Point4f B1, Point4f B2, const int Axis) {
+int inline InBox(glm::vec3 Hit, glm::vec3 B1, glm::vec3 B2, const int Axis) {
   if (Axis == 1 && Hit.z > B1.z && Hit.z < B2.z && Hit.y > B1.y && Hit.y < B2.y) return 1;
   if (Axis == 2 && Hit.z > B1.z && Hit.z < B2.z && Hit.x > B1.x && Hit.x < B2.x) return 1;
   if (Axis == 3 && Hit.x > B1.x && Hit.x < B2.x && Hit.y > B1.y && Hit.y < B2.y) return 1;
@@ -52,7 +51,7 @@ template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) 
 
 // returns true if line (L1, L2) intersects with the box (B1, B2)
 // returns intersection point in Hit
-int inline CheckLineBox(Point4f B1, Point4f B2, Point4f L1, Point4f L2, Point4f &Hit) {
+int inline CheckLineBox(glm::vec3 B1, glm::vec3 B2, glm::vec3 L1, glm::vec3 L2, glm::vec3 &Hit) {
   if (L2.x < B1.x && L1.x < B1.x) return false;
   if (L2.x > B2.x && L1.x > B2.x) return false;
   if (L2.y < B1.y && L1.y < B1.y) return false;
@@ -79,25 +78,23 @@ Box3D::Box3D() {
     bounds[0][i] = std::numeric_limits<float>::max();
     bounds[1][i] = -std::numeric_limits<float>::max();
   }
-  bounds[0][3] = 1;
-  bounds[1][3] = 1;
 }
 
-Point4f Box3D::getHitpoint(const Ray &ray) const {
-  Point4f hit;
-  CheckLineBox(bounds[0], bounds[1], ray.origin, (Point4f)((Vector4f)ray.origin + ray.direction * 1.e6f), hit);
+glm::vec3 Box3D::getHitpoint(const Ray &ray) const {
+  glm::vec3 hit;
+  CheckLineBox(bounds[0], bounds[1], ray.origin, (glm::vec3)((glm::vec3)ray.origin + ray.direction * 1.e6f), hit);
   return hit;
 }
 
-Box3D::Box3D(Point4f vmin, Point4f vmax) {
-  for (int i = 0; i < 4; i++) {
+Box3D::Box3D(glm::vec3 vmin, glm::vec3 vmax) {
+  for (int i = 0; i < 3; i++) {
     bounds[0][i] = fastmin(vmin[i], vmax[i]);
     bounds[1][i] = fastmax(vmin[i], vmax[i]);
   }
 }
 
 Box3D::Box3D(const Box3D &other) {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     bounds[0][i] = fastmin(other.bounds[0][i], other.bounds[1][i]);
     bounds[1][i] = fastmax(other.bounds[0][i], other.bounds[1][i]);
   }
@@ -110,7 +107,7 @@ bool Box3D::intersect(const Ray &r) const {
 
 bool Box3D::inBox(const Ray &r) const { return inBox(r.origin); }
 
-bool Box3D::inBox(const Point4f &origin) const {
+bool Box3D::inBox(const glm::vec3 &origin) const {
   bool TT[3];
 
   TT[0] = ((bounds[0].x - origin.x) <= FLT_EPSILON && (bounds[1].x - origin.x) >= -FLT_EPSILON);
@@ -132,7 +129,7 @@ void Box3D::merge(const Box3D &other) {
   bounds[1][2] = fastmax(other.bounds[1][2], bounds[1][2]);
 }
 
-void Box3D::expand(Point4f &v) {
+void Box3D::expand(glm::vec3 &v) {
   bounds[0][0] = fastmin(bounds[0][0], v[0]);
   bounds[0][1] = fastmin(bounds[0][1], v[1]);
   bounds[0][2] = fastmin(bounds[0][2], v[2]);
@@ -181,7 +178,7 @@ bool Box3D::intersectDistance(const Ray &ray, float &tmin, float &tmax) const {
 
 // returns dimension with maximum extent
 int Box3D::wideRangingBoxDir() const {
-  Point4f diag = bounds[1] - bounds[0];
+  glm::vec3 diag = bounds[1] - bounds[0];
   if (diag.x > diag.y && diag.x > diag.z)
     return 0; // x-axis
   else if (diag.y > diag.z)
@@ -190,9 +187,9 @@ int Box3D::wideRangingBoxDir() const {
     return 2; // z-axis
 }
 
-gvt::core::math::Point4f Box3D::centroid() const { return (0.5 * bounds[0] + 0.5 * bounds[1]); }
+glm::vec3 Box3D::centroid() const { return (0.5f * bounds[0] + 0.5f * bounds[1]); }
 
 float Box3D::surfaceArea() const {
-  Point4f diag = bounds[1] - bounds[0];
+  glm::vec3 diag = bounds[1] - bounds[0];
   return (2.f * (diag.x * diag.y + diag.y * diag.z + diag.z * diag.x));
 }

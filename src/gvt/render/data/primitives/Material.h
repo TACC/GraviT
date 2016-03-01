@@ -51,15 +51,14 @@ public:
   Material(const Material &orig);
   virtual ~Material();
 
-  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
-                                          const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
-                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray,
-                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                           float samples);
+  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                                  float samples);
 
-  gvt::core::math::Vector4f CosWeightedRandomHemisphereDirection2(gvt::core::math::Vector4f n) {
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n) {
     float Xi1 = (float)rand() / (float)RAND_MAX;
     float Xi2 = (float)rand() / (float)RAND_MAX;
 
@@ -70,8 +69,8 @@ public:
     float ys = cosf(theta);
     float zs = sinf(theta) * sinf(phi);
 
-    gvt::core::math::Vector3f y(n);
-    gvt::core::math::Vector3f h = y;
+    glm::vec3 y(n);
+    glm::vec3 h = y;
     if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
       h[0] = 1.0;
     else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
@@ -79,11 +78,11 @@ public:
     else
       h[2] = 1.0;
 
-    gvt::core::math::Vector3f x = (h ^ y);
-    gvt::core::math::Vector3f z = (x ^ y);
+    glm::vec3 x = glm::cross(h, y);
+    glm::vec3 z = glm::cross(x, y);
 
-    gvt::core::math::Vector4f direction = x * xs + y * ys + z * zs;
-    return direction.normalize();
+    glm::vec3 direction = x * xs + y * ys + z * zs;
+    return glm::normalize(direction);
   }
 
   virtual void pack(unsigned char *buffer)=0;
@@ -93,48 +92,45 @@ protected:
 
 class Lambert : public Material {
 public:
-  Lambert(const gvt::core::math::Vector4f &kd = gvt::core::math::Vector4f());
+  Lambert(const glm::vec3 &kd = glm::vec3());
   Lambert(const Lambert &orig);
   virtual ~Lambert();
 
-  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
-                                          const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
-                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
-                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                           float samples);
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                                  float samples);
 
   virtual void pack(unsigned char *buffer){
-	  gvt::core::math::Vector4f* buf = ( gvt::core::math::Vector4f*)buffer;
+	  glm::vec3* buf = (glm::vec3*)buffer;
 	  *buf=kd;
   };
 
 protected:
-  gvt::core::math::Vector4f kd;
+  glm::vec3 kd;
 };
 
 class Phong : public Material {
 public:
-  Phong(const gvt::core::math::Vector4f &kd = gvt::core::math::Vector4f(),
-        const gvt::core::math::Vector4f &ks = gvt::core::math::Vector4f(), const float &alpha = 1.f);
+  Phong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
   Phong(const Phong &orig);
   virtual ~Phong();
 
-  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
-                                          const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
-                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
-                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                           float samples);
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                                  float samples);
 
 
   virtual void pack(unsigned char *buffer){
-	  gvt::core::math::Vector4f* buf = ( gvt::core::math::Vector4f*)buffer;
+	  glm::vec3* buf = ( glm::vec3*)buffer;
 	  *buf=kd;
 
-	  gvt::core::math::Vector4f* buf2 = ( gvt::core::math::Vector4f*)(buffer+16);
+	  glm::vec3* buf2 = ( glm::vec3*)(buffer+16);
 	  *buf2=ks;
 
 	  float* buf3= ( float*)(buffer+32);
@@ -145,32 +141,30 @@ public:
   };
 
 protected:
-  gvt::core::math::Vector4f kd;
-  gvt::core::math::Vector4f ks;
+  glm::vec3 kd;
+  glm::vec3 ks;
   float alpha;
 };
 
 class BlinnPhong : public Material {
 public:
-  BlinnPhong(const gvt::core::math::Vector4f &kd = gvt::core::math::Vector4f(),
-             const gvt::core::math::Vector4f &ks = gvt::core::math::Vector4f(), const float &alpha = 1.f);
+  BlinnPhong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
   BlinnPhong(const BlinnPhong &orig);
   virtual ~BlinnPhong();
 
-  virtual gvt::core::math::Vector4f shade(const gvt::render::actor::Ray &ray,
-                                          const gvt::core::math::Vector4f &sufaceNormal,
-                                          const gvt::render::data::scene::Light *lightSource);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray,
-                                           const gvt::core::math::Vector4f &sufaceNormal, float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray,
-                                                  const gvt::core::math::Vector4f &sufaceNormal, float samples);
+  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                          const gvt::render::data::scene::Light *lightSource);
+  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                           float samples);
+  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                                  float samples);
 
 
   virtual void pack(unsigned char *buffer){
-	  gvt::core::math::Vector4f* buf = ( gvt::core::math::Vector4f*)buffer;
+	  glm::vec3* buf = (glm::vec3*)buffer;
 	  *buf=kd;
 
-	  gvt::core::math::Vector4f* buf2 = ( gvt::core::math::Vector4f*)(buffer+16);
+	  glm::vec3* buf2 = (glm::vec3*)(buffer+16);
 	  *buf2=ks;
 
 	  float* buf3= ( float*)(buffer+32);
@@ -181,8 +175,8 @@ public:
   };
 
 protected:
-  gvt::core::math::Vector4f kd;
-  gvt::core::math::Vector4f ks;
+  glm::vec3 kd;
+  glm::vec3 ks;
   float alpha;
 };
 }

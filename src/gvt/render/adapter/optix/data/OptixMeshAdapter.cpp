@@ -39,8 +39,6 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 
-#include <gvt/core/schedule/TaskScheduling.h> // used for threads
-
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
@@ -49,7 +47,6 @@
 
 #include <atomic>
 #include <thread>
-#include <future>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -69,6 +66,7 @@
 #include "OptixMeshAdapter.cuh"
 
 #include <tbb/task_group.h>
+#include <tbb/parallel_for.h>
 
 #include <float.h>
 
@@ -125,7 +123,7 @@ __inline__ void gvtRayToCudaRay(const gvt::render::actor::Ray& gvtRay,
 
 int3*
 cudaCreateFacesToNormals(
-		boost::container::vector<boost::tuple<int, int, int> > gvt_face_to_normals) {
+		std::vector<gvt::render::data::primitives::Mesh::FaceToNormals>& gvt_face_to_normals) {
 
 	int3* faces_to_normalsBuff;
 
@@ -153,8 +151,7 @@ cudaCreateFacesToNormals(
 }
 
 float4*
-cudaCreateNormals(
-		boost::container::vector<gvt::core::math::Point4f> gvt_normals) {
+cudaCreateNormals(std::vector<glm::vec3>& gvt_normals) {
 
 	float4* normalsBuff;
 
@@ -166,7 +163,7 @@ cudaCreateNormals(
 	for (int i = 0; i < gvt_normals.size(); i++) {
 
 		float4 v = make_float4(gvt_normals[i].x, gvt_normals[i].y,
-				gvt_normals[i].z, gvt_normals[i].w);
+				gvt_normals[i].z, 0.f);
 		normals.push_back(v);
 	}
 
@@ -181,7 +178,7 @@ cudaCreateNormals(
 
 int3*
 cudaCreateFaces(
-		boost::container::vector<boost::tuple<int, int, int> > gvt_faces) {
+		std::vector<gvt::render::data::primitives::Mesh::Face>& gvt_faces) {
 
 	int3* facesBuff;
 
@@ -224,9 +221,8 @@ cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
 	} else if (dynamic_cast<gvt::render::data::primitives::Phong *>(gvtMat) !=
 	NULL) {
 
-		unsigned char *buff =
-				new unsigned char[sizeof(gvt::core::math::Vector4f) * 2
-						+ sizeof(float)];
+		unsigned char *buff = new unsigned char[sizeof(glm::vec3) * 2
+				+ sizeof(float)];
 
 		gvtMat->pack(buff);
 
@@ -240,9 +236,8 @@ cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
 	} else if (dynamic_cast<gvt::render::data::primitives::BlinnPhong *>(gvtMat)
 			!= NULL) {
 
-		unsigned char *buff =
-				new unsigned char[sizeof(gvt::core::math::Vector4f) * 2
-						+ sizeof(float)];
+		unsigned char *buff = new unsigned char[sizeof(glm::vec3) * 2
+				+ sizeof(float)];
 
 		gvtMat->pack(buff);
 
@@ -278,7 +273,7 @@ void cudaSetRays(gvt::render::actor::RayVector::iterator gvtRayVector,
 			localRayCount > std::thread::hardware_concurrency() ?
 					localRayCount / std::thread::hardware_concurrency() : 100;
 
-	std::vector<std::future<void>> _tasks;
+	//std::vector<std::future<void>> _tasks;
 
 	// clang-format off
 //	for (int i = 0; i < localRayCount; i += offset_rays) {
@@ -338,54 +333,94 @@ void cudaGetRays(size_t& localDispatchSize,
 
 	//convertingRaysFromCUDA.resume();
 
-	const int offset_rays =
-			cudaGvtCtx.dispatchCount > std::thread::hardware_concurrency() ?
-					cudaGvtCtx.dispatchCount
-							/ std::thread::hardware_concurrency() :
-					100;
+	tbb::parallel_for(tbb::blocked_range<int>(0, cudaGvtCtx.dispatchCount),
+			[&](tbb::blocked_range<int> chunk) {
+				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
+					if (jj < cudaGvtCtx.dispatchCount) {
+						gvt::render::actor::Ray& gvtRay =
+						localDispatch[localDispatchSize + jj];
+						const gvt::render::data::cuda_primitives::Ray& cudaRay =
+						disp_tmp[jj];
 
-	std::vector<std::future<void>> _tasks;
+						const gvt::render::actor::Ray& originalRay =
+						rayList[cudaRay.mapToHostBufferID];
 
-	for (int i = 0; i < cudaGvtCtx.dispatchCount; i += offset_rays) {
-		_tasks.push_back(
-				std::async(std::launch::async,
-						[&](const int ii, const int end) {
+						cudaRayToGvtRay(cudaRay, gvtRay);
 
-							for (int jj = ii; jj < end; jj++) {
-								if (jj < cudaGvtCtx.dispatchCount) {
-									gvt::render::actor::Ray& gvtRay =
-									localDispatch[localDispatchSize + jj];
-									const gvt::render::data::cuda_primitives::Ray& cudaRay =
-									disp_tmp[jj];
+						gvtRay.setDirection(gvtRay.direction);
+						gvtRay.id = originalRay.id;
 
-									const gvt::render::actor::Ray& originalRay =
-									rayList[cudaRay.mapToHostBufferID];
+						if (gvtRay.type
+								!= gvt::render::data::cuda_primitives::Ray::SHADOW
+								&& originalRay.domains.size() != 0) {
 
-									cudaRayToGvtRay(cudaRay, gvtRay);
+							gvtRay.domains = originalRay.domains;
+						} else {
+							gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
+							gvtRay.domains.clear();
+						}
 
-									gvtRay.setDirection(gvtRay.direction);
-									gvtRay.id = originalRay.id;
+						//avoid contructor
+						//localDispatch.push_back(gvtR);
+					}
+				}
+			});
 
-									if (gvtRay.type
-											!= gvt::render::data::cuda_primitives::Ray::SHADOW
-											&& originalRay.domains.size() != 0) {
-
-										gvtRay.domains = originalRay.domains;
-									} else {
-										gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
-										gvtRay.domains.clear();
-									}
-
-									//avoid contructor
-									//localDispatch.push_back(gvtR);
-								}
-							}
-
-						}, i, i + offset_rays));
-	}
-
-	for (auto &f : _tasks)
-		f.wait();
+//
+//
+//
+//
+//
+//
+//
+//	const int offset_rays =
+//			cudaGvtCtx.dispatchCount > std::thread::hardware_concurrency() ?
+//					cudaGvtCtx.dispatchCount
+//							/ std::thread::hardware_concurrency() :
+//					100;
+//
+//	//std::vector<std::future<void>> _tasks;
+//
+//	for (int i = 0; i < cudaGvtCtx.dispatchCount; i += offset_rays) {
+//		_tasks.push_back(
+//				std::async(std::launch::async,
+//						[&](const int ii, const int end) {
+//
+//							for (int jj = ii; jj < end; jj++) {
+//								if (jj < cudaGvtCtx.dispatchCount) {
+//									gvt::render::actor::Ray& gvtRay =
+//									localDispatch[localDispatchSize + jj];
+//									const gvt::render::data::cuda_primitives::Ray& cudaRay =
+//									disp_tmp[jj];
+//
+//									const gvt::render::actor::Ray& originalRay =
+//									rayList[cudaRay.mapToHostBufferID];
+//
+//									cudaRayToGvtRay(cudaRay, gvtRay);
+//
+//									gvtRay.setDirection(gvtRay.direction);
+//									gvtRay.id = originalRay.id;
+//
+//									if (gvtRay.type
+//											!= gvt::render::data::cuda_primitives::Ray::SHADOW
+//											&& originalRay.domains.size() != 0) {
+//
+//										gvtRay.domains = originalRay.domains;
+//									} else {
+//										gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
+//										gvtRay.domains.clear();
+//									}
+//
+//									//avoid contructor
+//									//localDispatch.push_back(gvtR);
+//								}
+//							}
+//
+//						}, i, i + offset_rays));
+//	}
+//
+//	for (auto &f : _tasks)
+//		f.wait();
 
 	localDispatchSize += cudaGvtCtx.dispatchCount;
 	cudaGvtCtx.dispatchCount = 0;
@@ -471,10 +506,10 @@ void gvt::render::data::cuda_primitives::CudaGvtContext::initCudaBuffers(
 	std::vector<gvt::render::data::scene::Light *> lights;
 	lights.reserve(2);
 	for (auto lightNode : lightNodes) {
-		auto color = lightNode["color"].value().toVector4f();
+		auto color = lightNode["color"].value().tovec3();
 
 		if (lightNode.name() == std::string("PointLight")) {
-			auto pos = lightNode["position"].value().toVector4f();
+			auto pos = lightNode["position"].value().tovec3();
 			lights.push_back(
 					new gvt::render::data::scene::PointLight(pos, color));
 		} else if (lightNode.name() == std::string("AmbientLight")) {
@@ -561,7 +596,6 @@ void gvt::render::data::cuda_primitives::CudaGvtContext::initCudaBuffers(
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::optix::data;
 using namespace gvt::render::data::primitives;
-using namespace gvt::core::math;
 
 static std::atomic<size_t> counter(0);
 
@@ -646,14 +680,11 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) :
 	cudaMallocHost(&(cudaRaysBuff[1]),
 			sizeof(gvt::render::data::cuda_primitives::Ray) * packetSize);
 
-	cudaMallocHost(&(m_pinned),
-			sizeof(gvt::core::math::AffineTransformMatrix<float>));
+	cudaMallocHost(&(m_pinned), sizeof(glm::mat4));
 
-	cudaMallocHost(&(minv_pinned),
-			sizeof(gvt::core::math::AffineTransformMatrix<float>));
+	cudaMallocHost(&(minv_pinned), sizeof(glm::mat4));
 
-
-	cudaMallocHost(&(normi_pinned), sizeof(gvt::core::math::Matrix3f));
+	cudaMallocHost(&(normi_pinned), sizeof(glm::mat3));
 
 	// Setup the buffer to hold our vertices.
 	//
@@ -663,47 +694,68 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) :
 	vertices.resize(numVerts * 3);
 	faces.resize(numTris * 3);
 
-	const int offset_verts =
-			numVerts > std::thread::hardware_concurrency() ?
-					numVerts / std::thread::hardware_concurrency() : 100;
+	tbb::parallel_for(tbb::blocked_range<int>(0, numVerts),
+			[&](tbb::blocked_range<int> chunk) {
+				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
+					vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+					vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+					vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+				}
+			});
 
-	std::vector<std::future<void>> _tasks;
+	tbb::parallel_for(tbb::blocked_range<int>(0, numTris),
+			[&](tbb::blocked_range<int> chunk) {
+				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
+					gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+					faces[jj * 3 + 0] = f.get<0>();
+					faces[jj * 3 + 1] = f.get<1>();
+					faces[jj * 3 + 2] = f.get<2>();
+				}
+			});
 
-	// clang-format off
-	for (int i = 0; i < numVerts; i += offset_verts) {
-		_tasks.push_back(
-				std::async(std::launch::async,
-						[&](const int ii, const int end) {
-							for (int jj = ii; jj < end && jj < numVerts; jj++) {
-								vertices[jj * 3 + 0] = mesh->vertices[jj][0];
-								vertices[jj * 3 + 1] = mesh->vertices[jj][1];
-								vertices[jj * 3 + 2] = mesh->vertices[jj][2];
-							}
-						}, i, i + offset_verts));
-	}
-	// clang-format on
-
-	const int offset_tris =
-			numTris > std::thread::hardware_concurrency() ?
-					numTris / std::thread::hardware_concurrency() : 100;
-
-	// clang-format off
-	for (int i = 0; i < numTris; i += offset_tris) {
-		_tasks.push_back(
-				std::async(std::launch::async,
-						[&](const int ii, const int end) {
-							for (int jj = ii; jj < end && jj < numTris; jj++) {
-								gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
-								faces[jj * 3 + 0] = f.get<0>();
-								faces[jj * 3 + 1] = f.get<1>();
-								faces[jj * 3 + 2] = f.get<2>();
-							}
-						}, i, i + offset_tris));
-	}
-	// clang-format on
-
-	for (auto &f : _tasks)
-		f.wait();
+//
+//
+//	const int offset_verts =
+//			numVerts > std::thread::hardware_concurrency() ?
+//					numVerts / std::thread::hardware_concurrency() : 100;
+//
+//	std::vector<std::future<void>> _tasks;
+//
+//	// clang-format off
+//	for (int i = 0; i < numVerts; i += offset_verts) {
+//		_tasks.push_back(
+//				std::async(std::launch::async,
+//						[&](const int ii, const int end) {
+//							for (int jj = ii; jj < end && jj < numVerts; jj++) {
+//								vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+//								vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+//								vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+//							}
+//						}, i, i + offset_verts));
+//	}
+//	// clang-format on
+//
+//	const int offset_tris =
+//			numTris > std::thread::hardware_concurrency() ?
+//					numTris / std::thread::hardware_concurrency() : 100;
+//
+//	// clang-format off
+//	for (int i = 0; i < numTris; i += offset_tris) {
+//		_tasks.push_back(
+//				std::async(std::launch::async,
+//						[&](const int ii, const int end) {
+//							for (int jj = ii; jj < end && jj < numTris; jj++) {
+//								gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+//								faces[jj * 3 + 0] = f.get<0>();
+//								faces[jj * 3 + 1] = f.get<1>();
+//								faces[jj * 3 + 2] = f.get<2>();
+//							}
+//						}, i, i + offset_tris));
+//	}
+//	// clang-format on
+//
+//	for (auto &f : _tasks)
+//		f.wait();
 
 	printf("Copying geometry to device...\n");
 
@@ -778,17 +830,17 @@ struct OptixParallelTrace {
 	 *
 	 * Stored transformation matrix in the current instance
 	 */
-	const gvt::core::math::AffineTransformMatrix<float> *m;
+	const glm::mat4 *m;
 
 	/**
 	 * Stored inverse transformation matrix in the current instance
 	 */
-	const gvt::core::math::AffineTransformMatrix<float> *minv;
+	const glm::mat4 *minv;
 
 	/**
 	 * Stored upper33 inverse matrix in the current instance
 	 */
-	const gvt::core::math::Matrix3f *normi;
+	const glm::mat3 *normi;
 
 	/**
 	 * Stored transformation matrix in the current instance
@@ -831,10 +883,8 @@ struct OptixParallelTrace {
 			gvt::render::actor::RayVector::iterator &rayList,
 			gvt::render::actor::RayVector &moved_rays,
 			//std::atomic<size_t> &sharedIdx, const size_t workSize,
-			gvt::core::DBNodeH instNode,
-			gvt::core::math::AffineTransformMatrix<float> *m,
-			gvt::core::math::AffineTransformMatrix<float> *minv,
-			gvt::core::math::Matrix3f *normi,
+			gvt::core::DBNodeH instNode, glm::mat4 *m, glm::mat4 *minv,
+			glm::mat3 *normi,
 			//std::vector<gvt::render::data::scene::Light *> &lights,
 			std::atomic<size_t> &counter, const size_t begin, const size_t end,
 			gvt::render::data::cuda_primitives::Ray* disp_Buff,
@@ -967,12 +1017,11 @@ struct OptixParallelTrace {
 
 		//Mesh instance specific data
 		gpuErrchk(
-				cudaMemcpyAsync(cudaGvtCtx.normi, &(normi->n[0]),
-						sizeof(gvt::render::data::cuda_primitives::Matrix3f),
-						cudaMemcpyHostToDevice, cudaGvtCtx.stream));
+				cudaMemcpyAsync(cudaGvtCtx.normi, &(normi[0]),
+						sizeof(glm::mat3), cudaMemcpyHostToDevice,
+						cudaGvtCtx.stream));
 		gpuErrchk(
-				cudaMemcpyAsync(cudaGvtCtx.minv, &(minv->n[0]),
-						sizeof(gvt::render::data::cuda_primitives::Matrix4f),
+				cudaMemcpyAsync(cudaGvtCtx.minv, &(minv[0]), sizeof(glm::mat4),
 						cudaMemcpyHostToDevice, cudaGvtCtx.stream));
 
 		//copydata.stop();
@@ -1033,7 +1082,7 @@ struct OptixParallelTrace {
 
 		//addToMoved.resume();
 		// copy localDispatch rays to outgoing rays queue
-		boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
+		std::unique_lock < std::mutex > moved(adapter->_outqueue);
 
 		for (int i = 0; i < localDispatchSize; i++) {
 			moved_rays.push_back(localDispatch[i]);
@@ -1071,22 +1120,17 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 
 	gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
 
-	gvt::core::math::AffineTransformMatrix<float> * m =
-			(gvt::core::math::AffineTransformMatrix<float> *) instNode["mat"].value().toULongLong();
-
+	glm::mat4 * m = (glm::mat4 *) instNode["mat"].value().toULongLong();
 
 	*m_pinned = *m;
 	m = m_pinned;
 
-	gvt::core::math::AffineTransformMatrix<float> * minv =
-			(gvt::core::math::AffineTransformMatrix<float> *) instNode["matInv"].value().toULongLong();
+	glm::mat4 * minv = (glm::mat4 *) instNode["matInv"].value().toULongLong();
 
 	*minv_pinned = *minv;
 	minv = minv_pinned;
 
-	gvt::core::math::Matrix3f * normi =
-			(gvt::core::math::Matrix3f *) instNode["normi"].value().toULongLong();
-
+	glm::mat3 * normi = (glm::mat3 *) instNode["normi"].value().toULongLong();
 
 	*normi_pinned = *normi;
 	normi = normi_pinned;

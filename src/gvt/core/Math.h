@@ -31,9 +31,34 @@
 #ifndef GVT_CORE_MATH_H
 #define GVT_CORE_MATH_H
 
-#include <gvt/core/math/Angle.h>
-#include <gvt/core/math/Constants.h>
-#include <gvt/core/math/Vector.h>
-#include <gvt/core/math/Matrix.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/mat3x4.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <iostream>
+
+namespace glm {
+inline std::ostream &operator<<(std::ostream &os, const glm::vec3 &v) {
+  return os << "{" << v[0] << ", " << v[1] << ", " << v[2] << "}";
+}
+inline std::ostream &operator<<(std::ostream &os, const glm::vec4 &v) {
+  return os << "{" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << "}";
+}
+inline std::ostream &operator<<(std::ostream &os, const glm::mat4 &v) {
+  return os << "{" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << "}";
+}
+inline std::ostream &operator<<(std::ostream &os, const glm::mat4 *v) {
+  return os << "{" << (*v)[0] << ", " << (*v)[1] << ", " << (*v)[2] << ", " << (*v)[3] << "}";
+}
+inline std::ostream &operator<<(std::ostream &os, const glm::mat3 &v) {
+  return os << "{" << v[0] << ", " << v[1] << ", " << v[2] << "}";
+}
+inline std::ostream &operator<<(std::ostream &os, const glm::mat3 *v) {
+  return os << "{" << (*v)[0] << ", " << (*v)[1] << ", " << (*v)[2] << "}";
+}
+};
 
 #endif /* GVT_CORE_MATH_H */

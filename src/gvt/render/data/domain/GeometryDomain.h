@@ -46,7 +46,7 @@ namespace domain {
 class GeometryDomain : public AbstractDomain {
 public:
   GeometryDomain(std::string filename = "",
-                 gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true))
+                 glm::mat4 m = glm::mat4(true))
       : AbstractDomain(m), mesh(NULL), filename(filename) {
     if (filename != "") {
       load();
@@ -54,7 +54,7 @@ public:
   }
 
   GeometryDomain(gvt::render::data::primitives::Mesh *mesh,
-                 gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true))
+                 glm::mat4 m = glm::mat4(true))
       : AbstractDomain(m), mesh(NULL), filename("") {
     if (mesh != NULL) {
       this->mesh = mesh;

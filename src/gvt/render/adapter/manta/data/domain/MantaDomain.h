@@ -66,7 +66,7 @@ class MantaDomain : public gvt::render::data::domain::GeometryDomain {
 public:
   MantaDomain(gvt::render::data::domain::GeometryDomain *domain);
   MantaDomain(std::string filename = "",
-              gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true));
+              glm::mat4 m = glm::mat4(true));
   MantaDomain(const MantaDomain &other);
   virtual ~MantaDomain();
 

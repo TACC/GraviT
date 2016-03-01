@@ -36,8 +36,8 @@
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::heterogeneous::data;
-using namespace gvt::render::data::primitives;
-using namespace gvt::core::math;
+//using namespace gvt::render::data::primitives;
+
 
 HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
   _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(node);

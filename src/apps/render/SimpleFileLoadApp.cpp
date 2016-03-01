@@ -25,14 +25,14 @@
 // Simple gravit application.
 // Load some geometry and render it.
 //
-#include <gvt/render/RenderContext.h>
-#include <gvt/render/Types.h>
-#include <vector>
 #include <algorithm>
-#include <set>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/mpi/Wrapper.h>
+#include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
+#include <gvt/render/Types.h>
+#include <set>
+#include <vector>
 
 #include <tbb/task_scheduler_init.h>
 #include <thread>
@@ -50,10 +50,10 @@
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>
-#include <gvt/render/data/scene/gvtCamera.h>
-#include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/domain/reader/ObjReader.h>
+#include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 
 #include <boost/range/algorithm.hpp>
 
@@ -61,7 +61,7 @@
 
 using namespace std;
 using namespace gvt::render;
-using namespace gvt::core::math;
+
 using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
@@ -116,20 +116,25 @@ int main(int argc, char **argv) {
 
   // transform bunny
   float scale = 1.0;
-  auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
-  auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
-  auto normi = new gvt::core::math::Matrix3f();
-  *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, 0.0, 0.0);
-  *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(scale, scale, scale);
+  auto m = new glm::mat4(1.f);
+  auto minv = new glm::mat4(1.f);
+  auto normi = new glm::mat3(1.f);
+  //*m = glm::translate(*m, glm::vec3(0, 0, 0));
+  //*m *glm::mat4::createTranslation(0.0, 0.0, 0.0);
+  //*m = *m * glm::mat4::createScale(scale, scale, scale);
+  *m = glm::scale(*m, glm::vec3(scale, scale, scale));
+
+  std::cout << *m << std::endl;
+
   instnode["mat"] = (unsigned long long)m;
-  *minv = m->inverse();
+  *minv = glm::inverse(*m);
   instnode["matInv"] = (unsigned long long)minv;
-  *normi = m->upper33().inverse().transpose();
+  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   instnode["normi"] = (unsigned long long)normi;
 
   // transform mesh bounding box
-  auto il = (*m) * mbox->bounds[0];
-  auto ih = (*m) * mbox->bounds[1];
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
@@ -137,14 +142,14 @@ int main(int argc, char **argv) {
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "light", lightNodes.UUID());
-  lightNode["position"] = Vector4f(0.0, 0.1, 0.5, 0.0);
-  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(0.0, 0.1, 0.5);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   // set the camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "cam", root.UUID());
-  camNode["eyePoint"] = Point4f(0.0, 0.1, 0.3, 1.0);
-  camNode["focus"] = Point4f(0.0, 0.1, -0.3, 1.0);
-  camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(0.0, 0.1, 0.3);
+  camNode["focus"] = glm::vec3(0.0, 0.1, -0.3);
+  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
   // set image width/height
@@ -183,10 +188,10 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
-  Point4f focus = camNode["focus"].value().toPoint4f();
+  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
-  Vector4f up = camNode["upVector"].value().toVector4f();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());

@@ -27,8 +27,8 @@
 #include <gvt/core/DatabaseNode.h>
 #include <gvt/render/actor/Ray.h>
 
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
+#include <thread>
 
 namespace gvt {
 namespace render {
@@ -62,8 +62,8 @@ public:
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                      gvt::core::DBNodeH instNode, size_t begin = 0, size_t end = 0) = 0;
 
-  boost::mutex _inqueue;
-  boost::mutex _outqueue;
+  std::mutex _inqueue;
+  std::mutex _outqueue;
 };
 
 } // render

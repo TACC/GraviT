@@ -198,9 +198,9 @@ protected:
 
 		gvt::render::data::cuda_primitives::Ray* cudaRaysBuff[2];
 
-		gvt::core::math::AffineTransformMatrix<float> *m_pinned;
-		gvt::core::math::AffineTransformMatrix<float> *minv_pinned;
-		gvt::core::math::Matrix3f *normi_pinned;
+		glm::mat4 *m_pinned;
+		glm::mat4 *minv_pinned;
+		glm::mat3* normi_pinned;
 };
 }
 }

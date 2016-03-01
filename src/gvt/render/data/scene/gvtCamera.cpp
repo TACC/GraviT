@@ -21,26 +21,25 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#include <gvt/render/data/scene/gvtCamera.h>
 #include <boost/timer/timer.hpp>
+#include <gvt/render/data/scene/gvtCamera.h>
 
-using namespace gvt::core::math;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::actor;
 
 // Camera base class methods
 gvtCameraBase::gvtCameraBase() {
-  eye_point = Point4f(0, 0, 0, 1);
-  focal_point = Point4f(0, 0, 0, 1);
-  up_vector = Vector4f(0, 1, 0, 0);
-  view_direction = Vector4f(0, 0, -1, 0);
+  eye_point = glm::vec3(0, 0, 0);
+  focal_point = glm::vec3(0, 0, 0);
+  up_vector = glm::vec3(0, 1, 0);
+  view_direction = glm::vec3(0, 0, -1);
   filmsize[0] = 512;
   filmsize[1] = 512;
-  u = Vector4f(1, 0, 0, 0);
-  v = Vector4f(0, 1, 0, 0);
-  w = Vector4f(0, 0, 1, 0);
-  cam2wrld = AffineTransformMatrix<float>(true);
-  wrld2cam = AffineTransformMatrix<float>(true);
+  u = glm::vec3(1, 0, 0);
+  v = glm::vec3(0, 1, 0);
+  w = glm::vec3(0, 0, 1);
+  cam2wrld = glm::mat4(1.f);
+  wrld2cam = glm::mat4(1.f);
   INVRAND_MAX = 1.0 / (float)RAND_MAX;
 }
 gvtCameraBase::gvtCameraBase(const gvtCameraBase &cam) {
@@ -63,12 +62,11 @@ void gvtCameraBase::buildTransform() {
   // Calculate the w vector that points from the camera to the focal point.
   // Normalize it.
   //
-  w = focal_point - eye_point;
-  w.normalize();
+  w = glm::normalize(focal_point - eye_point);
   //
   // V direction is the camera up vector.
   //
-  v = up_vector.normalize();
+  v = glm::normalize(up_vector);
 //
 // U direction is the cross product of the camera up vector and the W vector
 //
@@ -77,8 +75,7 @@ void gvtCameraBase::buildTransform() {
   u[0] = v[1] * w[2] - v[2] * w[1];
   u[1] = v[2] * w[0] - v[0] * w[2];
   u[2] = v[0] * w[1] - v[1] * w[0];
-  u[3] = 0.0;
-  u = u.normalize();
+  u = glm::normalize(u);
 
 #endif
 
@@ -86,8 +83,8 @@ void gvtCameraBase::buildTransform() {
   u[0] = w[1] * v[2] - w[2] * v[1];
   u[1] = w[2] * v[0] - w[0] * v[2];
   u[2] = w[0] * v[1] - w[1] * v[0];
-  u[3] = 0.0;
-  u = u.normalize();
+
+  u = glm::normalize(u);
 #endif
 
 //
@@ -99,47 +96,47 @@ void gvtCameraBase::buildTransform() {
   up_vector[0] = w[1] * u[2] - u[1] * w[2];
   up_vector[1] = w[2] * u[0] - u[2] * w[0];
   up_vector[2] = w[0] * u[1] - u[0] * w[1];
-  up_vector[3] = 0.0;
-  v = up_vector.normalize();
+  // up_vector[3] = 0.0;
+  v = glm::normalize(up_vector);
 #endif
 
 #ifdef RIGHT_HAND_CAMERA
   up_vector[0] = u[1] * w[2] - w[1] * u[2];
   up_vector[1] = u[2] * w[0] - w[2] * u[0];
   up_vector[2] = u[0] * w[1] - w[0] * u[1];
-  up_vector[3] = 0.0;
-  v = up_vector.normalize();
+  // up_vector[3] = 0.0;
+  v = glm::normalize(up_vector);
 #endif
 
   //
   // last column in the camera to world transformation matrix is the eye_point.
   //
-  cam2wrld.n[3] = eye_point[0];
-  cam2wrld.n[7] = eye_point[1];
-  cam2wrld.n[11] = eye_point[2];
-  cam2wrld.n[15] = eye_point[3];
+  cam2wrld[0][3] = eye_point[0];
+  cam2wrld[1][3] = eye_point[1];
+  cam2wrld[2][3] = eye_point[2];
+  cam2wrld[3][3] = 1.f; // eye_point[3];
   //
   // Third column in the camera to world transformation matrix contains the
   // unit vector from the eye_point to the focal_point.
   //
-  cam2wrld.n[2] = w[0];
-  cam2wrld.n[6] = w[1];
-  cam2wrld.n[10] = w[2];
-  cam2wrld.n[14] = w[3];
+  cam2wrld[0][2] = w[0];
+  cam2wrld[1][2] = w[1];
+  cam2wrld[2][2] = w[2];
+  cam2wrld[3][2] = 0.f;
   //
-  cam2wrld.n[1] = v[0];
-  cam2wrld.n[5] = v[1];
-  cam2wrld.n[9] = v[2];
-  cam2wrld.n[13] = v[3];
+  cam2wrld[0][1] = v[0];
+  cam2wrld[1][1] = v[1];
+  cam2wrld[2][1] = v[2];
+  cam2wrld[3][1] = 0.f;
   //
-  cam2wrld.n[0] = u[0];
-  cam2wrld.n[4] = u[1];
-  cam2wrld.n[8] = u[2];
-  cam2wrld.n[12] = u[3];
+  cam2wrld[0][0] = u[0];
+  cam2wrld[1][0] = u[1];
+  cam2wrld[2][0] = u[2];
+  cam2wrld[3][0] = 0.f;
   //
   // invert for world to camera transform
   //
-  wrld2cam = cam2wrld.inverse();
+  wrld2cam = glm::inverse(cam2wrld);
 }
 
 void gvtCameraBase::setFilmsize(const int film_size[]) {
@@ -152,8 +149,8 @@ void gvtCameraBase::setFilmsize(int width, int height) {
 }
 int gvtCameraBase::getFilmSizeWidth() { return filmsize[0]; }
 int gvtCameraBase::getFilmSizeHeight() { return filmsize[1]; }
-void gvtCameraBase::setEye(const Vector4f &eye) { eye_point = eye; }
-void gvtCameraBase::lookAt(Point4f eye, Point4f focus, Vector4f up) {
+void gvtCameraBase::setEye(const glm::vec3 &eye) { eye_point = eye; }
+void gvtCameraBase::lookAt(glm::vec3 eye, glm::vec3 focus, glm::vec3 up) {
   eye_point = eye;
   focal_point = focus;
   view_direction = focal_point - eye_point;
@@ -193,10 +190,10 @@ void gvtPerspectiveCamera::generateRays() {
   float x, y;
   // these basis directions are scaled by the aspect ratio and
   // the field of view.
-  Vector4f camera_vert_basis_vector = Vector4f(0, 1, 0, 0) * tan(field_of_view * 0.5);
-  Vector4f camera_horiz_basis_vector = Vector4f(1, 0, 0, 0) * tan(field_of_view * 0.5) * aspectRatio;
-  Vector4f camera_normal_basis_vector = Vector4f(0, 0, 1, 0);
-  Vector4f camera_space_ray_direction;
+  glm::vec3 camera_vert_basis_vector = glm::vec3(0, 1, 0) * tanf(field_of_view * 0.5);
+  glm::vec3 camera_horiz_basis_vector = glm::vec3(1, 0, 0) * tanf(field_of_view * 0.5) * aspectRatio;
+  glm::vec3 camera_normal_basis_vector = glm::vec3(0, 0, 1);
+  glm::vec3 camera_space_ray_direction;
   for (j = 0; j < buffer_height; j++)
     for (i = 0; i < buffer_width; i++) {
       // select a ray and load it up
@@ -213,7 +210,7 @@ void gvtPerspectiveCamera::generateRays() {
       camera_space_ray_direction =
           camera_normal_basis_vector + x * camera_horiz_basis_vector + y * camera_vert_basis_vector;
       // transform ray to world coordinate space;
-      ray.setDirection(cam2wrld * camera_space_ray_direction.normalize());
+      ray.setDirection(glm::vec3(cam2wrld * glm::vec4(camera_space_ray_direction, 0.f)));
       ray.depth = depth;
     }
 }

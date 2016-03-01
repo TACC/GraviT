@@ -36,11 +36,10 @@
 #ifdef GVT_USE_MPE
 #include "mpe.h"
 #endif
-#include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/render/RenderContext.h>
+#include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/Schedulers.h>
-#include <gvt/render/RenderContext.h>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
@@ -369,8 +368,8 @@ public:
 
   // FIXME: update FindNeighbors to use mpiInstanceMap
   virtual void FindNeighbors() {
-    gvt::core::math::Vector3f topo;
-    topo = rootnode["Dataset"]["topology"].value().toVector3f();
+    glm::vec3 topo;
+    topo = rootnode["Dataset"]["topology"].value().tovec3();
     int total = topo[2], plane = topo[1], row = topo[0]; // XXX TODO:
     // int total = gvt::render::Attributes::rta->GetTopology()[2],
     //   plane = gvt::render::Attributes::rta->GetTopology()[1],

@@ -29,7 +29,6 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
-#include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/manta/data/Transforms.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
@@ -103,8 +102,7 @@ MantaDomain::MantaDomain(GeometryDomain *domain) : GeometryDomain(*domain) {
                                scene /*scene*/, 0 /*thread_storage*/, rng /*rngs*/, 0 /*samplegenerator*/);
 }
 
-MantaDomain::MantaDomain(std::string filename, gvt::core::math::AffineTransformMatrix<float> m)
-    : gvt::render::data::domain::GeometryDomain(filename, m) {}
+MantaDomain::MantaDomain(std::string filename, glm::mat4 m) : gvt::render::data::domain::GeometryDomain(filename, m) {}
 
 MantaDomain::MantaDomain(const MantaDomain &other) : gvt::render::data::domain::GeometryDomain(other) {}
 
@@ -188,7 +186,7 @@ struct parallelTrace {
     //                }
 
     while (!rayList.empty()) {
-      boost::unique_lock<boost::mutex> queue(dom->_inqueue);
+      std::unique_lock<std::mutex> queue(dom->_inqueue);
       std::size_t range = std::min(workSize, rayList.size());
       localQueue.assign(rayList.begin(), rayList.begin() + range);
       rayList.erase(rayList.begin(), rayList.begin() + range);
@@ -228,9 +226,8 @@ struct parallelTrace {
             float t = mRays.getMinT(pindex);
             rayPacket[pindex].t = t;
 
-            gvt::core::math::Vector4f normal =
-                dom->toWorld(gvt::render::adapter::manta::data::transform<Manta::Vector, gvt::core::math::Vector4f>(
-                    mRays.getNormal(pindex)));
+            glm::vec3 normal = dom->toWorld(
+                gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec3>(mRays.getNormal(pindex)));
 
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) {
               t = (t > 1) ? 1.f / t : t;
@@ -259,8 +256,7 @@ struct parallelTrace {
               ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SECONDARY;
               ray.origin = ray.origin + ray.direction * ray.t;
-              ray.setDirection(
-                  dom->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+              ray.setDirection(dom->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
               ray.w = ray.w * (ray.direction * normal);
               ray.depth = ndepth;
               localQueue.push_back(ray);
@@ -277,7 +273,7 @@ struct parallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
 
-    boost::unique_lock<boost::mutex> moved(dom->_outqueue);
+    std::unique_lock<std::mutex> moved(dom->_outqueue);
     moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }

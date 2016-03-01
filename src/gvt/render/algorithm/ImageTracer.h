@@ -33,19 +33,19 @@
 
 #include <mpi.h>
 
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Types.h>
-#include <gvt/render/Types.h>
+#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/Schedulers.h>
+#include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
 
-//#ifdef GVT_RENDER_ADAPTER_MANTA
+#ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/Wrapper.h>
-//#endif
+#endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/Wrapper.h>

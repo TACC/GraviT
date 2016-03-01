@@ -31,9 +31,9 @@
 #ifndef GVT_RENDER_DATA_SCENE_LIGHT_H
 #define GVT_RENDER_DATA_SCENE_LIGHT_H
 
+#include <gvt/core/Math.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
-#include <gvt/core/Math.h>
 
 namespace gvt {
 namespace render {
@@ -44,13 +44,13 @@ namespace scene {
 */
 class Light {
 public:
-  Light(const gvt::core::math::Point4f position = gvt::core::math::Point4f());
+  Light(const glm::vec3 position = glm::vec3());
   Light(const Light &orig);
   virtual ~Light();
 
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
+  virtual glm::vec3 contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Point4f position;
+  glm::vec3 position;
 
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
@@ -60,25 +60,24 @@ public:
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public Light {
 public:
-  AmbientLight(const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
+  AmbientLight(const glm::vec3 color = glm::vec3(1.f, 1.f, 1.f));
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
+  virtual glm::vec3 contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Vector4f color;
+  glm::vec3 color;
 };
 /// point light source
 class PointLight : public Light {
 public:
-  PointLight(const gvt::core::math::Point4f position = gvt::core::math::Point4f(),
-             const gvt::core::math::Vector4f color = gvt::core::math::Vector4f(1.f, 1.f, 1.f, 0.f));
+  PointLight(const glm::vec3 position = glm::vec3(), const glm::vec3 color = glm::vec3(1.f, 1.f, 1.f));
   PointLight(const PointLight &orig);
   virtual ~PointLight();
 
-  virtual gvt::core::math::Vector4f contribution(const gvt::render::actor::Ray &ray) const;
+  virtual glm::vec3 contribution(const gvt::render::actor::Ray &ray) const;
 
-  gvt::core::math::Vector4f color;
+  glm::vec3 color;
 };
 }
 }

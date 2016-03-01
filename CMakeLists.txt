@@ -115,7 +115,9 @@ SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
 find_package(TBB REQUIRED)
 
+
 include_directories(${TBB_INCLUDE_DIRS})
+include_directories(${GLM_DIR})
 
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
@@ -166,21 +168,12 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/Database.h
 	src/gvt/core/DatabaseNode.h
 	src/gvt/core/Debug.h
-	src/gvt/core/math/Angle.h
-	src/gvt/core/math/Constants.h
-	src/gvt/core/math/Function.h
-	src/gvt/core/math/Matrix.h
-	src/gvt/core/math/MatrixOperation.inl
-	src/gvt/core/math/Unit.h
-	src/gvt/core/math/Vector.h
-	src/gvt/core/math/VectorOperators.inl
 	src/gvt/core/Math.h
 	src/gvt/core/mpi/Comm.h
 	src/gvt/core/mpi/CommData.h
 	src/gvt/core/mpi/SingleNode.h
 	src/gvt/core/mpi/Wrapper.h
 	src/gvt/core/schedule/SchedulerBase.h
-	src/gvt/core/schedule/TaskScheduling.h
 	src/gvt/core/Schedule.h
 	src/gvt/core/String.h
 	src/gvt/core/Types.h
@@ -193,7 +186,6 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 	src/gvt/core/CoreContext.cpp
 	src/gvt/core/Database.cpp
 	src/gvt/core/DatabaseNode.cpp
-	src/gvt/core/schedule/TaskScheduling.cpp
 	src/gvt/core/Uuid.cpp
 	src/gvt/core/Variant.cpp
 	)
@@ -206,9 +198,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/algorithm/ImageTracer.h
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
-	src/gvt/render/Attributes.h
 	src/gvt/render/RenderContext.h
-	src/gvt/render/data/Dataset.h
 	src/gvt/render/data/DerivedTypes.h
 	src/gvt/render/data/domain/AbstractDomain.h
 	src/gvt/render/data/domain/Cell.h
@@ -220,7 +210,6 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/primitives/BBox.h
 	src/gvt/render/data/primitives/Material.h
 	src/gvt/render/data/primitives/Mesh.h
-	src/gvt/render/data/scene/Camera.h
 	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
@@ -247,9 +236,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
-	src/gvt/render/Attributes.cpp
 	src/gvt/render/RenderContext.cpp
-	src/gvt/render/data/Dataset.cpp
 	src/gvt/render/data/domain/AbstractDomain.cpp
 	src/gvt/render/data/domain/Cell.cpp
 	src/gvt/render/data/domain/GeometryDomain.cpp
@@ -258,7 +245,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
-	src/gvt/render/data/scene/Camera.cpp
 	src/gvt/render/data/scene/gvtCamera.cpp
 	src/gvt/render/data/scene/ColorAccumulator.cpp
 	src/gvt/render/data/scene/Image.cpp
