@@ -208,8 +208,14 @@ public:
 
                           if (next != -1) {
                             r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
-                            local_queue[next].push_back(r);
-                          } else {
+                            // local_queue[next].push_back(r);
+                            queue_mutex[next].lock();
+                            queue[next].push_back(r);
+                            // queue[q.first].insert(queue[q.first].end(),
+                            //                       std::make_move_iterator(local_queue[q.first].begin()),
+                            //                       std::make_move_iterator(local_queue[q.first].end()));
+                            queue_mutex[next].unlock();
+                          } else if (domID != -1) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
                             for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
                             colorBuf[r.id].rgba[3] = r.w;

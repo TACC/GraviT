@@ -111,7 +111,7 @@ static Face **flist;
 
 int main(int argc, char **argv) {
 
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  tbb::task_scheduler_init init(std::thread::hardware_concurrency() / 2);
 
   ParseCommandLine cmd("gvtPly");
 

@@ -161,18 +161,12 @@ public:
   }
 
   inline void operator()() {
-    boost::timer::cpu_timer t_frame;
-    t_frame.start();
-    boost::timer::cpu_timer t_trace;
-    t_trace.stop();
-    boost::timer::cpu_timer t_sort;
-    t_sort.stop();
-    boost::timer::cpu_timer t_shuffle;
-    t_shuffle.stop();
-    boost::timer::cpu_timer t_send;
-    t_send.stop();
-    boost::timer::cpu_timer t_gather;
-    t_gather.stop();
+    gvt::core::time::timer t_trace(false);
+    gvt::core::time::timer t_sort(false);
+    gvt::core::time::timer t_shuffle(false);
+    gvt::core::time::timer t_gather(false);
+    gvt::core::time::timer t_send(false);
+    gvt::core::time::timer t_frame(true);
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
@@ -274,9 +268,7 @@ public:
               adapter = it->second;
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
                                                                                  << (void *)adapter);
-            }
-            else
-            {
+            } else {
               adapter = 0;
             }
             if (!adapter) {
@@ -398,6 +390,8 @@ public:
 #endif
     std::cout << "domain scheduler: gather time: " << t_gather.format();
     std::cout << "domain scheduler: frame time: " << t_frame.format();
+    gvt::core::time::timer a = t_sort + t_trace + t_shuffle + t_gather + t_send;
+    std::cout << "image scheduler: added time: " << a.format() << " : " << (t_frame - a).format() << std::endl;
   }
 
   // FIXME: update FindNeighbors to use mpiInstanceMap
