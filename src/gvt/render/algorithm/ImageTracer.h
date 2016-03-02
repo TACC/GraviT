@@ -162,6 +162,10 @@ public:
         if (it != adapterCache.end()) {
           adapter = it->second;
         }
+        else
+        {
+          adapter = 0;
+        }
         if (!adapter) {
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
           switch (adapterType) {

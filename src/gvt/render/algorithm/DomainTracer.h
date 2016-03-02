@@ -277,6 +277,10 @@ public:
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
                                                                                  << (void *)adapter);
             }
+            else
+            {
+              adapter = 0;
+            }
             if (!adapter) {
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
               switch (adapterType) {
