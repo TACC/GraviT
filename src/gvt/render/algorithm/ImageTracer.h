@@ -225,6 +225,9 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
     t_gather.resume();
     this->gatherFramebuffers(this->rays.size());
+
+#ifdef GVT_TESTING
+
     t_gather.stop();
     t_frame.stop();
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
@@ -241,6 +244,7 @@ public:
     gvt::core::time::timer a = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter;
     std::cout << "image scheduler: added time: " << a.format() << " { unaccounted time: " << (t_frame - a).format()
               << " }" << std::endl;
+#endif
   }
 };
 }
