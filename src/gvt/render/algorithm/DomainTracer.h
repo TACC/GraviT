@@ -161,12 +161,24 @@ public:
   }
 
   inline void operator()() {
-    gvt::core::time::timer t_trace(false);
-    gvt::core::time::timer t_sort(false);
-    gvt::core::time::timer t_shuffle(false);
-    gvt::core::time::timer t_gather(false);
-    gvt::core::time::timer t_send(false);
-    gvt::core::time::timer t_frame(true);
+
+    gvt::core::time::timer t_diff(false, "domain tracer: diff timers/frame:");
+    gvt::core::time::timer t_all(false, "domain tracer: all timers:");
+    gvt::core::time::timer t_frame(true, "domain tracer: frame :");
+    gvt::core::time::timer t_gather(false, "domain tracer: gather :");
+    gvt::core::time::timer t_send(false, "domain tracer: send :");
+    gvt::core::time::timer t_shuffle(false, "domain tracer: shuffle :");
+    gvt::core::time::timer t_trace(false, "domain tracer: trace :");
+    gvt::core::time::timer t_sort(false, "domain tracer: select :");
+    gvt::core::time::timer t_adapter(false, "domain tracer: adapter :");
+    gvt::core::time::timer t_filter(false, "domain tracer: filter :");
+
+    // gvt::core::time::timer t_trace(false);
+    // gvt::core::time::timer t_sort(false);
+    // gvt::core::time::timer t_shuffle(false);
+    // gvt::core::time::timer t_gather(false);
+    // gvt::core::time::timer t_send(false);
+    // gvt::core::time::timer t_frame(true);
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
@@ -373,10 +385,10 @@ public:
       }
     }
 
-    std::cout << "domain scheduler: select time: " << t_sort.format();
-    std::cout << "domain scheduler: trace time: " << t_trace.format();
-    std::cout << "domain scheduler: shuffle time: " << t_shuffle.format();
-    std::cout << "domain scheduler: send time: " << t_send.format();
+// std::cout << "domain scheduler: select time: " << t_sort.format();
+// std::cout << "domain scheduler: trace time: " << t_trace.format();
+// std::cout << "domain scheduler: shuffle time: " << t_shuffle.format();
+// std::cout << "domain scheduler: send time: " << t_send.format();
 
 // add colors to the framebuffer
 #ifdef GVT_USE_MPE
@@ -388,10 +400,8 @@ public:
 #ifdef GVT_USE_MPE
     MPE_Log_event(framebufferend, 0, NULL);
 #endif
-    std::cout << "domain scheduler: gather time: " << t_gather.format();
-    std::cout << "domain scheduler: frame time: " << t_frame.format();
-    gvt::core::time::timer a = t_sort + t_trace + t_shuffle + t_gather + t_send;
-    std::cout << "image scheduler: added time: " << a.format() << " : " << (t_frame - a).format() << std::endl;
+    t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter + t_send;
+    t_diff = t_frame - t_all;
   }
 
   // FIXME: update FindNeighbors to use mpiInstanceMap

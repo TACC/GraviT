@@ -1297,7 +1297,7 @@ void ConfigEnzo(std::string rootdir) {
 }
 
 int main(int argc, char *argv[]) {
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency() / 2);
+
   unsigned char action;
   // mpi initialization
 
@@ -1311,6 +1311,7 @@ int main(int argc, char *argv[]) {
   cmd.addoption("scene", ParseCommandLine::PATH, "Use scene file");
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
   cmd.addconflict("enzo", "simple");
   cmd.addconflict("enzo", "scene");
@@ -1321,6 +1322,12 @@ int main(int argc, char *argv[]) {
   // cmd.addrequire("simple", "look");
 
   cmd.parse(argc, argv);
+
+  if (!cmd.isSet("threads")) {
+    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  } else {
+    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);

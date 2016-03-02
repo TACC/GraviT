@@ -109,13 +109,15 @@ public:
 
   inline void operator()() {
 
-    gvt::core::time::timer t_trace(false);
-    gvt::core::time::timer t_sort(false);
-    gvt::core::time::timer t_shuffle(false);
-    gvt::core::time::timer t_gather(false);
-    gvt::core::time::timer t_filter(false);
-    gvt::core::time::timer t_adapter(false);
-    gvt::core::time::timer t_frame(true);
+    gvt::core::time::timer t_diff(false, "image tracer: diff timers/frame:");
+    gvt::core::time::timer t_all(false, "image tracer: all timers:");
+    gvt::core::time::timer t_frame(true, "image tracer: frame :");
+    gvt::core::time::timer t_gather(false, "image tracer: gather :");
+    gvt::core::time::timer t_shuffle(false, "image tracer: shuffle :");
+    gvt::core::time::timer t_trace(false, "image tracer: trace :");
+    gvt::core::time::timer t_sort(false, "image tracer: select :");
+    gvt::core::time::timer t_adapter(false, "image tracer: adapter :");
+    gvt::core::time::timer t_filter(false, "image tracer: filter :");
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
@@ -226,25 +228,22 @@ public:
     t_gather.resume();
     this->gatherFramebuffers(this->rays.size());
 
-#ifdef GVT_TESTING
-
     t_gather.stop();
     t_frame.stop();
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+    // std::cout << "Timers ---------------------------------------------------------------" << std::endl;
+    // std::cout << "image scheduler: filter time: " << t_filter.format() << std::endl;
+    // std::cout << "image scheduler: select time: " << t_sort.format() << std::endl;
+    // std::cout << "image scheduler: adapter time: " << t_adapter.format() << std::endl;
+    // std::cout << "image scheduler: trace time: " << t_trace.format() << std::endl;
+    // std::cout << "image scheduler: shuffle time: " << t_shuffle.format() << std::endl;
+    // std::cout << "image scheduler: gather time: " << t_gather.format() << std::endl;
+    // std::cout << "image scheduler: frame time: " << t_frame.format() << std::endl;
 
-    std::cout << "Timers ---------------------------------------------------------------" << std::endl;
-    std::cout << "image scheduler: filter time: " << t_filter.format() << std::endl;
-    std::cout << "image scheduler: select time: " << t_sort.format() << std::endl;
-    std::cout << "image scheduler: adapter time: " << t_adapter.format() << std::endl;
-    std::cout << "image scheduler: trace time: " << t_trace.format() << std::endl;
-    std::cout << "image scheduler: shuffle time: " << t_shuffle.format() << std::endl;
-    std::cout << "image scheduler: gather time: " << t_gather.format() << std::endl;
-    std::cout << "image scheduler: frame time: " << t_frame.format() << std::endl;
-
-    gvt::core::time::timer a = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter;
-    std::cout << "image scheduler: added time: " << a.format() << " { unaccounted time: " << (t_frame - a).format()
-              << " }" << std::endl;
-#endif
+    t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter;
+    t_diff = t_frame - t_all;
+    // std::cout << "image scheduler: added time: " << a.format() << " { unaccounted time: " << (t_frame - a).format()
+    //           << " }" << std::endl;
   }
 };
 }

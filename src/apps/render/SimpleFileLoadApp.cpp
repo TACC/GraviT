@@ -59,6 +59,8 @@
 
 #include <iostream>
 
+#include "ParseCommandLine.h"
+
 using namespace std;
 using namespace gvt::render;
 
@@ -68,7 +70,21 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  ParseCommandLine cmd("gvtSimple");
+  cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
+  cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
+  cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
+
+  cmd.addconflict("image", "domain");
+  cmd.parse(argc, argv);
+  if (!cmd.isSet("threads")) {
+    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  } else {
+    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
@@ -160,18 +176,30 @@ int main(int argc, char **argv) {
 
   // set image width/height
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
-  // filmNode["width"] = 4096;
-  // filmNode["height"] = 2304;
-
-  // filmNode["width"] = 1920;
-  // filmNode["height"] = 1080;
-
   filmNode["width"] = 512;
   filmNode["height"] = 512;
 
-  // TODO: schedule db design could be modified a bit
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "sched", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
+  if (cmd.isSet("eye")) {
+    std::vector<float> eye = cmd.getValue<float>("eye");
+    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("look")) {
+    std::vector<float> eye = cmd.getValue<float>("look");
+    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+  if (cmd.isSet("wsize")) {
+    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    filmNode["width"] = wsize[0];
+    filmNode["height"] = wsize[1];
+  }
+
+  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
+  if (cmd.isSet("domain"))
+    schedNode["type"] = gvt::render::scheduler::Domain;
+  else
+    schedNode["type"] = gvt::render::scheduler::Image;
+
 // schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
