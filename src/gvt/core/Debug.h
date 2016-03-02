@@ -26,11 +26,11 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <sstream>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <sstream>
-#include <iostream>
-#include <cstring>
 #define __FILE_SHORT__ (strstr(__FILE__, "src/") ? std::strstr(__FILE__, "src/") + 4 : __FILE__)
 
 const char *const DBG_COLOR_NORMAL = "\033[0m";

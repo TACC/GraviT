@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
 
-  //area Light
+  // area Light
   // gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
   // lightNode["position"] = glm::vec3(-0.2, 0.1, 0.9, 0.0);
   // lightNode["color"] = glm::vec3(1.0, 1.0, 1.0, 0.0);
@@ -218,14 +218,14 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
     auto tracer = gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage);
-    tracer.sample_ratio = 1.0/float(samplesSqureRoot*samplesSqureRoot);
+    tracer.sample_ratio = 1.0 / float(samplesSqureRoot * samplesSqureRoot);
     tracer();
     break;
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
     auto tracer = gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage);
-    tracer.sample_ratio = 1.0/float(samplesSqureRoot*samplesSqureRoot);
+    tracer.sample_ratio = 1.0 / float(samplesSqureRoot * samplesSqureRoot);
     tracer();
     break;
   }

@@ -151,11 +151,11 @@ bool Box3D::intersectDistance(const Ray &ray, float &t) const {
 
   glm::vec3 l = (bounds[0] - ray.origin) * ray.inverseDirection;
   glm::vec3 u = (bounds[1] - ray.origin) * ray.inverseDirection;
-  glm::vec3 m = glm::min(l,u);
-  glm::vec3 M = glm::max(l,u);
+  glm::vec3 m = glm::min(l, u);
+  glm::vec3 M = glm::max(l, u);
 
-  float tmin = fastmax(fastmax(m.x,m.y),m.z);
-  float tmax = fastmin(fastmin(M.x,M.y),M.z);
+  float tmin = fastmax(fastmax(m.x, m.y), m.z);
+  float tmax = fastmin(fastmin(M.x, M.y), M.z);
 
   if (tmax < 0 || tmin > tmax) return false;
 

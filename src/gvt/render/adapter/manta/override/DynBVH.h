@@ -24,18 +24,18 @@
 #ifndef _MANTA_DYNBVH_H_
 #define _MANTA_DYNBVH_H_
 
-#include <Model/Groups/Group.h>
-#include <Model/Groups/TreeTraversalProbability.h>
 #include <Core/Geometry/BBox.h>
-#include <Interface/RayPacket.h>
-#include <Interface/AccelerationStructure.h>
 #include <Core/Thread/AtomicCounter.h>
 #include <Core/Thread/Barrier.h>
 #include <Core/Thread/ConditionVariable.h>
 #include <Core/Thread/Mutex.h>
 #include <Core/Util/AlignedAllocator.h>
 #include <Core/Util/SpinLock.h>
+#include <Interface/AccelerationStructure.h>
+#include <Interface/RayPacket.h>
+#include <Model/Groups/Group.h>
 #include <Model/Groups/Mesh.h>
+#include <Model/Groups/TreeTraversalProbability.h>
 #include <stdio.h>
 namespace Manta {
 class Task;

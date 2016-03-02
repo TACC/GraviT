@@ -105,15 +105,15 @@ public:
 protected:
   int samples;
   int jitterWindowSize;
-  glm::mat4 cam2wrld; //!< transform from camera to world coords
-  glm::mat4 wrld2cam; //!< transform from world to camera coords
-  glm::vec3 eye_point;                     //!< camera location in world coordinates
-  glm::vec3 focal_point;                   //!< camera focal point in world coordinates
-  glm::vec3 up_vector;                    //!< vector pointing "up".
-  glm::vec3 view_direction;               //!< direction camera is looking. generally focal - eye pt.
-  int filmsize[2];                                        //!< image size dimensions in pixels. filmsize[0] = width.
-  int depth;                         //!< legacy variable from previous cameras. Initializes ray depth
-  glm::vec3 u, v, w; //!< unit basis vectors for camera space in world coords.
+  glm::mat4 cam2wrld;       //!< transform from camera to world coords
+  glm::mat4 wrld2cam;       //!< transform from world to camera coords
+  glm::vec3 eye_point;      //!< camera location in world coordinates
+  glm::vec3 focal_point;    //!< camera focal point in world coordinates
+  glm::vec3 up_vector;      //!< vector pointing "up".
+  glm::vec3 view_direction; //!< direction camera is looking. generally focal - eye pt.
+  int filmsize[2];          //!< image size dimensions in pixels. filmsize[0] = width.
+  int depth;                //!< legacy variable from previous cameras. Initializes ray depth
+  glm::vec3 u, v, w;        //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
   TLRand randEngine;
   //

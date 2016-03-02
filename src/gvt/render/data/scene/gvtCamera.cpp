@@ -24,7 +24,6 @@
 #include <boost/timer/timer.hpp>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-
 using namespace gvt::render::data::scene;
 using namespace gvt::render::actor;
 
@@ -164,15 +163,9 @@ void gvtCameraBase::lookAt(glm::vec3 eye, glm::vec3 focus, glm::vec3 up) {
   buildTransform();
 }
 
-void gvtCameraBase::setSamples(int pathSamples)
-{
-  samples = pathSamples;
-}
+void gvtCameraBase::setSamples(int pathSamples) { samples = pathSamples; }
 
-void gvtCameraBase::setJitterWindowSize(int windowSize)
-{
-  jitterWindowSize = windowSize;
-} 
+void gvtCameraBase::setJitterWindowSize(int windowSize) { jitterWindowSize = windowSize; }
 
 // gvt::render::actor::RayVector gvtCameraBase::AllocateCameraRays() {
 void gvtCameraBase::AllocateCameraRays() {
@@ -180,7 +173,7 @@ void gvtCameraBase::AllocateCameraRays() {
   boost::timer::auto_cpu_timer t("gvtCameraBase::AllocateCameraRays: time: %w\n");
 #endif
   depth = 0;
-  size_t nrays = filmsize[0] * filmsize[1] * samples *samples;
+  size_t nrays = filmsize[0] * filmsize[1] * samples * samples;
   rays.clear();
   rays.resize(nrays);
   // return rays;
@@ -211,24 +204,24 @@ void gvtPerspectiveCamera::generateRays() {
   glm::vec3 camera_normal_basis_vector = glm::vec3(0, 0, 1);
   glm::vec3 camera_space_ray_direction;
   const float divider = samples;
-  const float offset = (1.0 / divider )*jitterWindowSize;
+  const float offset = (1.0 / divider) * jitterWindowSize;
   for (j = 0; j < buffer_height; j++)
     for (i = 0; i < buffer_width; i++) {
       // multi - jittered samples
-      for(int k =0; k < samples; k++)
-      {
-        for(int w = 0; w < samples; w++)
-        {
+      for (int k = 0; k < samples; k++) {
+        for (int w = 0; w < samples; w++) {
           idx = j * buffer_width + i;
-          int ridx =(j * buffer_width + i)*samples*samples+k*samples+w;
+          int ridx = (j * buffer_width + i) * samples * samples + k * samples + w;
           Ray &ray = rays[ridx];
           ray.id = idx;
           ray.w = 1.0; // ray weight 1 for no subsamples. mod later
           ray.origin = eye_point;
           ray.type = Ray::PRIMARY;
           // calculate scale factors -1.0 < x,y < 1.0
-          x = 2.0 * float(i) / float(buffer_width - 1) - 1.0 + (w - samples/2)*offset + offset * (randEngine.fastrand(0,1) - 0.5);
-          y = 2.0 * float(j) / float(buffer_height - 1) - 1.0 + (k - samples/2)*offset + offset * (randEngine.fastrand(0,1) - 0.5);
+          x = 2.0 * float(i) / float(buffer_width - 1) - 1.0 + (w - samples / 2) * offset +
+              offset * (randEngine.fastrand(0, 1) - 0.5);
+          y = 2.0 * float(j) / float(buffer_height - 1) - 1.0 + (k - samples / 2) * offset +
+              offset * (randEngine.fastrand(0, 1) - 0.5);
           // calculate ray direction in camera space;
           camera_space_ray_direction =
               camera_normal_basis_vector + x * camera_horiz_basis_vector + y * camera_vert_basis_vector;

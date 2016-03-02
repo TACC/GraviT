@@ -34,7 +34,7 @@
 #include <gvt/core/Debug.h>
 
 #include <gvt/core/mpi/Comm.h>
-#include <gvt/core/mpi/SingleNode.h>
 #include <gvt/core/mpi/CommData.h>
+#include <gvt/core/mpi/SingleNode.h>
 
 #endif /* GVT_CORE_MPI_WRAPPER_H */
