@@ -50,14 +50,15 @@ class Matrix3f {
   //---[ Private Variable Declarations ]-----------------
 public:
   // matrix elements in row major order
-  float n[9];
 
+	float n[3][3];
 
   inline __device__ float3 operator*(const float3& v)
   {
-      return make_float3(n[0] * v.x + n[1] * v.y + n[2] * v.z,
-              n[3] * v.x + n[4] * v.y + n[5] * v.z,
-              n[6] * v.x + n[7] * v.y + n[8] * v.z);
+
+  return make_float3(n[0][0] * v.x + n[1][0] * v.y + n[2][0] * v.z,
+	  			n[0][1] * v.x + n[1][1] * v.y + n[2][1] * v.z ,
+	  			n[0][2] * v.x + n[1][2] * v.y + n[2][2] * v.z );
   }
 
 };
@@ -67,22 +68,18 @@ class Matrix4f {
   //---[ Private Variable Declarations ]-----------------
 public:
   // matrix elements in row major order
-  float n[16];
 
-/*
-  inline __device__ float3 operator*(const float3& v)
-  {
-      return make_float3(n[0] * v.x + n[1] * v.y + n[2] * v.z,
-              n[3] * v.x + n[4] * v.y + n[5] * v.z,
-              n[6] * v.x + n[7] * v.y + n[8] * v.z);
-  }*/
+	float n[4][4];
+
 
   inline __device__ float4 operator*(const float4& v)
   {
-	  return make_float4(n[0] * v.x + n[1] * v.y + n[2] * v.z + n[3] * v.w,
-              n[4] * v.x + n[5] * v.y + n[6] * v.z + n[7] * v.w,
-              n[8] * v.x + n[9] * v.y + n[10] * v.z + n[11] * v.w,
-              n[12] * v.x + n[13] * v.y + n[14] * v.z + n[15] * v.w);
+
+	  return make_float4(n[0][0] * v.x + n[1][0] * v.y + n[2][0] * v.z + n[3][0] * v.w,
+	  			n[0][1] * v.x + n[1][1] * v.y + n[2][1] * v.z + n[3][1] * v.w,
+	  			n[0][2] * v.x + n[1][2] * v.y + n[2][2] * v.z + n[3][2] * v.w,
+	  			n[0][3] * v.x + n[1][3] * v.y + n[2][3] * v.z + n[3][3] * v.w);
+
   }
 
 

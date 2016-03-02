@@ -147,10 +147,10 @@ public:
 
   virtual ~Tracer() {}
 
-  virtual void FilterRaysLocally() {
+  inline void FilterRaysLocally() {
     auto nullNode = gvt::core::DBNodeH(); // temporary workaround until
                                           // shuffleRays is fully replaced
-    shuffleRays(rays, nullNode);
+    shuffleRays(rays,-1);
 
     for (auto e : queue) {
       if (mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
@@ -160,7 +160,7 @@ public:
     }
   }
 
-  virtual void operator()() {
+  inline void operator()() {
     boost::timer::cpu_timer t_frame;
     t_frame.start();
     boost::timer::cpu_timer t_trace;
@@ -211,9 +211,7 @@ public:
     size_t instTargetCount = 0;
 
     gvt::render::Adapter *adapter = 0;
-
     while (!all_done) {
-
       if (!queue.empty()) {
         // process domain assigned to this proc with most rays queued
         // if there are queues for instances that are not assigned
@@ -277,6 +275,10 @@ public:
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
                                                                                  << (void *)adapter);
             }
+            else
+            {
+              adapter = 0;
+            }
             if (!adapter) {
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
               switch (adapterType) {
@@ -331,7 +333,7 @@ public:
 #ifdef GVT_USE_MPE
             MPE_Log_event(shufflestart, 0, NULL);
 #endif
-            shuffleRays(moved_rays, instancenodes[instTarget]);
+            shuffleRays(moved_rays, instTarget);
 #ifdef GVT_USE_MPE
             MPE_Log_event(shuffleend, 0, NULL);
 #endif
@@ -396,7 +398,7 @@ public:
   }
 
   // FIXME: update FindNeighbors to use mpiInstanceMap
-  virtual void FindNeighbors() {
+  inline void FindNeighbors() {
     glm::vec3 topo;
     topo = rootnode["Dataset"]["topology"].value().tovec3();
     int total = topo[2], plane = topo[1], row = topo[0]; // XXX TODO:
@@ -481,7 +483,7 @@ public:
     for (std::set<int>::iterator it = n_doms.begin(); it != n_doms.end(); ++it)
       if (*it % mpi.world_size != mpi.rank) neighbors.insert(*it % mpi.world_size);
   }
-  virtual bool SendRays() {
+  inline bool SendRays() {
     int *outbound = new int[2 * mpi.world_size];
     int *inbound = new int[2 * mpi.world_size];
     MPI_Request *reqs = new MPI_Request[2 * mpi.world_size];

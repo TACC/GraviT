@@ -107,12 +107,13 @@ public:
 			float t_min;
 			float t_max;
 			int type;
+			int id;
 
 		};
 
 
 	  //just to keep track of the gvt domain list in ray
-	  int mapToHostBufferID;
+	  //int mapToHostBufferID;
 
 	   __device__ void print(){
 			printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n" ,origin.x ,  origin.y, origin.z,

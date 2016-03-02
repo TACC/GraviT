@@ -81,16 +81,24 @@ public:
 
   // caches meshes that are converted into the adapter's format
   std::map<gvt::core::Uuid, gvt::render::Adapter *> adapterCache;
+  std::map<int,gvt::core::Uuid> meshRef;
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
     int ray_portion = rays.size() / mpi.world_size;
     rays_start = mpi.rank * ray_portion;
     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size()
                                                 : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+    size_t i =0;
+    for(auto n : instancenodes) {
+    
+        meshRef[i++] = n["meshRef"].deRef().UUID();
+    }
+
+
   }
 
   // organize the rays into queues
   // if using mpi, only keep the rays for the current rank
-  virtual void FilterRaysLocally() {
+  inline void FilterRaysLocally() {
     auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
 
     if (mpi) {
@@ -98,14 +106,14 @@ public:
       gvt::render::actor::RayVector lrays;
       lrays.assign(rays.begin() + rays_start, rays.begin() + rays_end);
       rays.clear();
-      shuffleRays(lrays, nullNode);
+      shuffleRays(lrays, -1);
     } else {
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: filter locally non mpi: " << rays.size());
-      shuffleRays(rays, nullNode);
+      shuffleRays(rays, -1);
     }
   }
 
-  virtual void operator()() {
+  inline void operator()() {
     boost::timer::cpu_timer t_frame;
     t_frame.start();
     boost::timer::cpu_timer t_trace;
@@ -114,6 +122,8 @@ public:
     t_sort.stop();
     boost::timer::cpu_timer t_shuffle;
     t_shuffle.stop();
+    boost::timer::cpu_timer t_gather;
+    t_gather.stop();
 
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
@@ -153,11 +163,13 @@ public:
         // TODO: Make cache generic needs to accept any kind of adpater
 
         // 'getAdapterFromCache' functionality
-        auto it = adapterCache.find(meshNode.UUID());
+        auto it = adapterCache.find(meshRef[instTarget]);
         if (it != adapterCache.end()) {
           adapter = it->second;
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
-                                                                             << (void *)adapter);
+        }
+        else
+        {
+          adapter = 0;
         }
         if (!adapter) {
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
@@ -187,7 +199,7 @@ public:
             GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
           }
 
-          adapterCache[meshNode.UUID()] = adapter;
+          adapterCache[meshRef[instTarget]] = adapter;
         }
 
         GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
@@ -209,18 +221,22 @@ public:
 
         GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
         t_shuffle.resume();
-        shuffleRays(moved_rays, instancenodes[instTarget]);
+        shuffleRays(moved_rays, instTarget);
         moved_rays.clear();
         t_shuffle.stop();
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
+    t_gather.resume();
     this->gatherFramebuffers(this->rays.size());
-
+    t_gather.stop();
+    t_frame.stop();
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
+
     std::cout << "image scheduler: select time: " << t_sort.format();
     std::cout << "image scheduler: trace time: " << t_trace.format();
     std::cout << "image scheduler: shuffle time: " << t_shuffle.format();
+    std::cout << "image scheduler: gather time: " << t_gather.format();
     std::cout << "image scheduler: frame time: " << t_frame.format();
   }
 };

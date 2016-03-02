@@ -107,9 +107,9 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
     if (ignoreValid || valid[i]) {
        Ray &r = rays[ i];
 
+      r.origin.w=1;
       float4 origin = (*(cudaGvtCtx->minv)) * r.origin; // transform ray to local space
       float4 direction = (*(cudaGvtCtx->minv)) * r.direction;
-
 
       OptixRay optix_ray;
       optix_ray.origin[0] = origin.x;
@@ -184,7 +184,8 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     const float multiplier = 1.0f - 16.0f * FLT_EPSILON;
     const float t_shadow = multiplier * r.t;
 
-    const float4 origin = r.origin + r.direction * t_shadow;
+    float4 origin = r.origin + r.direction * t_shadow;
+    origin.w=1.0f;
     const float4 dir = light->light.position - origin;
     const float t_max = length(dir);
 
@@ -196,9 +197,9 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.type = Ray::SHADOW;
     shadow_ray.depth = r.depth;
     shadow_ray.t = r.t;
-    //shadow_ray.id = r.id;
+    shadow_ray.id = r.id;
     shadow_ray.t_max = t_max;
-    shadow_ray.mapToHostBufferID = r.mapToHostBufferID;
+    //shadow_ray.mapToHostBufferID = r.mapToHostBufferID;
 
     Color c = cudaGvtCtx->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
 
@@ -302,7 +303,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
 
           const float t_secondary = multiplier * r.t;
           r.origin = r.origin + r.direction * t_secondary;
-
+          r.origin.w=1.0f;
 
          float4 dir = normalize(cudaGvtCtx->mesh.mat->material.
                   		  CosWeightedRandomHemisphereDirection2(normal));

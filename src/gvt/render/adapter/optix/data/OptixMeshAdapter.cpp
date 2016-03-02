@@ -80,14 +80,14 @@ __inline__ void cudaRayToGvtRay(
 		const gvt::render::data::cuda_primitives::Ray& cudaRay,
 		gvt::render::actor::Ray& gvtRay) {
 
-	memcpy(&(gvtRay.origin[0]), &(cudaRay.origin.x), sizeof(float) * 4);
-	memcpy(&(gvtRay.direction[0]), &(cudaRay.direction.x), sizeof(float) * 4);
+	memcpy(&(gvtRay.origin[0]), &(cudaRay.origin.x), sizeof(glm::vec3));
+	memcpy(&(gvtRay.direction[0]), &(cudaRay.direction.x), sizeof(glm::vec3));
 //	memcpy(&(gvtRay.inverseDirection[0]), &(cudaRay.inverseDirection.x),
 //			sizeof(float) * 4);
 	memcpy(&(gvtRay.color.rgba[0]), &(cudaRay.color.rgba[0]),
 			sizeof(float) * 4);
 	gvtRay.color.t = cudaRay.color.t;
-	//gvtRay.id = cudaRay.id;
+	gvtRay.id = cudaRay.id;
 	gvtRay.depth = cudaRay.depth;
 	gvtRay.w = cudaRay.w;
 	gvtRay.t = cudaRay.t;
@@ -102,14 +102,15 @@ __inline__ void cudaRayToGvtRay(
 __inline__ void gvtRayToCudaRay(const gvt::render::actor::Ray& gvtRay,
 		gvt::render::data::cuda_primitives::Ray& cudaRay) {
 
-	memcpy(&(cudaRay.origin.x), &(gvtRay.origin[0]), sizeof(float) * 4);
-	memcpy(&(cudaRay.direction.x), &(gvtRay.direction[0]), sizeof(float) * 4);
+	memcpy(&(cudaRay.origin.x), &(gvtRay.origin[0]), sizeof(glm::vec3));
+	cudaRay.origin.w=1.0f;
+	memcpy(&(cudaRay.direction.x), &(gvtRay.direction[0]),sizeof(glm::vec3));
 //	memcpy(&(cudaRay.inverseDirection.x), &(gvtRay.inverseDirection[0]),
 //			sizeof(float) * 4);
 	memcpy(&(cudaRay.color.rgba[0]), &(gvtRay.color.rgba[0]),
 			sizeof(float) * 4);
 	cudaRay.color.t = gvtRay.color.t;
-	//cudaRay.id = gvtRay.id;
+	cudaRay.id = gvtRay.id;
 	cudaRay.depth = gvtRay.depth;
 	cudaRay.w = gvtRay.w;
 	cudaRay.t = gvtRay.t;
@@ -273,32 +274,15 @@ void cudaSetRays(gvt::render::actor::RayVector::iterator gvtRayVector,
 			localRayCount > std::thread::hardware_concurrency() ?
 					localRayCount / std::thread::hardware_concurrency() : 100;
 
-	//std::vector<std::future<void>> _tasks;
 
-	// clang-format off
-//	for (int i = 0; i < localRayCount; i += offset_rays) {
-//		_tasks.push_back(
-//				std::async(std::launch::async,
-//						[&](const int ii, const int end) {
-	const int ii = 0;
-	const int end = localRayCount;
-	for (int jj = ii; jj < end; jj++) {
-		//if (jj < localRayCount) {
+	static tbb::auto_partitioner ap;
+	tbb::parallel_for(tbb::blocked_range<int>(0, localRayCount, 128),
+			[&](tbb::blocked_range<int> chunk) {
+				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
+						gvtRayToCudaRay(gvtRayVector[jj], cudaRays[jj]);
 
-		//gvt::render::data::cuda_primitives::Ray r;
+				}}, ap);
 
-		gvtRayToCudaRay(gvtRayVector[jj], cudaRays[jj]);
-		cudaRays[jj].mapToHostBufferID = localIdx + jj;
-		//cudaRays[jj]=r;
-		//}
-
-	}
-
-//						}, i, i + offset_rays));
-//	}
-//
-//	for (auto &f : _tasks)
-//		f.wait();
 
 	//convertingRaysToCUDA.stop();
 
@@ -333,7 +317,8 @@ void cudaGetRays(size_t& localDispatchSize,
 
 	//convertingRaysFromCUDA.resume();
 
-	tbb::parallel_for(tbb::blocked_range<int>(0, cudaGvtCtx.dispatchCount),
+	static tbb::auto_partitioner ap;
+	tbb::parallel_for(tbb::blocked_range<int>(0, cudaGvtCtx.dispatchCount, 128),
 			[&](tbb::blocked_range<int> chunk) {
 				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
 					if (jj < cudaGvtCtx.dispatchCount) {
@@ -342,85 +327,13 @@ void cudaGetRays(size_t& localDispatchSize,
 						const gvt::render::data::cuda_primitives::Ray& cudaRay =
 						disp_tmp[jj];
 
-						const gvt::render::actor::Ray& originalRay =
-						rayList[cudaRay.mapToHostBufferID];
-
 						cudaRayToGvtRay(cudaRay, gvtRay);
 
 						gvtRay.setDirection(gvtRay.direction);
-						gvtRay.id = originalRay.id;
-
-//						if (gvtRay.type
-//								!= gvt::render::data::cuda_primitives::Ray::SHADOW
-//								&& originalRay.domains.size() != 0) {
-//
-//							gvtRay.domains = originalRay.domains;
-//						} else {
-//							gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
-//							gvtRay.domains.clear();
-//						}
-
-						//avoid contructor
-						//localDispatch.push_back(gvtR);
 					}
 				}
-			});
+			}, ap);
 
-//
-//
-//
-//
-//
-//
-//
-//	const int offset_rays =
-//			cudaGvtCtx.dispatchCount > std::thread::hardware_concurrency() ?
-//					cudaGvtCtx.dispatchCount
-//							/ std::thread::hardware_concurrency() :
-//					100;
-//
-//	//std::vector<std::future<void>> _tasks;
-//
-//	for (int i = 0; i < cudaGvtCtx.dispatchCount; i += offset_rays) {
-//		_tasks.push_back(
-//				std::async(std::launch::async,
-//						[&](const int ii, const int end) {
-//
-//							for (int jj = ii; jj < end; jj++) {
-//								if (jj < cudaGvtCtx.dispatchCount) {
-//									gvt::render::actor::Ray& gvtRay =
-//									localDispatch[localDispatchSize + jj];
-//									const gvt::render::data::cuda_primitives::Ray& cudaRay =
-//									disp_tmp[jj];
-//
-//									const gvt::render::actor::Ray& originalRay =
-//									rayList[cudaRay.mapToHostBufferID];
-//
-//									cudaRayToGvtRay(cudaRay, gvtRay);
-//
-//									gvtRay.setDirection(gvtRay.direction);
-//									gvtRay.id = originalRay.id;
-//
-//									if (gvtRay.type
-//											!= gvt::render::data::cuda_primitives::Ray::SHADOW
-//											&& originalRay.domains.size() != 0) {
-//
-//										gvtRay.domains = originalRay.domains;
-//									} else {
-//										gvtRay.domains = *(new std::vector<gvt::render::actor::isecDom>());
-//										gvtRay.domains.clear();
-//									}
-//
-//									//avoid contructor
-//									//localDispatch.push_back(gvtR);
-//								}
-//							}
-//
-//						}, i, i + offset_rays));
-//	}
-//
-//	for (auto &f : _tasks)
-//		f.wait();
 
 	localDispatchSize += cudaGvtCtx.dispatchCount;
 	cudaGvtCtx.dispatchCount = 0;
@@ -694,16 +607,17 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) :
 	vertices.resize(numVerts * 3);
 	faces.resize(numTris * 3);
 
-	tbb::parallel_for(tbb::blocked_range<int>(0, numVerts),
+	static tbb::auto_partitioner ap;
+	tbb::parallel_for(tbb::blocked_range<int>(0, numVerts, 128),
 			[&](tbb::blocked_range<int> chunk) {
 				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
 					vertices[jj * 3 + 0] = mesh->vertices[jj][0];
 					vertices[jj * 3 + 1] = mesh->vertices[jj][1];
 					vertices[jj * 3 + 2] = mesh->vertices[jj][2];
 				}
-			});
+			},ap);
 
-	tbb::parallel_for(tbb::blocked_range<int>(0, numTris),
+	tbb::parallel_for(tbb::blocked_range<int>(0, numTris, 128),
 			[&](tbb::blocked_range<int> chunk) {
 				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
 					gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
@@ -711,51 +625,8 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) :
 					faces[jj * 3 + 1] = f.get<1>();
 					faces[jj * 3 + 2] = f.get<2>();
 				}
-			});
+			},ap);
 
-//
-//
-//	const int offset_verts =
-//			numVerts > std::thread::hardware_concurrency() ?
-//					numVerts / std::thread::hardware_concurrency() : 100;
-//
-//	std::vector<std::future<void>> _tasks;
-//
-//	// clang-format off
-//	for (int i = 0; i < numVerts; i += offset_verts) {
-//		_tasks.push_back(
-//				std::async(std::launch::async,
-//						[&](const int ii, const int end) {
-//							for (int jj = ii; jj < end && jj < numVerts; jj++) {
-//								vertices[jj * 3 + 0] = mesh->vertices[jj][0];
-//								vertices[jj * 3 + 1] = mesh->vertices[jj][1];
-//								vertices[jj * 3 + 2] = mesh->vertices[jj][2];
-//							}
-//						}, i, i + offset_verts));
-//	}
-//	// clang-format on
-//
-//	const int offset_tris =
-//			numTris > std::thread::hardware_concurrency() ?
-//					numTris / std::thread::hardware_concurrency() : 100;
-//
-//	// clang-format off
-//	for (int i = 0; i < numTris; i += offset_tris) {
-//		_tasks.push_back(
-//				std::async(std::launch::async,
-//						[&](const int ii, const int end) {
-//							for (int jj = ii; jj < end && jj < numTris; jj++) {
-//								gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
-//								faces[jj * 3 + 0] = f.get<0>();
-//								faces[jj * 3 + 1] = f.get<1>();
-//								faces[jj * 3 + 2] = f.get<2>();
-//							}
-//						}, i, i + offset_tris));
-//	}
-//	// clang-format on
-//
-//	for (auto &f : _tasks)
-//		f.wait();
 
 	printf("Copying geometry to device...\n");
 

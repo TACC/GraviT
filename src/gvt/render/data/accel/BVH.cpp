@@ -250,42 +250,43 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestH
   }
 }
 
-int BVH::intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
-  if (root) {
-    int rid = trace(ray, root, from, t);
-    return rid;
-  }
-  return -1;
-}
-
-int BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, int cid, float &t) {
-
-  float tlocal = std::numeric_limits<float>::max();
-
-  if (!(node->bbox.intersectDistance(ray, tlocal) && (tlocal > gvt::render::actor::Ray::RAY_EPSILON) && (tlocal < t))) {
-    return -1;
-  }
-
-  if (node->numInstances > 0) { // leaf node
-    int start = node->instanceSetIdx;
-    int end = start + node->numInstances;
-    float best = t;
-    int rid = -1;
-    for (int i = start; i < end; ++i) {
-      if (cid == instanceSetID[i]) continue;
-      Box3D *ibbox = instanceSetBB[i];
-      float tlocal;
-      if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
-        best = tlocal;
-        rid = instanceSetID[i];
-      }
-    }
-    if (rid != -1) t = best;
-    return rid;
-  } else {
-    int rid = trace(ray, node->leftChild, cid, t);
-    int lid = trace(ray, node->rightChild, cid, t);
-    if (lid != -1) return lid;
-    return rid;
-  }
-}
+// int BVH::intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
+//   if (root) {
+//     int rid = trace(ray, root, from, t);
+//     return rid;
+//   }
+//   return -1;
+// }
+//
+// int BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, int cid, float &t) {
+//
+//   float tlocal = std::numeric_limits<float>::max();
+//
+//   if (!(node->bbox.intersectDistance(ray, tlocal) && (tlocal > gvt::render::actor::Ray::RAY_EPSILON) && (tlocal <
+//   t))) {
+//     return -1;
+//   }
+//
+//   if (node->numInstances > 0) { // leaf node
+//     int start = node->instanceSetIdx;
+//     int end = start + node->numInstances;
+//     float best = t;
+//     int rid = -1;
+//     for (int i = start; i < end; ++i) {
+//       if (cid == instanceSetID[i]) continue;
+//       Box3D *ibbox = instanceSetBB[i];
+//       float tlocal;
+//       if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
+//         best = tlocal;
+//         rid = instanceSetID[i];
+//       }
+//     }
+//     if (rid != -1) t = best;
+//     return rid;
+//   } else {
+//     int rid = trace(ray, node->leftChild, cid, t);
+//     int lid = trace(ray, node->rightChild, cid, t);
+//     if (lid != -1) return lid;
+//     return rid;
+//   }
+// }
