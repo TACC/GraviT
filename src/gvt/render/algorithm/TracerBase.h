@@ -34,6 +34,7 @@
 //#define TBB_PREVIEW_STATIC_PARTITIONER 1
 
 #include <gvt/core/Debug.h>
+#include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
