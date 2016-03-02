@@ -211,9 +211,7 @@ public:
     size_t instTargetCount = 0;
 
     gvt::render::Adapter *adapter = 0;
-
     while (!all_done) {
-
       if (!queue.empty()) {
         // process domain assigned to this proc with most rays queued
         // if there are queues for instances that are not assigned
@@ -276,6 +274,10 @@ public:
               adapter = it->second;
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
                                                                                  << (void *)adapter);
+            }
+            else
+            {
+              adapter = 0;
             }
             if (!adapter) {
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
