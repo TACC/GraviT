@@ -90,9 +90,9 @@ public:
   size_t rays_start, rays_end;
 
   // caches meshes that are converted into the adapter's format
-  std::map<gvt::core::Uuid, gvt::render::Adapter *> adapterCache;
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes;
-  std::map<gvt::core::Uuid, size_t> mpiInstanceMap;
+  std::map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
+
+  std::map<int, size_t> mpiInstanceMap;
 #ifdef GVT_USE_MPE
   int tracestart, traceend;
   int shufflestart, shuffleend;
@@ -120,7 +120,7 @@ public:
       MPE_Describe_state(marchinstart, marchinend, "March Ray in", "LimeGreen");
     }
 #endif
-    dataNodes = rootnode["Data"].getChildren();
+    gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
 
     // create a map of instances to mpi rank
     for (size_t i = 0; i < instancenodes.size(); i++) {
@@ -141,7 +141,7 @@ public:
                                 << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
 
       GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
-      mpiInstanceMap[instancenodes[i].UUID()] = mpiNode;
+      mpiInstanceMap[i] = mpiNode;
     }
   }
 
@@ -150,10 +150,10 @@ public:
   inline void FilterRaysLocally() {
     auto nullNode = gvt::core::DBNodeH(); // temporary workaround until
                                           // shuffleRays is fully replaced
-    shuffleRays(rays,-1);
+    shuffleRays(rays, -1);
 
     for (auto e : queue) {
-      if (mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
+      if (mpiInstanceMap[e.first] != mpi.rank) {
         GVT_DEBUG(DBG_ALWAYS, " rank[" << mpi.rank << "] FILTERRAYS: removing queue " << e.first);
         queue[e.first].clear();
       }
@@ -161,18 +161,24 @@ public:
   }
 
   inline void operator()() {
-    boost::timer::cpu_timer t_frame;
-    t_frame.start();
-    boost::timer::cpu_timer t_trace;
-    t_trace.stop();
-    boost::timer::cpu_timer t_sort;
-    t_sort.stop();
-    boost::timer::cpu_timer t_shuffle;
-    t_shuffle.stop();
-    boost::timer::cpu_timer t_send;
-    t_send.stop();
-    boost::timer::cpu_timer t_gather;
-    t_gather.stop();
+
+    gvt::core::time::timer t_diff(false, "domain tracer: diff timers/frame:");
+    gvt::core::time::timer t_all(false, "domain tracer: all timers:");
+    gvt::core::time::timer t_frame(true, "domain tracer: frame :");
+    gvt::core::time::timer t_gather(false, "domain tracer: gather :");
+    gvt::core::time::timer t_send(false, "domain tracer: send :");
+    gvt::core::time::timer t_shuffle(false, "domain tracer: shuffle :");
+    gvt::core::time::timer t_trace(false, "domain tracer: trace :");
+    gvt::core::time::timer t_sort(false, "domain tracer: select :");
+    gvt::core::time::timer t_adapter(false, "domain tracer: adapter :");
+    gvt::core::time::timer t_filter(false, "domain tracer: filter :");
+
+    // gvt::core::time::timer t_trace(false);
+    // gvt::core::time::timer t_sort(false);
+    // gvt::core::time::timer t_shuffle(false);
+    // gvt::core::time::timer t_gather(false);
+    // gvt::core::time::timer t_send(false);
+    // gvt::core::time::timer t_frame(true);
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
@@ -222,7 +228,7 @@ public:
         std::vector<int> to_del;
         GVT_DEBUG(DBG_ALWAYS, "domain scheduler: selecting next instance, num queues: " << this->queue.size());
         for (auto &q : queue) {
-          const bool inRank = mpiInstanceMap[instancenodes[q.first].UUID()] == mpi.rank;
+          const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
 
           if (q.second.empty() || !inRank) {
             to_del.push_back(q.first);
@@ -253,7 +259,7 @@ public:
         if (instTarget >= 0) {
           GVT_DEBUG(DBG_LOW, "Getting instance " << instTarget);
           // gvt::render::Adapter *adapter = 0;
-          gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
+          // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
           // if (instTarget != lastInstance) {
           //   // TODO: before we would free the previous domain before loading the
@@ -268,15 +274,13 @@ public:
             ++domain_counter;
             lastInstance = instTarget;
 
-            // 'getAdapterFromCache' functionality
-            auto it = adapterCache.find(meshNode.UUID());
+            gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
+            auto it = adapterCache.find(mesh);
             if (it != adapterCache.end()) {
               adapter = it->second;
               GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
                                                                                  << (void *)adapter);
-            }
-            else
-            {
+            } else {
               adapter = 0;
             }
             if (!adapter) {
@@ -284,29 +288,29 @@ public:
               switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
               case gvt::render::adapter::Embree:
-                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
+                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
                 break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
               case gvt::render::adapter::Manta:
-                adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
+                adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
                 break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
               case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
+                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
                 break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
               case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(meshNode);
+                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
                 break;
 #endif
               default:
                 GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
               }
-              adapterCache[meshNode.UUID()] = adapter;
+              adapterCache[mesh] = adapter;
             }
           }
           GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
@@ -321,7 +325,10 @@ public:
 #ifdef GVT_USE_MPE
             MPE_Log_event(tracestart, 0, NULL);
 #endif
-            adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
+            // adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
+            adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
+                           instMinvN[instTarget], lights);
+
 #ifdef GVT_USE_MPE
             MPE_Log_event(traceend, 0, NULL);
 #endif
@@ -378,10 +385,10 @@ public:
       }
     }
 
-    std::cout << "domain scheduler: select time: " << t_sort.format();
-    std::cout << "domain scheduler: trace time: " << t_trace.format();
-    std::cout << "domain scheduler: shuffle time: " << t_shuffle.format();
-    std::cout << "domain scheduler: send time: " << t_send.format();
+// std::cout << "domain scheduler: select time: " << t_sort.format();
+// std::cout << "domain scheduler: trace time: " << t_trace.format();
+// std::cout << "domain scheduler: shuffle time: " << t_shuffle.format();
+// std::cout << "domain scheduler: send time: " << t_send.format();
 
 // add colors to the framebuffer
 #ifdef GVT_USE_MPE
@@ -393,8 +400,8 @@ public:
 #ifdef GVT_USE_MPE
     MPE_Log_event(framebufferend, 0, NULL);
 #endif
-    std::cout << "domain scheduler: gather time: " << t_gather.format();
-    std::cout << "domain scheduler: frame time: " << t_frame.format();
+    t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter + t_send;
+    t_diff = t_frame - t_all;
   }
 
   // FIXME: update FindNeighbors to use mpiInstanceMap
@@ -503,7 +510,7 @@ public:
     // count how many rays are to be sent to each neighbor
     for (std::map<int, gvt::render::actor::RayVector>::iterator q = queue.begin(); q != queue.end(); ++q) {
       // n is the rank this vector of rays (q.second) belongs on.
-      size_t n = mpiInstanceMap[instancenodes[q->first].UUID()]; // bds
+      size_t n = mpiInstanceMap[q->first]; // bds
       GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: instance " << q->first << " maps to proc " << n);
       if (n != mpi.rank) { // bds if instance n is not this rank send rays to it.
         int n_ptr = 2 * n;
@@ -571,7 +578,7 @@ public:
     // ******************** pack the send buffers *********************************
     std::vector<int> to_del;
     for (std::map<int, gvt::render::actor::RayVector>::iterator q = queue.begin(); q != queue.end(); ++q) {
-      int n = mpiInstanceMap[instancenodes[q->first].UUID()]; // bds use instance map
+      int n = mpiInstanceMap[q->first]; // bds use instance map
       if (outbound[2 * n] > 0) {
         *((int *)(send_buf[n] + send_buf_ptr[n])) = q->first;         // bds load queue number into send buffer
         send_buf_ptr[n] += sizeof(int);                               // bds advance pointer

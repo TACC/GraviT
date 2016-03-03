@@ -29,8 +29,8 @@
 #include <gvt/core/Uuid.h>
 #include <gvt/core/Variant.h>
 
-#include <vector>
 #include <map>
+#include <vector>
 
 // #include <boost/container/allocator.hpp>
 // #include <boost/container/map.hpp>

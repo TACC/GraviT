@@ -31,10 +31,10 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_BBOX_H
 #define GVT_RENDER_DATA_PRIMITIVES_BBOX_H
 
+#include <fstream>
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 #include <gvt/render/actor/Ray.h>
-#include <fstream>
 
 namespace gvt {
 namespace render {

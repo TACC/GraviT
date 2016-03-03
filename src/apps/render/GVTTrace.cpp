@@ -27,9 +27,9 @@
 
 #if 0
 #include "ConfigFileLoader.h"
+#include "EmbreeRayTracer.h"
 #include "MantaRayTracer.h"
 #include "OptixRayTracer.h"
-#include "EmbreeRayTracer.h"
 
 #include <gvt/core/Math.h>
 #ifdef GVT_RENDER_ADAPTER_MANTA

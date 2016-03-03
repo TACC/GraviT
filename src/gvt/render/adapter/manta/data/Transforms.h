@@ -82,9 +82,7 @@ struct transform_impl<glm::vec3, Manta::Vec4f> {
 /// return a Manta-compliant 4-float vector
 template <> struct transform_impl<glm::vec3, Manta::Vec4f> {
 
-  static inline Manta::Vec4f transform(const glm::vec3 &r) {
-    return Manta::Vec4f(r[0], r[1], r[2], r[3]);
-  }
+  static inline Manta::Vec4f transform(const glm::vec3 &r) { return Manta::Vec4f(r[0], r[1], r[2], r[3]); }
 };
 
 /// return a Manta-compliant vector
@@ -102,9 +100,7 @@ template <> struct transform_impl<glm::vec3, Manta::Vector> {
 /// return a GraviT-compliant Point
 template <> struct transform_impl<Manta::Vector, glm::vec3> {
 
-  static inline glm::vec3 transform(const Manta::Vector &r) {
-    return glm::vec3(r[0], r[1], r[2], 1.f);
-  }
+  static inline glm::vec3 transform(const Manta::Vector &r) { return glm::vec3(r[0], r[1], r[2], 1.f); }
 };
 
 /// return a GraviT-compliant Vector
@@ -120,10 +116,8 @@ template <> struct transform_impl<Manta::Vector, glm::vec3> {
 template <> struct transform_impl<gvt::render::actor::Ray, Manta::Ray> {
   static inline Manta::Ray transform(const gvt::render::actor::Ray &r) {
     Manta::Ray ray;
-    const Manta::Vector orig =
-        gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(r.origin);
-    const Manta::Vector dir =
-        gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(r.direction);
+    const Manta::Vector orig = gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(r.origin);
+    const Manta::Vector dir = gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(r.direction);
     ray.set(orig, dir);
     return ray;
   }
@@ -184,8 +178,7 @@ template <> struct transform_impl<Manta::Mesh *, gvt::render::data::primitives::
     int count_vertex = 0;
 
     for (int i = 0; i < mesh->vertices.size(); i++) {
-      glm::vec3 vertex =
-          gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec3>(mesh->vertices[i]);
+      glm::vec3 vertex = gvt::render::adapter::manta::data::transform<Manta::Vector, glm::vec3>(mesh->vertices[i]);
       gvtmesh->addVertex(vertex);
     }
 
@@ -205,13 +198,11 @@ template <> struct transform_impl<gvt::render::data::primitives::Mesh *, Manta::
     m->materials.push_back(new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f))));
 
     for (int i = 0; i < mesh->vertices.size(); i++) {
-      Manta::Vector v0 =
-          gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(mesh->vertices[i]);
+      Manta::Vector v0 = gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(mesh->vertices[i]);
       m->vertices.push_back(v0);
     }
     for (int i = 0; i < mesh->normals.size(); i++) {
-      Manta::Vector v0 =
-          gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(mesh->normals[i]);
+      Manta::Vector v0 = gvt::render::adapter::manta::data::transform<glm::vec3, Manta::Vector>(mesh->normals[i]);
       m->vertexNormals.push_back(v0);
     }
     for (int i = 0; i < mesh->faces.size(); i++) {

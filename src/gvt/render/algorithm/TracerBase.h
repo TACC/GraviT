@@ -34,6 +34,7 @@
 //#define TBB_PREVIEW_STATIC_PARTITIONER 1
 
 #include <gvt/core/Debug.h>
+#include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
@@ -100,6 +101,11 @@ public:
   gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootnode = cntxt.getRootNode();
   gvt::core::Vector<gvt::core::DBNodeH> instancenodes;
+  std::map<int, gvt::render::data::primitives::Mesh *> meshRef;
+  std::map<int, glm::mat4 *> instM;
+  std::map<int, glm::mat4 *> instMinv;
+  std::map<int, glm::mat3 *> instMinvN;
+  std::vector<gvt::render::data::scene::Light *> lights;
 
   gvt::render::data::accel::AbstractAccel *acceleration;
 
@@ -124,11 +130,40 @@ public:
     // number
     // of instances in the database
     instancenodes = rootnode["Instances"].getChildren();
+
     int numInst = instancenodes.size();
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
     queue_mutex = new tbb::mutex[numInst];
     colorBuf_mutex = new tbb::mutex[width];
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
+
+    for (int i = 0; i < instancenodes.size(); i++) {
+      meshRef[i] =
+          (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
+      instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
+      instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
+      instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
+    }
+
+    auto lightNodes = rootnode["Lights"].getChildren();
+
+    lights.reserve(2);
+    for (auto lightNode : lightNodes) {
+      auto color = lightNode["color"].value().tovec3();
+
+      if (lightNode.name() == std::string("PointLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+      } else if (lightNode.name() == std::string("AmbientLight")) {
+        lights.push_back(new gvt::render::data::scene::AmbientLight(color));
+      } else if (lightNode.name() == std::string("AreaLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        auto normal = lightNode["normal"].value().tovec3();
+        auto width = lightNode["width"].value().toFloat();
+        auto height = lightNode["height"].value().toFloat();
+        lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+      }
+    }
 
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
@@ -157,8 +192,8 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
-    //const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
-    //const gvt::render::data::primitives::Box3D domBB =
+    // const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
+    // const gvt::render::data::primitives::Box3D domBB =
     //    (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
     //               : gvt::render::data::primitives::Box3D();
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
@@ -175,7 +210,7 @@ public:
                           if (next != -1) {
                             r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
                             local_queue[next].push_back(r);
-                          } else {
+                          } else if (domID != -1) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
                             for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
                             colorBuf[r.id].rgba[3] = r.w;

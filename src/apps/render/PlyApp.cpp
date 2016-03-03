@@ -111,8 +111,6 @@ static Face **flist;
 
 int main(int argc, char **argv) {
 
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
-
   ParseCommandLine cmd("gvtPly");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -121,10 +119,17 @@ int main(int argc, char **argv) {
   cmd.addoption("file", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path");
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
   cmd.addconflict("image", "domain");
 
   cmd.parse(argc, argv);
+
+  if (!cmd.isSet("threads")) {
+    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  } else {
+    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
@@ -264,6 +269,21 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 1900;
   filmNode["height"] = 1080;
+
+  if (cmd.isSet("eye")) {
+    std::vector<float> eye = cmd.getValue<float>("eye");
+    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("look")) {
+    std::vector<float> eye = cmd.getValue<float>("look");
+    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+  if (cmd.isSet("wsize")) {
+    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    filmNode["width"] = wsize[0];
+    filmNode["height"] = wsize[1];
+  }
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
   if (cmd.isSet("domain"))

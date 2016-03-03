@@ -75,7 +75,7 @@ struct embTriangle {
   int v0, v1, v2;
 };
 
-EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
+EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
 
   if (!EmbreeMeshAdapter::init) {
@@ -83,7 +83,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
     EmbreeMeshAdapter::init = true;
   }
 
-  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
+  // Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
 
   GVT_ASSERT(mesh, "EmbreeMeshAdapter: mesh pointer in the database is null");
 
@@ -169,11 +169,6 @@ struct embreeParallelTrace {
   // std::atomic<size_t> &sharedIdx;
 
   /**
-   * DB reference to the current instance
-   */
-  gvt::core::DBNodeH instNode;
-
-  /**
    * Stored transformation matrix in the current instance
    */
   const glm::mat4 *m;
@@ -217,6 +212,7 @@ struct embreeParallelTrace {
 
   const size_t begin, end;
 
+  gvt::render::data::primitives::Mesh *mesh;
   /**
    * Construct a embreeParallelTrace struct with information needed for the
    * thread
@@ -224,12 +220,11 @@ struct embreeParallelTrace {
    */
   embreeParallelTrace(gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter,
                       gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                      const size_t workSize, gvt::core::DBNodeH instNode, glm::mat4 *m, glm::mat4 *minv,
-                      glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+                      const size_t workSize, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                      std::vector<gvt::render::data::scene::Light *> &lights, gvt::render::data::primitives::Mesh *mesh,
                       std::atomic<size_t> &counter, const size_t begin, const size_t end)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), instNode(instNode), m(m),
-        minv(minv), normi(normi), lights(lights), counter(counter), packetSize(adapter->getPacketSize()), begin(begin),
-        end(end) {}
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
+        lights(lights), counter(counter), packetSize(adapter->getPacketSize()), begin(begin), end(end), mesh(mesh) {}
   /**
    * Convert a set of rays from a vector into a RTCRay4 ray packet.
    *
@@ -413,7 +408,7 @@ struct embreeParallelTrace {
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting mesh [hack for now]");
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
+    // auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
     RTCScene scene = adapter->getScene();
     localDispatch.reserve((end - begin) * 2);
@@ -629,7 +624,8 @@ struct embreeParallelTrace {
 };
 
 void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                              gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
+                              glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                              std::vector<gvt::render::data::scene::Light *> &lights, size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("EmbreeMeshAdapter: trace time: %w\n");
 #endif
@@ -644,73 +640,14 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
                                                                                            // of rays to work
                                                                                            // on
 
-  // GVT_DEBUG(DBG_ALWAYS,
-  //           "EmbreeMeshAdapter: trace: instNode: "
-  //               << instNode.UUID().toString() << ", rays: "
-  //               << end << ", workSize: " << workSize << ", threads: "
-  //               << std::thread::hardware_concurrency());
-
-  // pull out information out of the database, create local structs that will be
-  // passed into the parallel struct
-  gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
-
-  // pull out instance transform data
-  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: getting instance transform data");
-  glm::mat4 *m = (glm::mat4 *)instNode["mat"].value().toULongLong();
-  glm::mat4 *minv = (glm::mat4 *)instNode["matInv"].value().toULongLong();
-  glm::mat3 *normi = (glm::mat3 *)instNode["normi"].value().toULongLong();
-
-  //
-  // TODO: wrap this db light array -> class light array conversion in some sort
-  // of helper function
-  // `convertLights`: pull out lights list and convert into gvt::Lights format
-  // for now
-  auto lightNodes = root["Lights"].getChildren();
-  std::vector<gvt::render::data::scene::Light *> lights;
-  lights.reserve(2);
-  for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().tovec3();
-
-    if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().tovec3();
-      lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-    } else if (lightNode.name() == std::string("AmbientLight")) {
-      lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-    } else if (lightNode.name() == std::string("AreaLight")) {
-      auto pos = lightNode["position"].value().tovec3();
-      auto normal = lightNode["normal"].value().tovec3();
-      auto width = lightNode["width"].value().toFloat();
-      auto height = lightNode["height"].value().toFloat();
-      lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
-    }
-  }
-
-  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converted " << lightNodes.size()
-                                                        << " light nodes into structs: size: " << lights.size());
-
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, (end - begin), workSize),
                     [&](tbb::blocked_range<size_t> chunk) {
                       // for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
-                      embreeParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), instNode, m, minv,
-                                          normi, lights, counter, chunk.begin(), chunk.end())();
+                      embreeParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi,
+                                          lights, mesh, counter, chunk.begin(), chunk.end())();
                     },
                     ap);
 
-  // tbb::task_group g;
-  //
-  // for (size_t rc = 0; rc < numThreads; ++rc) {
-  //   //_tasks.push_back(std::async(std::launch::deferred,
-  //   g.run([&]() {
-  //     embreeParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights,
-  //     counter,
-  //                         begin, end)();
-  //   });
-  //   //);
-  // }
-  // g.wait();
-
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: Forwarding rays: " << moved_rays.size());
-
-  // rayList.clear();
 }

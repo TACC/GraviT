@@ -23,14 +23,12 @@
 
 # Our initial guess will be within the SDK.
 
-message(STATUS "kdjkk  ${CMAKE_SOURCE_DIR}")
 if (DEFINED ENV{OptiX_INSTALL_DIR})
   set(OptiX_INSTALL_DIR $ENV{OptiX_INSTALL_DIR}) 
 else()
   set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../NVIDIA-OptiX-SDK-3.6.0-linux64/" CACHE PATH "Path to OptiX installed location.")
 endif() 
 
-message(STATUS "kdkajkdkj ${OptiX_INSTALL_DIR}")
 # The distribution contains both 32 and 64 bit libraries.  Adjust the library
 # search path based on the bit-ness of the build.  (i.e. 64: bin64, lib64; 32:
 # bin, lib).  Note that on Mac, the OptiX library is a universal binary, so we

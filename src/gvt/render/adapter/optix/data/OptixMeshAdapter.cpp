@@ -46,7 +46,13 @@
 #include <gvt/render/data/scene/Light.h>
 
 #include <atomic>
-#include <thread>
+
+#include <tbb/blocked_range.h>
+#include <tbb/mutex.h>
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/partitioner.h>
+#include <tbb/tick_count.h>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -539,13 +545,14 @@ struct OptixHit {
 
 OptixContext *OptixContext::_singleton;					//= new OptixContext();
 
-OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node) :
-		Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(
+OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *m) : Adapter(m),
+		packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(
 				OptixContext::singleton()->context()) {
+
 
 	// Get GVT mesh pointer
 	GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-	Mesh *mesh = (Mesh *) node["ptr"].value().toULongLong();
+
 	GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
 	int numVerts = mesh->vertices.size();
@@ -695,7 +702,7 @@ struct OptixParallelTrace {
 	/**
 	 * DB reference to the current instance
 	 */
-	gvt::core::DBNodeH instNode;
+	//gvt::core::DBNodeH instNode;
 
 	/**		f.get()
 	 *
@@ -753,15 +760,13 @@ struct OptixParallelTrace {
 			gvt::render::adapter::optix::data::OptixMeshAdapter *adapter,
 			gvt::render::actor::RayVector::iterator &rayList,
 			gvt::render::actor::RayVector &moved_rays,
-			//std::atomic<size_t> &sharedIdx, const size_t workSize,
-			gvt::core::DBNodeH instNode, glm::mat4 *m, glm::mat4 *minv,
+			 glm::mat4 *m, glm::mat4 *minv,
 			glm::mat3 *normi,
 			//std::vector<gvt::render::data::scene::Light *> &lights,
 			std::atomic<size_t> &counter, const size_t begin, const size_t end,
 			gvt::render::data::cuda_primitives::Ray* disp_Buff,
 			gvt::render::data::cuda_primitives::Ray* cudaRaysBuff) :
-			adapter(adapter), rayList(rayList), moved_rays(moved_rays), instNode(
-					instNode), m(m), minv(minv), normi(normi), counter(counter), packetSize(
+			adapter(adapter), rayList(rayList), moved_rays(moved_rays),  m(m), minv(minv), normi(normi), counter(counter), packetSize(
 					adapter->getPacketSize()), begin(begin), end(end), disp_Buff(
 					disp_Buff), cudaRaysBuff(cudaRaysBuff) {
 	}
@@ -977,8 +982,9 @@ struct OptixParallelTrace {
 };
 
 void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
-		gvt::render::actor::RayVector &moved_rays, gvt::core::DBNodeH instNode,
-		size_t _begin, size_t _end) {
+		gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
+        glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+        size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
 	boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
@@ -989,19 +995,13 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 	this->begin = _begin;
 	this->end = _end;
 
-	gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
-
-	glm::mat4 * m = (glm::mat4 *) instNode["mat"].value().toULongLong();
 
 	*m_pinned = *m;
 	m = m_pinned;
 
-	glm::mat4 * minv = (glm::mat4 *) instNode["matInv"].value().toULongLong();
 
 	*minv_pinned = *minv;
 	minv = minv_pinned;
-
-	glm::mat3 * normi = (glm::mat3 *) instNode["normi"].value().toULongLong();
 
 	*normi_pinned = *normi;
 	normi = normi_pinned;
@@ -1017,7 +1017,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 	_tasks.run(
 			[&]() {
 				gvt::render::actor::RayVector::iterator localRayList = rayList.begin();
-				OptixParallelTrace(this, localRayList, moved_rays, instNode, m,
+				OptixParallelTrace(this, localRayList, moved_rays,  m,
 						minv, normi, counter, 0,
 						(parallel && _end >= 2* packetSize) ? (_end/2) : _end, disp_Buff[0], cudaRaysBuff[0])();
 
@@ -1029,7 +1029,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 				[&]() {
 					gvt::render::actor::RayVector::iterator localRayList = rayList.begin() + (rayList.size() / 2);
 
-					OptixParallelTrace(this, localRayList, moved_rays, instNode, m,
+					OptixParallelTrace(this, localRayList, moved_rays,  m,
 							minv, normi, counter, (_end/2), _end, disp_Buff[1], cudaRaysBuff[1])();
 
 				});

@@ -19,11 +19,14 @@ struct ParseCommandLine {
   // int argc;
   // char *argv[];
 
-  enum OPTION_TYPE { NONE = 0x0, INT, LONG, FLOAT, DOUBLE, STRING, PATH };
+  enum OPTION_TYPE { NONE = 0x0, INT, LONG, FLOAT, DOUBLE, STRING, PATH, HELP };
   const static unsigned long REQUIRED = 0x80;
   std::string appname;
 
-  ParseCommandLine(std::string appname) : appname(appname) {}
+  ParseCommandLine(std::string appname) : appname(appname) {
+    _option["h"] = (HELP << 4) | 0;
+    _desc["h"] = "Help";
+  }
 
   void addoption(std::string name, unsigned long type, std::string desc = "", unsigned long size = 1) {
     if (_option.find(name) == _option.end()) {
@@ -127,6 +130,10 @@ struct ParseCommandLine {
       int loc = find(argc, argv, op.first);
 
       unsigned required = ((op.second >> 4) & REQUIRED);
+      if (op.first == "h" && loc != -1) {
+        usage();
+        exit(0);
+      }
 
       if (required && loc == -1) {
         std::cout << "Error: option " << op.first << " is required" << std::endl << std::endl;

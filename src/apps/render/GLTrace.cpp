@@ -720,16 +720,18 @@ void RenderBVH() {
 
   int schedType = rootNode["Schedule"]["type"].value().toInteger();
 
-  std::map<gvt::core::Uuid, size_t> mpiInstanceMap;
+  std::map<int, size_t> mpiInstanceMap;
   if (schedType == gvt::render::scheduler::Domain)
     mpiInstanceMap = ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> *)tracer)->mpiInstanceMap;
 
-  for (gvt::core::DBNodeH instance : rootNode["Instances"].getChildren()) {
+  size_t i = 0;
+  for (gvt::core::DBNodeH instance :
+       ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> *)tracer)->instancenodes) {
 
     int mpiNode = 0;
 
     if (schedType == gvt::render::scheduler::Domain && MPI::COMM_WORLD.Get_size() > 1) {
-      mpiNode = mpiInstanceMap[instance.UUID()];
+      mpiNode = mpiInstanceMap[i++];
       GLfloat c[3] = { 0, 0, 0 };
       c[mpiNode % 3] = float((((mpiNode + 1) * 230) % 255)) / float(255);
       glColor3fv(c);
@@ -1298,7 +1300,7 @@ void ConfigEnzo(std::string rootdir) {
 }
 
 int main(int argc, char *argv[]) {
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+
   unsigned char action;
   // mpi initialization
 
@@ -1312,6 +1314,7 @@ int main(int argc, char *argv[]) {
   cmd.addoption("scene", ParseCommandLine::PATH, "Use scene file");
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
   cmd.addconflict("enzo", "simple");
   cmd.addconflict("enzo", "scene");
@@ -1322,6 +1325,12 @@ int main(int argc, char *argv[]) {
   // cmd.addrequire("simple", "look");
 
   cmd.parse(argc, argv);
+
+  if (!cmd.isSet("threads")) {
+    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  } else {
+    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1382,7 +1391,7 @@ int main(int argc, char *argv[]) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = adapterType;
+  schedNode["adapter"] = gvt::render::adapter::Optix;
 
   camNode = root["Camera"];
 

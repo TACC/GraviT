@@ -29,8 +29,8 @@
 #define GVT_RENDER_DATA_SCENE_COLOR_H
 
 #include <cfloat>
-#include <iostream>
 #include <gvt/core/Debug.h>
+#include <iostream>
 
 // parent class for CHat, CTilde
 
