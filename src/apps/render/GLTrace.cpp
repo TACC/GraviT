@@ -855,8 +855,10 @@ void dispfunc(void) {
 
 void ConfigSceneFromFile(std::string filename) {
 // NEed to modify COnfigLo
-#if 0
+
   gvtapps::render::ConfigFileLoader cl(filename);
+
+#if 0
   gvt::render::data::Dataset &scene = cl.scene;
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
@@ -1388,7 +1390,7 @@ int main(int argc, char *argv[]) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = adapterType;
+  schedNode["adapter"] =adapterType;
 
   camNode = root["Camera"];
 

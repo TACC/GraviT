@@ -38,6 +38,8 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <gvt/render/RenderContext.h>
+
 
 using namespace gvtapps::render;
 
@@ -74,6 +76,16 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
   file.open(filename.c_str());
   GVT_ASSERT(file.good(), "Error loading config file " << filename);
 
+
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  /*
+   * Assumes that required base nodes are created
+   */
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+
+  std::map<std::string, gvt::render::data::primitives::Mesh *> meshes;
+  std::vector<gvt::render::data::domain::GeometryDomain *> domains;
+
   while (file.good()) {
     std::string line;
     std::getline(file, line);
@@ -88,6 +100,11 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
       // TODO : Replace by context
       // scene.camera.setFilmSize(std::atoi(elems[1].c_str()), std::atoi(elems[2].c_str()));
+
+    gvt::core::DBNodeH filmNode = root["Film"];
+    filmNode["width"] = std::atoi(elems[1].c_str());
+    filmNode["height"] =  std::atoi(elems[2].c_str());
+
     } else if (elems[0] == "C") {
       glm::vec3 pos, look, up, focus;
       float fov = std::atof(elems[10].c_str()) * M_PI / 180.0;
@@ -109,6 +126,13 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       // scene.camera.setFOV(fov);
       // scene.camera.setAspectRatio((float)scene.camera.filmsize[0] / (float)scene.camera.filmsize[1]);
 
+      // camera
+      gvt::core::DBNodeH _camNode = root["Camera"];
+      _camNode["eyePoint"] = pos;
+      _camNode["focus"] = focus;
+      _camNode["upVector"] = up;
+      _camNode["fov"] = (float)(45.0 * M_PI / 180.0); // TODO
+
     } else if (elems[0] == "G") {
       GVT_DEBUG(DBG_ALWAYS, "Geometry file" << elems[1]);
 
@@ -120,19 +144,19 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
         gvt::render::data::primitives::Mesh *mesh;
 
         // TODO : Replace by context
-        /*
-      std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = scene.objMeshes.find(elems[1]);
 
-      if (meshIt != scene.objMeshes.end()) {
+      std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = meshes.find(elems[1]);
+
+      if (meshIt != meshes.end()) {
         mesh = meshIt->second;
       } else {
         gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
         mesh = objReader.getMesh();
-        scene.objMeshes[elems[1]] = mesh;
+        meshes[elems[1]] = mesh;
       }
 
-      scene.domainSet.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
-      */
+      domains.push_back(domain = new gvt::render::data::domain::GeometryDomain(mesh));
+
         glm::vec3 t;
         t[0] = std::atof(elems[2].c_str());
         t[1] = std::atof(elems[3].c_str());
@@ -164,6 +188,42 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       if (elems[1].find(".ply") < elems[1].size()) {
         GVT_DEBUG(DBG_ALWAYS, "Found ply file : " << elems[1].find(".ply"));
       }
+
+      gvt::core::DBNodeH dataNodes = root["Data"];
+      gvt::core::DBNodeH instNodes = root["Instances"];
+
+      for (int i = 0; i < domains.size(); i++) {
+    	  gvt::render::data::primitives::Mesh *mesh =
+    			  domains[i]->getMesh();
+
+          gvt::core::DBNodeH meshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
+
+          meshNode["file"] = filename;
+          gvt::render::data::primitives::Box3D *bbox = mesh->getBoundingBox();
+          meshNode["bbox"] = (unsigned long long)bbox;
+          meshNode["ptr"] = (unsigned long long)mesh;
+
+          // add instance
+          gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+          gvt::render::data::primitives::Box3D *mbox =
+        		  (gvt::render::data::primitives::Box3D *)meshNode["bbox"].value().toULongLong();
+          instnode["id"] = i;
+          instnode["meshRef"] = meshNode.UUID();
+          auto m = &(domain->m);
+          auto minv =&(domain->minv);
+          auto normi = &(domain->normi);
+          instnode["mat"] = (unsigned long long)m;
+          instnode["matInv"] = (unsigned long long)minv;
+          instnode["normi"] = (unsigned long long)normi;
+
+          auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+          auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+          gvt::render::data::primitives::Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+          instnode["bbox"] = (unsigned long long)ibox;
+          instnode["centroid"] = ibox->centroid();
+        }
+
+
     } else if (elems[0] == "LP") {
       glm::vec3 pos, color;
       pos[0] = std::atof(elems[1].c_str());
@@ -174,8 +234,16 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       color[1] = std::atof(elems[5].c_str());
       color[2] = std::atof(elems[6].c_str());
       color[3] = 1.f;
-      // TODO : Replace by context
-      // scene.lightSet.push_back(new gvt::render::data::scene::PointLight(pos, color));
+
+
+      gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+    		  "PointLight", "PointLight", root["Lights"].UUID());
+
+        gvt::render::data::scene::PointLight *lp =
+        		new gvt::render::data::scene::PointLight(pos, color);
+        lightNode["position"] = glm::vec3(lp->position);
+        lightNode["color"] = glm::vec3(lp->color);
+
     } else if (elems[0] == "LA") {
       glm::vec3 pos[2], color;
       pos[0][0] = std::atof(elems[1].c_str());

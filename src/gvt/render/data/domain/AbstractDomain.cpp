@@ -118,26 +118,38 @@ glm::vec3 AbstractDomain::localToWorldNormal(const glm::vec3 &v) {
 }
 
 void AbstractDomain::translate(glm::vec3 t) {
-  // m = m * glm::mat4::createTranslation(t[0], t[1], t[2]);
-  //
-  // GVT_DEBUG(DBG_ALWAYS, "M : \n" << m);
-  //
-  // minv = m.inverse();
-  // normi = m.upper33().inverse().transpose();
+
+   m = glm::translate(m, t);
+
+   minv = glm::inverse(m);
+
+   normi = glm::transpose(glm::inverse(glm::mat3(m)));
+
 }
 
 void AbstractDomain::rotate(glm::vec3 t) {
-  // m = m * glm::mat4::createRotation(t[0], 1.0, 0.0, 0.0) *
-  //     glm::mat4::createRotation(t[1], 0.0, 1.0, 0.0) *
-  //     glm::mat4::createRotation(t[2], 0.0, 0.0, 1.0);
-  // minv = m.inverse();
-  // normi = m.upper33().inverse().transpose();
+
+	m = glm::rotate(m, t[0], glm::vec3(1, 0, 0))
+			* glm::rotate(m, t[1], glm::vec3(0, 1, 0))
+			* glm::rotate(m, t[2], glm::vec3(0, 0, 1));
+
+	minv = glm::inverse(m);
+
+	normi = glm::transpose(glm::inverse(glm::mat3(m)));
+
+	// m = m * glm::mat4::createRotation(t[0], 1.0, 0.0, 0.0) *
+	//     glm::mat4::createRotation(t[1], 0.0, 1.0, 0.0) *
+	//     glm::mat4::createRotation(t[2], 0.0, 0.0, 1.0);
+	// minv = m.inverse();
+	// normi = m.upper33().inverse().transpose();
 }
 
 void AbstractDomain::scale(glm::vec3 t) {
-  // m = m * glm::mat4::createScale(t[0], t[1], t[2]);
-  // minv = m.inverse();
-  // normi = m.upper33().inverse().transpose();
+
+	  m = glm::scale(m, t);
+	    minv = glm::inverse(m);
+	    normi = glm::transpose(glm::inverse(glm::mat3(m)));
+
 }
 
 gvt::render::data::primitives::Box3D AbstractDomain::getWorldBoundingBox() { return getBounds(1); }

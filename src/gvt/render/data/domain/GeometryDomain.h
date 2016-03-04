@@ -52,7 +52,7 @@ public:
     }
   }
 
-  GeometryDomain(gvt::render::data::primitives::Mesh *mesh, glm::mat4 m = glm::mat4(true))
+  GeometryDomain(gvt::render::data::primitives::Mesh *mesh, glm::mat4 m = glm::mat4(1))
       : AbstractDomain(m), mesh(NULL), filename("") {
     if (mesh != NULL) {
       this->mesh = mesh;
