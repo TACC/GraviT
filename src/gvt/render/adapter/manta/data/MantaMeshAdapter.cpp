@@ -460,7 +460,7 @@ struct mantaParallelTrace {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
       const glm::vec3 origin = r.origin + r.direction * r.t;
       glm::vec3 dir = light->position - origin;
-      const float t_max = dir.length();
+      const float t_max = glm::length(dir);
       shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
       Ray &shadow_ray = shadowRays.back();
       shadow_ray.t = r.t;

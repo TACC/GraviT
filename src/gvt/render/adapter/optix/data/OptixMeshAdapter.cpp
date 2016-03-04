@@ -357,7 +357,7 @@ struct OptixParallelTrace {
 
       const glm::vec3 origin = r.origin + r.direction * t_shadow;
       const glm::vec3 dir = light->position - origin;
-      const float t_max = dir.length();
+      const float t_max = glm::length(dir);
 
       // note: ray copy constructor is too heavy, so going to build it manually
       shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
@@ -685,8 +685,8 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
                                                                                            // of rays to work
                                                                                            // on
 
-  GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: converted " << lightNodes.size()
-                                                       << " light nodes into structs: size: " << lights.size());
+//  GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: converted " << lightNodes.size()
+//                                                       << " light nodes into structs: size: " << lights.size());
   // end `convertLights`
   //
 

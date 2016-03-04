@@ -76,7 +76,7 @@ struct embTriangle {
 };
 
 EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
-  GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
+ // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
 
   if (!EmbreeMeshAdapter::init) {
     rtcInit(0);
@@ -308,7 +308,7 @@ struct embreeParallelTrace {
 
       const glm::vec3 origin = r.origin + r.direction * t_shadow;
       const glm::vec3 dir = light->position - origin;
-      const float t_max = dir.length();
+      const float t_max = glm::length(dir);
 
       // note: ray copy constructor is too heavy, so going to build it manually
       shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));

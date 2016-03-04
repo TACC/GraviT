@@ -278,8 +278,8 @@ public:
             auto it = adapterCache.find(mesh);
             if (it != adapterCache.end()) {
               adapter = it->second;
-              GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
-                                                                                 << (void *)adapter);
+//              GVT_DEBUG(DBG_ALWAYS, "image scheduler: using adapter from cache[" << meshNode.UUID().toString() << "], "
+//                                                                                 << (void *)adapter);
             } else {
               adapter = 0;
             }

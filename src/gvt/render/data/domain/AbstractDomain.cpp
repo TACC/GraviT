@@ -27,14 +27,15 @@
 using namespace gvt::render::data::domain;
 
 AbstractDomain::AbstractDomain(glm::mat4 m) : m(m), domainID(-1), isLoaded(false) {
-  // minv = m.inverse();
-  // normi = m.upper33().inverse().transpose();
+	  minv = glm::inverse(m);
+
+	   normi = glm::transpose(glm::inverse(glm::mat3(m)));
 }
 
 AbstractDomain::AbstractDomain(const AbstractDomain &other) {
-  // m = other.m;
-  // minv = other.minv;
-  // normi = other.normi;
+   m = other.m;
+   minv = other.minv;
+   normi = other.normi;
 }
 
 AbstractDomain::~AbstractDomain() {}
