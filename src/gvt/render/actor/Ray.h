@@ -97,7 +97,7 @@ public:
 
   Ray operator=(const Ray &r) { return std::move(Ray(r)); }
 
-  virtual ~Ray();
+  ~Ray();
 
   void setDirection(glm::vec3 dir);
   void setDirection(double *dir);

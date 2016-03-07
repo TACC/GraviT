@@ -86,6 +86,8 @@ void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
 
+  std::cout << "Ray :" << sizeof(gvt::render::actor::Ray) << std::endl;
+
   ParseCommandLine cmd("gvtSimple");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
