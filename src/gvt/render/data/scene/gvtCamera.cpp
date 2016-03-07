@@ -47,7 +47,7 @@ gvtCameraBase::gvtCameraBase() {
   wrld2cam = glm::mat4(1.f);
   INVRAND_MAX = 1.0 / (float)RAND_MAX;
   jitterWindowSize = 0.000;
-  samples = 3;
+  samples = 1;
 }
 gvtCameraBase::gvtCameraBase(const gvtCameraBase &cam) {
   eye_point = cam.eye_point;

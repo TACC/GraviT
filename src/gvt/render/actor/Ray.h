@@ -104,7 +104,7 @@ public:
   void setDirection(float *dir);
 
   /// returns size in bytes for the ray information to be sent via MPI
-  int packedSize();
+  size_t packedSize() const { return 21 * 4; }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
   int pack(unsigned char *buffer);
@@ -116,16 +116,16 @@ public:
 
   union {
     struct {
-      mutable glm::vec3 origin;
-      mutable glm::vec3 direction;
-      mutable glm::vec3 inverseDirection;
-      mutable GVT_COLOR_ACCUM color;
+      glm::vec3 origin;
+      float t_min;
+      glm::vec3 direction;
+      float t_max;
+      glm::vec3 inverseDirection;
+      float t;
+      GVT_COLOR_ACCUM color;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
       float w;   ///<! weight of image contribution
-      mutable float t;
-      mutable float t_min;
-      mutable float t_max;
       int type;
     };
     unsigned char data[21 * 4];
