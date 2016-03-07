@@ -156,8 +156,7 @@ public:
                         for (gvt::render::actor::Ray &r : raysit) {
                           float t = FLT_MAX;
                           int next = acc.intersect(r, -1, t);
-                          if (next != -1) {
-                            if (mpiInstanceMap[next] != mpi.rank) continue;
+                          if (next != -1 && mpiInstanceMap[next] == mpi.rank) {
                             r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
                             local_queue[next].push_back(r);
                           }
@@ -566,7 +565,6 @@ public:
     for (size_t i = 0; i < mpi.world_size; ++i) std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
     std::cerr << std::endl << mpi.rank << ": outbound ";
     for (size_t i = 0; i < mpi.world_size; ++i)
-
       std::cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
     std::cerr << std::endl;
 #endif
