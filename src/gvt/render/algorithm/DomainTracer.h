@@ -91,7 +91,6 @@ public:
 
   // caches meshes that are converted into the adapter's format
   std::map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
-
   std::map<int, size_t> mpiInstanceMap;
 #ifdef GVT_USE_MPE
   int tracestart, traceend;
@@ -147,17 +146,38 @@ public:
 
   virtual ~Tracer() {}
 
-  inline void FilterRaysLocally() {
-    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until
-                                          // shuffleRays is fully replaced
-    shuffleRays(rays, -1);
+  void shuffleDropRays(gvt::render::actor::RayVector &rays) {
+    const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
+    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
+    static tbb::simple_partitioner ap;
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+                      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+                        std::map<int, gvt::render::actor::RayVector> local_queue;
+                        for (gvt::render::actor::Ray &r : raysit) {
+                          float t = FLT_MAX;
+                          int next = acc.intersect(r, -1, t);
+                          if (next != -1) {
+                            if (mpiInstanceMap[next] != mpi.rank) continue;
+                            r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
+                            local_queue[next].push_back(r);
+                          }
+                        }
+                        for (auto &q : local_queue) {
+                          queue_mutex[q.first].lock();
+                          queue[q.first].insert(queue[q.first].end(),
+                                                std::make_move_iterator(local_queue[q.first].begin()),
+                                                std::make_move_iterator(local_queue[q.first].end()));
+                          queue_mutex[q.first].unlock();
+                        }
+                      },
+                      ap);
 
-    for (auto e : queue) {
-      if (mpiInstanceMap[e.first] != mpi.rank) {
-        GVT_DEBUG(DBG_ALWAYS, " rank[" << mpi.rank << "] FILTERRAYS: removing queue " << e.first);
-        queue[e.first].clear();
-      }
-    }
+    rays.clear();
+  }
+
+  inline void FilterRaysLocally() {
+    gvt::core::time::timer drop(true, "Shuffle or drop");
+    shuffleDropRays(rays);
   }
 
   inline void operator()() {
@@ -195,9 +215,9 @@ public:
 #ifdef GVT_USE_MPE
     MPE_Log_event(localrayfilterstart, 0, NULL);
 #endif
-    t_shuffle.resume();
+    // t_shuffle.resume();
     FilterRaysLocally();
-    t_shuffle.stop();
+// t_shuffle.stop();
 #ifdef GVT_USE_MPE
     MPE_Log_event(localrayfilterend, 0, NULL);
 #endif
