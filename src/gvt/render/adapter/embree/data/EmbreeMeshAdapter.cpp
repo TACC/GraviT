@@ -112,22 +112,22 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
 
   mesh->generateNormals();
 
-  switch (GVT_EMBREE_PACKET_SIZE) {
-  case 4:
-    packetSize = RTC_INTERSECT4;
-    break;
-  case 8:
-    packetSize = RTC_INTERSECT8;
-    break;
-  case 16:
-    packetSize = RTC_INTERSECT16;
-    break;
-  default:
-    packetSize = RTC_INTERSECT1;
-    break;
-  }
+  // switch (GVT_EMBREE_PACKET_SIZE) {
+  // case 4:
+  //   packetSize = RTC_INTERSECT4;
+  //   break;
+  // case 8:
+  //   packetSize = RTC_INTERSECT8;
+  //   break;
+  // case 16:
+  //   packetSize = RTC_INTERSECT16;
+  //   break;
+  // default:
+  //   packetSize = RTC_INTERSECT1;
+  //   break;
+  // }
 
-  scene = rtcNewScene(RTC_SCENE_STATIC, packetSize);
+  scene = rtcNewScene(RTC_SCENE_STATIC, GVT_EMBREE_ALGORITHM);
 
   int numVerts = mesh->vertices.size();
   int numTris = mesh->faces.size();
@@ -231,7 +231,7 @@ struct embreeParallelTrace {
   /**
    * Size of Embree packet
    */
-  const size_t packetSize; // TODO: later make this configurable
+  // const size_t packetSize; // TODO: later make this configurable
 
   const size_t begin, end;
 
@@ -247,7 +247,7 @@ struct embreeParallelTrace {
                       std::vector<gvt::render::data::scene::Light *> &lights, gvt::render::data::primitives::Mesh *mesh,
                       std::atomic<size_t> &counter, const size_t begin, const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
-        lights(lights), counter(counter), packetSize(adapter->getPacketSize()), begin(begin), end(end), mesh(mesh) {}
+        lights(lights), counter(counter), begin(begin), end(end), mesh(mesh) {}
   /**
    * Convert a set of rays from a vector into a GVT_EMBREE_PACKET_TYPE ray packet.
    *
@@ -357,8 +357,9 @@ struct embreeParallelTrace {
     GVT_EMBREE_PACKET_TYPE ray4 = {};
     RTCORE_ALIGN(16) int valid[GVT_EMBREE_PACKET_SIZE] = { 0 };
 
-    for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
-      const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
+    for (size_t idx = 0; idx < shadowRays.size(); idx += GVT_EMBREE_PACKET_SIZE) {
+      const size_t localPacketSize =
+          (idx + GVT_EMBREE_PACKET_SIZE > shadowRays.size()) ? (shadowRays.size() - idx) : GVT_EMBREE_PACKET_SIZE;
 
       // create a shadow packet and trace with rtcOccluded
       prepGVT_EMBREE_PACKET_TYPE(ray4, valid, true, localPacketSize, shadowRays, idx);
@@ -440,7 +441,7 @@ struct embreeParallelTrace {
     // there is an upper bound on the nubmer of shadow rays generated per embree
     // packet
     // its embree_packetSize * lights.size()
-    shadowRays.reserve(packetSize * lights.size());
+    shadowRays.reserve(GVT_EMBREE_PACKET_SIZE * lights.size());
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
@@ -481,10 +482,11 @@ struct embreeParallelTrace {
 
     // std::cout << "EmbreeMeshAdapter: working on rays [" << begin << ", " << end << "]" << std::endl;
 
-    for (size_t localIdx = begin; localIdx < end; localIdx += packetSize) {
+    for (size_t localIdx = begin; localIdx < end; localIdx += GVT_EMBREE_PACKET_SIZE) {
       // this is the local packet size. this might be less than the main
       // packetSize due to uneven amount of rays
-      const size_t localPacketSize = (localIdx + packetSize > end) ? (end - localIdx) : packetSize;
+      const size_t localPacketSize =
+          (localIdx + GVT_EMBREE_PACKET_SIZE > end) ? (end - localIdx) : GVT_EMBREE_PACKET_SIZE;
 
       // trace a packet of rays, then keep tracing the generated secondary
       // rays to completion
