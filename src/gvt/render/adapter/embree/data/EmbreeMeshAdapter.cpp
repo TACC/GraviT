@@ -58,7 +58,30 @@
 #include <tbb/tick_count.h>
 
 // TODO: add logic for other packet sizes
+
+#ifdef GVT_SSE_TARGET
+#define GVT_EMBREE_ALGORITHM RTC_INTERSECT4
 #define GVT_EMBREE_PACKET_SIZE 4
+#define GVT_EMBREE_PACKET_TYPE RTCRay4
+#define GVT_EMBREE_INTERSECTION rtcIntersect4
+#define GVT_EMBREE_OCCULUSION rtcOccluded4
+#endif
+
+#ifdef GVT_AVX_TARGET
+#define GVT_EMBREE_ALGORITHM RTC_INTERSECT8
+#define GVT_EMBREE_PACKET_SIZE 8
+#define GVT_EMBREE_PACKET_TYPE RTCRay8
+#define GVT_EMBREE_INTERSECTION rtcIntersect8
+#define GVT_EMBREE_OCCULUSION rtcOccluded8
+#endif
+
+#ifdef GVT_AVX2_TARGET
+#define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
+#define GVT_EMBREE_PACKET_SIZE 16
+#define GVT_EMBREE_PACKET_TYPE RTCRay16
+#define GVT_EMBREE_INTERSECTION rtcIntersect16
+#define GVT_EMBREE_OCCULUSION rtcOccluded16
+#endif
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::embree::data;
@@ -226,9 +249,9 @@ struct embreeParallelTrace {
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
         lights(lights), counter(counter), packetSize(adapter->getPacketSize()), begin(begin), end(end), mesh(mesh) {}
   /**
-   * Convert a set of rays from a vector into a RTCRay4 ray packet.
+   * Convert a set of rays from a vector into a GVT_EMBREE_PACKET_TYPE ray packet.
    *
-   * \param ray4          reference of RTCRay4 struct to write to
+   * \param ray4          reference of GVT_EMBREE_PACKET_TYPE struct to write to
    * \param valid         aligned array of 4 ints to mark valid rays
    * \param resetValid    if true, reset the valid bits, if false, re-use old
    * valid to know which to convert
@@ -236,8 +259,9 @@ struct embreeParallelTrace {
    * \param rays          vector of rays to read from
    * \param startIdx      starting point to read from in `rays`
    */
-  void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid, const int localPacketSize,
-                   gvt::render::actor::RayVector &rays, const size_t startIdx) {
+  void prepGVT_EMBREE_PACKET_TYPE(GVT_EMBREE_PACKET_TYPE &ray4, int valid[GVT_EMBREE_PACKET_SIZE],
+                                  const bool resetValid, const int localPacketSize, gvt::render::actor::RayVector &rays,
+                                  const size_t startIdx) {
     // reset valid to match the number of active rays in the packet
     if (resetValid) {
       for (int i = 0; i < localPacketSize; i++) {
@@ -248,7 +272,7 @@ struct embreeParallelTrace {
       }
     }
 
-    // convert localPacketSize rays into embree's RTCRay4 struct
+    // convert localPacketSize rays into embree's GVT_EMBREE_PACKET_TYPE struct
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
@@ -330,15 +354,15 @@ struct embreeParallelTrace {
    */
   void traceShadowRays() {
     RTCScene scene = adapter->getScene();
-    RTCRay4 ray4 = {};
-    RTCORE_ALIGN(16) int valid[4] = { 0 };
+    GVT_EMBREE_PACKET_TYPE ray4 = {};
+    RTCORE_ALIGN(16) int valid[GVT_EMBREE_PACKET_SIZE] = { 0 };
 
     for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
       const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
 
       // create a shadow packet and trace with rtcOccluded
-      prepRTCRay4(ray4, valid, true, localPacketSize, shadowRays, idx);
-      rtcOccluded4(valid, scene, ray4);
+      prepGVT_EMBREE_PACKET_TYPE(ray4, valid, true, localPacketSize, shadowRays, idx);
+      GVT_EMBREE_OCCULUSION(valid, scene, ray4);
 
       for (size_t pi = 0; pi < localPacketSize; pi++) {
         if (valid[pi] && ray4.geomID[pi] == (int)RTC_INVALID_GEOMETRY_ID) {
@@ -450,8 +474,8 @@ struct embreeParallelTrace {
     //   workEnd = end;
     // }
 
-    RTCRay4 ray4 = {};
-    RTCORE_ALIGN(16) int valid[4] = { 0 };
+    GVT_EMBREE_PACKET_TYPE ray4 = {};
+    RTCORE_ALIGN(16) int valid[GVT_EMBREE_PACKET_SIZE] = { 0 };
 
     // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: working on rays [" << workStart << ", " << workEnd << "]");
 
@@ -477,8 +501,8 @@ struct embreeParallelTrace {
       while (validRayLeft) {
         validRayLeft = false;
 
-        prepRTCRay4(ray4, valid, resetValid, localPacketSize, rayList, localIdx);
-        rtcIntersect4(valid, scene, ray4);
+        prepGVT_EMBREE_PACKET_TYPE(ray4, valid, resetValid, localPacketSize, rayList, localIdx);
+        GVT_EMBREE_INTERSECTION(valid, scene, ray4);
         resetValid = false;
 
         for (size_t pi = 0; pi < localPacketSize; pi++) {
