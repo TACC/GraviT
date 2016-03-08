@@ -49,13 +49,8 @@ public:
   Box3D(glm::vec3 vmin, glm::vec3 vmax);
 
   Box3D(const Box3D &other);
-  bool intersect(const gvt::render::actor::Ray &r) const;
-  bool intersect(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
-  bool inBox(const gvt::render::actor::Ray &r) const;
-  bool inBox(const glm::vec3 &r) const;
-  glm::vec3 getHitpoint(const gvt::render::actor::Ray &r) const;
-  bool intersectDistance(const gvt::render::actor::Ray &r, float &t) const;
-  bool intersectDistance(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
+  bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const;
+  bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
   void expand(glm::vec3 &v);
   int wideRangingBoxDir() const;

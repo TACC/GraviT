@@ -59,6 +59,8 @@ public:
   virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect);
   // virtual int intersect(const gvt::render::actor::Ray &ray, int from, float &t);
   inline int intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
+    const glm::vec3 &origin = ray.origin;
+    const glm::vec3 inv = 1.f / ray.direction;
     if (root) {
       Node *stack[instanceSet.size() * 2];
       Node **stackptr = stack;
@@ -69,7 +71,7 @@ public:
 
       while (cur) {
         float tlocal = std::numeric_limits<float>::max();
-        if (!(cur->bbox.intersectDistance(ray, tlocal))) {
+        if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
           cur = *(--stackptr);
           continue;
         }
@@ -80,7 +82,7 @@ public:
             if (from == instanceSetID[i]) continue;
             primitives::Box3D *ibbox = instanceSetBB[i];
             float tlocal;
-            if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
+            if (ibbox->intersectDistance(origin, inv, tlocal) && (tlocal < best)) {
               t = best = tlocal;
               rid = instanceSetID[i];
             }
@@ -124,46 +126,46 @@ private:
   float findSplitPoint(int splitAxis, int start, int end);
 
   /// traverse ray through BVH. Called by intersect().
-  void trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
+  void trace(const glm::vec3 &origin, const glm::vec3 &inv, const Node *node, /*ClosestHit &hit,*/
              gvt::render::actor::isecDomList &isect, int level);
-  inline int trace(const gvt::render::actor::Ray &ray, Node *node, int cid, float &t) {
-
-    Node *stack[instanceSet.size() * 2];
-    Node **stackptr = stack;
-    *(stackptr++) = nullptr;
-    Node *cur = node;
-    float best = t;
-    int rid = -1;
-
-    while (cur) {
-
-      float tlocal = std::numeric_limits<float>::max();
-
-      if (!(cur->bbox.intersectDistance(ray, tlocal)) || tlocal > t) {
-        cur = *(--stackptr);
-        continue;
-      }
-      if (cur->numInstances > 0) { // leaf node
-        int start = cur->instanceSetIdx;
-        int end = start + cur->numInstances;
-        for (int i = start; i < end; ++i) {
-          if (cid == instanceSetID[i]) continue;
-          primitives::Box3D *ibbox = instanceSetBB[i];
-          float tlocal;
-          if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
-            t = best = tlocal;
-            rid = instanceSetID[i];
-          }
-        }
-        // if (rid != -1) t = best;
-        cur = *(--stackptr);
-      } else {
-        *(stackptr++) = cur->rightChild;
-        cur = cur->leftChild;
-      }
-    }
-    return rid;
-  }
+  // inline int trace(const glm::vec3 &origin, const glm::vec3 &inv, Node *node, int cid, float &t) {
+  //
+  //   Node *stack[instanceSet.size() * 2];
+  //   Node **stackptr = stack;
+  //   *(stackptr++) = nullptr;
+  //   Node *cur = node;
+  //   float best = t;
+  //   int rid = -1;
+  //
+  //   while (cur) {
+  //
+  //     float tlocal = std::numeric_limits<float>::max();
+  //
+  //     if (!(cur->bbox.intersectDistance(ray, tlocal)) || tlocal > t) {
+  //       cur = *(--stackptr);
+  //       continue;
+  //     }
+  //     if (cur->numInstances > 0) { // leaf node
+  //       int start = cur->instanceSetIdx;
+  //       int end = start + cur->numInstances;
+  //       for (int i = start; i < end; ++i) {
+  //         if (cid == instanceSetID[i]) continue;
+  //         primitives::Box3D *ibbox = instanceSetBB[i];
+  //         float tlocal;
+  //         if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
+  //           t = best = tlocal;
+  //           rid = instanceSetID[i];
+  //         }
+  //       }
+  //       // if (rid != -1) t = best;
+  //       cur = *(--stackptr);
+  //     } else {
+  //       *(stackptr++) = cur->rightChild;
+  //       cur = cur->leftChild;
+  //     }
+  //   }
+  //   return rid;
+  // }
 
   std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
   std::vector<int> instanceSetID;

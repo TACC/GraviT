@@ -100,11 +100,11 @@ public:
   ~Ray();
 
   void setDirection(glm::vec3 dir);
-  //void setDirection(double *dir);
-  //void setDirection(float *dir);
+  // void setDirection(double *dir);
+  // void setDirection(float *dir);
 
   /// returns size in bytes for the ray information to be sent via MPI
-  size_t packedSize() const { return 21 * 4; }
+  size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
   int pack(unsigned char *buffer);
@@ -116,19 +116,18 @@ public:
 
   union {
     struct {
-      glm::vec3 origin;
-      float t_min;
-      glm::vec3 direction;
-      float t_max;
-      glm::vec3 inverseDirection;
-      float t;
+      glm::vec3 origin GVT_ALIGN(16);
+      glm::vec3 direction GVT_ALIGN(16);
       GVT_COLOR_ACCUM color;
+      float t_min;
+      float t_max;
+      float t;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
       float w;   ///<! weight of image contribution
       int type;
     };
-    unsigned char data[21 * 4];
+    unsigned char data[] GVT_ALIGN(32);
   };
 
 protected:
