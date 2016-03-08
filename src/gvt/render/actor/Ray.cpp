@@ -70,7 +70,7 @@ int Ray::pack(unsigned char *buffer) {
 }
 
 void Ray::setDirection(glm::vec3 dir) {
-  direction = glm::fastNormalize(dir);
+  direction = glm::normalize(dir);
   for (int i = 0; i < 3; i++) {
     if (direction[i] != 0)
       inverseDirection[i] = 1.0 / direction[i];
