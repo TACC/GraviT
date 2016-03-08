@@ -69,14 +69,16 @@ int Ray::pack(unsigned char *buffer) {
 
 void Ray::setDirection(glm::vec3 dir) {
   direction = glm::normalize(dir);
-  for (int i = 0; i < 3; i++) {
-    if (direction[i] != 0)
-      inverseDirection[i] = 1.0 / direction[i];
-    else
-      inverseDirection[i] = 0.;
-  }
+  inverseDirection = 1.f / direction;
+//  for (int i = 0; i < 3; i++) {
+//    if (direction[i] != 0)
+//      inverseDirection[i] = 1.0 / direction[i];
+//    else
+//      inverseDirection[i] = 0.;
+//  }
 }
-
+/*
 void Ray::setDirection(double *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
 
 void Ray::setDirection(float *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
+*/

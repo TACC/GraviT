@@ -100,8 +100,8 @@ public:
   ~Ray();
 
   void setDirection(glm::vec3 dir);
-  void setDirection(double *dir);
-  void setDirection(float *dir);
+  //void setDirection(double *dir);
+  //void setDirection(float *dir);
 
   /// returns size in bytes for the ray information to be sent via MPI
   size_t packedSize() const { return 21 * 4; }
