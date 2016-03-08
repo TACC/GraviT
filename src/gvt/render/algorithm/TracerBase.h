@@ -207,7 +207,7 @@ public:
                           int next = acc.intersect(r, domID, t);
 
                           if (next != -1) {
-                            r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
+                            r.origin = r.origin + r.direction * (t - t * 0.2f);
                             local_queue[next].push_back(r);
                           } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
