@@ -157,7 +157,7 @@ public:
                           float t = FLT_MAX;
                           int next = acc.intersect(r, -1, t);
                           if (next != -1 && mpiInstanceMap[next] == mpi.rank) {
-                            r.origin = r.origin + r.direction * (t - t * 0.01f);
+                            r.origin = r.origin + r.direction * (t - t * 0.1f);
                             local_queue[next].push_back(r);
                           }
                         }
@@ -225,6 +225,7 @@ public:
 
     // process domains until all rays are terminated
     bool all_done = false;
+    int nqueue = 0;
     std::set<int> doms_to_send;
     int lastInstance = -1;
     // gvt::render::data::domain::AbstractDomain* dom = NULL;
@@ -236,8 +237,8 @@ public:
     size_t instTargetCount = 0;
 
     gvt::render::Adapter *adapter = 0;
-    while (!all_done) {
-      if (!queue.empty()) {
+    do {
+      do {
         // process domain assigned to this proc with most rays queued
         // if there are queues for instances that are not assigned
         // to the current rank, erase those entries
@@ -249,10 +250,10 @@ public:
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
 
-          if (q.second.empty() || !inRank) {
-            to_del.push_back(q.first);
-            continue;
-          }
+          // if (q.second.empty() || !inRank) {
+          //   to_del.push_back(q.first);
+          //   continue;
+          // }
 
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
@@ -260,11 +261,11 @@ public:
           }
         }
 
-        // erase empty queues
-        for (int instId : to_del) {
-          GVT_DEBUG(DBG_ALWAYS, "rank[" << mpi.rank << "] DOMAINTRACER: deleting queue for instance " << instId);
-          queue.erase(instId);
-        }
+        // // erase empty queues
+        // for (int instId : to_del) {
+        //   GVT_DEBUG(DBG_ALWAYS, "rank[" << mpi.rank << "] DOMAINTRACER: deleting queue for instance " << instId);
+        //   queue.erase(instId);
+        // }
 
         if (instTarget == -1) {
           continue;
@@ -368,7 +369,9 @@ public:
             t_shuffle.stop();
           }
         }
-      }
+        nqueue = 0;
+        for (auto &q : queue) nqueue += q.second.size();
+      } while (nqueue);
 
 #if GVT_USE_DEBUG
       if (!queue.empty()) {
@@ -388,6 +391,13 @@ public:
 
         // root proc takes empty flag from all procs
         int not_done = (int)(!queue.empty());
+
+        for (auto &q : queue)
+          if (!q.second.empty()) {
+            not_done = 1;
+            break;
+          }
+
         int *empties = (mpi.rank == 0) ? new int[mpi.world_size] : NULL;
         MPI_Gather(&not_done, 1, MPI_INT, empties, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (mpi.rank == 0) {
@@ -403,7 +413,12 @@ public:
         t_send.stop();
         delete[] empties;
       }
-    }
+      nqueue = 0;
+      for (auto &q : queue) {
+        const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+        nqueue += q.second.size();
+      }
+    } while (nqueue);
 
 // std::cout << "domain scheduler: select time: " << t_sort.format();
 // std::cout << "domain scheduler: trace time: " << t_trace.format();
