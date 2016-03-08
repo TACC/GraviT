@@ -49,7 +49,8 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
+  EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh,
+		  gvt::render::shader::ShadeAlgorithm* shadeAlgorithm);
 
   /**
    * Release Embree copy of the mesh.

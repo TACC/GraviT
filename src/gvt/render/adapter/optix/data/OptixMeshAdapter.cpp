@@ -89,8 +89,9 @@ struct OptixHit {
 
 OptixContext *OptixContext::_singleton = new OptixContext();
 
-OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh)
-    : Adapter(mesh), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(OptixContext::singleton()->context()) {
+OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh,
+		gvt::render::shader::ShadeAlgorithm* shader)
+    : Adapter(mesh, shader), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(OptixContext::singleton()->context()) {
   // Get GVT mesh pointer
   // GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
   // Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();

@@ -63,7 +63,7 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
+  OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh, gvt::render::shader::ShadeAlgorithm* shader);
 
   /**
    * Release Embree copy of the mesh.

@@ -42,18 +42,24 @@ Material::Material(const Material &orig) {}
 
 Material::~Material() {}
 
-glm::vec3 Material::shade(const Ray &ray, const glm::vec3 &sufaceNormal, const Light *lightSource,
-                          const glm::vec3 lightPostion) {
-  return glm::vec3();
-}
+ColorShadingMaterial::ColorShadingMaterial() {}
 
-RayVector Material::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
+ColorShadingMaterial::ColorShadingMaterial(const ColorShadingMaterial &orig) : Material(orig) {}
 
-RayVector Material::secondary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
+ColorShadingMaterial::~ColorShadingMaterial() {}
 
-Lambert::Lambert(const glm::vec3 &kd) : Material(), kd(kd) {}
+//glm::vec3 Material::shade(const Ray &ray, const glm::vec3 &sufaceNormal, const Light *lightSource,
+//                          const glm::vec3 lightPostion) {
+//  return glm::vec3();
+//}
+//
+//RayVector Material::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
+//
+//RayVector Material::secondary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
+Lambert::Lambert(const glm::vec3 &kd) : ColorShadingMaterial(), kd(kd) {}
+
+Lambert::Lambert(const Lambert &orig) : ColorShadingMaterial(orig), kd(orig.kd) {}
 
 Lambert::~Lambert() {}
 
@@ -70,9 +76,9 @@ RayVector Lambert::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float sampl
 
 RayVector Lambert::secundary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
-Phong::Phong(const glm::vec3 &kd, const glm::vec3 &ks, const float &alpha) : Material(), kd(kd), ks(ks), alpha(alpha) {}
+Phong::Phong(const glm::vec3 &kd, const glm::vec3 &ks, const float &alpha) : ColorShadingMaterial(), kd(kd), ks(ks), alpha(alpha) {}
 
-Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
+Phong::Phong(const Phong &orig) : ColorShadingMaterial(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
 
 Phong::~Phong() {}
 
@@ -97,9 +103,9 @@ RayVector Phong::ao(const Ray &ray, const glm::vec3 &sufaceNormal, float samples
 RayVector Phong::secundary(const Ray &ray, const glm::vec3 &sufaceNormal, float samples) { return RayVector(); }
 
 BlinnPhong::BlinnPhong(const glm::vec3 &kd, const glm::vec3 &ks, const float &alpha)
-    : Material(), kd(kd), ks(ks), alpha(alpha) {}
+    : ColorShadingMaterial(), kd(kd), ks(ks), alpha(alpha) {}
 
-BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
+BlinnPhong::BlinnPhong(const BlinnPhong &orig) : ColorShadingMaterial(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
 
 BlinnPhong::~BlinnPhong() {}
 

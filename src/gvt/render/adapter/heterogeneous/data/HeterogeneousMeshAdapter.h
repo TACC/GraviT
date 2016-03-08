@@ -31,6 +31,7 @@
 #include <gvt/render/adapter/embree/Wrapper.h>
 #include <gvt/render/adapter/optix/Wrapper.h>
 
+
 namespace gvt {
 namespace render {
 namespace adapter {
@@ -45,7 +46,8 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
+  HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh,
+		  gvt::render::shader::ShadeAlgorithm* shader);
 
   /**
    * Release Embree copy of the mesh.

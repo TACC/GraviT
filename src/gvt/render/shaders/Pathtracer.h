@@ -31,22 +31,35 @@
 #ifndef GVT_RENDER_PATHTRACERSHADER_H
 #define GVT_RENDER_PATHTRACERSHADER_H
 
+#include <gvt/render/shaders/ShadeAlgorithm.h>
 
-#include <gvt/render/shaders/Shader.h>
 
 namespace gvt {
 namespace render {
 namespace shader {
 
 
-class PathTracerShader : public Shader {
+class Pathtracer : public ShadeAlgorithm {
 public:
 
-  PathTracerShader();
+	const std::vector<gvt::render::data::scene::Light *>& lights;
 
-   ~PathTracerShader();
 
-   void shade();
+  Pathtracer(const std::vector<gvt::render::data::scene::Light *>& lights);
+
+   ~Pathtracer();
+
+   //TODO deprecates material call
+   glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n);
+
+
+   void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
+   		 gvt::render::data::primitives::UnifiedMateral * material, unsigned int *randSeed,
+                           gvt::render::actor::RayVector& shadowRays);
+
+
+   virtual bool shade(Ray& r, const glm::vec3 &normal,gvt::render::data::primitives::UnifiedMateral * material,
+    		   TLRand& randEngine, gvt::render::actor::RayVector& shadowRays,  int* valid);
 
 };
 

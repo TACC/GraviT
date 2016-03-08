@@ -40,6 +40,8 @@
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
+#include <gvt/render/shaders/Pathtracer.h>
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -125,6 +127,9 @@ public:
     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
+
+    gvt::render::shader::ShadeAlgorithm* shadeAlgorithm=  new gvt::render::shader::Pathtracer(lights);
+
     clearBuffer();
 
     // sort rays into queues
@@ -158,7 +163,6 @@ public:
         // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
         gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
-
         // TODO: Make cache generic needs to accept any kind of adpater
 
         // 'getAdapterFromCache' functionality
@@ -173,23 +177,23 @@ public:
           switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
           case gvt::render::adapter::Embree:
-            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, shadeAlgorithm);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
           case gvt::render::adapter::Manta:
-            adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
+            adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh, shadeAlgorithm);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
           case gvt::render::adapter::Optix:
-            adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+            adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh, shadeAlgorithm);
             break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
           case gvt::render::adapter::Heterogeneous:
-            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh, shadeAlgorithm);
             break;
 #endif
           default:

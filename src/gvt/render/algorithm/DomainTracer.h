@@ -40,6 +40,8 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
+#include <gvt/render/shaders/Pathtracer.h>
+
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
@@ -182,6 +184,9 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
+    gvt::render::shader::ShadeAlgorithm* shadeAlgorithm = new gvt::render::shader::Pathtracer(lights);
+
+
     clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
@@ -275,6 +280,7 @@ public:
             lastInstance = instTarget;
 
             gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
+
             auto it = adapterCache.find(mesh);
             if (it != adapterCache.end()) {
               adapter = it->second;
@@ -288,7 +294,7 @@ public:
               switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
               case gvt::render::adapter::Embree:
-                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, shadeAlgorithm);
                 break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
@@ -298,13 +304,13 @@ public:
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
               case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh, shadeAlgorithm);
                 break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
               case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh, shadeAlgorithm);
                 break;
 #endif
               default:

@@ -22,24 +22,41 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 /*
- * PathtracerShader.cpp
+ * Shader.h
  *
  *  Created on: Mar 6, 2016
  *      Author: Roberto Ribeiro
  */
 
-#include <gvt/render/shaders/PathtracerShader.h>
+#ifndef GVT_RENDER_SHADER_H
+#define GVT_RENDER_SHADER_H
 
-using namespace gvt::render::shader;
+#include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/data/primitives/Mesh.h>
+#include <gvt/render/actor/Ray.h>
 
-PathTracerShader::PathTracerShader(){
+using namespace gvt::render::actor;
+using namespace gvt::render::data::primitives;
+
+
+namespace gvt {
+namespace render {
+namespace shader {
+
+class ShadeAlgorithm {
+public:
+
+  ShadeAlgorithm() {};
+
+  virtual ~ShadeAlgorithm() {}
+
+  virtual bool shade(Ray& r, const glm::vec3 &normal,gvt::render::data::primitives::UnifiedMateral * material,
+ 		   TLRand& randEngine, gvt::render::actor::RayVector& shadowRays,  int* valid)=0;
+
+};
 
 }
+} // render
+} // gvt
 
-PathTracerShader::~PathTracerShader(){
-
-}
-
-void PathTracerShader::shade(){
-
-}
+#endif // GVT_RENDER_SHADER_H

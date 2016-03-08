@@ -30,7 +30,7 @@
 #include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
-
+#include <gvt/render/shaders/ShadeAlgorithm.h>
 #include <mutex>
 #include <thread>
 
@@ -49,7 +49,8 @@ public:
   /**
    * Construct an adapter with a given data node
    */
-  Adapter(gvt::render::data::primitives::Mesh *mesh) : mesh(mesh) {}
+  Adapter(gvt::render::data::primitives::Mesh *mesh,
+		  gvt::render::shader::ShadeAlgorithm* shadeAlgorithm ) : mesh(mesh), shadeAlgorithm(shadeAlgorithm) {}
 
   /**
    * Destroy the adapter
@@ -69,6 +70,9 @@ public:
 
   std::mutex _inqueue;
   std::mutex _outqueue;
+
+  gvt::render::shader::ShadeAlgorithm* shadeAlgorithm;
+
 };
 
 } // render
