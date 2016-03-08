@@ -76,30 +76,30 @@ void Box3D::expand(glm::vec3 &v) {
   bounds[1][2] = fastmax(bounds[1][2], v[2]);
 }
 
-bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const {
-
-  /*float t1 = (bounds[0].x - origin.x) * inv.x;
-  float t3 = (bounds[0].y - origin.y) * inv.y;
-  float t5 = (bounds[0].z - origin.z) * inv.z;
-  float t2 = (bounds[1].x - origin.x) * inv.x;
-  float t4 = (bounds[1].y - origin.y) * inv.y;
-  float t6 = (bounds[1].z - origin.z) * inv.z;
-*/
-
-  glm::vec3 l = (bounds[0] - origin) * inv;
-  glm::vec3 u = (bounds[1] - origin) * inv;
-  glm::vec3 m = glm::min(l, u);
-  float tmin = fastmax(fastmax(m.x, m.y), m.z);
-  if (tmin < FLT_EPSILON) return false;
-
-  glm::vec3 M = glm::max(l, u);
-  float tmax = fastmin(fastmin(M.x, M.y), M.z);
-
-  if (tmax < 0 || tmin > tmax) return false;
-  t = (tmin > 0) ? tmin : -1;
-
-  return (t > FLT_EPSILON);
-}
+// bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const {
+//
+//   /*float t1 = (bounds[0].x - origin.x) * inv.x;
+//   float t3 = (bounds[0].y - origin.y) * inv.y;
+//   float t5 = (bounds[0].z - origin.z) * inv.z;
+//   float t2 = (bounds[1].x - origin.x) * inv.x;
+//   float t4 = (bounds[1].y - origin.y) * inv.y;
+//   float t6 = (bounds[1].z - origin.z) * inv.z;
+// */
+//
+//   glm::vec3 l = (bounds[0] - origin) * inv;
+//   glm::vec3 u = (bounds[1] - origin) * inv;
+//   glm::vec3 m = glm::min(l, u);
+//   float tmin = fastmax(fastmax(m.x, m.y), m.z);
+//   if (tmin < FLT_EPSILON) return false;
+//
+//   glm::vec3 M = glm::max(l, u);
+//   float tmax = fastmin(fastmin(M.x, M.y), M.z);
+//
+//   if (tmax < 0 || tmin > tmax) return false;
+//   t = (tmin > 0) ? tmin : -1;
+//
+//   return (t > FLT_EPSILON);
+// }
 
 bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const {
 

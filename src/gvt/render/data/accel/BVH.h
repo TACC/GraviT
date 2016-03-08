@@ -61,41 +61,38 @@ public:
   inline int intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
     const glm::vec3 &origin = ray.origin;
     const glm::vec3 inv = 1.f / ray.direction;
-    if (root) {
-      Node *stack[instanceSet.size() * 2];
-      Node **stackptr = stack;
-      *(stackptr++) = nullptr;
-      Node *cur = root;
-      float best = t;
-      int rid = -1;
+    Node *stack[instanceSet.size() * 2];
+    Node **stackptr = stack;
+    *(stackptr++) = nullptr;
+    Node *cur = root;
+    float best = t;
+    int rid = -1;
 
-      while (cur) {
-        float tlocal = std::numeric_limits<float>::max();
-        if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
-          cur = *(--stackptr);
-          continue;
-        }
-        if (cur->numInstances > 0) { // leaf node
-          int start = cur->instanceSetIdx;
-          int end = start + cur->numInstances;
-          for (int i = start; i < end; ++i) {
-            if (from == instanceSetID[i]) continue;
-            primitives::Box3D *ibbox = instanceSetBB[i];
-            float tlocal;
-            if (ibbox->intersectDistance(origin, inv, tlocal) && (tlocal < best)) {
-              t = best = tlocal;
-              rid = instanceSetID[i];
-            }
-          }
-          cur = *(--stackptr);
-        } else {
-          *(stackptr++) = cur->rightChild;
-          cur = cur->leftChild;
-        }
+    while (cur) {
+      float tlocal = std::numeric_limits<float>::max();
+      if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
+        cur = *(--stackptr);
+        continue;
       }
-      return rid;
+      if (cur->numInstances > 0) { // leaf node
+        int start = cur->instanceSetIdx;
+        int end = start + cur->numInstances;
+        for (int i = start; i < end; ++i) {
+          if (from == instanceSetID[i]) continue;
+          primitives::Box3D *ibbox = instanceSetBB[i];
+          float tlocal;
+          if (ibbox->intersectDistance(origin, inv, tlocal) && (tlocal < best)) {
+            t = best = tlocal;
+            rid = instanceSetID[i];
+          }
+        }
+        cur = *(--stackptr);
+      } else {
+        *(stackptr++) = cur->rightChild;
+        cur = cur->leftChild;
+      }
     }
-    return -1;
+    return rid;
   }
 
 private:

@@ -49,7 +49,21 @@ public:
   Box3D(glm::vec3 vmin, glm::vec3 vmax);
 
   Box3D(const Box3D &other);
-  bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const;
+  inline bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const {
+    glm::vec3 l = (bounds[0] - origin) * inv;
+    glm::vec3 u = (bounds[1] - origin) * inv;
+    glm::vec3 m = glm::min(l, u);
+    float tmin = fastmax(fastmax(m.x, m.y), m.z);
+    if (tmin < FLT_EPSILON) return false;
+
+    glm::vec3 M = glm::max(l, u);
+    float tmax = fastmin(fastmin(M.x, M.y), M.z);
+
+    if (tmax < 0 || tmin > tmax) return false;
+    t = (tmin > 0) ? tmin : -1;
+
+    return (t > FLT_EPSILON);
+  };
   bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
   void expand(glm::vec3 &v);
