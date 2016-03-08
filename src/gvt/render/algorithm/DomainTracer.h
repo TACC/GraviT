@@ -214,9 +214,9 @@ public:
 #ifdef GVT_USE_MPE
     MPE_Log_event(localrayfilterstart, 0, NULL);
 #endif
-    // t_shuffle.resume();
+    t_filter.resume();
     FilterRaysLocally();
-// t_shuffle.stop();
+    t_filter.stop();
 #ifdef GVT_USE_MPE
     MPE_Log_event(localrayfilterend, 0, NULL);
 #endif
@@ -289,10 +289,10 @@ public:
           // }
 
           // track domains loaded
-          if (instTarget != lastInstance) {
-            ++domain_counter;
-            lastInstance = instTarget;
-
+          {
+            // ++domain_counter;
+            // lastInstance = instTarget;
+            t_adapter.resume();
             gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
             auto it = adapterCache.find(mesh);
             if (it != adapterCache.end()) {
@@ -331,6 +331,7 @@ public:
               }
               adapterCache[mesh] = adapter;
             }
+            t_adapter.stop();
           }
           GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
 
@@ -419,6 +420,7 @@ public:
 #ifdef GVT_USE_MPE
     MPE_Log_event(framebufferend, 0, NULL);
 #endif
+    t_frame.stop();
     t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter + t_send;
     t_diff = t_frame - t_all;
   }
