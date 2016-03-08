@@ -39,7 +39,6 @@
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
 

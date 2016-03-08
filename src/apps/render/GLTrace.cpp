@@ -72,7 +72,6 @@
 
 using namespace std;
 using namespace gvtapps::render;
-using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::core::mpi;

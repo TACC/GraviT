@@ -51,7 +51,7 @@
 
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
-#include <gvt/render/data/domain/reader/ObjReader.h>
+#include <gvt/render/data/reader/ObjReader.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 

@@ -141,7 +141,7 @@ find_package(TBB REQUIRED)
 
 include_directories(${TBB_INCLUDE_DIRS})
 include_directories(${GLM_DIR})
-
+link_directories(${TBB_LIBRARY_DIRS})
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
@@ -224,11 +224,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/algorithm/Tracers.h
 	src/gvt/render/RenderContext.h
 	src/gvt/render/data/DerivedTypes.h
-	src/gvt/render/data/domain/AbstractDomain.h
-	src/gvt/render/data/domain/Cell.h
-	src/gvt/render/data/domain/GeometryDomain.h
-	src/gvt/render/data/domain/reader/ObjReader.h
-	src/gvt/render/data/domain/reader/PlyReader.h
+	src/gvt/render/data/reader/ObjReader.h
+	src/gvt/render/data/reader/PlyReader.h
 	src/gvt/render/data/Domains.h
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
@@ -261,11 +258,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
 	src/gvt/render/RenderContext.cpp
-	src/gvt/render/data/domain/AbstractDomain.cpp
-	src/gvt/render/data/domain/Cell.cpp
-	src/gvt/render/data/domain/GeometryDomain.cpp
-	src/gvt/render/data/domain/reader/ObjReader.cpp
-	src/gvt/render/data/domain/reader/PlyReader.cpp
+	src/gvt/render/data/reader/ObjReader.cpp
+	src/gvt/render/data/reader/PlyReader.cpp
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
@@ -280,7 +274,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/manta/data/domain/MantaDomain.h
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
@@ -288,7 +281,6 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		)
 
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
 		)
 
@@ -339,8 +331,9 @@ endif(GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
 if (GVT_CORE)
     find_package(Boost REQUIRED COMPONENTS system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
+    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
+		message(STATUS ${TBB_LIBRARIES})
 	add_library(gvtCore STATIC
 		${GVT_CORE_HDRS}
 		${GVT_CORE_SRCS}
@@ -365,7 +358,7 @@ if (GVT_RENDER)
 
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
 
     if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
     	find_package(CUDA REQUIRED)
@@ -425,7 +418,7 @@ if (GVT_SIMPLE_APP)
 	set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS}  ${MPI_LIBRARIES})
 	set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
 	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
-	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
+	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} ${GVT_CORE_LIBS})
 endif(GVT_SIMPLE_APP)
 
 if(GVT_TESTING)
@@ -437,7 +430,7 @@ if(GVT_TESTING)
         find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH})
 	add_executable(gvttest ${GVT_TESTING_SRCS} Test/GVTTest/GVTTest.cpp)
-        target_link_libraries(gvttest gvtCore gvtRender ${MPI_LIBRARIES} ${OSPRAY_LIBRARIES} )
+        target_link_libraries(gvttest gvtCore gvtRender ${MPI_LIBRARIES} ${OSPRAY_LIBRARIES} ${GVT_CORE_LIBS})
 endif(GVT_TESTING)
 
 if (GVT_PLY_APP)
@@ -454,7 +447,7 @@ if (GVT_PLY_APP)
   endif (GVT_MPE)
 	find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
-	set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
 	set(GVTPLY_RENDER_SRCS ${GVTPLY_RENDER_SRCS}
 		src/apps/render/PlyApp.cpp
 		${PLYPATH}/ply.c)
@@ -470,7 +463,7 @@ if (GVT_SIMPLE_FILE_LOAD_APP)
       include_directories(${MPE_INCLUDE_DIR})
       FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
       FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
-      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB2} ${GVT_CORE_LIBS})
       set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB1})
     endif(DEFINED ENV{MPEHOME})
   endif (GVT_MPE)
@@ -490,7 +483,7 @@ if (GVT_GLRENDER_APP)
 
 	find_library(GLUTLIB glut)
 	if(GLUTLIB)
-          set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${OpenGL_LIBRARIES} ${GLUTLIB})
+          set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${OpenGL_LIBRARIES} ${GLUTLIB} ${GVT_CORE_LIBS})
 	endif(GLUTLIB)
 	find_library(GLULIB GLU)
 	if(GLULIB)
