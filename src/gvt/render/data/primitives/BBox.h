@@ -40,6 +40,11 @@ namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
+
+template <typename T> inline T fastmin(const T &a, const T &b) { return (a < b) ? a : b; }
+
+template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) ? a : b; }
+
 /// bounding box for data and acceleration structures
 class Box3D {
 public:

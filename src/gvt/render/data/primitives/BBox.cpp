@@ -31,10 +31,6 @@
 using namespace gvt::render::actor;
 using namespace gvt::render::data::primitives;
 
-template <typename T> inline T fastmin(const T &a, const T &b) { return (a < b) ? a : b; }
-
-template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) ? a : b; }
-
 Box3D::Box3D() {
   for (int i = 0; i < 3; ++i) {
     bounds[0][i] = std::numeric_limits<float>::max();
