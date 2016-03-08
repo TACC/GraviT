@@ -28,8 +28,6 @@
  * Created on March 28, 2014, 1:29 PM
  */
 
-#include <glm/ext.hpp>
-
 #include <gvt/render/actor/Ray.h>
 
 #include <boost/foreach.hpp>
