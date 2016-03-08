@@ -157,7 +157,7 @@ public:
                           float t = FLT_MAX;
                           int next = acc.intersect(r, -1, t);
                           if (next != -1 && mpiInstanceMap[next] == mpi.rank) {
-                            r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
+                            r.origin = r.origin + r.direction * (t - t * 0.01f);
                             local_queue[next].push_back(r);
                           }
                         }
