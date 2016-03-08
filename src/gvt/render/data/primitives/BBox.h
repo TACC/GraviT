@@ -59,9 +59,11 @@ public:
     glm::vec3 u = (bounds[1] - origin) * inv;
     glm::vec3 m = glm::min(l, u);
     float tmin = fastmax(fastmax(m.x, m.y), m.z);
+
     if (tmin < FLT_EPSILON) return false;
 
     glm::vec3 M = glm::max(l, u);
+
     float tmax = fastmin(fastmin(M.x, M.y), M.z);
 
     if (tmax < 0 || tmin > tmax) return false;

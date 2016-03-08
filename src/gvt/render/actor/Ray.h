@@ -116,18 +116,18 @@ public:
 
   union {
     struct {
-      glm::vec3 origin GVT_ALIGN(16);
-      glm::vec3 direction GVT_ALIGN(16);
-      GVT_COLOR_ACCUM color;
+      glm::vec3 origin;
       float t_min;
+      glm::vec3 direction;
       float t_max;
+      glm::vec3 color;
       float t;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
       float w;   ///<! weight of image contribution
       int type;
     };
-    unsigned char data[] GVT_ALIGN(32);
+    unsigned char data[];
   };
 
 protected:

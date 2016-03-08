@@ -117,12 +117,12 @@ public:
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
   tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
-  GVT_COLOR_ACCUM *colorBuf;
+  glm::vec3 *colorBuf;
 
   AbstractTrace(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image)
       : rays(rays), image(image) {
     GVT_DEBUG(DBG_ALWAYS, "initializing abstract trace: num rays: " << rays.size());
-    colorBuf = new GVT_COLOR_ACCUM[width * height];
+    colorBuf = new glm::vec3[width * height];
 
     // TODO: alim: this queue is on the number of domains in the dataset
     // if this is on the number of domains, then it will be equivalent to the
@@ -167,7 +167,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
-  void clearBuffer() { std::memset(colorBuf, 0, sizeof(GVT_COLOR_ACCUM) * width * height); }
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};
@@ -211,9 +211,10 @@ public:
                             local_queue[next].push_back(r);
                           } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                            for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                            colorBuf[r.id].rgba[3] = 1.f;
-                            colorBuf[r.id].clamp();
+                            colorBuf[r.id] += r.color;
+                            // for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
+                            // colorBuf[r.id].rgba[3] = 1.f;
+                            // colorBuf[r.id].clamp();
                           }
                         }
                         for (auto &q : local_queue) {

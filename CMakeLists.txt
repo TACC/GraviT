@@ -16,15 +16,6 @@ if(COMMAND cmake_policy)
     #cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
-# show all warnings, but disable c11 warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
-
-# use C++11 foo explicitly
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-IF(APPLE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-ENDIF(APPLE)
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
@@ -57,15 +48,7 @@ endif()
 endif()
 endif()
 
-if(GVT_DEBUG)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
-endif(GVT_DEBUG)
 
-if(GVT_TIMING)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_TIMING=1")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_TIMING=1")
-endif(GVT_TIMING)
 
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
@@ -103,11 +86,7 @@ endif(APPLE)
 #MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 
 # compiler options
-set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
-if(GVT_MPE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_MPE=1")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
-endif(GVT_MPE)
+
 # the compiler is ususally set through environment vars outside the cmake file
 # so this is redundant. CMake detects the compiler.
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
@@ -115,34 +94,17 @@ set(GVT_VECTOR_TARGET "AVX" CACHE STRING "Target Vector ISA on host (SSE,AVX,AVX
 # /mark_as_advanced(GVT_USE_ICC)
 # mark_as_advanced(GVT_VECTOR_TARGET)
 
-IF(${GVT_VECTOR_TARGET} STREQUAL "AVX")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_AVX_TARGET")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_AVX_TARGET")
-ENDIF()
-
-IF(${GVT_VECTOR_TARGET} STREQUAL "AVX2")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_AVX2_TARGET")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_AVX2_TARGET")
-ENDIF()
-
-IF(${GVT_VECTOR_TARGET} STREQUAL "SSE")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_SSE_TARGET")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_SSE_TARGET")
-ENDIF()
-
+find_package(TBB REQUIRED)
+include_directories(${TBB_INCLUDE_DIRS})
+link_directories(${TBB_LIBRARY_DIRS})
 
 set(GVT_THIRDPARTY_GLM "third-party/glm")
 set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
-find_package(TBB REQUIRED)
-
-
-include_directories(${TBB_INCLUDE_DIRS})
 include_directories(${GLM_DIR})
-link_directories(${TBB_LIBRARY_DIRS})
-
+include(CMake/glm.cmake)
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
 
@@ -159,16 +121,17 @@ if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 	MESSAGE(SEND ERRORS "ply reader header not found")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-  #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+# if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+#   #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# set(GVT_USE_ICC ON CACHE BOOL "Use Intel Compiler?")
+# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 
 # modules
@@ -176,6 +139,45 @@ include(CMake/gravit.cmake)
 include(CMake/mpi.cmake)
 include(CMake/boost.cmake)
 include(CMake/doxygen.cmake)
+
+set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
+if(GVT_MPE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_MPE=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
+endif(GVT_MPE)
+
+IF(${GVT_VECTOR_TARGET} STREQUAL "AVX")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GVT_ARCH_FLAGS__AVX} -DGVT_AVX_TARGET")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GVT_ARCH_FLAGS__AVX} -DGVT_AVX_TARGET")
+ENDIF()
+
+IF(${GVT_VECTOR_TARGET} STREQUAL "AVX2")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GVT_ARCH_FLAGS__AVX2} -DGVT_AVX2_TARGET")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GVT_ARCH_FLAGS__AVX2} -DGVT_AVX2_TARGET")
+ENDIF()
+
+IF(${GVT_VECTOR_TARGET} STREQUAL "SSE")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GVT_ARCH_FLAGS__SSE42} -DGVT_SSE_TARGET")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GVT_ARCH_FLAGS__SSE42} -DGVT_SSE_TARGET")
+ENDIF()
+
+if(GVT_DEBUG)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif(GVT_DEBUG)
+
+if(GVT_TIMING)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_TIMING=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_TIMING=1")
+endif(GVT_TIMING)
+
+# show all warnings, but disable c11 warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
+# use C++11 foo explicitly
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+IF(APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+ENDIF(APPLE)
 
 set(GVT_SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 include_directories(${GVT_SRC_DIR})

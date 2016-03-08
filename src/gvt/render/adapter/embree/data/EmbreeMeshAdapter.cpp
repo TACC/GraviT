@@ -344,7 +344,7 @@ struct embreeParallelTrace {
 
       // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
       // normal, lights[lindex]);
-      shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
+      shadow_ray.color = c;
     }
   }
 

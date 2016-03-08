@@ -34,7 +34,7 @@
 
 // parent class for CHat, CTilde
 
-#define GVT_COLOR_ACCUM gvt::render::data::scene::CHat
+//#define GVT_COLOR_ACCUM gvt::render::data::scene::CHat
 
 namespace gvt {
 namespace render {
