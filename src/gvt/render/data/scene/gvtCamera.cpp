@@ -225,7 +225,6 @@ void gvtPerspectiveCamera::generateRays() {
                         glm::vec3 camera_space_ray_direction;
                         for (int k = 0; k < samples; k++) {
                           for (int w = 0; w < samples; w++) {
-                            idx = j * buffer_width + i;
                             // calculate scale factors -1.0 < x,y < 1.0
                             int ridx = (j * buffer_width + i) * samples * samples + k * samples + w;
                             x = 2.0 * float(i) / float(buffer_width - 1) - 1.0 + (w - samples / 2) * offset +

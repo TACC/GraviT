@@ -369,8 +369,12 @@ public:
             t_shuffle.stop();
           }
         }
+
         nqueue = 0;
-        for (auto &q : queue) nqueue += q.second.size();
+        for (auto &q : queue) {
+          const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+          if (inRank) nqueue += q.second.size();
+        }
       } while (nqueue);
 
 #if GVT_USE_DEBUG
@@ -415,7 +419,7 @@ public:
       }
       nqueue = 0;
       for (auto &q : queue) {
-        const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+
         nqueue += q.second.size();
       }
     } while (nqueue);

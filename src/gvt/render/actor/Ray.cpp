@@ -28,6 +28,8 @@
  * Created on March 28, 2014, 1:29 PM
  */
 
+#include <glm/ext.hpp>
+
 #include <gvt/render/actor/Ray.h>
 
 #include <boost/foreach.hpp>
@@ -50,7 +52,7 @@ Ray::Ray(glm::vec3 origin, glm::vec3 direction, float contribution, RayType type
 Ray::Ray(Ray &ray, glm::mat4 &m) {
   std::memcpy(data, ray.data, packedSize());
   origin = glm::vec3(m * glm::vec4(ray.origin, 1.f));
-  setDirection(glm::vec3(glm::normalize(m * glm::vec4(ray.direction, 0.f))));
+  setDirection(glm::vec3(m * glm::vec4(ray.direction, 0.f)));
 }
 
 Ray::Ray(const Ray &ray) { std::memcpy(data, ray.data, packedSize()); }
@@ -68,7 +70,7 @@ int Ray::pack(unsigned char *buffer) {
 }
 
 void Ray::setDirection(glm::vec3 dir) {
-  direction = glm::normalize(dir);
+  direction = glm::fastNormalize(dir);
   for (int i = 0; i < 3; i++) {
     if (direction[i] != 0)
       inverseDirection[i] = 1.0 / direction[i];
