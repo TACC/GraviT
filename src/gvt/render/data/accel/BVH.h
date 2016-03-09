@@ -119,9 +119,9 @@ public:
           int end = start + cur->numInstances;
           for (int i = start; i < end; ++i) {
             if (from == instanceSetID[i]) continue;
-            primitives::Box3D *ibbox = instanceSetBB[i];
+            const primitives::Box3D &ibbox = *instanceSetBB[i];
             int hit[simd_width];
-            if (rp.intersect(*ibbox, hit)) {
+            if (rp.intersect(ibbox, hit)) {
               for (int o = 0; o < simd_width; ++o) {
                 if (hit[o] == 1 && rp.mask[o] == 1) {
                   ret[offset + o].next = instanceSetID[i];

@@ -86,13 +86,14 @@ template <size_t simd_width> struct RayPacketIntersection {
 
   inline float *min(const float a[simd_width], const float b[simd_width]) {
     float m[simd_width];
+#pragma simd
     for (int i = 0; i < simd_width; i++) m[i] = fastmin(a[i], b[i]);
     return std::move(m);
   }
 
   inline float *max(const float a[simd_width], const float b[simd_width]) {
     float m[simd_width];
-#pragma unroll
+#pragma simd
     for (int i = 0; i < simd_width; i++) m[i] = fastmax(a[i], b[i]);
     return std::move(m);
   }
@@ -107,29 +108,29 @@ template <size_t simd_width> struct RayPacketIntersection {
     // float uy[simd_width];
     // float uz[simd_width];
 
-    float data[simd_width * 8];
+    float data[simd_width * 6];
     float *lx = &data[simd_width * 0];
     float *ly = &data[simd_width * 1];
     float *lz = &data[simd_width * 2];
     float *ux = &data[simd_width * 3];
     float *uy = &data[simd_width * 4];
     float *uz = &data[simd_width * 5];
-    float *tnear = &data[simd_width * 6];
-    float *tfar = &data[simd_width * 7];
+    float *tnear;
+    float *tfar;
 
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) hit[i] = -1;
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) lx[i] = (bb.bounds_min[0] - ox[i]) * dx[i];
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) ly[i] = (bb.bounds_min[1] - oy[i]) * dy[i];
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) lz[i] = (bb.bounds_min[2] - oz[i]) * dz[i];
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) ux[i] = (bb.bounds_max[0] - ox[i]) * dx[i];
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) uy[i] = (bb.bounds_max[1] - oy[i]) * dy[i];
-#pragma unroll
+#pragma simd
     for (size_t i = 0; i < simd_width; ++i) uz[i] = (bb.bounds_max[2] - oz[i]) * dz[i];
 
     tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
@@ -138,7 +139,7 @@ template <size_t simd_width> struct RayPacketIntersection {
 
     for (size_t i = 0; i < simd_width; ++i) {
       if (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) {
-        t[i] = lx[i];
+        t[i] = tnear[i];
         hit[i] = 1;
       }
     }

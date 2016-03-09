@@ -209,29 +209,11 @@ public:
                           if (hits[i].next != -1) {
                             r.origin = r.origin + r.direction * (hits[i].t - hits[i].t * 0.1f);
                             local_queue[hits[i].next].push_back(r);
-                            // queue_mutex[hits[i].next].lock();
-                            // queue[hits[i].next].push_back(r);
-                            // queue_mutex[hits[i].next].unlock();
-                          } // else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
-                          //   tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                          //   colorBuf[r.id] += r.color;
-                          // }
+                          } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
+                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                            colorBuf[r.id] += r.color;
+                          }
                         }
-                        // for (gvt::render::actor::Ray &r : raysit) {
-                        //   float t = FLT_MAX;
-                        //   int next = acc.intersect(r, domID, t);
-                        //
-                        //   if (next != -1) {
-                        //     r.origin = r.origin + r.direction * (t - t * 0.1f);
-                        //     local_queue[next].push_back(r);
-                        //   } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
-                        //     tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                        //     colorBuf[r.id] += r.color;
-                        //     // for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                        //     // colorBuf[r.id].rgba[3] = 1.f;
-                        //     // colorBuf[r.id].clamp();
-                        //   }
-                        // }
                         for (auto &q : local_queue) {
 
                           queue_mutex[q.first].lock();
@@ -242,7 +224,6 @@ public:
                         }
                       },
                       ap);
-
     rays.clear();
   }
 
