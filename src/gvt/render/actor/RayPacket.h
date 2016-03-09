@@ -60,6 +60,8 @@ template <size_t simd_width> struct RayPacketIntersection {
     unsigned char packet[];
   };
 
+  float data[simd_width * 6];
+
   inline RayPacketIntersection(const RayVector::iterator &ray_begin, const RayVector::iterator &ray_end) {
     size_t i;
     RayVector::iterator rayit = ray_begin;
@@ -75,7 +77,7 @@ template <size_t simd_width> struct RayPacketIntersection {
       mask[i] = 1;
     }
     for (; i < simd_width; ++i) {
-      t[i] = -1.f;
+      t[i] = FLT_MAX;
       mask[i] = -1;
     }
   }
@@ -101,14 +103,6 @@ template <size_t simd_width> struct RayPacketIntersection {
   inline RayPacketIntersection(RayPacketIntersection &&other) { std::swap(packet, other.packet); }
 
   inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[]) {
-    // float lx[simd_width];
-    // float ly[simd_width];
-    // float lz[simd_width];
-    // float ux[simd_width];
-    // float uy[simd_width];
-    // float uz[simd_width];
-
-    float data[simd_width * 6];
     float *lx = &data[simd_width * 0];
     float *ly = &data[simd_width * 1];
     float *lz = &data[simd_width * 2];
@@ -135,7 +129,7 @@ template <size_t simd_width> struct RayPacketIntersection {
 
     tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
     tfar = min(max(lx, ux), min(max(ly, uy), max(lz, uz)));
-#pragma unroll
+#pragma simd
 
     for (size_t i = 0; i < simd_width; ++i) {
       if (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) {
