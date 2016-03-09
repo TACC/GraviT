@@ -61,7 +61,7 @@ template <size_t simd_width> struct RayPacketIntersection {
   };
 
   float data[simd_width * 6];
-
+  float *lx, *ly, *lz, *ux, *uy, *uz;
   inline RayPacketIntersection(const RayVector::iterator &ray_begin, const RayVector::iterator &ray_end) {
     size_t i;
     RayVector::iterator rayit = ray_begin;
@@ -80,6 +80,13 @@ template <size_t simd_width> struct RayPacketIntersection {
       t[i] = FLT_MAX;
       mask[i] = -1;
     }
+
+    lx = &data[simd_width * 0];
+    ly = &data[simd_width * 1];
+    lz = &data[simd_width * 2];
+    ux = &data[simd_width * 3];
+    uy = &data[simd_width * 4];
+    uz = &data[simd_width * 5];
   }
 
   inline RayPacketIntersection(const RayPacketIntersection &other) {
@@ -103,17 +110,11 @@ template <size_t simd_width> struct RayPacketIntersection {
   inline RayPacketIntersection(RayPacketIntersection &&other) { std::swap(packet, other.packet); }
 
   inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[]) {
-    float *lx = &data[simd_width * 0];
-    float *ly = &data[simd_width * 1];
-    float *lz = &data[simd_width * 2];
-    float *ux = &data[simd_width * 3];
-    float *uy = &data[simd_width * 4];
-    float *uz = &data[simd_width * 5];
     float *tnear;
     float *tfar;
 
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) hit[i] = -1;
+    for (size_t i = 0; i < simd_width; ++i) hit[i] = 0;
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) lx[i] = (bb.bounds_min[0] - ox[i]) * dx[i];
 #pragma simd
@@ -130,12 +131,9 @@ template <size_t simd_width> struct RayPacketIntersection {
     tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
     tfar = min(max(lx, ux), min(max(ly, uy), max(lz, uz)));
 #pragma simd
-
     for (size_t i = 0; i < simd_width; ++i) {
-      if (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) {
-        t[i] = tnear[i];
-        hit[i] = 1;
-      }
+      hit[i] = (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) ? 1 : 0;
+      t[i] = (hit[i]) ? tnear[i] : t[i];
     }
 
     for (size_t i = 0; i < simd_width; ++i)
