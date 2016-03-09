@@ -87,9 +87,8 @@ public:
 
   const static float RAY_EPSILON;
   // clang-format on
-
-  Ray(glm::vec3 origin = glm::vec3(0, 0, 0), glm::vec3 direction = glm::vec3(0, 0, 0), float contribution = 1.f,
-      RayType type = PRIMARY, int depth = 10);
+  Ray() {}
+  Ray(glm::vec3 origin, glm::vec3 direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10);
   Ray(Ray &ray, glm::mat4 &m);
   Ray(const Ray &orig);
   Ray(Ray &&ray);
@@ -127,7 +126,7 @@ public:
       float w;   ///<! weight of image contribution
       int type;
     };
-    unsigned char data[];
+    unsigned char data[] GVT_ALIGN(16);
   };
 
 protected:

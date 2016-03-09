@@ -187,7 +187,9 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
 
     for (int e = 0; e < 2; ++e) {
 
-      float edge = refBbox.bounds[e][splitAxis];
+      float edge;
+      if (e == 0) edge = refBbox.bounds_min[splitAxis];
+      if (e == 1) edge = refBbox.bounds_max[splitAxis];
 
       Box3D leftBox, rightBox;
       int leftCount = 0;

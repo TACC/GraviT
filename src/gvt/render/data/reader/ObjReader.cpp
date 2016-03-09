@@ -177,8 +177,8 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   std::cout << "Found : " << objMesh->vertices.size() << " vertices" << std::endl;
   std::cout << "Found : " << objMesh->normals.size() << " normals" << std::endl;
   std::cout << "Found : " << objMesh->faces.size() << " normals" << std::endl;
-  std::cout << "Bound : " << objMesh->boundingBox.bounds[0] << " x " << objMesh->boundingBox.bounds[1] << std::endl;
-  std::cout << "Center : " << ((objMesh->boundingBox.bounds[0] + objMesh->boundingBox.bounds[1]) * .5f) << std::endl;
+  std::cout << "Bound : " << objMesh->boundingBox.bounds_min << " x " << objMesh->boundingBox.bounds_max << std::endl;
+  std::cout << "Center : " << ((objMesh->boundingBox.bounds_min + objMesh->boundingBox.bounds_max) * .5f) << std::endl;
 
   if (computeNormals) objMesh->generateNormals();
   objMesh->computeBoundingBox();

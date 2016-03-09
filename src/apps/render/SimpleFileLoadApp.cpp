@@ -146,8 +146,8 @@ int main(int argc, char **argv) {
   instnode["normi"] = (unsigned long long)normi;
 
   // transform mesh bounding box
-  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();

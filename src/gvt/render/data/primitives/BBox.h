@@ -48,15 +48,16 @@ template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) 
 /// bounding box for data and acceleration structures
 class Box3D {
 public:
-  glm::vec3 bounds[2];
+  glm::vec3 bounds_min GVT_ALIGN(16);
+  glm::vec3 bounds_max GVT_ALIGN(16);
 
   Box3D();
   Box3D(glm::vec3 vmin, glm::vec3 vmax);
 
   Box3D(const Box3D &other);
   inline bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const {
-    glm::vec3 l = (bounds[0] - origin) * inv;
-    glm::vec3 u = (bounds[1] - origin) * inv;
+    glm::vec3 l = (bounds_min - origin) * inv;
+    glm::vec3 u = (bounds_max - origin) * inv;
     glm::vec3 m = glm::min(l, u);
     float tmin = fastmax(fastmax(m.x, m.y), m.z);
 
@@ -79,8 +80,8 @@ public:
   float surfaceArea() const;
 
   friend std::ostream &operator<<(std::ostream &os, const Box3D &bbox) {
-    os << bbox.bounds[0] << " x ";
-    os << bbox.bounds[1];
+    os << bbox.bounds_min << " x ";
+    os << bbox.bounds_max;
     return os;
   }
 

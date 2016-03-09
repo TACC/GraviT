@@ -33,57 +33,57 @@ using namespace gvt::render::data::primitives;
 
 Box3D::Box3D() {
   for (int i = 0; i < 3; ++i) {
-    bounds[0][i] = std::numeric_limits<float>::max();
-    bounds[1][i] = -std::numeric_limits<float>::max();
+    bounds_min[i] = std::numeric_limits<float>::max();
+    bounds_max[i] = -std::numeric_limits<float>::max();
   }
 }
 
 Box3D::Box3D(glm::vec3 vmin, glm::vec3 vmax) {
   for (int i = 0; i < 3; i++) {
-    bounds[0][i] = fastmin(vmin[i], vmax[i]);
-    bounds[1][i] = fastmax(vmin[i], vmax[i]);
+    bounds_min[i] = fastmin(vmin[i], vmax[i]);
+    bounds_max[i] = fastmax(vmin[i], vmax[i]);
   }
 }
 
 Box3D::Box3D(const Box3D &other) {
   for (int i = 0; i < 3; i++) {
-    bounds[0][i] = fastmin(other.bounds[0][i], other.bounds[1][i]);
-    bounds[1][i] = fastmax(other.bounds[0][i], other.bounds[1][i]);
+    bounds_min[i] = fastmin(other.bounds_min[i], other.bounds_max[i]);
+    bounds_max[i] = fastmax(other.bounds_min[i], other.bounds_max[i]);
   }
 }
 
 void Box3D::merge(const Box3D &other) {
-  bounds[0][0] = fastmin(other.bounds[0][0], bounds[0][0]);
-  bounds[0][1] = fastmin(other.bounds[0][1], bounds[0][1]);
-  bounds[0][2] = fastmin(other.bounds[0][2], bounds[0][2]);
+  bounds_min[0] = fastmin(other.bounds_min[0], bounds_min[0]);
+  bounds_min[1] = fastmin(other.bounds_min[1], bounds_min[1]);
+  bounds_min[2] = fastmin(other.bounds_min[2], bounds_min[2]);
 
-  bounds[1][0] = fastmax(other.bounds[1][0], bounds[1][0]);
-  bounds[1][1] = fastmax(other.bounds[1][1], bounds[1][1]);
-  bounds[1][2] = fastmax(other.bounds[1][2], bounds[1][2]);
+  bounds_max[0] = fastmax(other.bounds_max[0], bounds_max[0]);
+  bounds_max[1] = fastmax(other.bounds_max[1], bounds_max[1]);
+  bounds_max[2] = fastmax(other.bounds_max[2], bounds_max[2]);
 }
 
 void Box3D::expand(glm::vec3 &v) {
-  bounds[0][0] = fastmin(bounds[0][0], v[0]);
-  bounds[0][1] = fastmin(bounds[0][1], v[1]);
-  bounds[0][2] = fastmin(bounds[0][2], v[2]);
+  bounds_min[0] = fastmin(bounds_min[0], v[0]);
+  bounds_min[1] = fastmin(bounds_min[1], v[1]);
+  bounds_min[2] = fastmin(bounds_min[2], v[2]);
 
-  bounds[1][0] = fastmax(bounds[1][0], v[0]);
-  bounds[1][1] = fastmax(bounds[1][1], v[1]);
-  bounds[1][2] = fastmax(bounds[1][2], v[2]);
+  bounds_max[0] = fastmax(bounds_max[0], v[0]);
+  bounds_max[1] = fastmax(bounds_max[1], v[1]);
+  bounds_max[2] = fastmax(bounds_max[2], v[2]);
 }
 
 // bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const {
 //
-//   /*float t1 = (bounds[0].x - origin.x) * inv.x;
-//   float t3 = (bounds[0].y - origin.y) * inv.y;
-//   float t5 = (bounds[0].z - origin.z) * inv.z;
-//   float t2 = (bounds[1].x - origin.x) * inv.x;
-//   float t4 = (bounds[1].y - origin.y) * inv.y;
-//   float t6 = (bounds[1].z - origin.z) * inv.z;
+//   /*float t1 = (bounds_min.x - origin.x) * inv.x;
+//   float t3 = (bounds_min.y - origin.y) * inv.y;
+//   float t5 = (bounds_min.z - origin.z) * inv.z;
+//   float t2 = (bounds_max.x - origin.x) * inv.x;
+//   float t4 = (bounds_max.y - origin.y) * inv.y;
+//   float t6 = (bounds_max.z - origin.z) * inv.z;
 // */
 //
-//   glm::vec3 l = (bounds[0] - origin) * inv;
-//   glm::vec3 u = (bounds[1] - origin) * inv;
+//   glm::vec3 l = (bounds_min - origin) * inv;
+//   glm::vec3 u = (bounds_max - origin) * inv;
 //   glm::vec3 m = glm::min(l, u);
 //   float tmin = fastmax(fastmax(m.x, m.y), m.z);
 //   if (tmin < FLT_EPSILON) return false;
@@ -99,13 +99,13 @@ void Box3D::expand(glm::vec3 &v) {
 
 bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const {
 
-  float t1 = (bounds[0].x - origin.x) * inv.x;
+  float t1 = (bounds_min.x - origin.x) * inv.x;
 
-  float t3 = (bounds[0].y - origin.y) * inv.y;
-  float t5 = (bounds[0].z - origin.z) * inv.z;
-  float t2 = (bounds[1].x - origin.x) * inv.x;
-  float t4 = (bounds[1].y - origin.y) * inv.y;
-  float t6 = (bounds[1].z - origin.z) * inv.z;
+  float t3 = (bounds_min.y - origin.y) * inv.y;
+  float t5 = (bounds_min.z - origin.z) * inv.z;
+  float t2 = (bounds_max.x - origin.x) * inv.x;
+  float t4 = (bounds_max.y - origin.y) * inv.y;
+  float t6 = (bounds_max.z - origin.z) * inv.z;
 
   tmin = fastmax(fastmax(fastmin(t1, t2), fastmin(t3, t4)), fastmin(t5, t6));
   tmax = fastmin(fastmin(fastmax(t1, t2), fastmax(t3, t4)), fastmax(t5, t6));
@@ -116,7 +116,7 @@ bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, flo
 
 // returns dimension with maximum extent
 int Box3D::wideRangingBoxDir() const {
-  glm::vec3 diag = bounds[1] - bounds[0];
+  glm::vec3 diag = bounds_max - bounds_min;
   if (diag.x > diag.y && diag.x > diag.z)
     return 0; // x-axis
   else if (diag.y > diag.z)
@@ -125,9 +125,9 @@ int Box3D::wideRangingBoxDir() const {
     return 2; // z-axis
 }
 
-glm::vec3 Box3D::centroid() const { return (0.5f * bounds[0] + 0.5f * bounds[1]); }
+glm::vec3 Box3D::centroid() const { return (0.5f * bounds_min + 0.5f * bounds_max); }
 
 float Box3D::surfaceArea() const {
-  glm::vec3 diag = bounds[1] - bounds[0];
+  glm::vec3 diag = bounds_max - bounds_min;
   return (2.f * (diag.x * diag.y + diag.y * diag.z + diag.z * diag.x));
 }
