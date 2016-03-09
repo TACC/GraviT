@@ -197,27 +197,43 @@ public:
     //               : gvt::render::data::primitives::Box3D();
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
 
+    tbb::mutex cout;
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+                        std::vector<gvt::render::data::accel::BVH::hit> hits =
+                            acc.intersect<GVT_SPMD_WIDTH>(raysit.begin(), raysit.end(), domID);
                         std::map<int, gvt::render::actor::RayVector> local_queue;
-
-                        for (gvt::render::actor::Ray &r : raysit) {
-                          float t = FLT_MAX;
-                          int next = acc.intersect(r, domID, t);
-
-                          if (next != -1) {
-                            r.origin = r.origin + r.direction * (t - t * 0.1f);
-                            local_queue[next].push_back(r);
-                          } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
-                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                            colorBuf[r.id] += r.color;
-                            // for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                            // colorBuf[r.id].rgba[3] = 1.f;
-                            // colorBuf[r.id].clamp();
-                          }
+                        for (size_t i = 0; i < hits.size(); i++) {
+                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+                          if (hits[i].next != -1) {
+                            r.origin = r.origin + r.direction * (hits[i].t - hits[i].t * 0.1f);
+                            local_queue[hits[i].next].push_back(r);
+                            // queue_mutex[hits[i].next].lock();
+                            // queue[hits[i].next].push_back(r);
+                            // queue_mutex[hits[i].next].unlock();
+                          } // else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
+                          //   tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                          //   colorBuf[r.id] += r.color;
+                          // }
                         }
+                        // for (gvt::render::actor::Ray &r : raysit) {
+                        //   float t = FLT_MAX;
+                        //   int next = acc.intersect(r, domID, t);
+                        //
+                        //   if (next != -1) {
+                        //     r.origin = r.origin + r.direction * (t - t * 0.1f);
+                        //     local_queue[next].push_back(r);
+                        //   } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
+                        //     tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                        //     colorBuf[r.id] += r.color;
+                        //     // for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
+                        //     // colorBuf[r.id].rgba[3] = 1.f;
+                        //     // colorBuf[r.id].clamp();
+                        //   }
+                        // }
                         for (auto &q : local_queue) {
+
                           queue_mutex[q.first].lock();
                           queue[q.first].insert(queue[q.first].end(),
                                                 std::make_move_iterator(local_queue[q.first].begin()),

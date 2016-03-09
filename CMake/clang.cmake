@@ -4,7 +4,7 @@ SET(GVT_ARCH_FLAGS__SSSE3 "-msse3")
 SET(GVT_ARCH_FLAGS__SSSE3 "-mssse3")
 SET(GVT_ARCH_FLAGS__SSE41 "-msse4.1")
 SET(GVT_ARCH_FLAGS__SSE42 "-msse4.2")
-SET(GVT_ARCH_FLAGS__AVX   "-mavx -fabi-version=6")
+SET(GVT_ARCH_FLAGS__AVX   "-mavx")
 SET(GVT_ARCH_FLAGS__AVX2  "-mf16c -mavx2 -mfma -mlzcnt -mabm -mbmi -mbmi2 -fabi-version=6")
 
 # SET(CMAKE_CXX_COMPILER "clang++")
@@ -17,6 +17,8 @@ SET(GVT_ARCH_FLAGS__AVX2  "-mf16c -mavx2 -mfma -mlzcnt -mabm -mbmi -mbmi2 -fabi-
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC ")
 SET(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} -ftree-ter")
-SET(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} -no-ansi-alias -restrict -fp-model fast -fimf-precision=low -no-prec-div -no-prec-sqrt")
-SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -no-ansi-alias -restrict -fp-model fast -fimf-precision=low -no-prec-div -no-prec-sqrt")
+SET(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE}")
+SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 SET(CMAKE_EXE_LINKER_FLAGS "")
+
+#-no-ansi-alias -restrict -fp-model fast -fimf-precision=low -no-prec-div -no-prec-sqrt"

@@ -31,6 +31,7 @@
 #include <stack>
 
 #include <gvt/core/Math.h>
+#include <gvt/render/actor/RayPacket.h>
 #include <gvt/render/data/accel/AbstractAccel.h>
 #include <gvt/render/data/primitives/BBox.h>
 
@@ -86,6 +87,57 @@ public:
       }
     }
     return rid;
+  }
+
+  struct hit {
+    int next = -1;
+    float t = FLT_MAX;
+  };
+
+  template <size_t simd_width>
+  std::vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
+                             const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
+    std::vector<hit> ret((ray_end - ray_begin));
+    size_t offset = 0;
+    Node *stack[instanceSet.size() * 2];
+    Node **stackptr = stack;
+    gvt::render::actor::RayVector::iterator chead = ray_begin;
+    for (; offset < ret.size(); offset += simd_width, chead += simd_width) {
+      gvt::render::actor::RayPacketIntersection<simd_width> rp(chead, ray_end);
+
+      *(stackptr++) = nullptr;
+      Node *cur = root;
+      while (cur) {
+        int hit[simd_width];
+        const gvt::render::data::primitives::Box3D &bb = cur->bbox;
+        if (!rp.intersect(bb, hit)) {
+          cur = *(--stackptr);
+          continue;
+        }
+        if (cur->numInstances > 0) { // leaf node
+          int start = cur->instanceSetIdx;
+          int end = start + cur->numInstances;
+          for (int i = start; i < end; ++i) {
+            if (from == instanceSetID[i]) continue;
+            primitives::Box3D *ibbox = instanceSetBB[i];
+            int hit[simd_width];
+            if (rp.intersect(*ibbox, hit)) {
+              for (int o = 0; o < simd_width; ++o) {
+                if (hit[o] == 1 && rp.mask[o] == 1) {
+                  ret[offset + o].next = instanceSetID[i];
+                  ret[offset + o].t = rp.t[o];
+                }
+              }
+            }
+          }
+          cur = *(--stackptr);
+        } else {
+          *(stackptr++) = cur->rightChild;
+          cur = cur->leftChild;
+        }
+      }
+    }
+    return std::move(ret);
   }
 
 private:
