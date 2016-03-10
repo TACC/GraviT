@@ -87,16 +87,28 @@ public:
 
   const static float RAY_EPSILON;
   // clang-format on
-  Ray() {}
-  Ray(glm::vec3 origin, glm::vec3 direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10);
-  Ray(Ray &ray, glm::mat4 &m);
-  Ray(const Ray &orig);
-  Ray(Ray &&ray);
-  Ray(const unsigned char *buf);
+  inline Ray() {}
+  inline Ray(glm::vec3 origin, glm::vec3 direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
+      : type(type), w(contribution), depth(depth) {
 
-  Ray operator=(const Ray &r) { return std::move(Ray(r)); }
+    this->origin = origin;
+    setDirection(direction);
+    t = FLT_MAX;
+    id = -1;
+  }
 
-  ~Ray();
+  inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
+
+  inline Ray(Ray &&r) { std::memmove(data, r.data, packedSize()); }
+
+  inline Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
+
+  inline Ray &operator=(const Ray &r) {
+    std::memcpy(data, r.data, packedSize());
+    return *this;
+  }
+
+  ~Ray(){};
 
   void setDirection(glm::vec3 dir);
   // void setDirection(double *dir);

@@ -38,29 +38,6 @@ using namespace gvt::render::actor;
 
 const float Ray::RAY_EPSILON = 1.e-6;
 
-Ray::Ray(glm::vec3 origin, glm::vec3 direction, float contribution, RayType type, int depth)
-    : type(type), w(contribution), depth(depth) {
-
-  this->origin = origin;
-  setDirection(direction);
-  t = FLT_MAX;
-  id = -1;
-}
-
-Ray::Ray(Ray &ray, glm::mat4 &m) {
-  std::memcpy(data, ray.data, packedSize());
-  origin = glm::vec3(m * glm::vec4(ray.origin, 1.f));
-  setDirection(glm::vec3(m * glm::vec4(ray.direction, 0.f)));
-}
-
-Ray::Ray(const Ray &ray) { std::memcpy(data, ray.data, packedSize()); }
-
-Ray::Ray(Ray &&ray) { std::memmove(data, ray.data, packedSize()); }
-
-Ray::~Ray() {}
-
-Ray::Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
-
 int Ray::pack(unsigned char *buffer) {
   unsigned char *buf = buffer;
   std::memcpy(buf, data, packedSize());
