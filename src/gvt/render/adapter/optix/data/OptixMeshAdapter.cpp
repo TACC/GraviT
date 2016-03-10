@@ -911,17 +911,12 @@ struct OptixParallelTrace {
 					(localIdx + packetSize > localEnd) ?
 							(localEnd - localIdx) : packetSize;
 
-			printf(
-					"[%d]: localPacketSize: %zu localIdx: %d packetSize: %zu raylistSize: %zu  workBegin: %zu\ workEnd: %zu\n",
-					thread, localPacketSize, localIdx, packetSize,
-					(end - begin), begin, end);
-
 			gpuErrchk(
 					cudaMemsetAsync(cudaGvtCtx.valid, 1, sizeof(bool) * packetSize, cudaGvtCtx.stream));
 
 			cudaGvtCtx.rayCount = localPacketSize;
 			gvt::render::actor::RayVector::iterator localRayList = rayList
-					+ localIdx;
+					+ begin + localIdx;
 
 			cudaSetRays(localRayList, localPacketSize, cudaGvtCtx.rays,
 					localIdx, cudaGvtCtx.stream, cudaRaysBuff);
@@ -995,6 +990,8 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 	this->begin = _begin;
 	this->end = _end;
 
+	size_t localWork = end-begin;
+
 
 	*m_pinned = *m;
 	m = m_pinned;
@@ -1016,21 +1013,25 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 
 	_tasks.run(
 			[&]() {
-				gvt::render::actor::RayVector::iterator localRayList = rayList.begin();
+				gvt::render::actor::RayVector::iterator localRayList = rayList.begin()+ _begin;
+				size_t begin=0;
+				size_t end=(parallel && localWork >= 2* packetSize) ? (localWork/2) : localWork;
+
 				OptixParallelTrace(this, localRayList, moved_rays,  m,
-						minv, normi, counter, 0,
-						(parallel && _end >= 2* packetSize) ? (_end/2) : _end, disp_Buff[0], cudaRaysBuff[0])();
+						minv, normi, counter, begin, end, disp_Buff[0], cudaRaysBuff[0])();
 
 			});
 
-	if (parallel && _end >= 2 * packetSize) {
+	if (parallel && localWork >= 2 * packetSize) {
 
 		_tasks.run(
 				[&]() {
-					gvt::render::actor::RayVector::iterator localRayList = rayList.begin() + (rayList.size() / 2);
+					gvt::render::actor::RayVector::iterator localRayList = rayList.begin() + _begin ;
+					size_t begin= localWork / 2;
+					size_t end=localWork;
 
-					OptixParallelTrace(this, localRayList, moved_rays,  m,
-							minv, normi, counter, (_end/2), _end, disp_Buff[1], cudaRaysBuff[1])();
+					OptixParallelTrace(this, localRayList, moved_rays, m,
+							minv, normi, counter, begin, end, disp_Buff[1], cudaRaysBuff[1])();
 
 				});
 	}

@@ -69,39 +69,44 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
 
     // std::future<void> of(std::async(std::launch::async,
 
+    size_t split = size * 0.30;
+    std::cout << size << " " << split << std::endl;
+
+
     g.run([&]() {
-      while (current < size) {
-        if (_lock_rays.try_lock()) {
-          size_t start = current;
-          current += work;
-          size_t end = current;
-          _lock_rays.unlock();
-
-          if (start >= size) continue;
-          if (end >= size) end = size;
-
-          gput++;
-          _optix->trace(rayList, mOptix, m, minv, normi, lights, start, end);
-        }
-      }
+//      while (current < size) {
+//        if (_lock_rays.try_lock()) {
+//          size_t start = current;
+//          current += work;
+//          size_t end = current;
+//          _lock_rays.unlock();
+//
+//          if (start >= size) continue;
+//          if (end >= size) end = size;
+//
+//          gput++;
+          _optix->trace(rayList, mOptix, m, minv, normi, lights, 0, split);
+ //       }
+ //     }
     }); //);
 
     // std::future<void> ef(std::async(std::launch::async,
     g.run([&]() {
-      while (current < size) {
-        if (_lock_rays.try_lock()) {
-          size_t start = current;
-          current += work;
-          size_t end = current;
-          _lock_rays.unlock();
+//      while (current < size) {
+//        if (_lock_rays.try_lock()) {
+//          size_t start = current;
+//          current += work;
+//          size_t end = current;
+//          _lock_rays.unlock();
+//
+//          if (start >= size) continue;
+//          if (end >= size) end = size;
+//
+//          cput++;
+            _embree->trace(rayList, moved_rays, m, minv, normi, lights, split, end);
 
-          if (start >= size) continue;
-          if (end >= size) end = size;
-
-          cput++;
-          _embree->trace(rayList, moved_rays, m, minv, normi, lights, start, end);
-        }
-      }
+//        }
+ //     }
     }); //);
         //    ef.wait();
         //    of.wait();
