@@ -60,8 +60,20 @@ template <size_t simd_width> struct RayPacketIntersection {
     unsigned char packet[];
   };
 
-  float data[simd_width * 6];
-  float *lx, *ly, *lz, *ux, *uy, *uz;
+  union {
+    struct {
+      float lx[simd_width];
+      float ly[simd_width];
+      float lz[simd_width];
+      float ux[simd_width];
+      float uy[simd_width];
+      float uz[simd_width];
+    };
+    float tmpbuffer[];
+  };
+  //
+  // float data[simd_width * 6];
+  // float *lx, *ly, *lz, *ux, *uy, *uz;
   inline RayPacketIntersection(const RayVector::iterator &ray_begin, const RayVector::iterator &ray_end) {
     size_t i;
     RayVector::iterator rayit = ray_begin;
@@ -80,13 +92,6 @@ template <size_t simd_width> struct RayPacketIntersection {
       t[i] = FLT_MAX;
       mask[i] = -1;
     }
-
-    lx = &data[simd_width * 0];
-    ly = &data[simd_width * 1];
-    lz = &data[simd_width * 2];
-    ux = &data[simd_width * 3];
-    uy = &data[simd_width * 4];
-    uz = &data[simd_width * 5];
   }
 
   inline RayPacketIntersection(const RayPacketIntersection &other) {
@@ -110,11 +115,18 @@ template <size_t simd_width> struct RayPacketIntersection {
   inline RayPacketIntersection(RayPacketIntersection &&other) { std::swap(packet, other.packet); }
 
   inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[]) {
+
+    // float *lx = &data[simd_width * 0];
+    // float *ly = &data[simd_width * 1];
+    // float *lz = &data[simd_width * 2];
+    // float *ux = &data[simd_width * 3];
+    // float *uy = &data[simd_width * 4];
+    // float *uz = &data[simd_width * 5];
     float *tnear;
     float *tfar;
 
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) hit[i] = 0;
+    for (size_t i = 0; i < simd_width; ++i) hit[i] = -1;
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) lx[i] = (bb.bounds_min[0] - ox[i]) * dx[i];
 #pragma simd
@@ -130,10 +142,14 @@ template <size_t simd_width> struct RayPacketIntersection {
 
     tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
     tfar = min(max(lx, ux), min(max(ly, uy), max(lz, uz)));
+
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
-      hit[i] = (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) ? 1 : 0;
-      t[i] = (hit[i]) ? tnear[i] : t[i];
+      hit[i] = (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) ? 1 : -1;
+    }
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      if (hit[i] == 1) t[i] = tnear[i];
     }
 
     for (size_t i = 0; i < simd_width; ++i)
