@@ -173,6 +173,9 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(0.0, 0.1, -0.3);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
+  camNode["rayMaxDepth"] = (int)10;
+  camNode["raySamples"] = (int)3;
+  camNode["jitterWindowSize"]= (float) 0;
 
   // set image width/height
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
@@ -222,17 +225,22 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
 
-  int samplesSqureRoot = 1;
-
   gvtPerspectiveCamera mycamera;
   glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
   glm::vec3 up = camNode["upVector"].value().tovec3();
-  mycamera.setSamples(samplesSqureRoot);
-  mycamera.setJitterWindowSize(0.00);
+
+  int rayMaxDepth =camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
+  
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
   // setup image from database sizes
@@ -246,14 +254,14 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
     auto tracer = gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage);
-    tracer.sample_ratio = 1.0 / float(samplesSqureRoot * samplesSqureRoot);
+    tracer.sample_ratio = 1.0 / float(raySamples * raySamples);
     tracer();
     break;
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
     auto tracer = gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage);
-    tracer.sample_ratio = 1.0 / float(samplesSqureRoot * samplesSqureRoot);
+    tracer.sample_ratio = 1.0 / float(raySamples * raySamples);
     tracer();
     break;
   }
