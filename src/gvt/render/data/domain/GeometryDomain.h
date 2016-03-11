@@ -28,8 +28,8 @@
 #ifndef GVT_RENDER_DATA_DOMAIN_GEOMETRY_DOMAIN_H
 #define GVT_RENDER_DATA_DOMAIN_GEOMETRY_DOMAIN_H
 
-#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/scene/Light.h>
 
 #include <iostream>
@@ -45,16 +45,14 @@ namespace domain {
 */
 class GeometryDomain : public AbstractDomain {
 public:
-  GeometryDomain(std::string filename = "",
-                 gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true))
+  GeometryDomain(std::string filename = "", glm::mat4 m = glm::mat4(true))
       : AbstractDomain(m), mesh(NULL), filename(filename) {
     if (filename != "") {
       load();
     }
   }
 
-  GeometryDomain(gvt::render::data::primitives::Mesh *mesh,
-                 gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true))
+  GeometryDomain(gvt::render::data::primitives::Mesh *mesh, glm::mat4 m = glm::mat4(true))
       : AbstractDomain(m), mesh(NULL), filename("") {
     if (mesh != NULL) {
       this->mesh = mesh;

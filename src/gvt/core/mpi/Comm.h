@@ -34,9 +34,9 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/mpi/SingleNode.h>
 
-#include <mpi.h>
 #include <iostream>
 #include <map>
+#include <mpi.h>
 
 namespace gvt {
 namespace core {

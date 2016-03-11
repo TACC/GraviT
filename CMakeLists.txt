@@ -36,7 +36,9 @@ option(GVT_RENDER 		 "Build GraviT geometry rendering library" ON)
 option(GVT_VOLUME 		 "Build GraviT volume rendering library" OFF)
 option(GVT_ADVECT 		 "Build GraviT particle advection library" OFF)
 option(GVT_DEBUG 		 "Build GraviT use debug prmimitives" OFF)
+option(GVT_TIMING 		 "Build GraviT use timing prmimitives" OFF)
 option(GVT_MPE "Use MPE Profileing" OFF)
+option(GVT_TESTING "Create testing and benchmark programs" OFF)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 SET(HOST_NAME $ENV{HOSTNAME})
@@ -59,6 +61,11 @@ if(GVT_DEBUG)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
 endif(GVT_DEBUG)
+
+if(GVT_TIMING)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_TIMING=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_TIMING=1")
+endif(GVT_TIMING)
 
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
@@ -115,7 +122,9 @@ SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
 find_package(TBB REQUIRED)
 
+
 include_directories(${TBB_INCLUDE_DIRS})
+include_directories(${GLM_DIR})
 
 
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
@@ -166,21 +175,13 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
 	src/gvt/core/Database.h
 	src/gvt/core/DatabaseNode.h
 	src/gvt/core/Debug.h
-	src/gvt/core/math/Angle.h
-	src/gvt/core/math/Constants.h
-	src/gvt/core/math/Function.h
-	src/gvt/core/math/Matrix.h
-	src/gvt/core/math/MatrixOperation.inl
-	src/gvt/core/math/Unit.h
-	src/gvt/core/math/Vector.h
-	src/gvt/core/math/VectorOperators.inl
+	src/gvt/core/math/TLRand.h
 	src/gvt/core/Math.h
 	src/gvt/core/mpi/Comm.h
 	src/gvt/core/mpi/CommData.h
 	src/gvt/core/mpi/SingleNode.h
 	src/gvt/core/mpi/Wrapper.h
 	src/gvt/core/schedule/SchedulerBase.h
-	src/gvt/core/schedule/TaskScheduling.h
 	src/gvt/core/Schedule.h
 	src/gvt/core/String.h
 	src/gvt/core/Types.h
@@ -193,7 +194,6 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 	src/gvt/core/CoreContext.cpp
 	src/gvt/core/Database.cpp
 	src/gvt/core/DatabaseNode.cpp
-	src/gvt/core/schedule/TaskScheduling.cpp
 	src/gvt/core/Uuid.cpp
 	src/gvt/core/Variant.cpp
 	)
@@ -206,9 +206,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/algorithm/ImageTracer.h
 	src/gvt/render/algorithm/TracerBase.h
 	src/gvt/render/algorithm/Tracers.h
-	src/gvt/render/Attributes.h
 	src/gvt/render/RenderContext.h
-	src/gvt/render/data/Dataset.h
 	src/gvt/render/data/DerivedTypes.h
 	src/gvt/render/data/domain/AbstractDomain.h
 	src/gvt/render/data/domain/Cell.h
@@ -220,7 +218,6 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/primitives/BBox.h
 	src/gvt/render/data/primitives/Material.h
 	src/gvt/render/data/primitives/Mesh.h
-	src/gvt/render/data/scene/Camera.h
 	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
@@ -247,9 +244,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
-	src/gvt/render/Attributes.cpp
 	src/gvt/render/RenderContext.cpp
-	src/gvt/render/data/Dataset.cpp
 	src/gvt/render/data/domain/AbstractDomain.cpp
 	src/gvt/render/data/domain/Cell.cpp
 	src/gvt/render/data/domain/GeometryDomain.cpp
@@ -258,7 +253,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
-	src/gvt/render/data/scene/Camera.cpp
 	src/gvt/render/data/scene/gvtCamera.cpp
 	src/gvt/render/data/scene/ColorAccumulator.cpp
 	src/gvt/render/data/scene/Image.cpp
@@ -417,6 +411,18 @@ if (GVT_SIMPLE_APP)
 	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
 	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
 endif(GVT_SIMPLE_APP)
+
+if(GVT_TESTING)
+	find_package(OSPRay)
+	include_directories(${OSPRAY_INCLUDE_DIRS} ${PLYPATH})
+	set(GVT_TESTING_SRCS ${GVT_TESTING_SRCS} Test/timer.c ${PLYPATH}/ply.c)
+	add_executable(osptest ${GVT_TESTING_SRCS} Test/OSPRayTest/BenchOspray.cpp)
+	target_link_libraries(osptest ${OSPRAY_LIBRARIES})
+        find_package(MPI REQUIRED)
+	include_directories(${MPI_INCLUDE_PATH})
+	add_executable(gvttest ${GVT_TESTING_SRCS} Test/GVTTest/GVTTest.cpp)
+        target_link_libraries(gvttest gvtCore gvtRender ${MPI_LIBRARIES} ${OSPRAY_LIBRARIES} )
+endif(GVT_TESTING)
 
 if (GVT_PLY_APP)
   if (GVT_MPE)

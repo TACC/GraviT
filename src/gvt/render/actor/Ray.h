@@ -34,13 +34,13 @@
 #include <gvt/core/Math.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 
-#include <limits>
 #include <boost/aligned_storage.hpp>
 #include <boost/container/set.hpp>
 #include <boost/container/vector.hpp>
 #include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/smart_ptr.hpp>
+#include <limits>
 
 #include <vector>
 
@@ -88,19 +88,18 @@ public:
   const static float RAY_EPSILON;
   // clang-format on
 
-  Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
-      gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), float contribution = 1.f,
+  Ray(glm::vec3 origin = glm::vec3(0, 0, 0), glm::vec3 direction = glm::vec3(0, 0, 0), float contribution = 1.f,
       RayType type = PRIMARY, int depth = 10);
-  Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
+  Ray(Ray &ray, glm::mat4 &m);
   Ray(const Ray &orig);
   Ray(Ray &&ray);
   Ray(const unsigned char *buf);
 
   Ray operator=(const Ray &r) { return std::move(Ray(r)); }
 
-  virtual ~Ray();
+  ~Ray();
 
-  void setDirection(gvt::core::math::Vector4f dir);
+  void setDirection(glm::vec3 dir);
   void setDirection(double *dir);
   void setDirection(float *dir);
 
@@ -117,9 +116,9 @@ public:
 
   union {
     struct {
-      mutable gvt::core::math::Point4f origin;
-      mutable gvt::core::math::Vector4f direction;
-      mutable gvt::core::math::Vector4f inverseDirection;
+      mutable glm::vec3 origin;
+      mutable glm::vec3 direction;
+      mutable glm::vec3 inverseDirection;
       mutable GVT_COLOR_ACCUM color;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
@@ -129,9 +128,8 @@ public:
       mutable float t_max;
       int type;
     };
-    unsigned char data[16 * 4 + 7 * 4];
+    unsigned char data[21 * 4];
   };
-  isecDomList domains;
 
 protected:
 };

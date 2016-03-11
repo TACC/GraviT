@@ -33,9 +33,8 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/mpi/Wrapper.h>
-#include <gvt/core/schedule/TaskScheduling.h>
-#include <gvt/render/algorithm/TracerBase.h>
 #include <gvt/render/Schedulers.h>
+#include <gvt/render/algorithm/TracerBase.h>
 
 #include <boost/foreach.hpp>
 
@@ -597,7 +596,10 @@ public:
         for (int c = 0; c < inbound[j]; ++c) {
           GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << "    receive ray " << c << std::endl);
           gvt::render::actor::Ray r(recv_buf[i] + ptr);
-          this->queue[r.domains.back()].push_back(r);
+
+          // TODO : Fix me
+
+          // this->queue[r.domains.back()].push_back(r);
           ptr += r.packedSize();
           GVT_DEBUG_CODE(DBG_LOW, if (DEBUG_RANK) std::cerr << "    " << r << std::endl);
         }

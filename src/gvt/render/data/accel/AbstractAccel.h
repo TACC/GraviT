@@ -30,12 +30,12 @@
 
 #include <gvt/core/CoreContext.h>
 
-#include <gvt/render/data/primitives/BBox.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/actor/Ray.h>
+#include <gvt/render/data/domain/AbstractDomain.h>
+#include <gvt/render/data/primitives/BBox.h>
 
-#include <vector>
 #include <limits>
+#include <vector>
 
 namespace gvt {
 namespace render {
@@ -54,6 +54,7 @@ class AbstractAccel {
 public:
   AbstractAccel(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : instanceSet(instanceSet) {}
   virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) = 0;
+  virtual int intersect(const gvt::render::actor::Ray &ray, int from, float &t) = 0;
 
 protected:
   gvt::core::Vector<gvt::core::DBNodeH> instanceSet;

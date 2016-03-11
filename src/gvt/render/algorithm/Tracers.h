@@ -32,8 +32,8 @@
 #define GVT_RENDER_ALGORITHM_TRACERS_H
 
 #include <gvt/core/mpi/Wrapper.h>
-#include <gvt/render/algorithm/ImageTracer.h>
 #include <gvt/render/algorithm/DomainTracer.h>
+#include <gvt/render/algorithm/ImageTracer.h>
 //#include <gvt/render/algorithm/HybridTracer.h> // NOTE: hybrid is currently
 // disabled
 #include <gvt/render/algorithm/ImageTracer.h>

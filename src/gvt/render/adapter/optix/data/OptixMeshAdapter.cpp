@@ -31,8 +31,6 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 
-#include <gvt/core/schedule/TaskScheduling.h> // used for threads
-
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
@@ -40,8 +38,13 @@
 #include <gvt/render/data/scene/Light.h>
 
 #include <atomic>
-#include <thread>
-#include <future>
+
+#include <tbb/blocked_range.h>
+#include <tbb/mutex.h>
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/partitioner.h>
+#include <tbb/tick_count.h>
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -57,7 +60,6 @@
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::optix::data;
 using namespace gvt::render::data::primitives;
-using namespace gvt::core::math;
 
 static std::atomic<size_t> counter(0);
 
@@ -87,12 +89,12 @@ struct OptixHit {
 
 OptixContext *OptixContext::_singleton = new OptixContext();
 
-OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
-    : Adapter(node), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(OptixContext::singleton()->context()) {
+OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh)
+    : Adapter(mesh), packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(OptixContext::singleton()->context()) {
   // Get GVT mesh pointer
-  GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
-  GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
+  // GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
+  // Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
+  // GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
   int numVerts = mesh->vertices.size();
   int numTris = mesh->faces.size();
@@ -130,38 +132,63 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::core::DBNodeH node)
 
   const int offset_verts = 100; // numVerts / std::thread::hardware_concurrency();
 
-  std::vector<std::future<void> > _tasks;
+  // std::vector<std::future<void> > _tasks;
+  static tbb::auto_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, numVerts, 128),
+                    [&](tbb::blocked_range<size_t> chunk) {
+
+                      for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
+                        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+                        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+                        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+                      }
+
+                    },
+                    ap);
 
   // clang-format off
-  for (int i = 0; i < numVerts; i += offset_verts) {
-    _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
-                                                      for (int jj = ii; jj < end && jj < numVerts; jj++) {
-                                                        vertices[jj * 3 + 0] = mesh->vertices[jj][0];
-                                                        vertices[jj * 3 + 1] = mesh->vertices[jj][1];
-                                                        vertices[jj * 3 + 2] = mesh->vertices[jj][2];
-                                                      }
-                                                    },
-                                i, i + offset_verts));
-  }
+  // for (int i = 0; i < numVerts; i += offset_verts) {
+  //   _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
+  //                                                     for (int jj = ii; jj < end && jj < numVerts; jj++) {
+  //                                                       vertices[jj * 3 + 0] = mesh->vertices[jj][0];
+  //                                                       vertices[jj * 3 + 1] = mesh->vertices[jj][1];
+  //                                                       vertices[jj * 3 + 2] = mesh->vertices[jj][2];
+  //                                                     }
+  //                                                   },
+  //                               i, i + offset_verts));
+  // }
   // clang-format on
 
   const int offset_tris = 100; // numTris / std::thread::hardware_concurrency();
 
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, numTris, 128),
+                    [&](tbb::blocked_range<size_t> chunk) {
+
+                      for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
+                        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+                        faces[jj * 3 + 0] = f.get<0>();
+                        faces[jj * 3 + 1] = f.get<1>();
+                        faces[jj * 3 + 2] = f.get<2>();
+                      }
+
+                    },
+                    ap);
+
   // clang-format off
-  for (int i = 0; i < numTris; i += offset_tris) {
-    _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
-                                                      for (int jj = ii; jj < end && jj < numTris; jj++) {
-                                                        gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
-                                                        faces[jj * 3 + 0] = f.get<0>();
-                                                        faces[jj * 3 + 1] = f.get<1>();
-                                                        faces[jj * 3 + 2] = f.get<2>();
-                                                      }
-                                                    },
-                                i, i + offset_tris));
-  }
+  // for (int i = 0; i < numTris; i += offset_tris) {
+  //   _tasks.push_back(std::async(std::launch::async, [&](const int ii, const int end) {
+  //                                                     for (int jj = ii; jj < end && jj < numTris; jj++) {
+  //                                                       gvt::render::data::primitives::Mesh::Face f = mesh->faces[jj];
+  //                                                       faces[jj * 3 + 0] = f.get<0>();
+  //                                                       faces[jj * 3 + 1] = f.get<1>();
+  //                                                       faces[jj * 3 + 2] = f.get<2>();
+  //                                                     }
+  //                                                   },
+  //                               i, i + offset_tris));
+  // }
   // clang-format on
 
-  for (auto &f : _tasks) f.wait();
+  // for (auto &f : _tasks) f.wait();
 
   // Create and setup vertex buffer
   ::optix::prime::BufferDesc vertices_desc;
@@ -217,24 +244,19 @@ struct OptixParallelTrace {
   std::atomic<size_t> &sharedIdx;
 
   /**
-   * DB reference to the current instance
-   */
-  gvt::core::DBNodeH instNode;
-
-  /**
    * Stored transformation matrix in the current instance
    */
-  const gvt::core::math::AffineTransformMatrix<float> *m;
+  const glm::mat4 *m;
 
   /**
    * Stored inverse transformation matrix in the current instance
    */
-  const gvt::core::math::AffineTransformMatrix<float> *minv;
+  const glm::mat4 *minv;
 
   /**
    * Stored upper33 inverse matrix in the current instance
    */
-  const gvt::core::math::Matrix3f *normi;
+  const glm::mat3 *normi;
 
   /**
    * Stored transformation matrix in the current instance
@@ -265,6 +287,8 @@ struct OptixParallelTrace {
 
   const size_t begin, end;
 
+  gvt::render::data::primitives::Mesh *mesh;
+
   /**
    * Construct a OptixParallelTrace struct with information needed for the
    * thread
@@ -272,14 +296,13 @@ struct OptixParallelTrace {
    */
   OptixParallelTrace(gvt::render::adapter::optix::data::OptixMeshAdapter *adapter,
                      gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode,
-                     gvt::core::math::AffineTransformMatrix<float> *m,
-                     gvt::core::math::AffineTransformMatrix<float> *minv, gvt::core::math::Matrix3f *normi,
-                     std::vector<gvt::render::data::scene::Light *> &lights, std::atomic<size_t> &counter,
-                     const size_t begin, const size_t end)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
-        instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(adapter->getPacketSize()), begin(begin), end(end) {}
+                     std::atomic<size_t> &sharedIdx, const size_t workSize, glm::mat4 *m, glm::mat4 *minv,
+                     glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+                     gvt::render::data::primitives::Mesh *mesh, std::atomic<size_t> &counter, const size_t begin,
+                     const size_t end)
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize), m(m),
+        minv(minv), normi(normi), lights(lights), counter(counter), packetSize(adapter->getPacketSize()), begin(begin),
+        end(end), mesh(mesh) {}
 
   /**
    * Convert a set of rays from a vector into a prepOptixRays ray packet.
@@ -297,8 +320,8 @@ struct OptixParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * r.origin; // transform ray to local space
-        const auto direction = (*minv) * r.direction;
+        const auto origin = glm::vec3((*minv) * glm::vec4(r.origin, 1.0f)); // transform ray to local space
+        const auto direction = glm::vec3((*minv) * glm::vec4(r.direction, 0.0f));
         OptixRay optix_ray;
         optix_ray.origin[0] = origin[0];
         optix_ray.origin[1] = origin[1];
@@ -321,7 +344,7 @@ struct OptixParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal, int primID,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal, int primID,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
@@ -332,8 +355,8 @@ struct OptixParallelTrace {
       const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
       const float t_shadow = multiplier * r.t;
 
-      const Point4f origin = r.origin + r.direction * t_shadow;
-      const Vector4f dir = light->position - origin;
+      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 dir = light->position - origin;
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
@@ -447,7 +470,7 @@ struct OptixParallelTrace {
 
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals
     // and shading calculations
-    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
+    // auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
     ::optix::prime::Model scene = adapter->getScene();
 
@@ -533,7 +556,7 @@ struct OptixParallelTrace {
                 float t = hits[pi].t;
                 r.t = t;
 
-                Vector4f manualNormal;
+                glm::vec3 manualNormal;
                 {
                   const int triangle_id = hits[pi].triangle_id;
 #ifndef FLAT_SHADING
@@ -544,32 +567,30 @@ struct OptixParallelTrace {
                                                                                             // to store
                   // `faces_to_normals`
                   // list
-                  const Vector4f &a = mesh->normals[normals.get<0>()];
-                  const Vector4f &b = mesh->normals[normals.get<1>()];
-                  const Vector4f &c = mesh->normals[normals.get<2>()];
+                  const glm::vec3 &a = mesh->normals[normals.get<0>()];
+                  const glm::vec3 &b = mesh->normals[normals.get<1>()];
+                  const glm::vec3 &c = mesh->normals[normals.get<2>()];
                   manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                  manualNormal = (*normi) * (gvt::core::math::Vector3f)manualNormal;
-                  manualNormal.normalize();
+                  manualNormal = glm::normalize((*normi) * glm::vec3(manualNormal));
 #else
                   int I = mesh->faces[triangle_id].get<0>();
                   int J = mesh->faces[triangle_id].get<1>();
                   int K = mesh->faces[triangle_id].get<2>();
 
-                  Vector4f a = mesh->vertices[I];
-                  Vector4f b = mesh->vertices[J];
-                  Vector4f c = mesh->vertices[K];
-                  Vector4f u = b - a;
-                  Vector4f v = c - a;
-                  Vector4f normal;
+                  glm::vec3 a = mesh->vertices[I];
+                  glm::vec3 b = mesh->vertices[J];
+                  glm::vec3 c = mesh->vertices[K];
+                  glm::vec3 u = b - a;
+                  glm::vec3 v = c - a;
+                  glm::vec3 normal;
                   normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
                   normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
                   normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
-                  normal.n[3] = 0.0f;
-                  manualNormal = normal.normalize();
+                  manualNormal = glm::normalize((*normi) * glm::vec3(normal));
 #endif
                 }
-                const Vector4f &normal = manualNormal;
+                const glm::vec3 &normal = manualNormal;
 
                 // reduce contribution of the color that the shadow rays get
                 if (r.type == gvt::render::actor::Ray::SECONDARY) {
@@ -582,7 +603,6 @@ struct OptixParallelTrace {
                 float p = 1.f - (float(rand()) / RAND_MAX);
                 // replace current ray with generated secondary ray
                 if (ndepth > 0 && r.w > p) {
-                  r.domains.clear();
                   r.type = gvt::render::actor::Ray::SECONDARY;
                   const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move
                                                                                                  // out
@@ -591,9 +611,9 @@ struct OptixParallelTrace {
                   const float t_secondary = multiplier * r.t;
                   r.origin = r.origin + r.direction * t_secondary;
 
-                  r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                  r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
 
-                  r.w = r.w * (r.direction * normal);
+                  r.w = r.w * glm::dot(r.direction, normal);
                   r.depth = ndepth;
                   validRayLeft = true; // we still have a valid ray in the packet to trace
                 } else {
@@ -640,14 +660,15 @@ struct OptixParallelTrace {
 #endif
 
     // copy localDispatch rays to outgoing rays queue
-    boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
+    std::unique_lock<std::mutex> moved(adapter->_outqueue);
     moved_rays.insert(moved_rays.end(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }
 };
 
 void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
+                             glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                             std::vector<gvt::render::data::scene::Light *> &lights, size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
 #endif
@@ -658,43 +679,12 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   this->end = _end;
 
   std::atomic<size_t> sharedIdx(begin); // shared index into rayList
+
   const size_t numThreads = std::thread::hardware_concurrency();
-  gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize =
-      std::max((size_t)1, std::min((size_t)GVT_OPTIX_PACKET_SIZE, (size_t)((end - begin) / numThreads)));
+  const size_t workSize = std::max((size_t)4, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
+                                                                                           // of rays to work
+                                                                                           // on
 
-  const size_t numworkers = std::max((size_t)1, std::min((size_t)numThreads, (size_t)((end - begin) / workSize)));
-
-  // pull out information out of the database, create local structs that will be
-  // passed into the parallel struct
-  gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
-
-  // pull out instance transform data
-  GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: getting instance transform data");
-  gvt::core::math::AffineTransformMatrix<float> *m =
-      (gvt::core::math::AffineTransformMatrix<float> *)instNode["mat"].value().toULongLong();
-  gvt::core::math::AffineTransformMatrix<float> *minv =
-      (gvt::core::math::AffineTransformMatrix<float> *)instNode["matInv"].value().toULongLong();
-  gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f *)instNode["normi"].value().toULongLong();
-
-  //
-  // TODO: wrap this db light array -> class light array conversion in some sort
-  // of helper function
-  // `convertLights`: pull out lights list and convert into gvt::Lights format
-  // for now
-  auto lightNodes = root["Lights"].getChildren();
-  std::vector<gvt::render::data::scene::Light *> lights;
-  lights.reserve(2);
-  for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().toVector4f();
-
-    if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().toVector4f();
-      lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-    } else if (lightNode.name() == std::string("AmbientLight")) {
-      lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-    }
-  }
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: converted " << lightNodes.size()
                                                        << " light nodes into structs: size: " << lights.size());
   // end `convertLights`
@@ -706,16 +696,26 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   // - I was not re-using the c++11 threads though, was creating new ones every
   // time
 
-  std::vector<std::future<void> > _tasks;
+  // std::vector<std::future<void> > _tasks;
+  //
+  // for (size_t rc = 0; rc < numThreads; ++rc) {
+  //   _tasks.push_back(std::async(std::launch::deferred, [&]() {
+  //     OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, m, minv, normi, lights, mesh, counter,
+  //     begin,
+  //                        end)();
+  //   }));
+  // }
+  //
+  // for (auto &t : _tasks) t.wait();
 
-  for (size_t rc = 0; rc < numworkers; ++rc) {
-    _tasks.push_back(std::async(std::launch::deferred, [&]() {
-      OptixParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights, counter,
-                         begin, end)();
-    }));
-  }
-
-  for (auto &t : _tasks) t.wait();
+  static tbb::auto_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<size_t>(begin, (end - begin), workSize),
+                    [&](tbb::blocked_range<size_t> chunk) {
+                      // for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
+                      OptixParallelTrace(this, rayList, moved_rays, sharedIdx, chunk.end() - chunk.begin(), m, minv,
+                                         normi, lights, mesh, counter, chunk.begin(), chunk.end())();
+                    },
+                    ap);
 
   // GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: Forwarding rays: " << moved_rays.size());

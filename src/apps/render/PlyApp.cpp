@@ -29,16 +29,15 @@
  * used by changing line 242.
  *
 */
-#include <gvt/render/RenderContext.h>
-#include <gvt/render/Types.h>
-#include <vector>
 #include <algorithm>
-#include <set>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Math.h>
-#include <gvt/render/data/Dataset.h>
-#include <gvt/render/data/Domains.h>
+#include <gvt/core/mpi/Wrapper.h>
+#include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
+#include <gvt/render/Types.h>
+#include <gvt/render/data/Domains.h>
+#include <set>
+#include <vector>
 
 #include <tbb/task_scheduler_init.h>
 #include <thread>
@@ -59,20 +58,22 @@
 #include "mpe.h"
 #endif
 #include <gvt/render/algorithm/Tracers.h>
-#include <gvt/render/data/scene/gvtCamera.h>
-#include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 
 #include <boost/range/algorithm.hpp>
 
 #include <iostream>
 #include <math.h>
-#include <stdio.h>
 #include <ply.h>
+#include <stdio.h>
+
+#include "ParseCommandLine.h"
 
 using namespace std;
 using namespace gvt::render;
-using namespace gvt::core::math;
+
 using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
@@ -108,11 +109,27 @@ PlyProperty face_props[] = {
 static Vertex **vlist;
 static Face **flist;
 
-#define MIN(a, b) ((a < b) ? (a) : (b))
-#define MAX(a, b) ((a > b) ? (a) : (b))
 int main(int argc, char **argv) {
 
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  ParseCommandLine cmd("gvtPly");
+
+  cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
+  cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
+  cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("file", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path");
+  cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
+
+  cmd.addconflict("image", "domain");
+
+  cmd.parse(argc, argv);
+
+  if (!cmd.isSet("threads")) {
+    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  } else {
+    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
@@ -127,7 +144,7 @@ int main(int argc, char **argv) {
   char txt[16];
   std::string temp;
   std::string filename, filepath, rootdir;
-  rootdir = "/home/jbarbosa/r/EnzoPlyData/";
+  rootdir = cmd.get<std::string>("file");
   // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
   // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
   // myfile = fopen(filename.c_str(),"r");
@@ -182,7 +199,7 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(Vector4f(1.0, 1.0, 1.0, 1.0)));
+      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -199,10 +216,10 @@ int main(int argc, char **argv) {
         xmax = MAX(vert->x, xmax);
         ymax = MAX(vert->y, ymax);
         zmax = MAX(vert->z, zmax);
-        mesh->addVertex(Point4f(vert->x, vert->y, vert->z, 1.0));
+        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
       }
-      Point4f lower(xmin, ymin, zmin);
-      Point4f upper(xmax, ymax, zmax);
+      glm::vec3 lower(xmin, ymin, zmin);
+      glm::vec3 upper(xmax, ymax, zmax);
       Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
       // add faces to mesh
       for (i = 0; i < nfaces; i++) {
@@ -222,16 +239,16 @@ int main(int argc, char **argv) {
     Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
     instnode["id"] = k;
     instnode["meshRef"] = meshNode.UUID();
-    auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
-    auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
-    auto normi = new gvt::core::math::Matrix3f();
+    auto m = new glm::mat4(1.f);
+    auto minv = new glm::mat4(1.f);
+    auto normi = new glm::mat3(1.f);
     instnode["mat"] = (unsigned long long)m;
-    *minv = m->inverse();
+    *minv = glm::inverse(*m);
     instnode["matInv"] = (unsigned long long)minv;
-    *normi = m->upper33().inverse().transpose();
+    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
     instnode["normi"] = (unsigned long long)normi;
-    auto il = (*m) * mbox->bounds[0];
-    auto ih = (*m) * mbox->bounds[1];
+    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
@@ -240,22 +257,39 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = Vector4f(512.0, 512.0, 2048.0, 0.0);
-  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = Point4f(512.0, 512.0, 4096.0, 1.0);
-  camNode["focus"] = Point4f(512.0, 512.0, 0.0, 1.0);
-  camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
+  camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
+  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 1900;
   filmNode["height"] = 1080;
 
+  if (cmd.isSet("eye")) {
+    std::vector<float> eye = cmd.getValue<float>("eye");
+    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("look")) {
+    std::vector<float> eye = cmd.getValue<float>("look");
+    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+  if (cmd.isSet("wsize")) {
+    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    filmNode["width"] = wsize[0];
+    filmNode["height"] = wsize[1];
+  }
+
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
+  if (cmd.isSet("domain"))
+    schedNode["type"] = gvt::render::scheduler::Domain;
+  else
+    schedNode["type"] = gvt::render::scheduler::Image;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -275,10 +309,10 @@ int main(int argc, char **argv) {
 
   // setup gvtCamera from database entries
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
-  Point4f focus = camNode["focus"].value().toPoint4f();
+  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
-  Vector4f up = camNode["upVector"].value().toVector4f();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
@@ -297,7 +331,7 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
+    for (int z = 0; z < 100; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();
@@ -310,7 +344,16 @@ int main(int argc, char **argv) {
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderstart, 0, NULL);
 #endif
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    std::cout << "starting image scheduler" << std::endl;
+    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
+    for (int z = 0; z < 100; z++) {
+      mycamera.AllocateCameraRays();
+      mycamera.generateRays();
+      myimage.clear();
+      tracer();
+    }
+    break;
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderend, 0, NULL);
 #endif
@@ -330,62 +373,60 @@ int main(int argc, char **argv) {
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 
-// bvh intersection list test
-void test_bvh(gvtPerspectiveCamera &mycamera) {
-  gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-
-  cout << "\n-- bvh test --" << endl;
-
-  auto ilist = root["Instances"].getChildren();
-  auto bvh = new gvt::render::data::accel::BVH(ilist);
-
-  // list of rays to test
-  std::vector<gvt::render::actor::Ray> rays;
-  rays.push_back(mycamera.rays[100 * 512 + 100]);
-  rays.push_back(mycamera.rays[182 * 512 + 182]);
-  rays.push_back(mycamera.rays[256 * 512 + 256]);
-  auto dir =
-      (gvt::core::math::Vector4f(0.0, 0.0, 0.0, 0.0) - gvt::core::math::Vector4f(1.0, 1.0, 1.0, 0.0)).normalize();
-  rays.push_back(gvt::render::actor::Ray(gvt::core::math::Point4f(1.0, 1.0, 1.0, 1.0), dir));
-  rays.push_back(mycamera.rays[300 * 512 + 300]);
-  rays.push_back(mycamera.rays[400 * 512 + 400]);
-  rays.push_back(mycamera.rays[470 * 512 + 470]);
-  rays.push_back(gvt::render::actor::Ray(gvt::core::math::Point4f(0.0, 0.0, 1.0, 1.0),
-                                         gvt::core::math::Vector4f(0.0, 0.0, -1.0, 1.0)));
-  rays.push_back(mycamera.rays[144231]);
-
-  // test rays and print out which instances were hit
-  for (size_t z = 0; z < rays.size(); z++) {
-    gvt::render::actor::Ray &r = rays[z];
-    cout << "bvh: r[" << z << "]: " << r << endl;
-
-    gvt::render::actor::isecDomList &isect = r.domains;
-    bvh->intersect(r, isect);
-    boost::sort(isect);
-    cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-    for (auto i : isect) {
-      cout << i.domain << " ";
-    }
-    cout << endl;
-  }
-
-#if 0
-    cout << "- check all rays" << endl;
-    for(int z=0; z<mycamera.rays.size(); z++) {
-        gvt::render::actor::Ray &r = mycamera.rays[z];
-
-        gvt::render::actor::isecDomList& isect = r.domains;
-        bvh->intersect(r, isect);
-        boost::sort(isect);
-
-        if(isect.size() > 1) {
-            cout << "bvh: r[" << z << "]: " << r << endl;
-            cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-            for(auto i : isect) { cout << i.domain << " "; }
-            cout << endl;
-        }
-    }
-#endif
-
-  cout << "--------------\n\n" << endl;
-}
+// // bvh intersection list test
+// void test_bvh(gvtPerspectiveCamera &mycamera) {
+//   gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
+//
+//   cout << "\n-- bvh test --" << endl;
+//
+//   auto ilist = root["Instances"].getChildren();
+//   auto bvh = new gvt::render::data::accel::BVH(ilist);
+//
+//   // list of rays to test
+//   std::vector<gvt::render::actor::Ray> rays;
+//   rays.push_back(mycamera.rays[100 * 512 + 100]);
+//   rays.push_back(mycamera.rays[182 * 512 + 182]);
+//   rays.push_back(mycamera.rays[256 * 512 + 256]);
+//   auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
+//   rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
+//   rays.push_back(mycamera.rays[300 * 512 + 300]);
+//   rays.push_back(mycamera.rays[400 * 512 + 400]);
+//   rays.push_back(mycamera.rays[470 * 512 + 470]);
+//   rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
+//   rays.push_back(mycamera.rays[144231]);
+//
+//   // test rays and print out which instances were hit
+//   for (size_t z = 0; z < rays.size(); z++) {
+//     gvt::render::actor::Ray &r = rays[z];
+//     cout << "bvh: r[" << z << "]: " << r << endl;
+//
+//     gvt::render::actor::isecDomList &isect = r.domains;
+//     bvh->intersect(r, isect);
+//     std::sort(isect.begin(), isect.end());
+//     cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
+//     for (auto i : isect) {
+//       cout << i.domain << " ";
+//     }
+//     cout << endl;
+//   }
+//
+// #if 0
+//     cout << "- check all rays" << endl;
+//     for(int z=0; z<mycamera.rays.size(); z++) {
+//         gvt::render::actor::Ray &r = mycamera.rays[z];
+//
+//         gvt::render::actor::isecDomList& isect = r.domains;
+//         bvh->intersect(r, isect);
+//         std::sort(isect);
+//
+//         if(isect.size() > 1) {
+//             cout << "bvh: r[" << z << "]: " << r << endl;
+//             cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
+//             for(auto i : isect) { cout << i.domain << " "; }
+//             cout << endl;
+//         }
+//     }
+// #endif
+//
+//   cout << "--------------\n\n" << endl;
+// }

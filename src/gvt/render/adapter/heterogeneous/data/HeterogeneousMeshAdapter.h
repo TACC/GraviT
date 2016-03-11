@@ -45,7 +45,7 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  HeterogeneousMeshAdapter(gvt::core::DBNodeH node);
+  HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
 
   /**
    * Release Embree copy of the mesh.
@@ -78,8 +78,9 @@ public:
    * \param moved_rays outgoing rays [rays that did not hit anything]
    * \param instNode instance db node containing dataRef and transforms
    */
-  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     gvt::core::DBNodeH instNode, size_t begin = 0, size_t end = 0);
+  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
+                     glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+                     size_t begin = 0, size_t end = 0);
 
 protected:
   gvt::render::adapter::embree::data::EmbreeMeshAdapter *_embree;

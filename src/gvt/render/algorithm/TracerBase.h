@@ -31,24 +31,25 @@
 #ifndef GVT_RENDER_ALGORITHM_TRACER_BASE_H
 #define GVT_RENDER_ALGORITHM_TRACER_BASE_H
 
+//#define TBB_PREVIEW_STATIC_PARTITIONER 1
+
 #include <gvt/core/Debug.h>
-#include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/core/utils/timer.h>
+#include <gvt/render/Adapter.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/accel/BVH.h>
+#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
-#include <gvt/render/data/accel/BVH.h>
-#include <gvt/render/Adapter.h>
 
 #include <boost/foreach.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/timer/timer.hpp>
 #include <boost/range/algorithm.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/timer/timer.hpp>
 
 #include <algorithm>
-#include <future>
 #include <numeric>
 
 #include <mpi.h>
@@ -56,11 +57,12 @@
 #include <deque>
 #include <map>
 
-#include <tbb/parallel_for_each.h>
-#include <tbb/tick_count.h>
 #include <tbb/blocked_range.h>
-#include <tbb/parallel_for.h>
 #include <tbb/mutex.h>
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/partitioner.h>
+#include <tbb/tick_count.h>
 
 namespace gvt {
 namespace render {
@@ -99,13 +101,18 @@ public:
   gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
   gvt::core::DBNodeH rootnode = cntxt.getRootNode();
   gvt::core::Vector<gvt::core::DBNodeH> instancenodes;
+  std::map<int, gvt::render::data::primitives::Mesh *> meshRef;
+  std::map<int, glm::mat4 *> instM;
+  std::map<int, glm::mat4 *> instMinv;
+  std::map<int, glm::mat3 *> instMinvN;
+  std::vector<gvt::render::data::scene::Light *> lights;
 
   gvt::render::data::accel::AbstractAccel *acceleration;
 
   int width = rootnode["Film"]["width"].value().toInteger();
   int height = rootnode["Film"]["height"].value().toInteger();
 
-  float sample_ratio;
+  float sample_ratio = 1.f;
 
   tbb::mutex raymutex;
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
@@ -123,11 +130,40 @@ public:
     // number
     // of instances in the database
     instancenodes = rootnode["Instances"].getChildren();
+
     int numInst = instancenodes.size();
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
     queue_mutex = new tbb::mutex[numInst];
     colorBuf_mutex = new tbb::mutex[width];
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
+
+    for (int i = 0; i < instancenodes.size(); i++) {
+      meshRef[i] =
+          (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
+      instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
+      instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
+      instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
+    }
+
+    auto lightNodes = rootnode["Lights"].getChildren();
+
+    lights.reserve(2);
+    for (auto lightNode : lightNodes) {
+      auto color = lightNode["color"].value().tovec3();
+
+      if (lightNode.name() == std::string("PointLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+      } else if (lightNode.name() == std::string("AmbientLight")) {
+        lights.push_back(new gvt::render::data::scene::AmbientLight(color));
+      } else if (lightNode.name() == std::string("AreaLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        auto normal = lightNode["normal"].value().tovec3();
+        auto width = lightNode["width"].value().toFloat();
+        auto height = lightNode["height"].value().toFloat();
+        lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+      }
+    }
 
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
@@ -141,258 +177,80 @@ public:
   };
   // clang-format on
 
-  virtual void FilterRaysLocally(void) {
+  inline void FilterRaysLocally(void) {
     GVT_DEBUG(DBG_ALWAYS, "Generate rays filtering : " << rays.size());
-    shuffleRays(rays, gvt::core::DBNodeH());
+    shuffleRays(rays, -1);
   }
-
-#if 0
-  /**
-   * Given a queue of rays, intersects them against the accel structure
-   * to find out what instance they will hit next
-   */
-  virtual void shuffleRays(gvt::render::actor::RayVector &rays,
-                           gvt::core::DBNodeH instNode) {
-
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank
-                              << "] Shuffle: rays: " << rays.size());
-
-#ifdef GVT_USE_DEBUG
-    boost::timer::auto_cpu_timer t("Ray shuflle %t\n");
-#endif
-    int nchunks = 1; // std::thread::hardware_concurrency();
-    int chunk_size = rays.size() / nchunks;
-    std::vector<std::pair<int, int>> chunks;
-    std::vector<std::future<void>> futures;
-    for (int ii = 0; ii < nchunks - 1; ii++) {
-      chunks.push_back(
-          std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-    }
-    int ii = nchunks - 1;
-    chunks.push_back(std::make_pair(ii * chunk_size, rays.size()));
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank
-                              << "] Shuffle: chunks: " << chunks.size());
-
-    int idnode = (instNode)
-                     ? gvt::core::variant_toInteger(instNode["id"].value())
-                     : 0xFFFFFFFF;
-    gvt::render::data::primitives::Box3D &wBox =
-        *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
-
-    for (auto limit : chunks) {
-      futures.push_back(std::async(std::launch::deferred, [&]() {
-        int chunk = limit.second - limit.first;
-        std::map<int, gvt::render::actor::RayVector> local_queue;
-        gvt::render::actor::RayVector local(chunk);
-        local.assign(rays.begin() + limit.first, rays.begin() + limit.second);
-        GVT_DEBUG(DBG_ALWAYS,
-                  "[" << mpi.rank
-                      << "] Shuffle: looping through local rays: num local: "
-                      << local.size());
-        // go through the local list of rays and stash them in
-        // local_queue[dom] where dom is the first "domain" the
-        // ray intersects.
-
-        int idnode = (instNode)
-                         ? gvt::core::variant_toInteger(instNode["id"].value())
-                         : 0xFFFFFFFF;
-        gvt::render::data::primitives::Box3D &wBox =
-            *gvt::core::variant_toBox3DPtr(instNode["bbox"].value());
-
-        for (gvt::render::actor::Ray &r : local) {
-          gvt::render::actor::isecDomList &len2List = r.domains;
-
-          if (len2List.empty() && instNode) {
-            //   // instance(?)->marchOut(r);
-
-            float t = FLT_MAX;
-            if (wBox.intersectDistance(r, t))
-              r.origin += r.direction * t;
-            //   while (wBox.intersectDistance(r, t)) {
-            //     r.origin += r.direction * t;
-            //     r.origin += r.direction *
-            //     gvt::render::actor::Ray::RAY_EPSILON;
-            //   }
-            r.origin += r.direction * gvt::render::actor::Ray::RAY_EPSILON;
-          }
-
-          if (len2List.empty()) {
-            // intersect the bvh to find the instance hit list
-            acceleration->intersect(r, len2List);
-            boost::sort(len2List);
-          }
-
-          if (!len2List.empty() && (int)(*len2List.begin()) == idnode) {
-            len2List.erase(len2List.begin());
-          }
-
-          // TODO: alim: figure out new shuffle algorithm, as adapter is going
-          // to
-          // be null right now(?)
-          if (!len2List.empty()) {
-            int firstDomainOnList = (*len2List.begin());
-            len2List.erase(len2List.begin());
-            local_queue[firstDomainOnList].push_back(r);
-          } else if (instNode) {
-            boost::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-            for (int i = 0; i < 3; i++)
-              colorBuf[r.id].rgba[i] += r.color.rgba[i];
-            colorBuf[r.id].rgba[3] = 1.f;
-            colorBuf[r.id].clamp();
-          }
-        }
-
-        GVT_DEBUG(DBG_ALWAYS,
-                  "[" << mpi.rank
-                      << "] Shuffle: adding rays to queues num local: "
-                      << local_queue.size());
-        for (auto &q : local_queue) {
-          boost::mutex::scoped_lock sl(queue_mutex[q.first]);
-          GVT_DEBUG(DBG_ALWAYS, "Add " << q.second.size() << " to queue "
-                                       << q.first << " width size "
-                                       << queue[q.first].size() << "["
-                                       << mpi.rank << "]");
-          queue[q.first].insert(queue[q.first].end(), q.second.begin(),
-                                q.second.end());
-        }
-      }));
-    }
-    for (auto &f : futures)
-      f.wait();
-    rays.clear();
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle exit");
-  }
-#endif
 
   /**
    * Given a queue of rays, intersects them against the accel structure
    * to find out what instance they will hit next
    */
-  virtual void shuffleRays(gvt::render::actor::RayVector &rays, gvt::core::DBNodeH instNode) {
+  inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
-    const size_t raycount = rays.size();
-    const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
-    const gvt::render::data::primitives::Box3D domBB =
-        (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
-                   : gvt::render::data::primitives::Box3D();
+    const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
+    // const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
+    // const gvt::render::data::primitives::Box3D domBB =
+    //    (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
+    //               : gvt::render::data::primitives::Box3D();
+    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
 
-    // tbb::parallel_for(size_t(0), size_t(rays.size()),
-    //      [&] (size_t index) {
-
-    // clang-format off
-    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end()),
+    static tbb::simple_partitioner ap;
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
-      //        gvt::render::actor::Ray &r = rays[index];
+                        std::map<int, gvt::render::actor::RayVector> local_queue;
 
-      std::map<int, gvt::render::actor::RayVector> local_queue;
+                        for (gvt::render::actor::Ray &r : raysit) {
+                          float t = FLT_MAX;
+                          int next = acc.intersect(r, domID, t);
 
-      for (gvt::render::actor::Ray &r : raysit) {
-        if (domID >= 0 && r.domains.empty()) {
-          float tmin,tmax; // = FLT_MAX;
-          if (domBB.intersectDistance(r, tmin,tmax)) {
-            r.origin += r.direction * tmax;
-          }
-        }
+                          if (next != -1) {
+                            r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
+                            local_queue[next].push_back(r);
+                          } else if (domID != -1) {
+                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                            for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
+                            colorBuf[r.id].rgba[3] = 1.0;
+                            colorBuf[r.id].clamp();
+                          }
+                        }
+                        for (auto &q : local_queue) {
+                          queue_mutex[q.first].lock();
+                          queue[q.first].insert(queue[q.first].end(),
+                                                std::make_move_iterator(local_queue[q.first].begin()),
+                                                std::make_move_iterator(local_queue[q.first].end()));
+                          queue_mutex[q.first].unlock();
+                        }
+                      },
+                      ap);
 
-        if (r.domains.empty()) {
-          acceleration->intersect(r, r.domains);
-          boost::sort(r.domains);
-        }
-
-        if (!r.domains.empty() && (int)(*r.domains.begin()) == domID) {
-          r.domains.erase(r.domains.begin());
-        }
-
-        if (!r.domains.empty()) {
-
-          int firstDomainOnList = (*r.domains.begin());
-          r.domains.erase(r.domains.begin());
-          // tbb::mutex::scoped_lock sl(queue_mutex[firstDomainOnList]);
-          local_queue[firstDomainOnList].push_back(r);
-
-        } else if (instNode) {
-
-          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-          for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-          colorBuf[r.id].rgba[3] = 1.f;
-          colorBuf[r.id].clamp();
-        }
-      }
-
-      std::deque<int> _doms;
-      std::transform(local_queue.begin(), local_queue.end(), std::back_inserter(_doms),
-                     [](const std::map<int, gvt::render::actor::RayVector>::value_type &pair) { return pair.first; });
-
-      while (!_doms.empty()) {
-
-        int dom = _doms.front();
-        //_doms.erase(_doms.begin());
-        _doms.pop_front();
-        (queue_mutex[dom].lock()); {
-          queue[dom].insert(queue[dom].end(), std::make_move_iterator(local_queue[dom].begin()),
-                            std::make_move_iterator(local_queue[dom].end()));
-          queue_mutex[dom].unlock();
-        }/* else {
-          _doms.push_back(dom);
-        }*/
-      }
-
-      // for (auto &q : local_queue) {
-      //   const int dom = q.first;
-      //   const size_t size = q.second.size();
-      //   tbb::mutex::scoped_lock sl(queue_mutex[dom]);
-      //   // queue[dom].reserve(queue[dom].size() + size);
-      //   queue[dom].insert(queue[dom].end(),
-      //                     std::make_move_iterator(q.second.begin()),
-      //                     std::make_move_iterator(q.second.end()));
-
-      //   // std::move(q.second.begin(), q.second.end(),
-      //   // std::back_inserter(queue[dom]));
-      // }
-    });
-    // clang-format on
     rays.clear();
   }
 
-  virtual bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
+  inline bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
 
-  virtual void localComposite() {
+  inline void localComposite() {
     const size_t size = width * height;
-
-    int nchunks = std::thread::hardware_concurrency() * 2;
-    int chunk_size = size / nchunks;
-    std::vector<std::pair<int, int> > chunks;
-    std::vector<std::future<void> > futures;
-    for (int ii = 0; ii < nchunks - 1; ii++) {
-      chunks.push_back(std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-    }
-    int ii = nchunks - 1;
-    chunks.push_back(std::make_pair(ii * chunk_size, size));
-
-    for (auto limit : chunks) {
-      GVT_DEBUG(DBG_ALWAYS, "Limits : " << limit.first << ", " << limit.second);
-      futures.push_back(std::async(std::launch::deferred, [&]() {
-        for (int i = limit.first; i < limit.second; i++) image.Add(i, colorBuf[i]);
-      }));
-    }
-
-    for (std::future<void> &f : futures) {
-      f.wait();
-    }
+    const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+    static tbb::simple_partitioner ap;
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+                      [&](tbb::blocked_range<size_t> chunk) {
+                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
+                      },
+                      ap);
   }
 
-  virtual void gatherFramebuffers(int rays_traced) {
+  inline void gatherFramebuffers(int rays_traced) {
 
-    size_t size = width * height;
-
-    for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
+    localComposite();
+    // for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
 
     if (!mpi) return;
 
+    size_t size = width * height;
     unsigned char *rgb = image.GetBuffer();
 
     int rgb_buf_size = 3 * size;
@@ -402,33 +260,20 @@ public:
     // MPI_Barrier(MPI_COMM_WORLD);
     MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
     if (mpi.root()) {
-      int nchunks = std::thread::hardware_concurrency() * 2;
-      int chunk_size = size / nchunks;
-      std::vector<std::pair<int, int> > chunks(nchunks);
-      std::vector<std::future<void> > futures;
-      for (int ii = 0; ii < nchunks - 1; ii++) {
-        chunks.push_back(std::make_pair(ii * chunk_size, ii * chunk_size + chunk_size));
-      }
-      int ii = nchunks - 1;
-      chunks.push_back(std::make_pair(ii * chunk_size, size));
+      const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+      static tbb::simple_partitioner ap;
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize), [&](tbb::blocked_range<size_t> chunk) {
 
-      for (auto &limit : chunks) {
-        futures.push_back(std::async(std::launch::async, [&]() {
-          // std::pair<int,int> limit = std::make_pair(0,size);
+        for (int j = chunk.begin() * 3; j < chunk.end() * 3; j += 3) {
           for (size_t i = 1; i < mpi.world_size; ++i) {
-            for (int j = limit.first * 3; j < limit.second * 3; j += 3) {
-              int p = i * rgb_buf_size + j;
-              // assumes black background, so adding is fine (r==g==b== 0)
-              rgb[j + 0] += bufs[p + 0];
-              rgb[j + 1] += bufs[p + 1];
-              rgb[j + 2] += bufs[p + 2];
-            }
+            int p = i * rgb_buf_size + j;
+            // assumes black background, so adding is fine (r==g==b== 0)
+            rgb[j + 0] += bufs[p + 0];
+            rgb[j + 1] += bufs[p + 1];
+            rgb[j + 2] += bufs[p + 2];
           }
-        }));
-      }
-      for (std::future<void> &f : futures) {
-        f.wait();
-      }
+        }
+      });
     }
 
     delete[] bufs;

@@ -31,7 +31,6 @@
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
-#include <gvt/core/schedule/TaskScheduling.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/adapter/manta/data/Transforms.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
@@ -42,12 +41,12 @@
 #include <Core/Math/MT_RNG.h>
 #include <Engine/Shadows/HardShadows.h>
 #include <Engine/Shadows/NoShadows.h>
+#include <Interface/Primitive.h>
 #include <Model/AmbientLights/AmbientOcclusionBackground.h>
 #include <Model/AmbientLights/ArcAmbient.h>
 #include <Model/AmbientLights/ConstantAmbient.h>
 #include <Model/AmbientLights/EyeAmbient.h>
 #include <Model/Primitives/Cube.h>
-#include <Interface/Primitive.h>
 // end Manta includes
 
 #include <atomic>
@@ -62,16 +61,15 @@ using namespace gvt::render::adapter::manta::data;
 // using namespace gvt::render::adapter::manta::data::domain;
 // using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
-using namespace gvt::core::math;
 
 static std::atomic<size_t> counter(0);
 static boost::atomic<size_t> counter_b(0);
 
 // MantaMeshAdapter::MantaMeshAdapter(GeometryDomain* domain) : GeometryDomain(*domain)
-MantaMeshAdapter::MantaMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
+MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::prmitives::Mesh *mesh) : Adapter(mesh) {
   GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converting mesh node " << node.UUID().toString());
 
-  Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
+  // Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
 
   GVT_ASSERT(mesh, "MantaMeshAdapter: mesh pointer in the database is null");
 
@@ -120,7 +118,7 @@ MantaMeshAdapter::MantaMeshAdapter(gvt::core::DBNodeH node) : Adapter(node) {
                                scene /*scene*/, 0 /*thread_storage*/, rng /*rngs*/, 0 /*samplegenerator*/);
 }
 
-// MantaMeshAdapter::MantaMeshAdapter(std::string filename, gvt::core::math::AffineTransformMatrix<float> m)
+// MantaMeshAdapter::MantaMeshAdapter(std::string filename, glm::mat4 m)
 // : gvt::render::data::domain::GeometryDomain(filename, m)
 // {
 //
@@ -183,26 +181,24 @@ struct parallelTrace {
   gvt::render::actor::RayVector &rayList;
   gvt::render::actor::RayVector &moved_rays;
   const size_t workSize;
-  const gvt::core::math::AffineTransformMatrix<float> *m;
-  const gvt::core::math::AffineTransformMatrix<float> *minv;
-  const gvt::core::math::Matrix3f *normi;
+  const glm::mat4 *m;
+  const glm::mat4 *minv;
+  const glm::mat3 *normi;
   const std::vector<gvt::render::data::scene::Light *> &lights;
-  gvt::core::DBNodeH instNode;
+  const gvt::render::data::primitives::Mesh *mesh;
 
   boost::atomic<size_t> &counter;
 
   parallelTrace(
       // gvt::render::adapter::manta::data::domain::MantaDomain* dom,
       gvt::render::adapter::manta::data::MantaMeshAdapter *adapter, gvt::render::actor::RayVector &rayList,
-      gvt::render::actor::RayVector &moved_rays, const size_t workSize, boost::atomic<size_t> &counter,
-      gvt::core::math::AffineTransformMatrix<float> *m, gvt::core::math::AffineTransformMatrix<float> *minv,
-      gvt::core::math::Matrix3f *normi, std::vector<gvt::render::data::scene::Light *> &lights,
-      gvt::core::DBNodeH instNode)
+      gvt::render::actor::RayVector &moved_rays, const size_t workSize, boost::atomic<size_t> &counter, glm::mat4 *m,
+      glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+      gvt::render::data::primitives::Mesh *mesh)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), counter(counter), m(m),
-        minv(minv), normi(normi), lights(lights), instNode(instNode) {}
+        minv(minv), normi(normi), lights(lights), mesh(mesh) {}
 
   void operator()() {
-    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
     const size_t maxPacketSize = 64;
 
     Manta::RenderContext &renderContext = *adapter->getRenderContext();
@@ -224,7 +220,7 @@ struct parallelTrace {
     //                }
 
     while (!rayList.empty()) {
-      boost::unique_lock<boost::mutex> queue(adapter->_inqueue);
+      std::unique_lock<std::mutex> queue(adapter->_inqueue);
       std::size_t range = std::min(workSize, rayList.size());
       localQueue.assign(rayList.begin(), rayList.begin() + range);
       rayList.erase(rayList.begin(), rayList.begin() + range);
@@ -267,12 +263,11 @@ struct parallelTrace {
             float t = mRays.getMinT(pindex);
             rayPacket[pindex].t = t;
 
-            // gvt::core::math::Vector4f normal =
+            // glm::vec3 normal =
             // dom->toWorld(gvt::render::adapter::manta::data::transform<Manta::Vector,
-            // gvt::core::math::Vector4f>(mRays.getNormal(pindex)));
-            gvt::core::math::Vector4f normal =
-                (*normi) * (gvt::core::math::Vector3f)(transform<Manta::Vector, Vector4f>(mRays.getNormal(pindex)));
-            normal.normalize();
+            // glm::vec3>(mRays.getNormal(pindex)));
+            glm::vec3 normal =
+                glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec3>(mRays.getNormal(pindex))));
 
             if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) {
               t = (t > 1) ? 1.f / t : t;
@@ -283,11 +278,10 @@ struct parallelTrace {
             // for (int lindex = 0; lindex < lights.size(); lindex++)
             for (gvt::render::data::scene::Light *light : lights) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SHADOW;
               ray.origin = ray.origin + ray.direction * ray.t;
               ray.setDirection(light->position - ray.origin);
-              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
+              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
               ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
               // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
               localQueue.push_back(ray);
@@ -299,10 +293,9 @@ struct parallelTrace {
 
             if (ndepth > 0 && rayPacket[pindex].w > p) {
               gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.domains.clear();
               ray.type = gvt::render::actor::Ray::SECONDARY;
               ray.origin = ray.origin + ray.direction * ray.t;
-              ray.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+              ray.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
               ray.w = ray.w * (ray.direction * normal);
               ray.depth = ndepth;
               localQueue.push_back(ray);
@@ -319,7 +312,7 @@ struct parallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
 
-    boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
+    std::unique_lock<std::mutex> moved(adapter->_outqueue);
     moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }
@@ -362,17 +355,17 @@ struct mantaParallelTrace {
   /**
    * Stored transformation matrix in the current instance
    */
-  const gvt::core::math::AffineTransformMatrix<float> *m;
+  const glm::mat4 *m;
 
   /**
    * Stored inverse transformation matrix in the current instance
    */
-  const gvt::core::math::AffineTransformMatrix<float> *minv;
+  const glm::mat4 *minv;
 
   /**
    * Stored upper33 inverse matrix in the current instance
    */
-  const gvt::core::math::Matrix3f *normi;
+  const glm::mat3 *normi;
 
   /**
    * Stored transformation matrix in the current instance
@@ -407,12 +400,11 @@ struct mantaParallelTrace {
    */
   mantaParallelTrace(gvt::render::adapter::manta::data::MantaMeshAdapter *adapter,
                      gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode,
-                     gvt::core::math::AffineTransformMatrix<float> *m,
-                     gvt::core::math::AffineTransformMatrix<float> *minv, gvt::core::math::Matrix3f *normi,
-                     std::vector<gvt::render::data::scene::Light *> &lights, std::atomic<size_t> &counter)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize),
-        instNode(instNode), m(m), minv(minv), normi(normi), lights(lights), counter(counter),
+                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode, glm::mat4 *m,
+                     glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
+                     std::atomic<size_t> &counter)
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize), m(m),
+        minv(minv), normi(normi), lights(lights), counter(counter),
         packetSize(64) // TODO: packetSize(adapter->getPacketSize())
   {}
 
@@ -462,19 +454,19 @@ struct mantaParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal,
+  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
                           gvt::render::data::primitives::Mesh *mesh) {
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-      const Point4f origin = r.origin + r.direction * r.t;
-      Vector4f dir = light->position - origin;
+      const glm::vec3 origin = r.origin + r.direction * r.t;
+      glm::vec3 dir = light->position - origin;
       const float t_max = dir.length();
-      shadowRays.push_back(Ray(origin, dir.normalize(), r.w, Ray::SHADOW, r.depth));
+      shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
       Ray &shadow_ray = shadowRays.back();
       shadow_ray.t = r.t;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
-      gvt::render::data::Color c = mesh->mat->shade(r, normal, light);
+      gvt::render::data::Color c = mesh->mat->shade(r, normal, light, light->position);
       shadow_ray.color = GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
     }
   }
@@ -645,29 +637,8 @@ struct mantaParallelTrace {
               //
               // for some reason the manta normals aren't working, so just going to manually calculate the triangle
               // normal
-              Vector4f normal =
-                  (*normi) * (gvt::core::math::Vector3f)(transform<Manta::Vector, Vector4f>(mRays.getNormal(pi)));
-              // Vector4f normal = (*m) * transform<Manta::Vector, Vector4f>(mRays.getNormal(pi));
-              normal.normalize();
-
-              // Vector4f manualNormal;
-              // {
-              //     const int triangle_id = ray4.primID[pi];
-              //     Manta::Primitive const* prim = rpData.hitPrim[pi];
-              //     prim->computeNormal(*(adapter->getRenderContext()), mRays);
-              //     const float u = rays.getScratchpad<Manta::Real>(Manta::KenslerShirleyTriangle::SCRATCH_U)[pi]
-              //     const float v = rays.getScratchpad<Manta::Real>(Manta::KenslerShirleyTriangle::SCRATCH_V)[pi]
-              //     const Mesh::FaceToNormals &normals = mesh->faces_to_normals[triangle_id]; // FIXME: need to figure
-              //     out where to store `faces_to_normals` list
-              //     const Vector4f &a = mesh->normals[normals.get<1>()];
-              //     const Vector4f &b = mesh->normals[normals.get<2>()];
-              //     const Vector4f &c = mesh->normals[normals.get<0>()];
-              //     manualNormal = a * u + b * v + c * (1.0f - u - v);
-              //
-              //     manualNormal = (*normi) * (gvt::core::math::Vector3f)manualNormal;
-              //     manualNormal.normalize();
-              // }
-              // const Vector4f &normal = manualNormal;
+              glm::vec3 normal =
+                  glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec3>(mRays.getNormal(pi))));
 
               if (r.type == gvt::render::actor::Ray::SECONDARY) {
                 t = (t > 1) ? 1.f / t : t;
@@ -679,11 +650,10 @@ struct mantaParallelTrace {
               // for (int lindex = 0; lindex < lights.size(); lindex++)
               for (gvt::render::data::scene::Light *light : lights) {
                 gvt::render::actor::Ray ray(r);
-                ray.domains.clear();
                 ray.type = gvt::render::actor::Ray::SHADOW;
                 ray.origin = ray.origin + ray.direction * ray.t;
                 ray.setDirection(light->position - ray.origin);
-                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light);
+                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
                 ray.color = GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
                 // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
                 // localQueue.push_back(ray);
@@ -695,26 +665,9 @@ struct mantaParallelTrace {
 
               // replace current ray with generated secondary ray
               if (ndepth > 0 && r.w > p) {
-                // r.domains.clear();
-                // r.type = gvt::render::actor::Ray::SECONDARY;
-                // const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out
-                // somewhere / make static
-                // const float t_secondary = multiplier * r.t;
-                // r.origin = r.origin + r.direction * t_secondary;
-
-                // // TODO: remove this dependency on mesh, store material object in the database
-                // //r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
-                // r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
-
-                // r.w = r.w * (r.direction * normal);
-                // r.depth = ndepth;
-                // validRayLeft = true; // we still have a valid ray in the packet to trace
-
-                // gvt::render::actor::Ray ray(rayPacket[pindex]);
-                r.domains.clear();
                 r.type = gvt::render::actor::Ray::SECONDARY;
                 r.origin = r.origin + r.direction * r.t;
-                r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal).normalize());
+                r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
                 r.w = r.w * (r.direction * normal);
                 r.depth = ndepth;
                 validRayLeft = true; // we still have a valid ray in the packet to trace
@@ -763,7 +716,7 @@ struct mantaParallelTrace {
 #endif
 
     // copy localDispatch rays to outgoing rays queue
-    boost::unique_lock<boost::mutex> moved(adapter->_outqueue);
+    std::unique_lock<std::mutex> moved(adapter->_outqueue);
     moved_rays.insert(moved_rays.end(), localDispatch.begin(), localDispatch.end());
     moved.unlock();
   }
@@ -772,7 +725,8 @@ struct mantaParallelTrace {
 // void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList,
 // gvt::render::actor::RayVector& moved_rays)
 void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                             gvt::core::DBNodeH instNode, size_t _begin, size_t _end) {
+                             glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                             std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: trace time: %w\n");
 #endif
@@ -789,53 +743,13 @@ void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render
   const size_t workload =
       std::max((size_t)1, (size_t)(rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: trace: instNode: "
-                            << instNode.UUID().toString() << ", rays: " << rayList.size() << ", workSize: " << workSize
-                            << ", threads: " << gvt::core::schedule::asyncExec::instance()->numThreads);
-
-  // pull out information out of the database, create local structs that will be passed into the parallel struct
-  gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
-
-  // pull out instance transform data
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: getting instance transform data");
-  gvt::core::math::AffineTransformMatrix<float> *m =
-      (gvt::core::math::AffineTransformMatrix<float> *)instNode["mat"].value().toULongLong();
-  gvt::core::math::AffineTransformMatrix<float> *minv =
-      (gvt::core::math::AffineTransformMatrix<float> *)instNode["matInv"].value().toULongLong();
-  gvt::core::math::Matrix3f *normi = (gvt::core::math::Matrix3f *)instNode["normi"].value().toULongLong();
-
-  //
-  // TODO: wrap this db light array -> class light array conversion in some sort of helper function
-  // `convertLights`: pull out lights list and convert into gvt::Lights format for now
-  auto lightNodes = root["Lights"].getChildren();
-  std::vector<gvt::render::data::scene::Light *> lights;
-  lights.reserve(2);
-  for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().toVector4f();
-
-    if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().toVector4f();
-      lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-    } else if (lightNode.name() == std::string("AmbientLight")) {
-      lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-    }
-  }
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converted " << lightNodes.size()
-                                                       << " light nodes into structs: size: " << lights.size());
-  // end `convertLights`
-  //
-
-  // # notes
-  // 20150819-2344: alim: boost threads vs c++11 threads don't seem to have much of a runtime difference
-  // - I was not re-using the c++11 threads though, was creating new ones every time
-
   for (size_t rc = 0; rc < numThreads; ++rc) {
     // gvt::core::schedule::asyncExec::instance()->run_task(
     //         mantaParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights,
     //         counter)
     //         );
     gvt::core::schedule::asyncExec::instance()->run_task(
-        parallelTrace(this, rayList, moved_rays, workload, counter_b, m, minv, normi, lights, instNode));
+        parallelTrace(this, rayList, moved_rays, workload, counter_b, m, minv, normi, lights, mesh));
   }
 
   gvt::core::schedule::asyncExec::instance()->sync();

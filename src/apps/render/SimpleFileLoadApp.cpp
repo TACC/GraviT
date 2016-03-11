@@ -25,14 +25,14 @@
 // Simple gravit application.
 // Load some geometry and render it.
 //
-#include <gvt/render/RenderContext.h>
-#include <gvt/render/Types.h>
-#include <vector>
 #include <algorithm>
-#include <set>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/mpi/Wrapper.h>
+#include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
+#include <gvt/render/Types.h>
+#include <set>
+#include <vector>
 
 #include <tbb/task_scheduler_init.h>
 #include <thread>
@@ -50,26 +50,41 @@
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>
-#include <gvt/render/data/scene/gvtCamera.h>
-#include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/domain/reader/ObjReader.h>
+#include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 
 #include <boost/range/algorithm.hpp>
 
 #include <iostream>
 
+#include "ParseCommandLine.h"
+
 using namespace std;
 using namespace gvt::render;
-using namespace gvt::core::math;
+
 using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
+  ParseCommandLine cmd("gvtSimple");
+  cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
+  cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
+  cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  cmd.addconflict("image", "domain");
+  cmd.parse(argc, argv);
+  if (!cmd.isSet("threads")) {
+    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  } else {
+    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
@@ -116,51 +131,78 @@ int main(int argc, char **argv) {
 
   // transform bunny
   float scale = 1.0;
-  auto m = new gvt::core::math::AffineTransformMatrix<float>(true);
-  auto minv = new gvt::core::math::AffineTransformMatrix<float>(true);
-  auto normi = new gvt::core::math::Matrix3f();
-  *m = *m * gvt::core::math::AffineTransformMatrix<float>::createTranslation(0.0, 0.0, 0.0);
-  *m = *m * gvt::core::math::AffineTransformMatrix<float>::createScale(scale, scale, scale);
+  auto m = new glm::mat4(1.f);
+  auto minv = new glm::mat4(1.f);
+  auto normi = new glm::mat3(1.f);
+  //*m = glm::translate(*m, glm::vec3(0, 0, 0));
+  //*m *glm::mat4::createTranslation(0.0, 0.0, 0.0);
+  //*m = *m * glm::mat4::createScale(scale, scale, scale);
+  *m = glm::scale(*m, glm::vec3(scale, scale, scale));
+
   instnode["mat"] = (unsigned long long)m;
-  *minv = m->inverse();
+  *minv = glm::inverse(*m);
   instnode["matInv"] = (unsigned long long)minv;
-  *normi = m->upper33().inverse().transpose();
+  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   instnode["normi"] = (unsigned long long)normi;
 
   // transform mesh bounding box
-  auto il = (*m) * mbox->bounds[0];
-  auto ih = (*m) * mbox->bounds[1];
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
 
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+
+  // area Light
+  // gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "light", lightNodes.UUID());
+  // lightNode["position"] = glm::vec3(-0.2, 0.1, 0.9, 0.0);
+  // lightNode["color"] = glm::vec3(1.0, 1.0, 1.0, 0.0);
+  // lightNode["normal"] = glm::vec3(0.0, 0.0, 1.0, 0.0);
+  // lightNode["width"] = float(0.05);
+  // lightNode["height"] = float(0.05);
+
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "light", lightNodes.UUID());
-  lightNode["position"] = Vector4f(0.0, 0.1, 0.5, 0.0);
-  lightNode["color"] = Vector4f(1.0, 1.0, 1.0, 0.0);
+  lightNode["position"] = glm::vec3(0.0, 0.1, 0.5);
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   // set the camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "cam", root.UUID());
-  camNode["eyePoint"] = Point4f(0.0, 0.1, 0.3, 1.0);
-  camNode["focus"] = Point4f(0.0, 0.1, -0.3, 1.0);
-  camNode["upVector"] = Vector4f(0.0, 1.0, 0.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(0.0, 0.1, 0.3);
+  camNode["focus"] = glm::vec3(0.0, 0.1, -0.3);
+  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
+  camNode["rayMaxDepth"] = (int)10;
+  camNode["raySamples"] = (int)3;
+  camNode["jitterWindowSize"]= (float) 0;
 
   // set image width/height
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
-  // filmNode["width"] = 4096;
-  // filmNode["height"] = 2304;
-
-  // filmNode["width"] = 1920;
-  // filmNode["height"] = 1080;
-
   filmNode["width"] = 512;
   filmNode["height"] = 512;
 
-  // TODO: schedule db design could be modified a bit
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "sched", root.UUID());
-  schedNode["type"] = gvt::render::scheduler::Image;
+  if (cmd.isSet("eye")) {
+    std::vector<float> eye = cmd.getValue<float>("eye");
+    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("look")) {
+    std::vector<float> eye = cmd.getValue<float>("look");
+    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+  if (cmd.isSet("wsize")) {
+    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    filmNode["width"] = wsize[0];
+    filmNode["height"] = wsize[1];
+  }
+
+  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
+  if (cmd.isSet("domain"))
+    schedNode["type"] = gvt::render::scheduler::Domain;
+  else
+    schedNode["type"] = gvt::render::scheduler::Image;
+
 // schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
@@ -182,13 +224,23 @@ int main(int argc, char **argv) {
   // the following starts the system
 
   // setup gvtCamera from database entries
+
   gvtPerspectiveCamera mycamera;
-  Point4f cameraposition = camNode["eyePoint"].value().toPoint4f();
-  Point4f focus = camNode["focus"].value().toPoint4f();
+  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
-  Vector4f up = camNode["upVector"].value().toVector4f();
+  glm::vec3 up = camNode["upVector"].value().tovec3();
+
+  int rayMaxDepth =camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
+  
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
   // setup image from database sizes
@@ -201,12 +253,16 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage)();
+    auto tracer = gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage);
+    tracer.sample_ratio = 1.0 / float(raySamples * raySamples);
+    tracer();
     break;
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
+    auto tracer = gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage);
+    tracer.sample_ratio = 1.0 / float(raySamples * raySamples);
+    tracer();
     break;
   }
   default: {

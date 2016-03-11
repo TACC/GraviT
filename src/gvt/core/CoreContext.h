@@ -24,9 +24,19 @@
 #ifndef GVT_CORE_CONTEXT_H
 #define GVT_CORE_CONTEXT_H
 
-#include <gvt/core/Database.h>
+#include <gvt/core/Debug.h>
+
 #include "gvt/core/DatabaseNode.h"
 #include "gvt/core/Types.h"
+#include <gvt/core/Database.h>
+
+#ifndef MAX
+#define MAX(a, b) ((a > b) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define MIN(a, b) ((a < b) ? (a) : (b))
+#endif
 
 namespace gvt {
 namespace core {

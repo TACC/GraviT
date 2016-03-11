@@ -28,7 +28,7 @@
 using gvt::core::DBNodeH;
 using gvt::core::String;
 using gvt::core::Uuid;
-using namespace gvt::core::math;
+
 using namespace gvt::render;
 
 RenderContext::RenderContext() : gvt::core::CoreContext() {}
@@ -54,6 +54,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("upVector");
     n += gvt::core::CoreContext::createNode("fov");
     n += gvt::core::CoreContext::createNode("cam2wrld");
+    n += gvt::core::CoreContext::createNode("rayMaxDepth");
+    n += gvt::core::CoreContext::createNode("raySamples");
+    n += gvt::core::CoreContext::createNode("jitterWindowSize");
   } else if (type == String("Film")) {
     n += gvt::core::CoreContext::createNode("width");
     n += gvt::core::CoreContext::createNode("height");
@@ -62,9 +65,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("width");
     n += gvt::core::CoreContext::createNode("height");
     n += gvt::core::CoreContext::createNode("viewAngle");
-    n += gvt::core::CoreContext::createNode("camera", Point4f());
-    n += gvt::core::CoreContext::createNode("focus", Point4f());
-    n += gvt::core::CoreContext::createNode("up", Vector4f());
+    n += gvt::core::CoreContext::createNode("camera", glm::vec3());
+    n += gvt::core::CoreContext::createNode("focus", glm::vec3());
+    n += gvt::core::CoreContext::createNode("up", glm::vec3());
     n += gvt::core::CoreContext::createNode("parallelScale");
     n += gvt::core::CoreContext::createNode("nearPlane");
     n += gvt::core::CoreContext::createNode("farPlane");
@@ -98,6 +101,12 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
   } else if (type == String("PointLight")) {
     n += gvt::core::CoreContext::createNode("position");
     n += gvt::core::CoreContext::createNode("color");
+  } else if (type == String("AreaLight")) {
+    n += gvt::core::CoreContext::createNode("position");
+    n += gvt::core::CoreContext::createNode("color");
+    n += gvt::core::CoreContext::createNode("normal");
+    n += gvt::core::CoreContext::createNode("height");
+    n += gvt::core::CoreContext::createNode("width");
   } else if (type == String("Schedule")) {
     n += gvt::core::CoreContext::createNode("type");
     n += gvt::core::CoreContext::createNode("adapter");

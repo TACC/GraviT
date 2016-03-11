@@ -29,15 +29,18 @@
 #include <gvt/core/Uuid.h>
 #include <gvt/core/Variant.h>
 
-#include <boost/container/allocator.hpp>
-#include <boost/container/map.hpp>
-#include <boost/container/vector.hpp>
+#include <map>
+#include <vector>
+
+// #include <boost/container/allocator.hpp>
+// #include <boost/container/map.hpp>
+// #include <boost/container/vector.hpp>
 #include <string>
 
 namespace gvt {
 namespace core {
-template <class T> using Vector = boost::container::vector<T>;
-template <class K, class V> using Map = boost::container::map<K, V>;
+template <class T> using Vector = std::vector<T>;
+template <class K, class V> using Map = std::map<K, V>;
 }
 }
 

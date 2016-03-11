@@ -25,7 +25,6 @@
 #include <gvt/core/Variant.h>
 
 using namespace gvt::core;
-using namespace gvt::core::math;
 
 Variant::Variant() {}
 Variant::Variant(int i) : coreData(i) {}
@@ -36,9 +35,7 @@ Variant::Variant(bool b) : coreData(b) {}
 Variant::Variant(unsigned long long ull) : coreData(ull) {}
 Variant::Variant(String s) : coreData(s) {}
 Variant::Variant(Uuid u) : coreData(u) {}
-Variant::Variant(Vector3f v) : coreData(v) {}
-Variant::Variant(Vector4f v) : coreData(v) {}
-Variant::Variant(Point4f p) : coreData(p) {}
+Variant::Variant(glm::vec3 v) : coreData(v) {}
 
 int Variant::toInteger() const { return boost::get<int>(coreData); }
 
@@ -56,11 +53,7 @@ String Variant::toString() const { return boost::get<String>(coreData); }
 
 Uuid Variant::toUuid() const { return boost::get<Uuid>(coreData); }
 
-Vector3f Variant::toVector3f() const { return boost::get<Vector3f>(coreData); }
-
-Vector4f Variant::toVector4f() const { return boost::get<Vector4f>(coreData); }
-
-Point4f Variant::toPoint4f() const { return boost::get<Point4f>(coreData); }
+glm::vec3 Variant::tovec3() const { return boost::get<glm::vec3>(coreData); }
 
 bool Variant::operator==(const Variant &v) const { return coreData == v.coreData; }
 

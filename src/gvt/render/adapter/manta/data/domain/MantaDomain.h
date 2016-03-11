@@ -29,9 +29,9 @@
 #define GVT_RENDER_ADAPTER_MANTA_DATA_DOMAIN_MANTA_DOMAIN_H
 
 #include <gvt/render/adapter/manta/override/DynBVH.h>
+#include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/domain/GeometryDomain.h>
-#include <gvt/render/data/Primitives.h>
 
 // begin Manta includes
 #include <Core/Exceptions/Exception.h>
@@ -65,8 +65,7 @@ to the format expected by SCI's Manta ray tracer
 class MantaDomain : public gvt::render::data::domain::GeometryDomain {
 public:
   MantaDomain(gvt::render::data::domain::GeometryDomain *domain);
-  MantaDomain(std::string filename = "",
-              gvt::core::math::AffineTransformMatrix<float> m = gvt::core::math::AffineTransformMatrix<float>(true));
+  MantaDomain(std::string filename = "", glm::mat4 m = glm::mat4(true));
   MantaDomain(const MantaDomain &other);
   virtual ~MantaDomain();
 
