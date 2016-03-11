@@ -253,14 +253,14 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    auto tracer = gvt::render::algorithm::Tracer<ImageScheduler>(mycamera.rays, myimage);
+    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     tracer.sample_ratio = 1.0 / float(raySamples * raySamples);
     tracer();
     break;
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
-    auto tracer = gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage);
+    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
     tracer.sample_ratio = 1.0 / float(raySamples * raySamples);
     tracer();
     break;
