@@ -13,9 +13,9 @@ namespace time {
 
 #if GVT_USE_TIMING
 
-typedef std::chrono::system_clock clock_type;
+// typedef std::chrono::system_clock clock_type;
 // typedef std::chrono::steady_clock clock_type;
-// typedef std::chrono::high_resolution_clock clock_type;
+typedef std::chrono::high_resolution_clock clock_type;
 
 struct timer {
 
