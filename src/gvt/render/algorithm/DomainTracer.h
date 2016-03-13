@@ -159,7 +159,8 @@ public:
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
                             r.origin = r.origin + r.direction * (hits[i].t * 0.8f);
-                            local_queue[hits[i].next].push_back(r);
+                            const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+                            if (inRank) local_queue[hits[i].next].push_back(r);
                           }
                         }
                         for (auto &q : local_queue) {
@@ -175,9 +176,7 @@ public:
     rays.clear();
   }
 
-  inline void FilterRaysLocally() {
-    shuffleDropRays(rays);
-  }
+  inline void FilterRaysLocally() { shuffleDropRays(rays); }
 
   inline void operator()() {
 
