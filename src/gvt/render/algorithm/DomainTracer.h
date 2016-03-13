@@ -176,7 +176,6 @@ public:
   }
 
   inline void FilterRaysLocally() {
-    gvt::core::time::timer drop(true, "Shuffle or drop");
     shuffleDropRays(rays);
   }
 
@@ -361,9 +360,6 @@ public:
         GVT_DEBUG_CODE(DBG_ALWAYS, if (DEBUG_RANK) cerr << mpi.rank << ": " << not_done << " procs still have rays"
                                                         << " (my q:" << queue.size() << ")");
 
-        if (mpi.rank == 0) {
-          std::cout << "Rank [" << mpi.rank << "] : " << not_done << std::endl;
-        }
         all_done = (not_done == 0);
         t_send.stop();
         delete[] empties;

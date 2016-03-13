@@ -7,6 +7,8 @@
 #include <sstream>
 #include <string>
 
+#include <mpi.h>
+
 namespace gvt {
 namespace core {
 namespace time {
@@ -45,7 +47,7 @@ struct timer {
   inline void settext(std::string str) { text = str; }
   inline ~timer() {
     auto end = clock_type::now();
-    if (!text.empty()) print();
+    if (MPI::COMM_WORLD.Get_rank() ==0 && !text.empty()) print();
   }
 
   inline void start() {
