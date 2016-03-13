@@ -69,11 +69,11 @@ struct timer {
       elapsed += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - t_start).count();
 
     std::ostringstream os;
-    os << elapsed << "ms";
+    os << elapsed << " ms";
     return os.str();
   }
 
-  inline void print() { std::cout << text << " :" << format() << " ms" << std::endl; }
+  inline void print() { std::cout << text << " :" << format() << std::endl; }
 
   inline timer operator+=(timer &other) {
     timer ret(false);
@@ -112,9 +112,7 @@ struct timer {
   // std::milli>(t_end-t.t_start)).count();
   // }
 
-  friend std::ostream &operator<<(std::ostream &os, const timer &t) {
-    return os << t.text << " :" << t.format() << " ms";
-  }
+  friend std::ostream &operator<<(std::ostream &os, const timer &t) { return os << t.text << " :" << t.format(); }
 };
 #else
 struct timer {
