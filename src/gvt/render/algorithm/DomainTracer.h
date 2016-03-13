@@ -262,16 +262,6 @@ public:
           }
         }
 
-        // // erase empty queues
-        // for (int instId : to_del) {
-        //   GVT_DEBUG(DBG_ALWAYS, "rank[" << mpi.rank << "] DOMAINTRACER: deleting queue for instance " << instId);
-        //   queue.erase(instId);
-        // }
-
-        if (instTarget == -1) {
-          continue;
-        }
-
         GVT_DEBUG(DBG_ALWAYS, "domain scheduler: next instance: " << instTarget << ", rays: " << instTargetCount << " ["
                                                                   << mpi.rank << "]");
 
@@ -279,21 +269,7 @@ public:
         // pnav: use this to ignore domain x:        int domi=0;if (0)
         if (instTarget >= 0) {
           GVT_DEBUG(DBG_LOW, "Getting instance " << instTarget);
-          // gvt::render::Adapter *adapter = 0;
-          // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
-
-          // if (instTarget != lastInstance) {
-          //   // TODO: before we would free the previous domain before loading the
-          //   // next
-          //   // this can be replicated by deleting the adapter
-          //   // delete adapter;
-          //   // adapter = 0;
-          // }
-
-          // track domains loaded
           {
-            // ++domain_counter;
-            // lastInstance = instTarget;
             t_adapter.resume();
             gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
             auto it = adapterCache.find(mesh);
@@ -347,7 +323,6 @@ public:
 #ifdef GVT_USE_MPE
             MPE_Log_event(tracestart, 0, NULL);
 #endif
-            // adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
                            instMinvN[instTarget], lights);
 
@@ -370,13 +345,7 @@ public:
             t_shuffle.stop();
           }
         }
-
-        nqueue = 0;
-        for (auto &q : queue) {
-          const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
-          if (inRank) nqueue += q.second.size();
-        }
-      } while (nqueue);
+      } while (instTarget != -1);
 
 #if GVT_USE_DEBUG
       if (!queue.empty()) {
@@ -418,12 +387,7 @@ public:
         t_send.stop();
         delete[] empties;
       }
-      nqueue = 0;
-      for (auto &q : queue) {
-
-        nqueue += q.second.size();
-      }
-    } while (nqueue);
+    } while (!all_done);
 
 // std::cout << "domain scheduler: select time: " << t_sort.format();
 // std::cout << "domain scheduler: trace time: " << t_trace.format();
