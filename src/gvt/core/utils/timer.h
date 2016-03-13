@@ -13,18 +13,22 @@ namespace time {
 
 #if GVT_USE_TIMING
 
+typedef std::chrono::system_clock clock_type;
+// typedef std::chrono::steady_clock clock_type;
+// typedef std::chrono::high_resolution_clock clock_type;
+
 struct timer {
 
-  std::chrono::time_point<std::chrono::high_resolution_clock> t_start;
-  std::chrono::time_point<std::chrono::high_resolution_clock> t_end;
+  std::chrono::time_point<clock_type> t_start;
+  std::chrono::time_point<clock_type> t_end;
   double total_elapsed;
   bool running;
   std::string text;
 
   inline timer(bool running = true, std::string text = "") : text(text), total_elapsed(0), running(running) {
     if (running) {
-      t_end = std::chrono::high_resolution_clock::now();
-      t_start = std::chrono::high_resolution_clock::now();
+      t_end = clock_type::now();
+      t_start = clock_type::now();
     }
   }
 
@@ -40,20 +44,20 @@ struct timer {
 
   inline void settext(std::string str) { text = str; }
   inline ~timer() {
-    auto end = std::chrono::high_resolution_clock::now();
+    auto end = clock_type::now();
     if (!text.empty()) print();
   }
 
   inline void start() {
     if (!running) {
-      t_start = std::chrono::high_resolution_clock::now();
-      t_end = std::chrono::high_resolution_clock::now();
+      t_start = clock_type::now();
+      t_end = clock_type::now();
       running = true;
     }
   }
   inline void stop() {
     if (running) {
-      t_end = std::chrono::high_resolution_clock::now();
+      t_end = clock_type::now();
       total_elapsed += std::chrono::duration<double, std::milli>(t_end - t_start).count();
       running = false;
     }
@@ -65,15 +69,14 @@ struct timer {
   }
   inline std::string format() const {
     double elapsed = total_elapsed;
-    if (running)
-      elapsed += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - t_start).count();
+    if (running) elapsed += std::chrono::duration<double, std::milli>(clock_type::now() - t_start).count();
 
     std::ostringstream os;
     os << elapsed << " ms";
     return os.str();
   }
 
-  inline void print() { std::cout << text << " :" << format() << std::endl; }
+  inline void print() { std::cout << text << " " << format() << std::endl; }
 
   inline timer operator+=(timer &other) {
     timer ret(false);
@@ -102,12 +105,12 @@ struct timer {
   // inline double format() const {
   //   double elapsed = total_elapsed;
   //   if (running)
-  //     elapsed += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() -
+  //     elapsed += std::chrono::duration<double, std::milli>(clock_type::now() -
   //     t_start).count();
   //   return elapsed;
   // }
   // float elapse() {
-  // 	auto t_end = std::chrono::high_resolution_clock::now();
+  // 	auto t_end = clock_type::now();
   // 	return std::chrono::duration<double,
   // std::milli>(t_end-t.t_start)).count();
   // }
@@ -137,12 +140,12 @@ struct timer {
   // inline double format() const {
   //   double elapsed = total_elapsed;
   //   if (running)
-  //     elapsed += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() -
+  //     elapsed += std::chrono::duration<double, std::milli>(clock_type::now() -
   //     t_start).count();
   //   return elapsed;
   // }
   // float elapse() {
-  // 	auto t_end = std::chrono::high_resolution_clock::now();
+  // 	auto t_end = clock_type::now();
   // 	return std::chrono::duration<double,
   // std::milli>(t_end-t.t_start)).count();
   // }
