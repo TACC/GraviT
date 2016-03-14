@@ -38,47 +38,24 @@ using namespace gvt::render::actor;
 
 const float Ray::RAY_EPSILON = 1.e-6;
 
-Ray::Ray(glm::vec3 origin, glm::vec3 direction, float contribution, RayType type, int depth)
-    : type(type), w(contribution), depth(depth) {
-
-  this->origin = origin;
-  setDirection(direction);
-  t = FLT_MAX;
-  id = -1;
-}
-
-Ray::Ray(Ray &ray, glm::mat4 &m) {
-  std::memcpy(data, ray.data, 21 * 4);
-  origin = glm::vec3(m * glm::vec4(ray.origin, 1.f));
-  setDirection(glm::vec3(glm::normalize(m * glm::vec4(ray.direction, 0.f))));
-}
-
-Ray::Ray(const Ray &ray) { std::memcpy(data, ray.data, 21 * 4); }
-
-Ray::Ray(Ray &&ray) { std::memmove(data, ray.data, 21 * 4); }
-
-Ray::~Ray() {}
-
-Ray::Ray(const unsigned char *buf) { std::memcpy(data, buf, 21 * 4); }
-
-int Ray::packedSize() { return 21 * 4; }
-
 int Ray::pack(unsigned char *buffer) {
   unsigned char *buf = buffer;
-  std::memcpy(buf, data, 21 * 4);
+  std::memcpy(buf, data, packedSize());
   return packedSize();
 }
 
 void Ray::setDirection(glm::vec3 dir) {
   direction = glm::normalize(dir);
-  for (int i = 0; i < 3; i++) {
-    if (direction[i] != 0)
-      inverseDirection[i] = 1.0 / direction[i];
-    else
-      inverseDirection[i] = 0.;
-  }
+  //  inverseDirection = 1.f / direction;
+  //  for (int i = 0; i < 3; i++) {
+  //    if (direction[i] != 0)
+  //      inverseDirection[i] = 1.0 / direction[i];
+  //    else
+  //      inverseDirection[i] = 0.;
+  //  }
 }
-
+/*
 void Ray::setDirection(double *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
 
 void Ray::setDirection(float *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
+*/

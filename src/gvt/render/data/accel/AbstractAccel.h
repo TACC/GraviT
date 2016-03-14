@@ -31,7 +31,6 @@
 #include <gvt/core/CoreContext.h>
 
 #include <gvt/render/actor/Ray.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/primitives/BBox.h>
 
 #include <limits>

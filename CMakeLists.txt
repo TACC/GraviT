@@ -16,15 +16,6 @@ if(COMMAND cmake_policy)
     #cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
-# show all warnings, but disable c11 warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
-
-# use C++11 foo explicitly
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-IF(APPLE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-ENDIF(APPLE)
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
@@ -57,15 +48,7 @@ endif()
 endif()
 endif()
 
-if(GVT_DEBUG)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
-endif(GVT_DEBUG)
 
-if(GVT_TIMING)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_TIMING=1")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_TIMING=1")
-endif(GVT_TIMING)
 
 if (GVT_RENDER)
 	option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" ON)
@@ -103,30 +86,25 @@ endif(APPLE)
 #MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 
 # compiler options
-set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
-if(GVT_MPE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_MPE=1")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
-endif(GVT_MPE)
+
 # the compiler is ususally set through environment vars outside the cmake file
 # so this is redundant. CMake detects the compiler.
 set(GVT_USE_ICC OFF CACHE BOOL "Use Intel Compiler?")
 set(GVT_VECTOR_TARGET "AVX" CACHE STRING "Target Vector ISA on host (SSE,AVX,AVX2)")
-mark_as_advanced(GVT_USE_ICC)
-mark_as_advanced(GVT_VECTOR_TARGET)
+# /mark_as_advanced(GVT_USE_ICC)
+# mark_as_advanced(GVT_VECTOR_TARGET)
+
+find_package(TBB REQUIRED)
+include_directories(${TBB_INCLUDE_DIRS})
+link_directories(${TBB_LIBRARY_DIRS})
 
 set(GVT_THIRDPARTY_GLM "third-party/glm")
 set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 set(GLM_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
 SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
-find_package(TBB REQUIRED)
-
-
-include_directories(${TBB_INCLUDE_DIRS})
 include_directories(${GLM_DIR})
-
-
+include(CMake/glm.cmake)
 #set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
 
@@ -143,16 +121,17 @@ if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 	MESSAGE(SEND ERRORS "ply reader header not found")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-  #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+# if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+#   #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# set(GVT_USE_ICC ON CACHE BOOL "Use Intel Compiler?")
+# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
+# endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 
 # modules
@@ -160,6 +139,45 @@ include(CMake/gravit.cmake)
 include(CMake/mpi.cmake)
 include(CMake/boost.cmake)
 include(CMake/doxygen.cmake)
+
+set(GVT_USE_MPI ON CACHE BOOL "Use MPI") # TODO: should MPI always be required?
+if(GVT_MPE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_MPE=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_MPE=1")
+endif(GVT_MPE)
+
+IF(${GVT_VECTOR_TARGET} STREQUAL "AVX")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GVT_ARCH_FLAGS__AVX} -DGVT_AVX_TARGET")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GVT_ARCH_FLAGS__AVX} -DGVT_AVX_TARGET")
+ENDIF()
+
+IF(${GVT_VECTOR_TARGET} STREQUAL "AVX2")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GVT_ARCH_FLAGS__AVX2} -DGVT_AVX2_TARGET")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GVT_ARCH_FLAGS__AVX2} -DGVT_AVX2_TARGET")
+ENDIF()
+
+IF(${GVT_VECTOR_TARGET} STREQUAL "SSE")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GVT_ARCH_FLAGS__SSE42} -DGVT_SSE_TARGET")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GVT_ARCH_FLAGS__SSE42} -DGVT_SSE_TARGET")
+ENDIF()
+
+if(GVT_DEBUG)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_DEBUG=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_DEBUG=1")
+endif(GVT_DEBUG)
+
+if(GVT_TIMING)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGVT_USE_TIMING=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DGVT_USE_TIMING=1")
+endif(GVT_TIMING)
+
+# show all warnings, but disable c11 warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-variable")
+# use C++11 foo explicitly
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+IF(APPLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+ENDIF(APPLE)
 
 set(GVT_SRC_DIR ${PROJECT_SOURCE_DIR}/src)
 include_directories(${GVT_SRC_DIR})
@@ -208,11 +226,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/algorithm/Tracers.h
 	src/gvt/render/RenderContext.h
 	src/gvt/render/data/DerivedTypes.h
-	src/gvt/render/data/domain/AbstractDomain.h
-	src/gvt/render/data/domain/Cell.h
-	src/gvt/render/data/domain/GeometryDomain.h
-	src/gvt/render/data/domain/reader/ObjReader.h
-	src/gvt/render/data/domain/reader/PlyReader.h
+	src/gvt/render/data/reader/ObjReader.h
+	src/gvt/render/data/reader/PlyReader.h
 	src/gvt/render/data/Domains.h
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
@@ -245,11 +260,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/actor/Ray.cpp
 	src/gvt/render/RenderContext.cpp
-	src/gvt/render/data/domain/AbstractDomain.cpp
-	src/gvt/render/data/domain/Cell.cpp
-	src/gvt/render/data/domain/GeometryDomain.cpp
-	src/gvt/render/data/domain/reader/ObjReader.cpp
-	src/gvt/render/data/domain/reader/PlyReader.cpp
+	src/gvt/render/data/reader/ObjReader.cpp
+	src/gvt/render/data/reader/PlyReader.cpp
 	src/gvt/render/data/primitives/BBox.cpp
 	src/gvt/render/data/primitives/Material.cpp
 	src/gvt/render/data/primitives/Mesh.cpp
@@ -264,7 +276,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
 	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/manta/data/domain/MantaDomain.h
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
@@ -272,7 +283,6 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		)
 
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-		src/gvt/render/adapter/manta/data/domain/MantaDomain.cpp
 		src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
 		)
 
@@ -323,8 +333,9 @@ endif(GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
 if (GVT_CORE)
     find_package(Boost REQUIRED COMPONENTS system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
 
+    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
+		message(STATUS ${TBB_LIBRARIES})
 	add_library(gvtCore STATIC
 		${GVT_CORE_HDRS}
 		${GVT_CORE_SRCS}
@@ -349,7 +360,7 @@ if (GVT_RENDER)
 
     find_package(Boost REQUIRED COMPONENTS thread timer system)
     include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
 
     if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
     	find_package(CUDA REQUIRED)
@@ -409,7 +420,7 @@ if (GVT_SIMPLE_APP)
 	set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS}  ${MPI_LIBRARIES})
 	set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
 	add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
-	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} )
+	target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} ${GVT_CORE_LIBS})
 endif(GVT_SIMPLE_APP)
 
 if(GVT_TESTING)
@@ -421,7 +432,7 @@ if(GVT_TESTING)
         find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH})
 	add_executable(gvttest ${GVT_TESTING_SRCS} Test/GVTTest/GVTTest.cpp)
-        target_link_libraries(gvttest gvtCore gvtRender ${MPI_LIBRARIES} ${OSPRAY_LIBRARIES} )
+        target_link_libraries(gvttest gvtCore gvtRender ${MPI_LIBRARIES} ${OSPRAY_LIBRARIES} ${GVT_CORE_LIBS})
 endif(GVT_TESTING)
 
 if (GVT_PLY_APP)
@@ -438,7 +449,7 @@ if (GVT_PLY_APP)
   endif (GVT_MPE)
 	find_package(MPI REQUIRED)
 	include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
-	set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_LIBRARIES})
+	set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
 	set(GVTPLY_RENDER_SRCS ${GVTPLY_RENDER_SRCS}
 		src/apps/render/PlyApp.cpp
 		${PLYPATH}/ply.c)
@@ -454,7 +465,7 @@ if (GVT_SIMPLE_FILE_LOAD_APP)
       include_directories(${MPE_INCLUDE_DIR})
       FIND_LIBRARY(MPE_LIB1 NAME mpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib )
       FIND_LIBRARY(MPE_LIB2 NAME lmpe PATHS ${MPE_HOME_DIR} PATH_SUFFIXES lib)
-      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB2})
+      set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB2} ${GVT_CORE_LIBS})
       set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPE_LIB1})
     endif(DEFINED ENV{MPEHOME})
   endif (GVT_MPE)
@@ -474,7 +485,7 @@ if (GVT_GLRENDER_APP)
 
 	find_library(GLUTLIB glut)
 	if(GLUTLIB)
-          set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${OpenGL_LIBRARIES} ${GLUTLIB})
+          set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS} ${OpenGL_LIBRARIES} ${GLUTLIB} ${GVT_CORE_LIBS})
 	endif(GLUTLIB)
 	find_library(GLULIB GLU)
 	if(GLULIB)

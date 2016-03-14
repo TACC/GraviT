@@ -39,7 +39,6 @@
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
 
@@ -118,12 +117,12 @@ public:
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
   tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
-  GVT_COLOR_ACCUM *colorBuf;
+  glm::vec3 *colorBuf;
 
   AbstractTrace(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image)
       : rays(rays), image(image) {
     GVT_DEBUG(DBG_ALWAYS, "initializing abstract trace: num rays: " << rays.size());
-    colorBuf = new GVT_COLOR_ACCUM[width * height];
+    colorBuf = new glm::vec3[width * height];
 
     // TODO: alim: this queue is on the number of domains in the dataset
     // if this is on the number of domains, then it will be equivalent to the
@@ -168,7 +167,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
-  void clearBuffer() { std::memset(colorBuf, 0, sizeof(GVT_COLOR_ACCUM) * width * height); }
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};
@@ -198,26 +197,25 @@ public:
     //               : gvt::render::data::primitives::Box3D();
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
 
+    tbb::mutex cout;
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+                        std::vector<gvt::render::data::accel::BVH::hit> hits =
+                            acc.intersect<GVT_SPMD_WIDTH>(raysit.begin(), raysit.end(), domID);
                         std::map<int, gvt::render::actor::RayVector> local_queue;
-
-                        for (gvt::render::actor::Ray &r : raysit) {
-                          float t = FLT_MAX;
-                          int next = acc.intersect(r, domID, t);
-
-                          if (next != -1) {
-                            r.origin = r.origin + r.direction * (t - gvt::render::actor::Ray::RAY_EPSILON);
-                            local_queue[next].push_back(r);
-                          } else if (domID != -1) {
+                        for (size_t i = 0; i < hits.size(); i++) {
+                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+                          if (hits[i].next != -1) {
+                            r.origin = r.origin + r.direction * (hits[i].t * 0.8f);
+                            local_queue[hits[i].next].push_back(r);
+                          } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                            for (int i = 0; i < 3; i++) colorBuf[r.id].rgba[i] += r.color.rgba[i];
-                            colorBuf[r.id].rgba[3] = 1.0;
-                            colorBuf[r.id].clamp();
+                            colorBuf[r.id] += r.color;
                           }
                         }
                         for (auto &q : local_queue) {
+
                           queue_mutex[q.first].lock();
                           queue[q.first].insert(queue[q.first].end(),
                                                 std::make_move_iterator(local_queue[q.first].begin()),
@@ -226,7 +224,6 @@ public:
                         }
                       },
                       ap);
-
     rays.clear();
   }
 
