@@ -159,7 +159,7 @@ public:
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
                             r.origin = r.origin + r.direction * (hits[i].t * 0.8f);
-                            const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+                            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
                             if (inRank) local_queue[hits[i].next].push_back(r);
                           }
                         }
