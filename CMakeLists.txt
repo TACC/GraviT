@@ -239,8 +239,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/schedule/ImageScheduler.h
 	src/gvt/render/Schedulers.h
 	src/gvt/render/Types.h
-	src/gvt/render/shaders/ShadeAlgorithm.h
-	src/gvt/render/shaders/Pathtracer.h
+	src/gvt/render/integrator/Integrator.h
+	src/gvt/render/integrator/Pathtracer.h
 	)
 
 
@@ -260,7 +260,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 	src/gvt/render/data/scene/Image.cpp
 	src/gvt/render/data/scene/Light.cpp
 	src/gvt/render/data/accel/BVH.cpp
-	src/gvt/render/shaders/Pathtracer.cpp
+	src/gvt/render/integrator/Pathtracer.cpp
 	)
 
 

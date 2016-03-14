@@ -40,7 +40,7 @@
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
-#include <gvt/render/shaders/Pathtracer.h>
+#include <gvt/render/integrator/Pathtracer.h>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
@@ -128,7 +128,7 @@ public:
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
 
-    gvt::render::shader::ShadeAlgorithm* shadeAlgorithm=  new gvt::render::shader::Pathtracer(lights);
+    gvt::render::Integrator* integrator=  new gvt::render::Pathtracer(lights);
 
     clearBuffer();
 
@@ -177,7 +177,7 @@ public:
           switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
           case gvt::render::adapter::Embree:
-            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, shadeAlgorithm);
+            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, integrator);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA

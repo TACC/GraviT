@@ -76,7 +76,7 @@ struct embTriangle {
 };
 
 EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh,
-		gvt::render::shader::ShadeAlgorithm* shadeAlgorithm) : Adapter(mesh, shadeAlgorithm) {
+                gvt::render::Integrator* shadeAlgorithm) : Adapter(mesh, shadeAlgorithm) {
   GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
 
   if (!EmbreeMeshAdapter::init) {
@@ -552,7 +552,7 @@ struct embreeParallelTrace {
               else
             	  mat = mesh->getMaterial();
 
-              validRayLeft |= adapter->shadeAlgorithm->shade(r, normal,mat,
+              validRayLeft |= adapter->integrator->L(r, normal,mat,
             		  randEngine, shadowRays, &(valid[pi]));
 
             } else {
