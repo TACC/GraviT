@@ -87,6 +87,8 @@ public:
 
   void setSamples(int pathSamples);
 
+  void setMaxDepth(int depth);
+
   void setJitterWindowSize(int windowSize);
 
   /** Bunch-o-rays */

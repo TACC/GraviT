@@ -51,6 +51,7 @@ gvtCameraBase::gvtCameraBase() {
   INVRAND_MAX = 1.0 / (float)RAND_MAX;
   jitterWindowSize = 0.000;
   samples = 1;
+  depth = 1;
 }
 gvtCameraBase::gvtCameraBase(const gvtCameraBase &cam) {
   eye_point = cam.eye_point;
@@ -61,6 +62,7 @@ gvtCameraBase::gvtCameraBase(const gvtCameraBase &cam) {
   filmsize[1] = cam.filmsize[1];
   jitterWindowSize = cam.jitterWindowSize;
   samples = cam.samples;
+  depth = cam.depth;
 }
 float gvtCameraBase::frand() { return ((float)rand()) * INVRAND_MAX; }
 void gvtCameraBase::SetCamera(gvt::render::actor::RayVector &rayvect, float rate) {
@@ -173,6 +175,8 @@ void gvtCameraBase::lookAt(glm::vec3 eye, glm::vec3 focus, glm::vec3 up) {
 
 void gvtCameraBase::setSamples(int pathSamples) { samples = pathSamples; }
 
+void gvtCameraBase::setMaxDepth(int maxRayDepth) { depth = maxRayDepth; }
+
 void gvtCameraBase::setJitterWindowSize(int windowSize) { jitterWindowSize = windowSize; }
 
 // gvt::render::actor::RayVector gvtCameraBase::AllocateCameraRays() {
@@ -180,7 +184,6 @@ void gvtCameraBase::AllocateCameraRays() {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t("gvtCameraBase::AllocateCameraRays: time: %w\n");
 #endif
-  depth = 1;
   size_t nrays = filmsize[0] * filmsize[1] * samples * samples;
   rays.clear();
   rays.resize(nrays);
