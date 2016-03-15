@@ -927,7 +927,7 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    Mesh *mesh = new Mesh(new Material(MatteMaterial(glm::vec3(0.0, 0.0, 0.5))));
     int numPoints = 7;
     glm::vec3 points[7];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -967,7 +967,7 @@ void ConfigSceneCubeCone() {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.0, 0.5, 0.0))));
     int numPoints = 8;
     glm::vec3 points[8];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -1077,7 +1077,7 @@ void ConfigSceneCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
     int numPoints = 7;
     glm::vec3 points[7];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -1224,7 +1224,7 @@ void ConfigEnzo(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
+      Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;

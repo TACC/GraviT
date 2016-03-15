@@ -59,7 +59,7 @@ bool GeometryDomain::load() {
   }
 
   lights.push_back(new PointLight(glm::vec3(5.0, 5.0, 5.0), Color(1.f, 1.f, 1.f)));
-  mesh->setMaterial(new Lambert(Color(1.f, .0f, .0f)));
+  mesh->setMaterial(new Material(new MatteMaterial(Color(1.f, .0f, .0f))));
   boundingBox = *(mesh->getBoundingBox());
   isLoaded = true;
   return isLoaded;

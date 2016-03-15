@@ -38,165 +38,253 @@
 #include <boost/container/vector.hpp>
 #include <time.h>
 
+
+
+#include "../embree/common/math/vec3.h"
+#include "../embree/common/math/vec3fa.h"
+#include "../embree/common/math/vec2.h"
+
+//#include "../embree/tutorials/common/tutorial/tutorial_device.h"
+//#include "../embree/tutorials/common/tutorial/scene_device.h"
+//#include "../embree/tutorials/common/tutorial/random_sampler.h"
+//#include "../embree/tutorials/pathtracer/shapesampler.h"
+
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
 
-typedef enum {LAMBERT, PHONG, BLINN} MATERIAL_TYPE;
+struct Material {
+  Material(){
 
-/// surface material properties
-/** surface material properties used to shade intersected geometry
-*/
-class Material {
-public:
-  Material();
-  Material(const Material &orig);
-  virtual ~Material();
+  }
 
-//  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-//                          const gvt::render::data::scene::Light *lightSource,
-//                          const glm::vec3 lightPostion) = 0;
-//  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-//                                           float samples);
-//  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-//                                                  float samples);
-//
+  Material(Material* m){
+    type=m->type;
+    memcpy(buf, m->buf,m->size());
+  }
 
-};
+  /*
+   * This will receive a specialized material and copu the data of the material
+   * to our base Material
+   */
+  template <typename T>
+  Material(T om){
 
-class ColorShadingMaterial : public Material {
-public:
-	ColorShadingMaterial();
-	ColorShadingMaterial(const ColorShadingMaterial &orig);
-  virtual ~ColorShadingMaterial();
+    Material * m = (Material*)&om;
 
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource,
-                          const glm::vec3 lightPostion) = 0;
-//  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-//                                           float samples);
-//  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-//                                                  float samples);
-//
+    type=m->type;
+    memcpy(buf, m->buf,m->size());
+  }
+
+
+  inline int size(){
+    return 992;
+  }
+
+  int type;
+  unsigned char buf[992]; //comply with Embree worst case
 
 };
 
-class Lambert : public ColorShadingMaterial {
-public:
-  Lambert(const glm::vec3 &kd = glm::vec3());
-  Lambert(const Lambert &orig);
-  virtual ~Lambert();
 
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
+glm::vec3 Shade(
+     gvt::render::data::primitives::Material* material,
+                        const gvt::render::actor::Ray &ray,
+                        const glm::vec3 &sufaceNormal,
+                        const gvt::render::data::scene::Light *lightSource,
+                        const glm::vec3 lightPostion);
 
-protected:
+typedef enum
+{
+  EMBREE_MATERIAL_OBJ,
+  EMBREE_MATERIAL_THIN_DIELECTRIC,
+  EMBREE_MATERIAL_METAL,
+  EMBREE_MATERIAL_VELVET,
+  EMBREE_MATERIAL_DIELECTRIC,
+  EMBREE_MATERIAL_METALLIC_PAINT,
+  EMBREE_MATERIAL_MATTE,
+  EMBREE_MATERIAL_MIRROR,
+  EMBREE_MATERIAL_REFLECTIVE_METAL,
+  EMBREE_MATERIAL_HAIR,
+  GVT_LAMBERT,
+  GVT_PHONG,
+  GVT_BLINN
+} MATERIAL_TYPE;
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//                          GVT Materials                                     //
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+struct Lambert {
+  Lambert(glm::vec3 v){
+    kd = v;
+    type = GVT_LAMBERT;
+  }
+
+  MATERIAL_TYPE type;
   glm::vec3 kd;
 };
 
-class Phong : public ColorShadingMaterial {
-public:
-  Phong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
-  Phong(const Phong &orig);
-  virtual ~Phong();
+struct Phong {
+  Phong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
+    kd = _kd;
+    ks=_ks;
+    alpha=_alpha;
+    type = GVT_PHONG;
+  }
 
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
-
-protected:
-  glm::vec3 kd;
-  glm::vec3 ks;
-  float alpha;
-};
-
-class BlinnPhong : public ColorShadingMaterial {
-public:
-  BlinnPhong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
-  BlinnPhong(const BlinnPhong &orig);
-  virtual ~BlinnPhong();
-
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
-
-protected:
+  MATERIAL_TYPE type;
   glm::vec3 kd;
   glm::vec3 ks;
   float alpha;
+
 };
 
-class UnifiedMateral {
+struct Blinn {
+  Blinn(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
+    kd = _kd;
+    ks=_ks;
+    alpha=_alpha;
+    type = GVT_BLINN;
+  }
+
+  MATERIAL_TYPE type;
+  glm::vec3 kd;
+  glm::vec3 ks;
+  float alpha;
+
+};
+
+glm::vec3 MaterialShade(
+    const gvt::render::data::primitives::Material* material,
+                        const gvt::render::actor::Ray &ray,
+                        const glm::vec3 &sufaceNormal,
+                        const gvt::render::data::scene::Light *lightSource,
+                        const glm::vec3 lightPostion) ;
+
+////////////////////////////////////////////////////////////////////////////////
+//                          Embree Materials                                  //
+////////////////////////////////////////////////////////////////////////////////
+
+using namespace embree;
+
+
+
+struct DifferentialGeometry
+{
+  int geomID;
+  int primID;
+  float u,v;
+  Vec3fa P;
+  Vec3fa Ng;
+  Vec3fa Ns;
+  Vec3fa Tx; //direction along hair
+  Vec3fa Ty;
+  float tnear_eps;
+};
+
+struct Sample3f
+{
+  Sample3f () {}
+
+  Sample3f (const Vec3fa& v, const float pdf)
+    : v(v), pdf(pdf) {}
+
+  Vec3fa v;
+  float pdf;
+};
+
+struct BRDF
+{
+  float Ns;               /*< specular exponent */
+  float Ni;               /*< optical density for the surface (index of refraction) */
+  Vec3fa Ka;              /*< ambient reflectivity */
+  Vec3fa Kd;              /*< diffuse reflectivity */
+  Vec3fa Ks;              /*< specular reflectivity */
+  Vec3fa Kt;              /*< transmission filter */
+  float dummy[30];
+};
+
+struct Medium
+{
+  Vec3fa transmission; //!< Transmissivity of medium.
+  float eta;             //!< Refraction index of medium.
+};
+
+inline Vec3fa Material__eval(Material* materials,
+                             int materialID,
+                             int numMaterials,
+                             const BRDF& brdf,
+                             const Vec3fa& wo,
+                             const DifferentialGeometry& dg,
+                             const Vec3fa& wi);
+
+struct MatteMaterial
+{
 public:
-	MATERIAL_TYPE type;
-	union {
-		Lambert lambert;
-		Phong phong;
-		BlinnPhong blinn;
-	};
 
+  MatteMaterial (glm::vec3 v)
+  : ty(EMBREE_MATERIAL_MATTE), reflectance(Vec3fa(v[0],v[1],v[2])) {}
 
-	UnifiedMateral(gvt::render::data::primitives::Material* gvtMat) {
-		if (dynamic_cast<Lambert *>(gvtMat) != NULL) {
+  MatteMaterial (const Vec3fa& reflectance)
+  : ty(EMBREE_MATERIAL_MATTE), reflectance(reflectance) {}
 
-			lambert = *(Lambert *) gvtMat;
-			type = LAMBERT;
+public:
+  int ty;
+  int align[3];
+  Vec3fa reflectance;
+};
 
-		} else if (dynamic_cast<Phong *>(gvtMat) !=
-		NULL) {
+struct MetalMaterial
+{
+public:
 
-			phong = *(Phong *) gvtMat;
-			type = PHONG;
+  MetalMaterial (glm::vec3 v, glm::vec3 e, glm::vec3 kk, float r)
+  : ty(EMBREE_MATERIAL_METAL), reflectance(Vec3fa(v[0],v[1],v[2])),
+    eta(Vec3fa(e[0],e[1],e[2])),
+    k(Vec3fa(kk[0],kk[1],kk[2])),
+    roughness(r) {}
 
-		} else if (dynamic_cast<BlinnPhong *>(gvtMat) != NULL) {
+  MetalMaterial (const Vec3fa& reflectance, const Vec3fa& eta, const Vec3fa& k)
+  : ty(EMBREE_MATERIAL_REFLECTIVE_METAL), reflectance(reflectance), eta(eta), k(k), roughness(0.0f) {}
 
-			blinn = *(BlinnPhong *) gvtMat;
-			type = BLINN;
+  MetalMaterial (const Vec3fa& reflectance, const Vec3fa& eta, const Vec3fa& k, const float roughness)
+  : ty(EMBREE_MATERIAL_METAL), reflectance(reflectance), eta(eta), k(k), roughness(roughness) {}
 
-		} else {
-			std::cout << "Unknown material" << std::endl;
+public:
+  int ty;
+  int align[3];
 
-		}
+  Vec3fa reflectance;
+  Vec3fa eta;
+  Vec3fa k;
+  float roughness;
+};
 
-	}
+struct VelvetMaterial
+{
 
-	~UnifiedMateral(){}
+  VelvetMaterial (const glm::vec3 reflectance, const float backScattering, const glm::vec3 horizonScatteringColor, const float horizonScatteringFallOff)
+  : ty(EMBREE_MATERIAL_VELVET), reflectance(reflectance[0], reflectance[1],reflectance[2]),
+    backScattering(backScattering), horizonScatteringColor(horizonScatteringColor[0],horizonScatteringColor[1],horizonScatteringColor[2]),
+    horizonScatteringFallOff(horizonScatteringFallOff) {}
 
+  VelvetMaterial (const Vec3fa& reflectance, const float backScattering, const Vec3fa& horizonScatteringColor, const float horizonScatteringFallOff)
+  : ty(EMBREE_MATERIAL_VELVET), reflectance(reflectance), backScattering(backScattering), horizonScatteringColor(horizonScatteringColor), horizonScatteringFallOff(horizonScatteringFallOff) {}
 
-	glm::vec3 shade(const gvt::render::actor::Ray &ray,
-			const glm::vec3 &sufaceNormal,
-			const gvt::render::data::scene::Light *lightSource,
-			const glm::vec3 lightPostion) {
+public:
+  int ty;
+  int align[3];
 
-		glm::vec3 r;
-		switch (type) {
-		case LAMBERT:
-			r = lambert.shade(ray, sufaceNormal, lightSource, lightPostion);
-			break;
-		case PHONG:
-			r = phong.shade(ray, sufaceNormal, lightSource, lightPostion);
-			break;
-		case BLINN:
-			r = blinn.shade(ray, sufaceNormal, lightSource, lightPostion);
-			break;
-		default:
-			break;
-		}
-		return r;
-
-	}
-
+  Vec3fa reflectance;
+  Vec3fa horizonScatteringColor;
+  float backScattering;
+  float horizonScatteringFallOff;
 };
 
 }

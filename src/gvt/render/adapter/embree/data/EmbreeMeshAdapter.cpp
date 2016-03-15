@@ -546,11 +546,11 @@ struct embreeParallelTrace {
               }
               const glm::vec3 &normal = manualNormal;
 
-              UnifiedMateral *mat;
+              Material *mat;
               if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]])
             	  mat = mesh->faces_to_materials[ray4.primID[pi]];
               else
-            	  mat = mesh->getMaterial();
+                  mat = mesh->getMaterial();
 
               validRayLeft |= adapter->integrator->L(r, normal,mat,
             		  randEngine, shadowRays, &(valid[pi]));

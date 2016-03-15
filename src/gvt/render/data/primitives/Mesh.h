@@ -75,7 +75,7 @@ public:
   virtual void setVertex(int which, glm::vec3 vertex, glm::vec3 normal = glm::vec3(), glm::vec3 texUV = glm::vec3());
   virtual void setNormal(int which, glm::vec3 normal = glm::vec3());
   virtual void setTexUV(int which, glm::vec3 texUV = glm::vec3());
-  virtual void setMaterial(gvt::render::data::primitives::Material *mat);
+  virtual void setMaterial(Material *mat);
 
   virtual void addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal = glm::vec3(), glm::vec3 texUV = glm::vec3());
   virtual void addVertex(glm::vec3 vertex);
@@ -88,7 +88,7 @@ public:
   virtual gvt::render::data::primitives::Box3D *getBoundingBox() { return &boundingBox; }
   virtual void generateNormals();
 
-  virtual gvt::render::data::primitives::UnifiedMateral *getMaterial() { return mat; }
+  virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
 //  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
 //                                         const gvt::render::data::scene::Light *lsource,
 //                                         const glm::vec3 areaLightPosition);
@@ -102,14 +102,14 @@ public:
 //                                                      const glm::vec3 areaLightPosition);
 
 public:
-  gvt::render::data::primitives::UnifiedMateral *mat;
+  gvt::render::data::primitives::Material *mat;
   std::vector<glm::vec3> vertices;
   std::vector<glm::vec3> mapuv;
   std::vector<glm::vec3> normals;
   std::vector<Face> faces;
   std::vector<FaceToNormals> faces_to_normals;
   std::vector<glm::vec3> face_normals;
-  std::vector<UnifiedMateral *> faces_to_materials;
+  std::vector<Material *> faces_to_materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;
 };
