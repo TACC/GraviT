@@ -1,4 +1,7 @@
+.gitignore
+
 # ignore cmake build dir
-build
+build*
 gravit.sublime*
 .DS_Store
+xcode

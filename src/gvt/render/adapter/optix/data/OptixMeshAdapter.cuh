@@ -53,9 +53,9 @@ namespace cuda_primitives {
 
 struct CudaGvtContext {
 
-	void initCudaBuffers(int packetSize);
+	__inline__ void initCudaBuffers(int packetSize);
 
-	CudaGvtContext* toGPU() {
+	__inline__ CudaGvtContext* toGPU() {
 
 
 		gpuErrchk(cudaMemcpyAsync(devicePtr, this,
@@ -67,7 +67,7 @@ struct CudaGvtContext {
 		return (CudaGvtContext*)devicePtr;
 	}
 
-	void toHost() {
+	__inline__ void  toHost() {
 
 
 		gpuErrchk(cudaMemcpyAsync(this, devicePtr,
@@ -77,7 +77,7 @@ struct CudaGvtContext {
 		//cudaStreamSynchronize(stream);
 	}
 
-	CudaGvtContext* devPtr(){
+	__inline__ CudaGvtContext* devPtr(){
 		return (CudaGvtContext*)devicePtr;
 	}
 

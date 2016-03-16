@@ -56,7 +56,6 @@ __device__ int getGlobalIdx_2D_2D() {
                  (threadIdx.y * blockDim.x) + threadIdx.x;
   return threadId;
 
-
 }
 
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
@@ -152,7 +151,6 @@ __global__ void cudaKernelFilterShadow( CudaGvtContext* cudaGvtCtx) {
 	          // ray is valid, but did not hit anything, so add to dispatch queue
 	    	  int a = atomicAdd((int *)&(cudaGvtCtx->dispatchCount), 1);
 	    	  cudaGvtCtx->dispatch[a] = cudaGvtCtx->shadowRays[tID];
-	        //	  cudaGvtCtx->dispatch[a]=tID;
 	        }
 }
 
@@ -199,15 +197,14 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.t = r.t;
     shadow_ray.id = r.id;
     shadow_ray.t_max = t_max;
-    //shadow_ray.mapToHostBufferID = r.mapToHostBufferID;
 
     Color c = cudaGvtCtx->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
 
-    shadow_ray.color.t = 1.0f;
-    shadow_ray.color.rgba[0] = c.x;
-    shadow_ray.color.rgba[1] = c.y;
-    shadow_ray.color.rgba[2] = c.z;
-    shadow_ray.color.rgba[3] = 1.0f;
+
+    shadow_ray.color.x = c.x;
+    shadow_ray.color.y = c.y;
+    shadow_ray.color.z = c.z;
+    shadow_ray.color.w = 1.0f;
 
     int a = atomicAdd((int *)&(cudaGvtCtx->shadowRayCount), 1);
     cudaGvtCtx->shadowRays[a] = shadow_ray;
@@ -225,14 +222,12 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
 	if (tID >= cudaGvtCtx->rayCount) return;
 
     if (cudaGvtCtx->valid[tID]) {
-      // counter++; // tracks rays processed [atomic]
       Ray &r = cudaGvtCtx->rays[tID];
       if (cudaGvtCtx->traceHits[tID].triangle_id >= 0) {
 
         // ray has hit something
         // shadow ray hit something, so it should be dropped
         if (r.type == Ray::SHADOW) {
-          //continue;
         	return;
         }
 
@@ -291,6 +286,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
 
        generateShadowRays(r, normal, cudaGvtCtx->
         		traceHits[tID].triangle_id, cudaGvtCtx);
+
         int ndepth = r.depth - 1;
         float p = 1.f - cudaRand();
         // replace current ray with generated secondary ray

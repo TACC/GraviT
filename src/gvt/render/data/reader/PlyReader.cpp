@@ -28,7 +28,7 @@
  * Created on April 22, 2014, 10:24 AM
  */
 
-#include <gvt/render/data/domain/reader/PlyReader.h>
+#include <gvt/render/data/reader/PlyReader.h>
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>

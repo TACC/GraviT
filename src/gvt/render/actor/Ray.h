@@ -87,24 +87,35 @@ public:
 
   const static float RAY_EPSILON;
   // clang-format on
+  inline Ray() {}
+  inline Ray(glm::vec3 origin, glm::vec3 direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
+      : type(type), w(contribution), depth(depth) {
 
-  Ray(glm::vec3 origin = glm::vec3(0, 0, 0), glm::vec3 direction = glm::vec3(0, 0, 0), float contribution = 1.f,
-      RayType type = PRIMARY, int depth = 10);
-  Ray(Ray &ray, glm::mat4 &m);
-  Ray(const Ray &orig);
-  Ray(Ray &&ray);
-  Ray(const unsigned char *buf);
+    this->origin = origin;
+    setDirection(direction);
+    t = FLT_MAX;
+    id = -1;
+  }
 
-  Ray operator=(const Ray &r) { return std::move(Ray(r)); }
+  inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
 
-  virtual ~Ray();
+  inline Ray(Ray &&r) { std::memmove(data, r.data, packedSize()); }
+
+  inline Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
+
+  inline Ray &operator=(const Ray &r) {
+    std::memcpy(data, r.data, packedSize());
+    return *this;
+  }
+
+  ~Ray(){};
 
   void setDirection(glm::vec3 dir);
-  void setDirection(double *dir);
-  void setDirection(float *dir);
+  // void setDirection(double *dir);
+  // void setDirection(float *dir);
 
   /// returns size in bytes for the ray information to be sent via MPI
-  int packedSize();
+  size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
   int pack(unsigned char *buffer);
@@ -116,19 +127,18 @@ public:
 
   union {
     struct {
-      mutable glm::vec3 origin;
-      mutable glm::vec3 direction;
-      mutable glm::vec3 inverseDirection;
-      mutable GVT_COLOR_ACCUM color;
+      glm::vec3 origin;
+      float t_min;
+      glm::vec3 direction;
+      float t_max;
+      glm::vec3 color;
+      float t;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
       float w;   ///<! weight of image contribution
-      mutable float t;
-      mutable float t_min;
-      mutable float t_max;
       int type;
     };
-    unsigned char data[21 * 4];
+    unsigned char data[] GVT_ALIGN(16);
   };
 
 protected:

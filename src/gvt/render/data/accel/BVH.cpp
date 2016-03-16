@@ -36,7 +36,6 @@
 
 using namespace gvt::render::data::accel;
 using namespace gvt::render::data::primitives;
-using namespace gvt::render::data::domain;
 
 #define TRAVERSAL_COST 0.5 // TODO: best value?
 #define LEAF_SIZE 1        // TODO: best value?
@@ -72,9 +71,13 @@ BVH::~BVH() {
 }
 
 void BVH::intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) {
+
+  const glm::vec3 &origin = ray.origin;
+  const glm::vec3 &inv = 1.f / ray.direction;
+
   if (root) {
     // ClosestHit hit;
-    trace(ray, root, /*hit,*/ isect, 0);
+    trace(origin, inv, root, /*hit,*/ isect, 0);
   }
 }
 
@@ -184,7 +187,9 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
 
     for (int e = 0; e < 2; ++e) {
 
-      float edge = refBbox.bounds[e][splitAxis];
+      float edge;
+      if (e == 0) edge = refBbox.bounds_min[splitAxis];
+      if (e == 1) edge = refBbox.bounds_max[splitAxis];
 
       Box3D leftBox, rightBox;
       int leftCount = 0;
@@ -211,12 +216,12 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
   return splitPoint;
 }
 
-void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
+void BVH::trace(const glm::vec3 &origin, const glm::vec3 &inv, const Node *node, /*ClosestHit &hit,*/
                 gvt::render::actor::isecDomList &isect, int level) {
 
   float t = std::numeric_limits<float>::max();
 
-  if (!(node->bbox.intersectDistance(ray, t) && (t > gvt::render::actor::Ray::RAY_EPSILON))) {
+  if (!(node->bbox.intersectDistance(origin, inv, t) && (t > gvt::render::actor::Ray::RAY_EPSILON))) {
     return;
   }
 
@@ -235,7 +240,7 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestH
 
     for (int i = start; i < end; ++i) {
       Box3D *ibbox = instanceSetBB[i];
-      if (ibbox->intersectDistance(ray, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
+      if (ibbox->intersectDistance(origin, inv, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
         int id = instanceSetID[i]; // gvt::core::variant_toInteger(instanceSet[i]["id"].value());
         isect.push_back(gvt::render::actor::isecDom(id, t));
       }
@@ -245,8 +250,8 @@ void BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestH
     assert(node->leftChild && node->rightChild);
 #endif
     int nextLevel = level + 1;
-    trace(ray, node->leftChild, /*hit,*/ isect, nextLevel);
-    trace(ray, node->rightChild, /*hit,*/ isect, nextLevel);
+    trace(origin, inv, node->leftChild, /*hit,*/ isect, nextLevel);
+    trace(origin, inv, node->rightChild, /*hit,*/ isect, nextLevel);
   }
 }
 

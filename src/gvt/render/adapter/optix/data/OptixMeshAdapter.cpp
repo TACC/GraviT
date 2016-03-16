@@ -53,14 +53,8 @@
 #include <tbb/parallel_for_each.h>
 #include <tbb/partitioner.h>
 #include <tbb/tick_count.h>
-
-#include <boost/atomic.hpp>
-#include <boost/foreach.hpp>
-#include <boost/timer/timer.hpp>
-/*
- #include <boost/tuple/tuple.hpp>
- #include <boost/container/vector.hpp>
- */
+#include <tbb/task_group.h>
+#include <tbb/parallel_for.h>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -71,16 +65,9 @@
 
 #include "OptixMeshAdapter.cuh"
 
-#include <tbb/task_group.h>
-#include <tbb/parallel_for.h>
 
 #include <float.h>
 
-//boost::timer::cpu_timer shading;
-//boost::timer::cpu_timer copydata;
-//boost::timer::cpu_timer convertingRaysToCUDA;
-//boost::timer::cpu_timer convertingRaysFromCUDA;
-//boost::timer::cpu_timer addToMoved;
 
 __inline__ void cudaRayToGvtRay(
 		const gvt::render::data::cuda_primitives::Ray& cudaRay,
@@ -90,9 +77,8 @@ __inline__ void cudaRayToGvtRay(
 	memcpy(&(gvtRay.direction[0]), &(cudaRay.direction.x), sizeof(glm::vec3));
 //	memcpy(&(gvtRay.inverseDirection[0]), &(cudaRay.inverseDirection.x),
 //			sizeof(float) * 4);
-	memcpy(&(gvtRay.color.rgba[0]), &(cudaRay.color.rgba[0]),
-			sizeof(float) * 4);
-	gvtRay.color.t = cudaRay.color.t;
+	memcpy(glm::value_ptr(gvtRay.color), &(cudaRay.color.x),
+			sizeof(glm::vec3));
 	gvtRay.id = cudaRay.id;
 	gvtRay.depth = cudaRay.depth;
 	gvtRay.w = cudaRay.w;
@@ -101,8 +87,6 @@ __inline__ void cudaRayToGvtRay(
 	gvtRay.t_max = cudaRay.t_max;
 	gvtRay.type = cudaRay.type;
 
-	//same performance but unreliable due to potencial unpredictable stuct field order
-	//memcpy(&(gvtRay.data), &(cudaRay.data), 96);
 }
 
 __inline__ void gvtRayToCudaRay(const gvt::render::actor::Ray& gvtRay,
@@ -113,9 +97,8 @@ __inline__ void gvtRayToCudaRay(const gvt::render::actor::Ray& gvtRay,
 	memcpy(&(cudaRay.direction.x), &(gvtRay.direction[0]),sizeof(glm::vec3));
 //	memcpy(&(cudaRay.inverseDirection.x), &(gvtRay.inverseDirection[0]),
 //			sizeof(float) * 4);
-	memcpy(&(cudaRay.color.rgba[0]), &(gvtRay.color.rgba[0]),
-			sizeof(float) * 4);
-	cudaRay.color.t = gvtRay.color.t;
+	memcpy(&(cudaRay.color.x), glm::value_ptr(gvtRay.color),
+			sizeof(float4));
 	cudaRay.id = gvtRay.id;
 	cudaRay.depth = gvtRay.depth;
 	cudaRay.w = gvtRay.w;
@@ -124,8 +107,6 @@ __inline__ void gvtRayToCudaRay(const gvt::render::actor::Ray& gvtRay,
 	cudaRay.t_max = gvtRay.t_max;
 	cudaRay.type = gvtRay.type;
 
-	//same performance but unreliable due to potencial unpredictable stuct field order
-	//memcpy(&(cudaRay.data), &(gvtRay.data), 96);
 }
 
 int3*
@@ -274,8 +255,6 @@ void cudaSetRays(gvt::render::actor::RayVector::iterator gvtRayVector,
 		cudaStream_t& stream,
 		gvt::render::data::cuda_primitives::Ray* cudaRays) {
 
-	//convertingRaysToCUDA.resume();
-
 	const int offset_rays =
 			localRayCount > std::thread::hardware_concurrency() ?
 					localRayCount / std::thread::hardware_concurrency() : 100;
@@ -290,16 +269,11 @@ void cudaSetRays(gvt::render::actor::RayVector::iterator gvtRayVector,
 				}}, ap);
 
 
-	//convertingRaysToCUDA.stop();
-
-	//copydata.resume();
-
 	gpuErrchk(
 			cudaMemcpyAsync(cudaRays_devPtr, &cudaRays[0],
 					sizeof(gvt::render::data::cuda_primitives::Ray)
 							* localRayCount, cudaMemcpyHostToDevice, stream));
 
-	//copydata.stop();
 
 }
 
@@ -309,7 +283,6 @@ void cudaGetRays(size_t& localDispatchSize,
 		gvt::render::actor::RayVector& localDispatch,
 		gvt::render::actor::RayVector::iterator &rayList) {
 
-	//copydata.resume();
 
 	gpuErrchk(
 			cudaMemcpyAsync(&disp_tmp[0], cudaGvtCtx.dispatch,
@@ -319,9 +292,6 @@ void cudaGetRays(size_t& localDispatchSize,
 
 	gpuErrchk(cudaStreamSynchronize(cudaGvtCtx.stream));
 
-	//copydata.stop();
-
-	//convertingRaysFromCUDA.resume();
 
 	static tbb::auto_partitioner ap;
 	tbb::parallel_for(tbb::blocked_range<int>(0, cudaGvtCtx.dispatchCount, 128),
@@ -344,7 +314,6 @@ void cudaGetRays(size_t& localDispatchSize,
 	localDispatchSize += cudaGvtCtx.dispatchCount;
 	cudaGvtCtx.dispatchCount = 0;
 
-	//convertingRaysFromCUDA.stop();
 
 }
 
@@ -416,8 +385,6 @@ gvt::render::data::cuda_primitives::Mesh cudaInstanceMesh(
 
 void gvt::render::data::cuda_primitives::CudaGvtContext::initCudaBuffers(
 		int packetSize) {
-
-	printf("Initializing CUDA buffers...\n");
 
 	gvt::core::DBNodeH root = gvt::core::CoreContext::instance()->getRootNode();
 
@@ -543,16 +510,14 @@ struct OptixHit {
 	}
 };
 
-OptixContext *OptixContext::_singleton;					//= new OptixContext();
+OptixContext *OptixContext::_singleton;
 
 OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *m) : Adapter(m),
 		packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(
 				OptixContext::singleton()->context()) {
 
 
-	// Get GVT mesh pointer
 	GVT_ASSERT(optix_context_.isValid(), "Optix Context is not valid");
-
 	GVT_ASSERT(mesh, "OptixMeshAdapter: mesh pointer in the database is null");
 
 	int numVerts = mesh->vertices.size();
@@ -634,9 +599,6 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *m) : Ada
 				}
 			},ap);
 
-
-	printf("Copying geometry to device...\n");
-
 	// Create and setup vertex buffer
 	::optix::prime::BufferDesc vertices_desc;
 	vertices_desc = optix_context_->createBufferDesc(
@@ -675,9 +637,7 @@ OptixMeshAdapter::~OptixMeshAdapter() {
 }
 
 struct OptixParallelTrace {
-	/**
-	 * Pointer to OptixMeshAdapter to get Embree scene information
-	 */
+
 	gvt::render::adapter::optix::data::OptixMeshAdapter *adapter;
 
 	/**
@@ -691,20 +651,6 @@ struct OptixParallelTrace {
 	gvt::render::actor::RayVector &moved_rays;
 
 	/**
-	 * Number of rays to work on at once [load balancing].
-	 */
-	//const size_t workSize;
-	/**
-	 * Index into the shared `rayList`.  Atomically incremented to 'grab'
-	 * the next set of rays.
-	 */
-	//std::atomic<size_t> &sharedIdx;
-	/**
-	 * DB reference to the current instance
-	 */
-	//gvt::core::DBNodeH instNode;
-
-	/**		f.get()
 	 *
 	 * Stored transformation matrix in the current instance
 	 */
@@ -720,16 +666,6 @@ struct OptixParallelTrace {
 	 */
 	const glm::mat3 *normi;
 
-	/**
-	 * Stored transformation matrix in the current instance
-	 */
-	//const std::vector<gvt::render::data::scene::Light *> &lights;
-	/**
-	 * Count the number of rays processed by the current trace() call.
-	 *
-	 * Used for debugging purposes
-	 */
-	std::atomic<size_t> &counter;
 
 	/**
 	 * Thread local outgoing ray queue
@@ -741,11 +677,7 @@ struct OptixParallelTrace {
 	gvt::render::data::cuda_primitives::Ray* cudaRaysBuff;
 
 	/**
-	 * List of shadow rays to be processed
-	 */
-	//gvt::render::actor::RayVector shadowRays;
-	/**
-	 * Size of Embree packet
+	 * Size of Optix-CUDA packet
 	 */
 	size_t packetSize; // TODO: later make this configurable
 
@@ -766,8 +698,8 @@ struct OptixParallelTrace {
 			std::atomic<size_t> &counter, const size_t begin, const size_t end,
 			gvt::render::data::cuda_primitives::Ray* disp_Buff,
 			gvt::render::data::cuda_primitives::Ray* cudaRaysBuff) :
-			adapter(adapter), rayList(rayList), moved_rays(moved_rays),  m(m), minv(minv), normi(normi), counter(counter), packetSize(
-					adapter->getPacketSize()), begin(begin), end(end), disp_Buff(
+			adapter(adapter), rayList(rayList), moved_rays(moved_rays),  m(m), minv(minv), normi(normi),
+			packetSize(adapter->getPacketSize()), begin(begin), end(end), disp_Buff(
 					disp_Buff), cudaRaysBuff(cudaRaysBuff) {
 	}
 
@@ -866,16 +798,6 @@ struct OptixParallelTrace {
 				"OptixMeshAdapter: thread trace time: %w\n");
 #endif
 
-//		shading = boost::timer::cpu_timer();
-//		shading.stop();
-//		copydata = boost::timer::cpu_timer();
-//		copydata.stop();
-//		convertingRaysFromCUDA = boost::timer::cpu_timer();
-//		convertingRaysFromCUDA.stop();
-//		convertingRaysToCUDA = boost::timer::cpu_timer();
-//		convertingRaysToCUDA.stop();
-//		addToMoved = boost::timer::cpu_timer();
-//		addToMoved.stop();
 
 		int thread = begin > 0 ? 1 : 0;
 
@@ -883,13 +805,9 @@ struct OptixParallelTrace {
 		size_t localDispatchSize = 0;
 		localDispatch.reserve((end - begin) * 2);
 
-		//cudaMallocHost(&(disp_Buff), sizeof ( gvt::render::data::cuda_primitives::Ray)*packetSize * 2);
-		//udaMallocHost(&(cudaRaysBuff), sizeof ( gvt::render::data::cuda_primitives::Ray)*packetSize);
-
 		gvt::render::data::cuda_primitives::CudaGvtContext& cudaGvtCtx =
 				*(OptixContext::singleton()->_cudaGvtCtx[thread]);
 
-		//copydata.resume();
 
 		//Mesh instance specific data
 		gpuErrchk(
@@ -900,7 +818,6 @@ struct OptixParallelTrace {
 				cudaMemcpyAsync(cudaGvtCtx.minv, &(minv[0]), sizeof(glm::mat4),
 						cudaMemcpyHostToDevice, cudaGvtCtx.stream));
 
-		//copydata.stop();
 
 		cudaGvtCtx.mesh = adapter->cudaMesh;
 		cudaGvtCtx.dispatchCount = 0;
@@ -918,10 +835,10 @@ struct OptixParallelTrace {
 			gvt::render::actor::RayVector::iterator localRayList = rayList
 					+ begin + localIdx;
 
+	
 			cudaSetRays(localRayList, localPacketSize, cudaGvtCtx.rays,
 					localIdx, cudaGvtCtx.stream, cudaRaysBuff);
 
-			//shading.resume();
 
 			cudaGvtCtx.validRayLeft = true;
 			while (cudaGvtCtx.validRayLeft) {
@@ -944,14 +861,12 @@ struct OptixParallelTrace {
 
 			}
 
-			//shading.stop();
 
 			cudaGetRays(localDispatchSize, cudaGvtCtx, disp_Buff, localDispatch,
 					rayList);
 
 		}
 
-		//addToMoved.resume();
 		// copy localDispatch rays to outgoing rays queue
 		std::unique_lock < std::mutex > moved(adapter->_outqueue);
 
@@ -960,18 +875,7 @@ struct OptixParallelTrace {
 		}
 
 		moved.unlock();
-		//addToMoved.stop();
 
-//		std::cout << "adapater optix-cuda: tracing-shading time: "
-//				<< shading.format();
-//		std::cout << "adapater optix-cuda: copy data to device time: "
-//				<< copydata.format();
-//		std::cout << "adapater optix-cuda: convertingRaysToCUDA time: "
-//				<< convertingRaysToCUDA.format();
-//		std::cout << "adapater optix-cuda: convertingRaysFromCUDA time: "
-//				<< convertingRaysFromCUDA.format();
-//		std::cout << "adapater optix-cuda: addToMoved time: "
-//				<< addToMoved.format();
 
 	}
 };

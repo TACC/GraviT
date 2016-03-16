@@ -72,7 +72,6 @@
 
 using namespace std;
 using namespace gvtapps::render;
-using namespace gvt::render::data::domain;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::core::mpi;
@@ -695,12 +694,12 @@ void keyboard(unsigned char key, int x, int y) {
 }
 
 void drawWireBox(gvt::render::data::primitives::Box3D &bbox) {
-  float xmin = bbox.bounds[0][0];
-  float ymin = bbox.bounds[0][1];
-  float zmin = bbox.bounds[0][2];
-  float xmax = bbox.bounds[1][0];
-  float ymax = bbox.bounds[1][1];
-  float zmax = bbox.bounds[1][2];
+  float xmin = bbox.bounds_min[0];
+  float ymin = bbox.bounds_min[1];
+  float zmin = bbox.bounds_min[2];
+  float xmax = bbox.bounds_max[0];
+  float ymax = bbox.bounds_max[1];
+  float zmax = bbox.bounds_max[2];
 
   glPushMatrix();
   glTranslatef(0.5f * (xmin + xmax), 0.5f * (ymin + ymax), 0.5f * (zmin + zmax));
@@ -889,8 +888,8 @@ void ConfigSceneFromFile(std::string filename) {
     instnode["matInv"] = (unsigned long long)minv;
     *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
     instnode["normi"] = (unsigned long long)normi;
-    auto il = (*m) * mbox->bounds[0];
-    auto ih = (*m) * mbox->bounds[1];
+    auto il = (*m) * mbox->bounds_min;
+    auto ih = (*m) * mbox->bounds_max;
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
@@ -1045,8 +1044,8 @@ void ConfigSceneCubeCone() {
       *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
       instnode["normi"] = (unsigned long long)normi;
 
-      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
@@ -1144,8 +1143,8 @@ void ConfigSceneCone() {
   *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   instnode["normi"] = (unsigned long long)normi;
 
-  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
@@ -1275,8 +1274,8 @@ void ConfigEnzo(std::string rootdir) {
     instnode["matInv"] = (unsigned long long)minv;
     *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
     instnode["normi"] = (unsigned long long)normi;
-    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
@@ -1391,7 +1390,7 @@ int main(int argc, char *argv[]) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Optix;
+  schedNode["adapter"] = adapterType;
 
   camNode = root["Camera"];
 

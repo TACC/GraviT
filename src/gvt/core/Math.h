@@ -42,6 +42,8 @@
 
 #include <gvt/core/math/TLRand.h>
 
+#define GVT_ALIGN(x) __attribute__((aligned(x)))
+
 namespace glm {
 inline std::ostream &operator<<(std::ostream &os, const glm::vec3 &v) {
   return os << "{" << v[0] << ", " << v[1] << ", " << v[2] << "}";

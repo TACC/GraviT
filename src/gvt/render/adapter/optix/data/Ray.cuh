@@ -74,15 +74,6 @@ struct OptixHit {
 };
 
 
-struct ColorAccumulator {
-
-	  float t;
-	  float rgba[4];
-
-
-
-};
-
 class Ray {
 public:
 
@@ -99,7 +90,7 @@ public:
 			float4 origin;
 			float4 direction;
 			//float4 inverseDirection;
-			ColorAccumulator color;
+			float4 color;
 			//int id;    ///<! index into framebuffer
 			int depth; ///<! sample rate
 			float w;   ///<! weight of image contribution
