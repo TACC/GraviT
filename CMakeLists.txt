@@ -283,6 +283,11 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
 		src/gvt/render/adapter/manta/Wrapper.h
+		src/gvt/render/adapter/optix/data/Mesh.cuh
+		src/gvt/render/adapter/optix/data/Light.cuh
+		src/gvt/render/adapter/optix/data/Material.cuh
+		src/gvt/render/adapter/optix/data/Ray.cuh
+		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
@@ -302,6 +307,10 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
+	        src/gvt/render/adapter/optix/data/OptixMeshAdapter.cu
+		src/gvt/render/adapter/optix/data/Light.cu
+		src/gvt/render/adapter/optix/data/Material.cu
+		src/gvt/render/adapter/optix/data/Ray.cu
 		)
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
@@ -369,19 +378,29 @@ if (GVT_RENDER)
     	find_package(CUDA REQUIRED)
     	find_package(OptiX REQUIRED)
 
+	set(CUDA_SEPARABLE_COMPILATION ON)
+	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+
     	include_directories(${CUDA_INCLUDE_DIRS})
     	include_directories(${OptiX_INCLUDE})
 	set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
     	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
     	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
     		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
+                -gencode arch=compute_20,code=sm_20
     		-gencode arch=compute_30,code=sm_30
     		-gencode arch=compute_35,code=sm_35
+                --compiler-options '-fPIC'
     		)
-    	cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+    	#cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+	CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
+
     	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
     		${GVT_RENDER_CUDA_OBJS}
     		)
+
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
+
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	include_directories(${OptiX_INCLUDE})

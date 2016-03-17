@@ -893,6 +893,9 @@ void ConfigSceneFromFile(std::string filename) {
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
+
+      mesh->generateNormals();
+
   }
 
   // add lights, camera, and film to the database
