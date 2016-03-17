@@ -30,7 +30,7 @@
 
 #include "ConfigFileLoader.h"
 
-#include <gvt/render/data/domain/reader/ObjReader.h>
+#include <gvt/render/data/reader/ObjReader.h>
 
 #include <boost/regex.h>
 #include <boost/regex.hpp>
@@ -67,7 +67,7 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
     \param filename configuration file
 */
 ConfigFileLoader::ConfigFileLoader(const std::string filename) {
-
+#if 0
   GVT_ASSERT(filename.size() > 0, "Error filename not specified");
   GVT_DEBUG(DBG_ALWAYS, "Loading file : " << filename);
   std::fstream file;
@@ -207,6 +207,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       GVT_DEBUG(DBG_LOW, "Invalid option");
     }
   }
+#endif
 }
 
 ConfigFileLoader::ConfigFileLoader(const ConfigFileLoader &orig) {}

@@ -86,6 +86,8 @@ void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
 
+  std::cout << "Ray :" << sizeof(gvt::render::actor::Ray) << std::endl;
+
   ParseCommandLine cmd("gvtSimple");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -251,8 +253,8 @@ int main(int argc, char **argv) {
       instnode["matInv"] = (unsigned long long)minv;
       *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
       instnode["normi"] = (unsigned long long)normi;
-      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
@@ -275,6 +277,9 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
+  camNode["rayMaxDepth"] = (int)10;
+  camNode["raySamples"] = (int)3;
+  camNode["jitterWindowSize"]= (float) 0;
 
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 512;
@@ -325,9 +330,19 @@ int main(int argc, char **argv) {
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
   glm::vec3 up = camNode["upVector"].value().tovec3();
+  
+  int rayMaxDepth =camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
+
+
 
 #ifdef GVT_USE_MPE
   MPE_Log_event(readend, 0, NULL);

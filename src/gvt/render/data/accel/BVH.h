@@ -31,6 +31,7 @@
 #include <stack>
 
 #include <gvt/core/Math.h>
+#include <gvt/render/actor/RayPacket.h>
 #include <gvt/render/data/accel/AbstractAccel.h>
 #include <gvt/render/data/primitives/BBox.h>
 
@@ -50,26 +51,66 @@ public:
   BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet);
   ~BVH();
 
-  /// traverse ray through BVH and return list of leaves hit
-  /**
-  traverse the given ray against this BVH and return a list of leaves hit
-  \param ray the ray to traverse
-  \param isect list of leaves intersected
-  */
   virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect);
-  // virtual int intersect(const gvt::render::actor::Ray &ray, int from, float &t);
   inline int intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
-    if (root) {
-      Node *stack[instanceSet.size() * 2];
-      Node **stackptr = stack;
+    const glm::vec3 &origin = ray.origin;
+    const glm::vec3 inv = 1.f / ray.direction;
+    Node *stack[instanceSet.size() * 2];
+    Node **stackptr = stack;
+    *(stackptr++) = nullptr;
+    Node *cur = root;
+    float best = t;
+    int rid = -1;
+
+    while (cur) {
+      float tlocal = std::numeric_limits<float>::max();
+      if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
+        cur = *(--stackptr);
+        continue;
+      }
+      if (cur->numInstances > 0) { // leaf node
+        int start = cur->instanceSetIdx;
+        int end = start + cur->numInstances;
+        for (int i = start; i < end; ++i) {
+          if (from == instanceSetID[i]) continue;
+          primitives::Box3D *ibbox = instanceSetBB[i];
+          float tlocal;
+          if (ibbox->intersectDistance(origin, inv, tlocal) && (tlocal < best)) {
+            t = best = tlocal;
+            rid = instanceSetID[i];
+          }
+        }
+        cur = *(--stackptr);
+      } else {
+        *(stackptr++) = cur->rightChild;
+        cur = cur->leftChild;
+      }
+    }
+    return rid;
+  }
+
+  struct hit {
+    int next = -1;
+    float t = FLT_MAX;
+  };
+
+  template <size_t simd_width>
+  std::vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
+                             const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
+    std::vector<hit> ret((ray_end - ray_begin));
+    size_t offset = 0;
+    Node *stack[instanceSet.size() * 2];
+    Node **stackptr = stack;
+    gvt::render::actor::RayVector::iterator chead = ray_begin;
+    for (; offset < ret.size(); offset += simd_width, chead += simd_width) {
+      gvt::render::actor::RayPacketIntersection<simd_width> rp(chead, ray_end);
+
       *(stackptr++) = nullptr;
       Node *cur = root;
-      float best = t;
-      int rid = -1;
-
       while (cur) {
-        float tlocal = std::numeric_limits<float>::max();
-        if (!(cur->bbox.intersectDistance(ray, tlocal))) {
+        int hit[simd_width];
+        const gvt::render::data::primitives::Box3D &bb = cur->bbox;
+        if (!rp.intersect(bb, hit)) {
           cur = *(--stackptr);
           continue;
         }
@@ -78,11 +119,15 @@ public:
           int end = start + cur->numInstances;
           for (int i = start; i < end; ++i) {
             if (from == instanceSetID[i]) continue;
-            primitives::Box3D *ibbox = instanceSetBB[i];
-            float tlocal;
-            if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
-              t = best = tlocal;
-              rid = instanceSetID[i];
+            const primitives::Box3D &ibbox = *instanceSetBB[i];
+            int hit[simd_width];
+            if (rp.intersect(ibbox, hit)) {
+              for (int o = 0; o < simd_width; ++o) {
+                if (hit[o] == 1 && rp.mask[o] == 1) {
+                  ret[offset + o].next = instanceSetID[i];
+                  ret[offset + o].t = rp.t[o];
+                }
+              }
             }
           }
           cur = *(--stackptr);
@@ -91,9 +136,8 @@ public:
           cur = cur->leftChild;
         }
       }
-      return rid;
     }
-    return -1;
+    return std::move(ret);
   }
 
 private:
@@ -124,46 +168,8 @@ private:
   float findSplitPoint(int splitAxis, int start, int end);
 
   /// traverse ray through BVH. Called by intersect().
-  void trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
+  void trace(const glm::vec3 &origin, const glm::vec3 &inv, const Node *node, /*ClosestHit &hit,*/
              gvt::render::actor::isecDomList &isect, int level);
-  inline int trace(const gvt::render::actor::Ray &ray, Node *node, int cid, float &t) {
-
-    Node *stack[instanceSet.size() * 2];
-    Node **stackptr = stack;
-    *(stackptr++) = nullptr;
-    Node *cur = node;
-    float best = t;
-    int rid = -1;
-
-    while (cur) {
-
-      float tlocal = std::numeric_limits<float>::max();
-
-      if (!(cur->bbox.intersectDistance(ray, tlocal)) || tlocal > t) {
-        cur = *(--stackptr);
-        continue;
-      }
-      if (cur->numInstances > 0) { // leaf node
-        int start = cur->instanceSetIdx;
-        int end = start + cur->numInstances;
-        for (int i = start; i < end; ++i) {
-          if (cid == instanceSetID[i]) continue;
-          primitives::Box3D *ibbox = instanceSetBB[i];
-          float tlocal;
-          if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
-            t = best = tlocal;
-            rid = instanceSetID[i];
-          }
-        }
-        // if (rid != -1) t = best;
-        cur = *(--stackptr);
-      } else {
-        *(stackptr++) = cur->rightChild;
-        cur = cur->leftChild;
-      }
-    }
-    return rid;
-  }
 
   std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
   std::vector<int> instanceSetID;
