@@ -1226,7 +1226,7 @@ void ConfigEnzo(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
+      Mesh *mesh = new Mesh(new Material(MatteMaterial(glm::vec3(0.5, 0.5, 0.5))));
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -1285,7 +1285,7 @@ void ConfigEnzo(std::string rootdir) {
   gvt::core::DBNodeH lightNodes = root["Lights"];
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+  lightNode["color"] = glm::vec3(1000.0, 1000.0, 1000.0);
   // camera
   gvt::core::DBNodeH camNode = root["Camera"];
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);

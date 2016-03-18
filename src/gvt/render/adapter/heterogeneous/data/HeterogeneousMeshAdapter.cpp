@@ -39,9 +39,9 @@ using namespace gvt::render::adapter::heterogeneous::data;
 //using namespace gvt::render::data::primitives;
 
 HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh,
-		gvt::render::shader::ShadeAlgorithm* shader) : Adapter(mesh, shader) {
-  _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, shader);
-  _optix = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh,shader);
+		 gvt::render::Integrator* integrator) : Adapter(mesh, integrator) {
+  _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, integrator);
+  _optix = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh,integrator);
 }
 
 HeterogeneousMeshAdapter::~HeterogeneousMeshAdapter() {

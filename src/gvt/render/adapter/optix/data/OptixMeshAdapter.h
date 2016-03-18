@@ -115,11 +115,11 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh, gvt::render::shader::ShadeAlgorithm* shader);
+  OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh, gvt::render::Integrator* integrator);
 
   /**
    * Release Embree copy of the mesh.
-
+   */
   virtual ~OptixMeshAdapter();
 
   ::optix::prime::Model getScene() const { return optix_model_; }

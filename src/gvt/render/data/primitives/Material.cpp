@@ -36,6 +36,7 @@ using namespace gvt::render::actor;
 using namespace gvt::render::data::primitives;
 using namespace gvt::render::data::scene;
 
+using namespace embree;
 
 /*
  * Proxy call used by adapater/integator
