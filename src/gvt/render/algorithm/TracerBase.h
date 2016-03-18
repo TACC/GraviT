@@ -207,7 +207,7 @@ public:
                         for (size_t i = 0; i < hits.size(); i++) {
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
-                            r.origin = r.origin + r.direction * (hits[i].t * 0.8f);
+                            r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
                             local_queue[hits[i].next].push_back(r);
                           } else if (domID != -1 && r.type == gvt::render::actor::Ray::SHADOW) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);

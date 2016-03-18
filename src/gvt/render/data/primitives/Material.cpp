@@ -102,7 +102,7 @@ glm::vec3 lambertShade(const gvt::render::data::primitives::Lambert* material,
                        const gvt::render::data::scene::Light  *lightSource,
                        const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-  glm::vec3 L = lightSource->position - hitPoint;
+  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
   float NdotL = std::max(0.f, std::abs(glm::dot(N, L)));
   glm::vec3 lightSourceContrib = lightSource->contribution(ray);
   glm::vec3 diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);

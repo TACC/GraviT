@@ -64,6 +64,7 @@ public:
 
     while (cur) {
       float tlocal = std::numeric_limits<float>::max();
+
       if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
         cur = *(--stackptr);
         continue;
@@ -123,7 +124,7 @@ public:
             int hit[simd_width];
             if (rp.intersect(ibbox, hit)) {
               for (int o = 0; o < simd_width; ++o) {
-                if (hit[o] == 1 && rp.mask[o] == 1) {
+                if (hit[o] == 1 && rp.mask[o] == 1 && ret[offset + o].t > rp.t[o]) {
                   ret[offset + o].next = instanceSetID[i];
                   ret[offset + o].t = rp.t[o];
                 }
@@ -177,6 +178,7 @@ private:
 private:
   std::vector<Node *> nodes;
   Node *root;
+  static std::mutex c_out;
 };
 }
 }
