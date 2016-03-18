@@ -258,7 +258,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);

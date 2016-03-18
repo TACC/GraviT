@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   {
     Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
     int numPoints = 7;
-    glm::vec3 points[7];
+    glm::vec3 points[6];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
     points[1] = glm::vec3(-0.5, 0.5, 0.0);
     points[2] = glm::vec3(-0.5, 0.25, 0.433013);
@@ -179,8 +179,8 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
     Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 8;
-    glm::vec3 points[8];
+    int numPoints = 24;
+    glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
     points[1] = glm::vec3(0.5, -0.5, 0.5);
     points[2] = glm::vec3(0.5, 0.5, 0.5);
@@ -190,22 +190,48 @@ int main(int argc, char **argv) {
     points[6] = glm::vec3(0.5, 0.5, -0.5);
     points[7] = glm::vec3(-0.5, 0.5, -0.5);
 
+    points[8] = glm::vec3(0.5, 0.5, 0.5);
+    points[9] = glm::vec3(-0.5, 0.5, 0.5);
+    points[10] = glm::vec3(0.5, 0.5, -0.5);
+    points[11] = glm::vec3(-0.5, 0.5, -0.5);
+
+    points[12] = glm::vec3(-0.5, -0.5, 0.5);
+    points[13] = glm::vec3(0.5, -0.5, 0.5);
+    points[14] = glm::vec3(-0.5, -0.5, -0.5);
+    points[15] = glm::vec3(0.5, -0.5, -0.5);
+
+    points[16] = glm::vec3(0.5, -0.5, 0.5);
+    points[17] = glm::vec3(0.5, 0.5, 0.5);
+    points[18] = glm::vec3(0.5, -0.5, -0.5);
+    points[19] = glm::vec3(0.5, 0.5, -0.5);
+
+    points[20] = glm::vec3(-0.5, -0.5, 0.5);
+    points[21] = glm::vec3(-0.5, 0.5, 0.5);
+    points[22] = glm::vec3(-0.5, -0.5, -0.5);
+    points[23] = glm::vec3(-0.5, 0.5, -0.5);
+
     for (int i = 0; i < numPoints; i++) {
       mesh->addVertex(points[i]);
     }
     // faces are 1 indexed
     mesh->addFace(1, 2, 3);
     mesh->addFace(1, 3, 4);
-    mesh->addFace(2, 6, 7);
-    mesh->addFace(2, 7, 3);
+
+    mesh->addFace(17, 19, 20);
+    mesh->addFace(17, 20, 18);
+
     mesh->addFace(6, 5, 8);
     mesh->addFace(6, 8, 7);
-    mesh->addFace(5, 1, 4);
-    mesh->addFace(5, 4, 8);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 2);
-    mesh->addFace(4, 3, 7);
-    mesh->addFace(4, 7, 8);
+
+    mesh->addFace(23, 21, 22);
+    mesh->addFace(23, 22, 24);
+
+    mesh->addFace(10, 9, 11);
+    mesh->addFace(10, 11, 12);
+
+    mesh->addFace(13, 15, 16);
+    mesh->addFace(13, 16, 14);
+
     mesh->generateNormals();
 
     // calculate bbox
