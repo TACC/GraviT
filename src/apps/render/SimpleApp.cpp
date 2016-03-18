@@ -303,8 +303,8 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)1;
-  camNode["raySamples"] = (int)1;
+  camNode["rayMaxDepth"] = (int)10;
+  camNode["raySamples"] = (int)3;
   camNode["jitterWindowSize"] = (float)0;
 
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
