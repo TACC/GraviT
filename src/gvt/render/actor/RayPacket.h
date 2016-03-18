@@ -122,8 +122,8 @@ template <size_t simd_width> struct RayPacketIntersection {
     // float *ux = &data[simd_width * 3];
     // float *uy = &data[simd_width * 4];
     // float *uz = &data[simd_width * 5];
-    float *tnear;
-    float *tfar;
+    float tnear[simd_width];
+    float tfar[simd_width];
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) hit[i] = -1;
@@ -140,8 +140,56 @@ template <size_t simd_width> struct RayPacketIntersection {
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) uz[i] = (bb.bounds_max[2] - oz[i]) * dz[i];
 
-    tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
-    tfar = min(max(lx, ux), min(max(ly, uy), max(lz, uz)));
+    // tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
+    // tfar = min(max(lx, ux), min(max(ly, uy), max(lz, uz)));
+
+    float minx[simd_width];
+    float miny[simd_width];
+    float minz[simd_width];
+
+    float maxx[simd_width];
+    float maxy[simd_width];
+    float maxz[simd_width];
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      minx[i] = fastmin(lx[i], ux[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      miny[i] = fastmin(ly[i], uy[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      minz[i] = fastmin(lz[i], uz[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      tnear[i] = fastmax(fastmax(minx[i], miny[i]), minz[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      maxx[i] = fastmax(lx[i], ux[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      maxy[i] = fastmax(ly[i], uy[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      maxz[i] = fastmax(lz[i], uz[i]);
+    }
+
+#pragma simd
+    for (size_t i = 0; i < simd_width; ++i) {
+      tfar[i] = fastmin(fastmin(maxx[i], maxy[i]), maxz[i]);
+    }
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
@@ -153,7 +201,7 @@ template <size_t simd_width> struct RayPacketIntersection {
     }
 
     for (size_t i = 0; i < simd_width; ++i)
-      if (hit[i]) return true;
+      if (hit[i] == 1) return true;
 
     return false;
   }

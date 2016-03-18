@@ -64,6 +64,7 @@ public:
 
     while (cur) {
       float tlocal = std::numeric_limits<float>::max();
+
       if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
         cur = *(--stackptr);
         continue;
@@ -177,6 +178,7 @@ private:
 private:
   std::vector<Node *> nodes;
   Node *root;
+  static std::mutex c_out;
 };
 }
 }
