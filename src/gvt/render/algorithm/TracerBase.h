@@ -113,7 +113,6 @@ public:
 
   float sample_ratio = 1.f;
 
-  tbb::mutex raymutex;
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
   tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
@@ -191,13 +190,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
-    // const int domID = (instNode) ? instNode["id"].value().toInteger() : -1;
-    // const gvt::render::data::primitives::Box3D domBB =
-    //    (instNode) ? *((gvt::render::data::primitives::Box3D *)instNode["bbox"].value().toULongLong())
-    //               : gvt::render::data::primitives::Box3D();
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
-
-    tbb::mutex cout;
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
@@ -209,7 +202,7 @@ public:
                           if (hits[i].next != -1) {
                             r.origin = r.origin + r.direction * (hits[i].t * 0.5f);
                             local_queue[hits[i].next].push_back(r);
-                          } else if (r.type == gvt::render::actor::Ray::SHADOW) {
+                          } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
                             colorBuf[r.id] += r.color;
                           }

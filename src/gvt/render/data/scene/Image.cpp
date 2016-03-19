@@ -31,18 +31,14 @@
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
-
 #include <mpi.h>
-
-#include <gvt/render/algorithm/TracerBase.h>
+#include <sstream>
 
 using namespace gvt::render::data::scene;
 
 void Image::Write() {
-  gvt::render::algorithm::GVT_COMM comm;
 
-  if (!comm.root()) return;
+  if (MPI::COMM_WORLD.Get_rank() != 0) return;
 
   std::string ext;
   switch (format) {
@@ -64,7 +60,7 @@ void Image::Write() {
   file << header.str();
 
   // reverse row order so image is correctly oriented
-  for (int j = height - 1; j >= 0; --j) {
+  for (int j = height - 1; j >= 0; j--) {
     int offset = j * width;
     for (int i = 0; i < width; ++i) {
       int index = 3 * (offset + i);

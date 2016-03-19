@@ -284,13 +284,13 @@ struct embreeParallelTrace {
         ray4.dirx[i] = direction[0];
         ray4.diry[i] = direction[1];
         ray4.dirz[i] = direction[2];
-        ray4.tnear[i] = 0.0;
+        ray4.tnear[i] = gvt::render::actor::Ray::RAY_EPSILON;
         ray4.tfar[i] = FLT_MAX;
         ray4.geomID[i] = RTC_INVALID_GEOMETRY_ID;
         ray4.primID[i] = RTC_INVALID_GEOMETRY_ID;
         ray4.instID[i] = RTC_INVALID_GEOMETRY_ID;
         ray4.mask[i] = -1;
-        ray4.time[i] = 0;
+        ray4.time[i] = gvt::render::actor::Ray::RAY_EPSILON;
       }
     }
   }
@@ -332,7 +332,8 @@ struct embreeParallelTrace {
       shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
 
       Ray &shadow_ray = shadowRays.back();
-      shadow_ray.t = FLT_MAX;
+      shadow_ray.t_min = r.t_min;
+      shadow_ray.t = t_max;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
       shadow_ray.color = c;

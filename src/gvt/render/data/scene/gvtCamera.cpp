@@ -65,10 +65,7 @@ gvtCameraBase::gvtCameraBase(const gvtCameraBase &cam) {
   depth = cam.depth;
 }
 float gvtCameraBase::frand() { return ((float)rand()) * INVRAND_MAX; }
-void gvtCameraBase::SetCamera(gvt::render::actor::RayVector &rayvect, float rate) {
-  rays = rayvect;
-  rate = rate;
-}
+void gvtCameraBase::SetCamera(gvt::render::actor::RayVector &rayvect, float _rate) { rays = rayvect; }
 void gvtCameraBase::buildTransform() {
   //
   // Find the u, v, and w unit basis vectors for the camera coordinate system.
@@ -254,7 +251,7 @@ void gvtPerspectiveCamera::generateRays() {
               camera_space_ray_direction[2] = cam2wrld[2][0] * x + cam2wrld[2][1] * y + z[2];
               Ray &ray = rays[ridx];
               ray.id = idx;
-              ray.t_min = FLT_EPSILON;
+              ray.t_min = gvt::render::actor::Ray::RAY_EPSILON;
               ray.t = ray.t_max = FLT_MAX;
               ray.w = contri;
               ray.origin = eye_point;

@@ -136,7 +136,9 @@ template <size_t simd_width> struct RayPacketIntersection {
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
-      hit[i] = (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON && t[i] > tnear[i]) ? 1 : -1;
+      hit[i] = (tfar[i] > tnear[i] && (!update || tnear[i] > gvt::render::actor::Ray::RAY_EPSILON) && t[i] > tnear[i])
+                   ? 1
+                   : -1;
     }
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {

@@ -99,21 +99,43 @@ public:
                              const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
     std::vector<hit> ret((ray_end - ray_begin));
     size_t offset = 0;
+#ifndef GVT_BRUTEFORCE
     Node *stack[instanceSet.size() * 2];
     Node **stackptr = stack;
+#endif
+
     gvt::render::actor::RayVector::iterator chead = ray_begin;
     for (; offset < ret.size(); offset += simd_width, chead += simd_width) {
       gvt::render::actor::RayPacketIntersection<simd_width> rp(chead, ray_end);
 
+#ifdef GVT_BRUTEFORCE
+      for (int i = 0; i < instanceSet.size(); i++) {
+        if (from == instanceSetID[i]) continue;
+        int hit[simd_width];
+        const primitives::Box3D &ibbox = *instanceSetBB[i];
+        rp.intersect(ibbox, hit, true);
+        {
+          for (int o = 0; o < simd_width; ++o) {
+            if (hit[o] == 1 && rp.mask[o] == 1) {
+              ret[offset + o].next = instanceSetID[i];
+              ret[offset + o].t = rp.t[o];
+            }
+          }
+        }
+      }
+#else
+
       *(stackptr++) = nullptr;
       Node *cur = root;
+      int hit[simd_width];
       while (cur) {
-        int hit[simd_width];
+
         const gvt::render::data::primitives::Box3D &bb = cur->bbox;
         if (!rp.intersect(bb, hit)) {
           cur = *(--stackptr);
           continue;
         }
+
         if (cur->numInstances > 0) { // leaf node
           int start = cur->instanceSetIdx;
           int end = start + cur->numInstances;
@@ -130,14 +152,17 @@ public:
               }
             }
           }
+
           cur = *(--stackptr);
+
         } else {
           *(stackptr++) = cur->rightChild;
           cur = cur->leftChild;
         }
       }
+#endif
     }
-    return std::move(ret);
+    return ret;
   }
 
 private:

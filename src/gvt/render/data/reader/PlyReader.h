@@ -31,8 +31,8 @@
 #ifndef GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H
 #define GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H
 
-#include <gvt/core/Math.h>
-#include <gvt/render/data/Primitives.h>
+// #include <gvt/core/Math.h>
+// #include <gvt/render/data/Primitives.h>
 
 // namespace gvt {
 // namespace render {

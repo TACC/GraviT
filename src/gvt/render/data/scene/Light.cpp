@@ -45,7 +45,7 @@ Light::Light(const Light &orig) : position(orig.position) {}
 
 Light::~Light() {}
 
-glm::vec3 Light::contribution(const const glm::vec3 &hitpoint) const { return Color(); }
+glm::vec3 Light::contribution(const glm::vec3 &hitpoint) const { return Color(); }
 
 PointLight::PointLight(const glm::vec3 position, const glm::vec3 color) : Light(position), color(color) {
   LightT = Point;
