@@ -165,7 +165,33 @@ void cudaProcessShadows(CudaGvtContext* cudaGvtCtx) {
 		cudaGvtCtx->toHost();
 }
 
+__device__ float4 CosWeightedRandomHemisphereDirection2(float4 n) {
 
+ float Xi1 = cudaRand();
+ float Xi2 = cudaRand();
+
+ float theta = acos(sqrt(1.0 - Xi1));
+ float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
+
+ float xs = sinf(theta) * cosf(phi);
+ float ys = cosf(theta);
+ float zs = sinf(theta) * sinf(phi);
+
+ float3 y = make_float3(n);
+ float3 h = y;
+ if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
+   h.x = 1.0;
+ else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
+   h.y = 1.0;
+ else
+   h.z = 1.0;
+
+ float3 x = cross(h,y);//(h ^ y);
+ float3 z = cross(x, y);
+
+ float4 direction = make_float4(x * xs + y * ys + z * zs);
+ return normalize(direction);
+}
 
 __device__ void generateShadowRays(const Ray &r, const float4 &normal,
                                    int primID, CudaGvtContext* cudaGvtCtx) {
@@ -198,8 +224,9 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.id = r.id;
     shadow_ray.t_max = t_max;
 
-    Color c = cudaGvtCtx->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
-
+    float4 c=
+    gvt::render::data::cuda_primitives::Shade(
+          cudaGvtCtx->mesh.mat, shadow_ray,normal, light, light->light.position);
 
     shadow_ray.color.x = c.x;
     shadow_ray.color.y = c.y;
@@ -301,8 +328,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
           r.origin = r.origin + r.direction * t_secondary;
           r.origin.w=1.0f;
 
-         float4 dir = normalize(cudaGvtCtx->mesh.mat->material.
-                  		  CosWeightedRandomHemisphereDirection2(normal));
+         float4 dir = normalize(CosWeightedRandomHemisphereDirection2(normal));
 
           r.setDirection(dir);
 

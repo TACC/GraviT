@@ -32,7 +32,7 @@
 #define GVT_RENDER_DATA_PRIMITIVES_MESH_CUH
 
 //#include <gvt/render/data/primitives/BBox.h>
-//#include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/Material.h>
 //#include <gvt/render/data/scene/Light.h>
 
 //#include <gvt/render/data/primitives/Mesh.h>
@@ -124,7 +124,7 @@ public:
                                              const gvt::render::data::scene::Light *lsource);
 */
 public:
-   Material* mat;
+   data::primitives::Material* mat;
   //float4* vertices;
   //float4* mapuv;
   float4* normals;

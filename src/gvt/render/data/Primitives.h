@@ -33,7 +33,7 @@
 
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/BBox.h>
-#include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/Materials.h>
 #include <gvt/render/data/primitives/Mesh.h>
 
 /// single include for scene primitive types

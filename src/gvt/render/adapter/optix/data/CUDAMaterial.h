@@ -1,4 +1,3 @@
-
 /* =======================================================================================
    This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
@@ -23,81 +22,76 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 /*
- * File:   Material.h
- * Author: jbarbosa
+ * File:   CUDAMaterial.h
+ * Author: Roberto Ribeiro
  *
- * Created on April 18, 2014, 3:07 PM
+ * Created on February 4, 2016, 19:00 PM
  */
 
-#ifndef GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
-#define GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
+
+#ifndef GVT_RENDER_DATA_PRIMITIVES_CUDAMATERIAL_CUH
+#define GVT_RENDER_DATA_PRIMITIVES_CUDAMATERIAL_CUH
+
+
+#include <vector_functions.h>
+#include <gvt/render/data/primitives/Material.h>
+
+#include <glm/vec3.hpp>
 
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
 
-struct Material {
-  Material(){
+struct CUDALambert {
 
-  }
+    CUDALambert(const glm::vec3& _kd){
+      kd = make_float4(_kd[0],_kd[1],_kd[2], 0.0f);
+      type = CUDA_LAMBERT;
+    }
 
-  Material(Material* m){
-    type=m->type;
-    memcpy(buf, m->buf,m->size());
-  }
+    data::primitives::MATERIAL_TYPE type;
+  float4 kd;
+};
 
-  /*
-   * This will receive a specialized material and copu the data of the material
-   * to our base Material
-   */
-  template <typename T>
-  Material(T om){
+struct CUDAPhong {
 
-    Material * m = (Material*)&om;
+    CUDAPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
+      kd = make_float4(_kd[0],_kd[1],_kd[2], 0.0f);
+      ks = make_float4(_ks[0],_ks[1],_ks[2], 0.0f);
+      alpha=_alpha;
+      type = CUDA_PHONG;
+    }
 
-    type=m->type;
-    memcpy(buf, m->buf,m->size());
-  }
+    data::primitives::MATERIAL_TYPE type;
+ float4 kd;
+ float4 ks;
+  float alpha;
+};
+
+class CUDABlinnPhong {
+
+    CUDABlinnPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
+      kd = make_float4(_kd[0],_kd[1],_kd[2], 0.0f);
+      ks = make_float4(_ks[0],_ks[1],_ks[2], 0.0f);
+      alpha=_alpha;
+      type = CUDA_BLINN;
+    }
 
 
-  inline int size(){
-    return 992;
-  }
+   data::primitives::MATERIAL_TYPE type;
+   float4 kd;
 
-  int type;
-  unsigned char buf[992]; //comply with Embree worst case
-
+  float4 ks;
+  float alpha;
 };
 
 
-
-
-typedef enum
-{
-//  EMBREE_MATERIAL_OBJ,
-//  EMBREE_MATERIAL_THIN_DIELECTRIC,
-  EMBREE_MATERIAL_METAL,
-  EMBREE_MATERIAL_VELVET,
-//  EMBREE_MATERIAL_DIELECTRIC,
-//  EMBREE_MATERIAL_METALLIC_PAINT,
-  EMBREE_MATERIAL_MATTE,
-//  EMBREE_MATERIAL_MIRROR,
-  EMBREE_MATERIAL_REFLECTIVE_METAL,
-//  EMBREE_MATERIAL_HAIR,
-  GVT_LAMBERT,
-  GVT_PHONG,
-  GVT_BLINN,
-  CUDA_LAMBERT,
-  CUDA_PHONG,
-  CUDA_BLINN
-} MATERIAL_TYPE;
-
-
 }
 }
 }
 }
 
-#endif /* GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H */
+#endif
+
 

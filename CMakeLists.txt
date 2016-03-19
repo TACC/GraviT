@@ -232,6 +232,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/Primitives.h
 	src/gvt/render/data/primitives/BBox.h
 	src/gvt/render/data/primitives/Material.h
+	src/gvt/render/data/primitives/EmbreeMaterial.h
 	src/gvt/render/data/primitives/Mesh.h
 	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
@@ -283,11 +284,6 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
 		src/gvt/render/adapter/manta/Wrapper.h
-		src/gvt/render/adapter/optix/data/Mesh.cuh
-		src/gvt/render/adapter/optix/data/Light.cuh
-		src/gvt/render/adapter/optix/data/Material.cuh
-		src/gvt/render/adapter/optix/data/Ray.cuh
-		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
 	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
@@ -304,6 +300,12 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/Transforms.h
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
+		src/gvt/render/adapter/optix/data/Mesh.cuh
+		src/gvt/render/adapter/optix/data/Light.cuh
+		src/gvt/render/adapter/optix/data/Material.cuh
+		src/gvt/render/adapter/optix/data/CUDAMaterial.h
+		src/gvt/render/adapter/optix/data/Ray.cuh
+		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}

@@ -1,141 +1,93 @@
 
 
-#include "cutil_math.h"
-#include "Material.cuh"
+//#include "cutil_math.h"
+//#include "Material.cuh"
 
+#include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/adapter/optix/data/CUDAMaterial.h>
+#include <gvt/render/adapter/optix/data/Material.cuh>
+
+#include "cutil_math.h"
 
 using namespace gvt::render::data::cuda_primitives;
+using namespace gvt::render::data::primitives;
 
-
-
-
-
-   __device__  float4 BaseMaterial::CosWeightedRandomHemisphereDirection2(float4 n) {
-
-    float Xi1 = cudaRand();
-    float Xi2 = cudaRand();
-
-    float theta = acos(sqrt(1.0 - Xi1));
-    float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
-
-    float xs = sinf(theta) * cosf(phi);
-    float ys = cosf(theta);
-    float zs = sinf(theta) * sinf(phi);
-
-    float3 y = make_float3(n);
-    float3 h = y;
-    if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
-      h.x = 1.0;
-    else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
-      h.y = 1.0;
-    else
-      h.z = 1.0;
-
-    float3 x = cross(h,y);//(h ^ y);
-    float3 z = cross(x, y);
-
-    float4 direction = make_float4(x * xs + y * ys + z * zs);
-    return normalize(direction);
-  }
-
-
-
- /* Material::Material() {}s
-
-  Material::Material(const Material &orig) {}
-
-  Material::~Material() {}
-*/
-/*
-  float4 BaseMaterial::shade(const Ray &ray, const float4 &sufaceNormal, const Light *lightSource) {
-	  return make_float4(0.f);
-  }
-*/
-
-  /*RayVector Material::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  RayVector Material::secondary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  Lambert::Lambert(const float4 &kd) : Material(), kd(kd) {}
-
-  Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
-
-  Lambert::~Lambert() {}
-*/
-   __device__ float4 Lambert::shade( const Ray &ray, const float4 &N, const Light *lightSource) {
+   __device__ float4 lambertShade(const gvt::render::data::primitives::CUDALambert* material,
+       const Ray &ray, const float4 &N, const Light *lightSource) {
 
   float4 V = ray.direction;
     V = normalize(V);
     float NdotL = fmaxf(0.f, std::abs(N * V));
-    Color lightSourceContrib = lightSource->contribution(ray);
-    Color diffuse = prod(lightSourceContrib, kd * NdotL) * ray.w;
+    float4 lightSourceContrib = lightSource->contribution(ray);
+    float4 diffuse = prod(lightSourceContrib, material->kd * NdotL) * ray.w;
     return diffuse;
   }
-/*
-  RayVector Lambert::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
 
-  RayVector Lambert::secundary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
 
-  Phong::Phong(const float4 &kd, const float4 &ks, const float &alpha) : Material(), kd(kd), ks(ks), alpha(alpha) {}
+//   __device__ float4 Phong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
+//    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
+//    float4 L = (float4)lightSource->light.position - hitPoint;
 
-  Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
+//    L = normalize(L);
+//    float NdotL = fmaxf(0.f, (N * L));
+//    float4 R = ((N * 2.f) * NdotL) - L;
+//    float VdotR = max(0.f, (R * (-1*ray.direction)));
+//    float power = VdotR * std::pow(VdotR, alpha);
 
-  Phong::~Phong() {}
+//    float4 lightSourceContrib = lightSource->contribution(ray); //  distance;
 
-  */
+//    float4 diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
+//    float4 specular = prod((lightSourceContrib * power), ks) * ray.w;
 
-   __device__ float4 Phong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-    float4 L = (float4)lightSource->light.position - hitPoint;
+//    float4 finalColor = (diffuse + specular);
+//    return finalColor;
+//  }
 
-    L = normalize(L);
-    float NdotL = fmaxf(0.f, (N * L));
-    float4 R = ((N * 2.f) * NdotL) - L;
-    float VdotR = max(0.f, (R * (-1*ray.direction)));
-    float power = VdotR * std::pow(VdotR, alpha);
+//   __device__ float4 BlinnPhong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
+//    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
+//    float4 L = (float4)lightSource->light.position - hitPoint;
+//    L = normalize(L);
+//    float NdotL = fmaxf(0.f, (N * L));
 
-    float4 lightSourceContrib = lightSource->contribution(ray); //  distance;
+//    float4 H = normalize((L - ray.direction));
 
-    Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-    Color specular = prod((lightSourceContrib * power), ks) * ray.w;
+//    float NdotH = (H * N);
+//    float power = NdotH * std::pow(NdotH, alpha);
 
-    Color finalColor = (diffuse + specular);
-    return finalColor;
-  }
+//    float4 lightSourceContrib = lightSource->contribution(ray);
 
-  /*
+//    float4 diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
+//    float4 specular = prod((lightSourceContrib * power), ks) * ray.w;
 
-  RayVector Phong::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
+//    float4 finalColor = (diffuse + specular);
+//    return finalColor;
+//  }
 
-  RayVector Phong::secundary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
 
-  BlinnPhong::BlinnPhong(const float4 &kd, const float4 &ks, const float &alpha)
-      : Material(), kd(kd), ks(ks), alpha(alpha) {}
+   __device__  float4 gvt::render::data::cuda_primitives::Shade(
+          gvt::render::data::primitives::Material* material,
+                             const Ray &ray,
+                             const float4 &sufaceNormal,
+                             const Light *lightSource,
+                             const float4 lightPostion)
+     {
 
-  BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
+                 float4 r;
+                   switch (material->type) {
+                   case CUDA_LAMBERT:
+                           r = lambertShade((CUDALambert*)material,
+                                            ray, sufaceNormal, lightSource);
+                           break;
+//                   case CUDA_PHONG:
+//                           r = phong.shade(ray, sufaceNormal, lightSource);
+//                           break;
+//                   case CUDA_BLINN:
+//                           r = blinn.shade(ray, sufaceNormal, lightSource);
+//                           break;
+                   default:
+                           break;
+                   }
+                 return r;
 
-  BlinnPhong::~BlinnPhong() {}
-*/
-   __device__ float4 BlinnPhong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-    float4 L = (float4)lightSource->light.position - hitPoint;
-    L = normalize(L);
-    float NdotL = fmaxf(0.f, (N * L));
 
-    float4 H = normalize((L - ray.direction));
-
-    float NdotH = (H * N);
-    float power = NdotH * std::pow(NdotH, alpha);
-
-    float4 lightSourceContrib = lightSource->contribution(ray);
-
-    Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-    Color specular = prod((lightSourceContrib * power), ks) * ray.w;
-
-    Color finalColor = (diffuse + specular);
-    return finalColor;
-  }
-/*
-  RayVector BlinnPhong::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  RayVector BlinnPhong::secundary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }*/
+   };

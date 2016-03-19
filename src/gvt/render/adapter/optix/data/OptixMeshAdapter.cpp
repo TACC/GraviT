@@ -68,6 +68,8 @@
 
 #include <float.h>
 
+#include <gvt/render/data/primitives/Material.h>
+
 
 __inline__ void cudaRayToGvtRay(
 		const gvt::render::data::cuda_primitives::Ray& cudaRay,
@@ -190,60 +192,20 @@ cudaCreateFaces(
 
 }
 
-gvt::render::data::cuda_primitives::Material *
+gvt::render::data::primitives::Material *
 cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
 
-	gvt::render::data::cuda_primitives::Material cudaMat;
-	gvt::render::data::cuda_primitives::Material *cudaMat_ptr;
+	gvt::render::data::primitives::Material cudaMat;
+	gvt::render::data::primitives::Material *cudaMat_ptr;
 
 	gpuErrchk(
 			cudaMalloc((void ** ) &cudaMat_ptr,
-					sizeof(gvt::render::data::cuda_primitives::Material)));
+					sizeof(gvt::render::data::primitives::Material)));
 
-	if (dynamic_cast<gvt::render::data::primitives::Lambert *>(gvtMat) != NULL) {
-
-		gvtMat->pack((unsigned char *) &(cudaMat.lambert.kd));
-
-		cudaMat.type = gvt::render::data::cuda_primitives::LAMBERT;
-
-	} else if (dynamic_cast<gvt::render::data::primitives::Phong *>(gvtMat) !=
-	NULL) {
-
-		unsigned char *buff = new unsigned char[sizeof(glm::vec3) * 2
-				+ sizeof(float)];
-
-		gvtMat->pack(buff);
-
-		cudaMat.phong.kd = *(float4 *) buff;
-		cudaMat.phong.ks = *(float4 *) (buff + 16);
-		cudaMat.phong.alpha = *(float *) (buff + 32);
-
-		delete[] buff;
-		cudaMat.type = gvt::render::data::cuda_primitives::PHONG;
-
-	} else if (dynamic_cast<gvt::render::data::primitives::BlinnPhong *>(gvtMat)
-			!= NULL) {
-
-		unsigned char *buff = new unsigned char[sizeof(glm::vec3) * 2
-				+ sizeof(float)];
-
-		gvtMat->pack(buff);
-
-		cudaMat.blinn.kd = *(float4 *) buff;
-		cudaMat.blinn.ks = *(float4 *) (buff + 16);
-		cudaMat.blinn.alpha = *(float *) (buff + 32);
-
-		delete[] buff;
-		cudaMat.type = gvt::render::data::cuda_primitives::BLINN;
-
-	} else {
-		std::cout << "Unknown material" << std::endl;
-		return NULL;
-	}
 
 	gpuErrchk(
 			cudaMemcpy(cudaMat_ptr, &cudaMat,
-					sizeof(gvt::render::data::cuda_primitives::Material),
+					sizeof(gvt::render::data::primitives::Material),
 					cudaMemcpyHostToDevice));
 
 	return cudaMat_ptr;

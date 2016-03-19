@@ -289,18 +289,18 @@ public:
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
             case gvt::render::adapter::Manta:
-              adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
+              adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh,integrator);
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
               case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh, shadeAlgorithm);
+                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh, integrator);
                 break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
               case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh, shadeAlgorithm);
+                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh, integrator);
                 break;
 #endif
             default:

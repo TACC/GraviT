@@ -31,7 +31,7 @@
 #include <gvt/render/integrator/Pathtracer.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
-#include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/Materials.h>
 
 
 using namespace gvt::render;

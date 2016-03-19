@@ -31,6 +31,7 @@
 #include <cmath>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/EmbreeMaterial.h>
 
 using namespace gvt::render::actor;
 using namespace gvt::render::data::primitives;
