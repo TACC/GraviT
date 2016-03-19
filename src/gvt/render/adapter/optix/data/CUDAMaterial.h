@@ -28,10 +28,8 @@
  * Created on February 4, 2016, 19:00 PM
  */
 
-
 #ifndef GVT_RENDER_DATA_PRIMITIVES_CUDAMATERIAL_CUH
 #define GVT_RENDER_DATA_PRIMITIVES_CUDAMATERIAL_CUH
-
 
 #include <vector_functions.h>
 #include <gvt/render/data/primitives/Material.h>
@@ -45,53 +43,47 @@ namespace primitives {
 
 struct CUDALambert {
 
-    CUDALambert(const glm::vec3& _kd){
-      kd = make_float4(_kd[0],_kd[1],_kd[2], 0.0f);
-      type = CUDA_LAMBERT;
-    }
+  CUDALambert(const glm::vec3 &_kd) {
+    kd = make_float4(_kd[0], _kd[1], _kd[2], 0.0f);
+    type = CUDA_LAMBERT;
+  }
 
-    data::primitives::MATERIAL_TYPE type;
+  data::primitives::MATERIAL_TYPE type;
   float4 kd;
 };
 
 struct CUDAPhong {
 
-    CUDAPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
-      kd = make_float4(_kd[0],_kd[1],_kd[2], 0.0f);
-      ks = make_float4(_ks[0],_ks[1],_ks[2], 0.0f);
-      alpha=_alpha;
-      type = CUDA_PHONG;
-    }
+  CUDAPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha) {
+    kd = make_float4(_kd[0], _kd[1], _kd[2], 0.0f);
+    ks = make_float4(_ks[0], _ks[1], _ks[2], 0.0f);
+    alpha = _alpha;
+    type = CUDA_PHONG;
+  }
 
-    data::primitives::MATERIAL_TYPE type;
- float4 kd;
- float4 ks;
+  data::primitives::MATERIAL_TYPE type;
+  float4 kd;
+  float4 ks;
   float alpha;
 };
 
 class CUDABlinnPhong {
 
-    CUDABlinnPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
-      kd = make_float4(_kd[0],_kd[1],_kd[2], 0.0f);
-      ks = make_float4(_ks[0],_ks[1],_ks[2], 0.0f);
-      alpha=_alpha;
-      type = CUDA_BLINN;
-    }
+  CUDABlinnPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha) {
+    kd = make_float4(_kd[0], _kd[1], _kd[2], 0.0f);
+    ks = make_float4(_ks[0], _ks[1], _ks[2], 0.0f);
+    alpha = _alpha;
+    type = CUDA_BLINN;
+  }
 
-
-   data::primitives::MATERIAL_TYPE type;
-   float4 kd;
-
+  data::primitives::MATERIAL_TYPE type;
+  float4 kd;
   float4 ks;
   float alpha;
 };
-
-
 }
 }
 }
 }
 
 #endif
-
-
