@@ -323,8 +323,8 @@ struct embreeParallelTrace {
         lightPos = light->position;
       }
 
-      const float multiplier = 16.0f * std::numeric_limits<float>::epsilon();
-      const glm::vec3 origin = r.origin + r.direction * (r.t - multiplier);
+      const float multiplier = 1.f - 16.0f * gvt::render::actor::Ray::RAY_EPSILON;
+      const glm::vec3 origin = r.origin + r.direction * (r.t * multiplier);
       const glm::vec3 dir = light->position - origin;
       const float t_max = glm::length(dir);
 
@@ -579,7 +579,7 @@ struct embreeParallelTrace {
               if (ndepth > 0 && r.w > p) {
                 r.type = gvt::render::actor::Ray::SECONDARY;
                 const float multiplier =
-                    1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
+                    1.0f - 16.0f * gvt::render::actor::Ray::RAY_EPSILON; // TODO: move out somewhere / make static
                 const float t_secondary = multiplier * r.t;
                 r.origin = r.origin + r.direction * t_secondary;
 
