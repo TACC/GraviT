@@ -87,15 +87,10 @@ public:
 
   const static float RAY_EPSILON;
   // clang-format on
-  inline Ray() {}
-  inline Ray(glm::vec3 origin, glm::vec3 direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
-      : type(type), w(contribution), depth(depth) {
-
-    this->origin = origin;
-    setDirection(direction);
-    t = FLT_MAX;
-    id = -1;
-  }
+  inline Ray() /*: t_min(FLT_EPSILON), t_max(FLT_MAX), t(FLT_MAX), id(-1), depth(8), w(0.f), type(PRIMARY) */ {}
+  inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
+      : origin(_origin), t_min(FLT_EPSILON), direction(glm::normalize(_direction)), t_max(FLT_MAX), t(FLT_MAX), id(-1),
+        w(contribution), type(type) {}
 
   inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
 
@@ -110,15 +105,15 @@ public:
 
   ~Ray(){};
 
-  void setDirection(glm::vec3 dir);
-  // void setDirection(double *dir);
-  // void setDirection(float *dir);
-
   /// returns size in bytes for the ray information to be sent via MPI
   size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
-  int pack(unsigned char *buffer);
+  int pack(unsigned char *buffer) {
+    unsigned char *buf = buffer;
+    std::memcpy(buf, data, packedSize());
+    return packedSize();
+  }
 
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
     stream << ray.origin << "-->" << ray.direction << " [" << ray.type << "]";
@@ -138,7 +133,7 @@ public:
       float w;   ///<! weight of image contribution
       int type;
     };
-    unsigned char data[] GVT_ALIGN(16);
+    unsigned char data[64] GVT_ALIGN(16);
   };
 
 protected:

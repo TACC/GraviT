@@ -121,7 +121,7 @@ public:
             if (from == instanceSetID[i]) continue;
             const primitives::Box3D &ibbox = *instanceSetBB[i];
             int hit[simd_width];
-            if (rp.intersect(ibbox, hit)) {
+            if (rp.intersect(ibbox, hit, true)) {
               for (int o = 0; o < simd_width; ++o) {
                 if (hit[o] == 1 && rp.mask[o] == 1) {
                   ret[offset + o].next = instanceSetID[i];

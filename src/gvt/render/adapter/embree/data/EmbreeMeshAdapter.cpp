@@ -59,28 +59,24 @@
 
 // TODO: add logic for other packet sizes
 
-#ifdef GVT_SSE_TARGET
-#define GVT_EMBREE_ALGORITHM RTC_INTERSECT4
-#define GVT_EMBREE_PACKET_SIZE 4
-#define GVT_EMBREE_PACKET_TYPE RTCRay4
-#define GVT_EMBREE_INTERSECTION rtcIntersect4
-#define GVT_EMBREE_OCCULUSION rtcOccluded4
-#endif
-
-#ifdef GVT_AVX_TARGET
+#if defined(GVT_AVX_TARGET)
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT8
 #define GVT_EMBREE_PACKET_SIZE 8
 #define GVT_EMBREE_PACKET_TYPE RTCRay8
 #define GVT_EMBREE_INTERSECTION rtcIntersect8
 #define GVT_EMBREE_OCCULUSION rtcOccluded8
-#endif
-
-#ifdef GVT_AVX2_TARGET
+#elif defined(GVT_AVX2_TARGET)
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
 #define GVT_EMBREE_PACKET_SIZE 16
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
 #define GVT_EMBREE_INTERSECTION rtcIntersect16
 #define GVT_EMBREE_OCCULUSION rtcOccluded16
+#else
+#define GVT_EMBREE_ALGORITHM RTC_INTERSECT4
+#define GVT_EMBREE_PACKET_SIZE 4
+#define GVT_EMBREE_PACKET_TYPE RTCRay4
+#define GVT_EMBREE_INTERSECTION rtcIntersect4
+#define GVT_EMBREE_OCCULUSION rtcOccluded4
 #endif
 
 using namespace gvt::render::actor;
@@ -327,23 +323,18 @@ struct embreeParallelTrace {
         lightPos = light->position;
       }
 
-      const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
-      const float t_shadow = multiplier * r.t;
-
-      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const float multiplier = 16.0f * std::numeric_limits<float>::epsilon();
+      const glm::vec3 origin = r.origin + r.direction * (r.t - multiplier);
       const glm::vec3 dir = light->position - origin;
-      const float t_max = dir.length();
+      const float t_max = glm::length(dir);
 
       // note: ray copy constructor is too heavy, so going to build it manually
-      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+      shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
 
       Ray &shadow_ray = shadowRays.back();
-      shadow_ray.t = r.t;
+      shadow_ray.t = FLT_MAX;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
-
-      // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
-      // normal, lights[lindex]);
       shadow_ray.color = c;
     }
   }
@@ -593,7 +584,7 @@ struct embreeParallelTrace {
 
                 // TODO: remove this dependency on mesh, store material object in the database
                 // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-                r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
+                r.direction = glm::normalize(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
 
                 r.w = r.w * glm::dot(r.direction, normal);
                 r.depth = ndepth;

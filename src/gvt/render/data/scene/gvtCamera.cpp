@@ -248,21 +248,18 @@ void gvtPerspectiveCamera::generateRays() {
               x *= horz;
               y = float(j) * hmult - 1.0 + (k - half_sample) * offset + offset * (randEngine.fastrand(0, 1) - 0.5);
               y *= vert;
-              // calculate ray direction in camera space;
-              // camera_space_ray_direction = camera_normal_basis_vector + x * camera_horiz_basis_vector +
-
               glm::vec3 camera_space_ray_direction;
               camera_space_ray_direction[0] = cam2wrld[0][0] * x + cam2wrld[0][1] * y + z[0];
               camera_space_ray_direction[1] = cam2wrld[1][0] * x + cam2wrld[1][1] * y + z[1];
               camera_space_ray_direction[2] = cam2wrld[2][0] * x + cam2wrld[2][1] * y + z[2];
-
               Ray &ray = rays[ridx];
               ray.id = idx;
+              ray.t_min = FLT_EPSILON;
+              ray.t = ray.t_max = FLT_MAX;
               ray.w = contri;
               ray.origin = eye_point;
               ray.type = Ray::PRIMARY;
-              // transforray to world coordinate space;
-              ray.setDirection(camera_space_ray_direction);
+              ray.direction = glm::normalize(camera_space_ray_direction);
               ray.depth = depth;
             }
           }

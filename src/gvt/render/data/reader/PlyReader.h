@@ -34,28 +34,28 @@
 #include <gvt/core/Math.h>
 #include <gvt/render/data/Primitives.h>
 
-namespace gvt {
-namespace render {
-namespace data {
-namespace domain {
-namespace reader {
-/// read ply formatted geometry data
-/** read ply format files and return a Mesh object
-*/
-class PlyReader {
-public:
-  PlyReader(const std::string filename = "");
-  virtual ~PlyReader();
-
-  gvt::render::data::primitives::Mesh *getMesh() { return plyMesh; }
-
-private:
-  gvt::render::data::primitives::Mesh *plyMesh;
-  bool computeNormals;
-};
-}
-}
-}
-}
-}
+// namespace gvt {
+// namespace render {
+// namespace data {
+// namespace domain {
+// namespace reader {
+// /// read ply formatted geometry data
+// /** read ply format files and return a Mesh object
+// */
+// class PlyReader {
+// public:
+//   PlyReader(const std::string filename = "");
+//   virtual ~PlyReader();
+//
+//   gvt::render::data::primitives::Mesh *getMesh() { return plyMesh; }
+//
+// private:
+//   gvt::render::data::primitives::Mesh *plyMesh;
+//   bool computeNormals;
+// };
+// }
+// }
+// }
+// }
+// }
 #endif /* GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H */
