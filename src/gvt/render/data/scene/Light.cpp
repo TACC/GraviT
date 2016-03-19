@@ -45,7 +45,7 @@ Light::Light(const Light &orig) : position(orig.position) {}
 
 Light::~Light() {}
 
-glm::vec3 Light::contribution(const Ray &ray) const { return Color(); }
+glm::vec3 Light::contribution(const const glm::vec3 &hitpoint) const { return Color(); }
 
 PointLight::PointLight(const glm::vec3 position, const glm::vec3 color) : Light(position), color(color) {
   LightT = Point;
@@ -55,8 +55,8 @@ PointLight::PointLight(const PointLight &orig) : Light(orig), color(orig.color) 
 
 PointLight::~PointLight() {}
 
-glm::vec3 PointLight::contribution(const Ray &ray) const {
-  float distance = 1.f / glm::length(position - ray.origin);
+glm::vec3 PointLight::contribution(const glm::vec3 &hitpoint) const {
+  float distance = 1.f / glm::length(position - hitpoint);
   distance = (distance > 1.f) ? 1.f : distance;
   return color * distance;
 }
@@ -67,7 +67,7 @@ AmbientLight::AmbientLight(const AmbientLight &orig) : Light(orig), color(orig.c
 
 AmbientLight::~AmbientLight() {}
 
-glm::vec3 AmbientLight::contribution(const Ray &ray) const { return color; }
+glm::vec3 AmbientLight::contribution(const glm::vec3 &ray) const { return color; }
 
 AreaLight::AreaLight(const glm::vec3 position, const glm::vec3 color, glm::vec3 lightNormal, float lightHeight,
                      float lightWidth)
@@ -126,8 +126,8 @@ glm::vec3 AreaLight::GetPosition(unsigned int *seedVal) {
   return glm::vec3(position[0] + xCoord, position[1] + yCoord, position[2] + zCoord);
 }
 
-glm::vec3 AreaLight::contribution(const Ray &ray) const {
-  float distance = 1.f / glm::length(position - ray.origin);
+glm::vec3 AreaLight::contribution(const glm::vec3 &hitpoint) const {
+  float distance = 1.f / glm::length(position - hitpoint);
   distance = (distance > 1.f) ? 1.f : distance;
   return color * (distance);
 }
