@@ -959,7 +959,7 @@ void ConfigSceneCubeCone() {
       }
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
+    mesh->generateNormals();
     // add cone mesh to the database
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
@@ -1030,7 +1030,7 @@ void ConfigSceneCubeCone() {
       }
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
+    mesh->generateNormals();
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
