@@ -51,7 +51,7 @@ public:
 	BaseLight(const float4 position = make_float4(0.f));
   virtual ~BaseLight();
 */
-	   __device__ float4 contribution(const Ray &ray) const;
+	   __device__ float4 contribution(const float4 &hit) const;
 
 
   float4 position;
@@ -68,7 +68,7 @@ public:
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 */
-	   __device__ float4 contribution(const Ray &ray) const;
+	   __device__ float4 contribution(const float4 &hit) const;
 
   float4 color;
 };
@@ -80,7 +80,7 @@ public:
 
   virtual ~PointLight();
 */
-	   __device__  float4 contribution(const Ray &ray) const;
+	   __device__  float4 contribution(const float4 &hit) const;
 
   float4 color;
 };
@@ -94,17 +94,17 @@ typedef struct {
 		PointLight point;
 	};
 
-	   __device__ float4 contribution(const Ray &ray) const {
+	   __device__ float4 contribution(const float4 &hit) const {
 		float4 r;
 		switch (type) {
 		case BASE_LIGHT:
-			r = light.contribution(ray);
+			r = light.contribution(hit);
 			break;
 		case AMBIENT:
-			r = ambient.contribution(ray);
+			r = ambient.contribution(hit);
 			break;
 		case POINT:
-			r = point.contribution(ray);
+			r = point.contribution(hit);
 			break;
 		default:
 			break;

@@ -305,7 +305,7 @@ void cudaGetRays(size_t& localDispatchSize,
 
 						cudaRayToGvtRay(cudaRay, gvtRay);
 
-						gvtRay.setDirection(gvtRay.direction);
+						//gvtRay.setDirection(gvtRay.direction);
 					}
 				}
 			}, ap);
@@ -856,8 +856,8 @@ struct OptixParallelTrace {
 
 				gpuErrchk(cudaStreamSynchronize(cudaGvtCtx.stream)); //get validRayLeft
 
-				if (cudaGvtCtx.validRayLeft)
-					printf("Valid Rays left..\n");
+//				if (cudaGvtCtx.validRayLeft)
+//					printf("Valid Rays left..\n");
 
 			}
 

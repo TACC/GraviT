@@ -218,7 +218,9 @@ void PrintHelpAndSettings() {
     PrintHelpString(15, fontOffset, "h", "toggle Help");
 
     fontOffset += 15;
-    PrintHelpString(15, fontOffset, "frame time", boost::timer::format(lastFrameTime).c_str());
+    // PrintHelpString(15, fontOffset, "frame time", boost::timer::format(lastFrameTime).c_str());
+
+    // PrintHelpString(15, fontOffset, "frame time", lastFrameTime.format().c_str());
 
     glPopMatrix();
 
@@ -960,7 +962,7 @@ void ConfigSceneCubeCone() {
       }
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
+    mesh->generateNormals();
     // add cone mesh to the database
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
@@ -970,8 +972,8 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
     Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 8;
-    glm::vec3 points[8];
+    int numPoints = 24;
+    glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
     points[1] = glm::vec3(0.5, -0.5, 0.5);
     points[2] = glm::vec3(0.5, 0.5, 0.5);
@@ -981,24 +983,47 @@ void ConfigSceneCubeCone() {
     points[6] = glm::vec3(0.5, 0.5, -0.5);
     points[7] = glm::vec3(-0.5, 0.5, -0.5);
 
+    points[8] = glm::vec3(0.5, 0.5, 0.5);
+    points[9] = glm::vec3(-0.5, 0.5, 0.5);
+    points[10] = glm::vec3(0.5, 0.5, -0.5);
+    points[11] = glm::vec3(-0.5, 0.5, -0.5);
+
+    points[12] = glm::vec3(-0.5, -0.5, 0.5);
+    points[13] = glm::vec3(0.5, -0.5, 0.5);
+    points[14] = glm::vec3(-0.5, -0.5, -0.5);
+    points[15] = glm::vec3(0.5, -0.5, -0.5);
+
+    points[16] = glm::vec3(0.5, -0.5, 0.5);
+    points[17] = glm::vec3(0.5, 0.5, 0.5);
+    points[18] = glm::vec3(0.5, -0.5, -0.5);
+    points[19] = glm::vec3(0.5, 0.5, -0.5);
+
+    points[20] = glm::vec3(-0.5, -0.5, 0.5);
+    points[21] = glm::vec3(-0.5, 0.5, 0.5);
+    points[22] = glm::vec3(-0.5, -0.5, -0.5);
+    points[23] = glm::vec3(-0.5, 0.5, -0.5);
+
     for (int i = 0; i < numPoints; i++) {
       mesh->addVertex(points[i]);
     }
     // faces are 1 indexed
     mesh->addFace(1, 2, 3);
     mesh->addFace(1, 3, 4);
-    mesh->addFace(2, 6, 7);
-    mesh->addFace(2, 7, 3);
+
+    mesh->addFace(17, 19, 20);
+    mesh->addFace(17, 20, 18);
+
     mesh->addFace(6, 5, 8);
     mesh->addFace(6, 8, 7);
-    mesh->addFace(5, 1, 4);
-    mesh->addFace(5, 4, 8);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 2);
-    mesh->addFace(4, 3, 7);
-    mesh->addFace(4, 7, 8);
-    mesh->generateNormals();
 
+    mesh->addFace(23, 21, 22);
+    mesh->addFace(23, 22, 24);
+
+    mesh->addFace(10, 9, 11);
+    mesh->addFace(10, 11, 12);
+
+    mesh->addFace(13, 15, 16);
+    mesh->addFace(13, 16, 14);
     // calculate bbox
     glm::vec3 lower = points[0], upper = points[0];
     for (int i = 1; i < numPoints; i++) {
@@ -1008,7 +1033,7 @@ void ConfigSceneCubeCone() {
       }
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
+    mesh->generateNormals();
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
@@ -1285,7 +1310,7 @@ void ConfigEnzo(std::string rootdir) {
   gvt::core::DBNodeH lightNodes = root["Lights"];
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+  lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
   // camera
   gvt::core::DBNodeH camNode = root["Camera"];
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
@@ -1325,11 +1350,13 @@ int main(int argc, char *argv[]) {
 
   cmd.parse(argc, argv);
 
-  if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
-  } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
-  }
+   if (!cmd.isSet("threads")) {
+     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+   } else {
+     tbb::task_scheduler_init init(cmd.get<int>("threads"));
+   }
+
+  //tbb::task_scheduler_init init(1);
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1415,6 +1442,19 @@ int main(int argc, char *argv[]) {
 
   imageptr = new Image(width, height, "spoot");
   imagebuffer = imageptr->GetBuffer();
+
+
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
+  camNode["jitterWindowSize"] = (float)0.5;
+
+  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
 
   mycamera.setFilmsize(root["Film"]["width"].value().toInteger(), root["Film"]["height"].value().toInteger());
 

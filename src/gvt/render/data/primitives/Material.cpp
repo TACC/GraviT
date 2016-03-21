@@ -59,9 +59,9 @@ Lambert::~Lambert() {}
 
 glm::vec3 Lambert::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSource, const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-  glm::vec3 L = lightSource->position - hitPoint;
+  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
   float NdotL = std::max(0.f, std::abs(glm::dot(N, L)));
-  Color lightSourceContrib = lightSource->contribution(ray);
+  Color lightSourceContrib = lightSource->contribution(hitPoint);
   Color diffuse = (lightSourceContrib * kd) * (NdotL * ray.w);
   return diffuse;
 }
@@ -85,7 +85,7 @@ glm::vec3 Phong::shade(const Ray &ray, const glm::vec3 &N, const Light *lightSou
   float VdotR = std::max(0.f, glm::dot(R, (-ray.direction)));
   float power = VdotR * std::pow(VdotR, alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(ray); //  distance;
+  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint); //  distance;
 
   Color finalColor = (lightSourceContrib * kd) * (NdotL * ray.w);
   finalColor += (lightSourceContrib * ks) * (power * ray.w);
@@ -114,7 +114,7 @@ glm::vec3 BlinnPhong::shade(const Ray &ray, const glm::vec3 &N, const Light *lig
   float NdotH = std::max(0.f, glm::dot(H, N));
   float power = NdotH * std::pow(NdotH, alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(ray);
+  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
 
   Color diffuse = (lightSourceContrib * kd) * (NdotL * ray.w);
   Color specular = (lightSourceContrib * ks) * (power * ray.w);

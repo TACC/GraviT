@@ -64,11 +64,15 @@ using namespace gvt::render::data::cuda_primitives;
 */
    __device__ float4 Lambert::shade( const Ray &ray, const float4 &N, const Light *lightSource) {
 
-  float4 V = ray.direction;
-    V = normalize(V);
-    float NdotL = fmaxf(0.f, std::abs(N * V));
-    Color lightSourceContrib = lightSource->contribution(ray);
-    Color diffuse = prod(lightSourceContrib, kd * NdotL) * ray.w;
+
+    float4 hitPoint = ray.origin + ray.direction * ray.t;
+    float4 L = normalize(lightSource->light.position - hitPoint);
+    float NdotL = fmaxf(0.f, fabs(N * L));
+    Color lightSourceContrib = lightSource->contribution(hitPoint);
+
+    Color diffuse = prod(lightSourceContrib, kd) * (NdotL * ray.w);
+
+
     return diffuse;
   }
 /*
@@ -85,21 +89,24 @@ using namespace gvt::render::data::cuda_primitives;
   */
 
    __device__ float4 Phong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-    float4 L = (float4)lightSource->light.position - hitPoint;
 
-    L = normalize(L);
-    float NdotL = fmaxf(0.f, (N * L));
+
+   float4 hitPoint = ray.origin + (ray.direction * ray.t);
+   float4 L =normalize(lightSource->light.position - hitPoint);
+
+    float NdotL =fmaxf(0.f, (N * L));
     float4 R = ((N * 2.f) * NdotL) - L;
-    float VdotR = max(0.f, (R * (-1*ray.direction)));
-    float power = VdotR * std::pow(VdotR, alpha);
+    float4 invDir = make_float4(-ray.direction.x, -ray.direction.y, -ray.direction.z, -ray.direction.w);
+    float VdotR = fmaxf(0.f, (R * invDir));
+    float power = VdotR * pow(VdotR, alpha);
 
-    float4 lightSourceContrib = lightSource->contribution(ray); //  distance;
+    float4 lightSourceContrib = lightSource->contribution(hitPoint); //  distance;
 
-    Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-    Color specular = prod((lightSourceContrib * power), ks) * ray.w;
+    Color finalColor = prod(lightSourceContrib , kd) * (NdotL * ray.w);
+    finalColor += prod(lightSourceContrib , ks) * (power * ray.w);
+    return finalColor;
 
-    Color finalColor = (diffuse + specular);
+
     return finalColor;
   }
 
@@ -117,23 +124,40 @@ using namespace gvt::render::data::cuda_primitives;
   BlinnPhong::~BlinnPhong() {}
 */
    __device__ float4 BlinnPhong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-    float4 L = (float4)lightSource->light.position - hitPoint;
-    L = normalize(L);
-    float NdotL = fmaxf(0.f, (N * L));
+//    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
+//    float4 L = (float4)lightSource->light.position - hitPoint;
+//    L = normalize(L);
+//    float NdotL = fmaxf(0.f, (N * L));
+//
+//    float4 H = normalize((L - ray.direction));
+//
+//    float NdotH = (H * N);
+//    float power = NdotH * std::pow(NdotH, alpha);
+//
+//    float4 lightSourceContrib = lightSource->contribution(ray);
+//
+//    Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
+//    Color specular = prod((lightSourceContrib * power), ks) * ray.w;
+//
+//    Color finalColor = (diffuse + specular);
+//    return finalColor;
 
-    float4 H = normalize((L - ray.direction));
+	   float4 hitPoint = ray.origin + (ray.direction * ray.t);
+	   float4 L = normalize(lightSource->light.position - hitPoint);
+	   float NdotL = fmaxf(0.f, (N* L));
 
-    float NdotH = (H * N);
-    float power = NdotH * std::pow(NdotH, alpha);
+	   float4 H = normalize(L - ray.direction);
 
-    float4 lightSourceContrib = lightSource->contribution(ray);
+	   float NdotH = fmaxf(0.f, (H * N));
+	   float power = NdotH * pow(NdotH, alpha);
 
-    Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-    Color specular = prod((lightSourceContrib * power), ks) * ray.w;
+	   float4 lightSourceContrib = lightSource->contribution(hitPoint);
 
-    Color finalColor = (diffuse + specular);
-    return finalColor;
+	   Color diffuse = prod(lightSourceContrib , kd) * (NdotL * ray.w);
+	   Color specular = prod(lightSourceContrib , ks) * (power * ray.w);
+
+	   Color finalColor = (diffuse + specular);
+	   return finalColor;
   }
 /*
   RayVector BlinnPhong::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
