@@ -46,8 +46,7 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh,
-		  gvt::render::Integrator* integrator);
+  HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
 
   /**
    * Release Embree copy of the mesh.

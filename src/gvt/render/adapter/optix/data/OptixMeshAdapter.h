@@ -115,7 +115,7 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh, gvt::render::Integrator* integrator);
+  OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
 
   /**
    * Release Embree copy of the mesh.

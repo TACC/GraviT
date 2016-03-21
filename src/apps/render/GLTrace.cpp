@@ -1276,7 +1276,7 @@ void ConfigEnzo(std::string rootdir) {
     {
   	  Material* m = new Material();
   	  m->type = LAMBERT;
-  		  m->kd = glm::vec3(0.5, 0.5, 0.5);
+  	  m->kd = glm::vec3(0.5, 0.5, 0.5);
 
 
   	Mesh *mesh = new Mesh(m);
@@ -1445,7 +1445,7 @@ int main(int argc, char *argv[]) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Optix;
+  schedNode["adapter"] = gvt::render::adapter::Embree;
 
   camNode = root["Camera"];
 

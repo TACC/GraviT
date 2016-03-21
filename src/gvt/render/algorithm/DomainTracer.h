@@ -40,7 +40,6 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/integrator/Pathtracer.h>
 
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
@@ -202,9 +201,6 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
-    gvt::render::Integrator* integrator = new gvt::render::Pathtracer(lights);
-
-
     clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
@@ -284,23 +280,23 @@ public:
             switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
               case gvt::render::adapter::Embree:
-                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh, integrator);
+                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
                 break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
             case gvt::render::adapter::Manta:
-              adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh,integrator);
+              adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
               case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh, integrator);
+                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
                 break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
               case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh, integrator);
+                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
                 break;
 #endif
             default:

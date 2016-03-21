@@ -472,8 +472,7 @@ struct OptixHit {
 
 OptixContext *OptixContext::_singleton;
 
-OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *m,
-		gvt::render::Integrator* integrator) : Adapter(m, integrator),
+OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *m) : Adapter(m),
 		packetSize(GVT_OPTIX_PACKET_SIZE), optix_context_(
 				OptixContext::singleton()->context()) {
 
