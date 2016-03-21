@@ -38,20 +38,20 @@ using namespace gvt::render::data::cuda_primitives;
 
 //BaseLight::~BaseLight() {}
 
-__device__ float4 BaseLight::contribution(const Ray &ray) const { return make_float4(0.f); }
+__device__ float4 BaseLight::contribution(const float4 &hit) const { return make_float4(0.f); }
 
 //PointLight::PointLight(const float4 position, const float4 color) : BaseLight(position), color(color) {}
 
 //PointLight::~PointLight() {}
 
-__device__ float4 PointLight::contribution(const Ray &ray) const {
-  float distance = 1.f / length(((float4)position - ray.origin));
+__device__ float4 PointLight::contribution(const float4 &hit) const {
+  float distance = 1.f / length(((float4)position -hit));
   distance = (distance > 1.f) ? 1.f : distance;
-  return color * (distance + 0.5f);
+  return color * (distance);
 }
 
 //AmbientLight::AmbientLight(const float4 color) : BaseLight(), color(color) {}
 
 //AmbientLight::~AmbientLight() {}
 
-__device__ float4 AmbientLight::contribution(const Ray &ray) const { return color; }
+__device__ float4 AmbientLight::contribution(const float4 &hit) const { return color; }

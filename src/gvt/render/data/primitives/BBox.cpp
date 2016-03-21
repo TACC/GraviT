@@ -86,7 +86,7 @@ void Box3D::expand(glm::vec3 &v) {
 //   glm::vec3 u = (bounds_max - origin) * inv;
 //   glm::vec3 m = glm::min(l, u);
 //   float tmin = fastmax(fastmax(m.x, m.y), m.z);
-//   if (tmin < FLT_EPSILON) return false;
+//   if (tmin < gvt::render::actor::Ray::RAY_EPSILON) return false;
 //
 //   glm::vec3 M = glm::max(l, u);
 //   float tmax = fastmin(fastmin(M.x, M.y), M.z);
@@ -94,7 +94,7 @@ void Box3D::expand(glm::vec3 &v) {
 //   if (tmax < 0 || tmin > tmax) return false;
 //   t = (tmin > 0) ? tmin : -1;
 //
-//   return (t > FLT_EPSILON);
+//   return (t > gvt::render::actor::Ray::RAY_EPSILON);
 // }
 
 bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const {
@@ -111,7 +111,7 @@ bool Box3D::intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, flo
   tmax = fastmin(fastmin(fastmax(t1, t2), fastmax(t3, t4)), fastmax(t5, t6));
   if (tmax < 0 || tmin > tmax) return false;
   // t = (tmin > 0) ? tmin : tmax;
-  return true; //(t > FLT_EPSILON);
+  return true; //(t > gvt::render::actor::Ray::RAY_EPSILON);
 }
 
 // returns dimension with maximum extent

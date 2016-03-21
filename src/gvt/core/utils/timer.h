@@ -47,7 +47,7 @@ struct timer {
   inline void settext(std::string str) { text = str; }
   inline ~timer() {
     auto end = clock_type::now();
-    if (MPI::COMM_WORLD.Get_rank() ==0 && !text.empty()) print();
+    if (MPI::COMM_WORLD.Get_rank() == 0 && !text.empty()) print();
   }
 
   inline void start() {
@@ -83,25 +83,25 @@ struct timer {
   inline timer operator+=(timer &other) {
     timer ret(false);
     ret.total_elapsed += other.total_elapsed;
-    return std::move(ret);
+    return ret;
   }
 
   inline timer operator-=(timer &other) {
     timer ret(false);
     ret.total_elapsed -= other.total_elapsed;
-    return std::move(ret);
+    return ret;
   }
 
   friend inline timer operator+(const timer &a, const timer &b) {
     timer ret(false);
     ret.total_elapsed = a.total_elapsed + b.total_elapsed;
-    return std::move(ret);
+    return ret;
   }
 
   friend inline timer operator-(const timer &a, const timer &b) {
     timer ret(false);
     ret.total_elapsed = a.total_elapsed - b.total_elapsed;
-    return std::move(ret);
+    return ret;
   }
 
   // inline double format() const {

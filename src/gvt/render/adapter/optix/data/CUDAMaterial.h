@@ -67,7 +67,7 @@ struct CUDAPhong {
   float alpha;
 };
 
-class CUDABlinnPhong {
+struct CUDABlinnPhong {
 
   CUDABlinnPhong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha) {
     kd = make_float4(_kd[0], _kd[1], _kd[2], 0.0f);

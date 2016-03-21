@@ -195,16 +195,14 @@ cudaCreateFaces(
 gvt::render::data::primitives::Material *
 cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
 
-	gvt::render::data::primitives::Material cudaMat;
 	gvt::render::data::primitives::Material *cudaMat_ptr;
 
 	gpuErrchk(
 			cudaMalloc((void ** ) &cudaMat_ptr,
 					sizeof(gvt::render::data::primitives::Material)));
 
-
 	gpuErrchk(
-			cudaMemcpy(cudaMat_ptr, &cudaMat,
+			cudaMemcpy(cudaMat_ptr, gvtMat,
 					sizeof(gvt::render::data::primitives::Material),
 					cudaMemcpyHostToDevice));
 
@@ -267,7 +265,7 @@ void cudaGetRays(size_t& localDispatchSize,
 
 						cudaRayToGvtRay(cudaRay, gvtRay);
 
-						gvtRay.setDirection(gvtRay.direction);
+						//gvtRay.setDirection(gvtRay.direction);
 					}
 				}
 			}, ap);
@@ -819,8 +817,8 @@ struct OptixParallelTrace {
 
 				gpuErrchk(cudaStreamSynchronize(cudaGvtCtx.stream)); //get validRayLeft
 
-				if (cudaGvtCtx.validRayLeft)
-					printf("Valid Rays left..\n");
+//				if (cudaGvtCtx.validRayLeft)
+//					printf("Valid Rays left..\n");
 
 			}
 

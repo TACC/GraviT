@@ -15,53 +15,57 @@ using namespace gvt::render::data::primitives;
    __device__ float4 lambertShade(const gvt::render::data::primitives::CUDALambert* material,
        const Ray &ray, const float4 &N, const Light *lightSource) {
 
-  float4 V = ray.direction;
-    V = normalize(V);
-    float NdotL = fmaxf(0.f, std::abs(N * V));
-    float4 lightSourceContrib = lightSource->contribution(ray);
-    float4 diffuse = prod(lightSourceContrib, material->kd * NdotL) * ray.w;
+    float4 hitPoint = ray.origin + ray.direction * ray.t;
+    float4 L = normalize(lightSource->light.position - hitPoint);
+    float NdotL = fmaxf(0.f, fabs(N * L));
+    float4 lightSourceContrib = lightSource->contribution(hitPoint);
+    float4 diffuse = prod(lightSourceContrib, material->kd) * (NdotL * ray.w);
     return diffuse;
   }
 
 
-//   __device__ float4 Phong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-//    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-//    float4 L = (float4)lightSource->light.position - hitPoint;
+   __device__ float4 phongShade(const gvt::render::data::primitives::CUDAPhong* material,
+		   const Ray &ray, const float4 &N, const Light *lightSource) {
 
-//    L = normalize(L);
-//    float NdotL = fmaxf(0.f, (N * L));
-//    float4 R = ((N * 2.f) * NdotL) - L;
-//    float VdotR = max(0.f, (R * (-1*ray.direction)));
-//    float power = VdotR * std::pow(VdotR, alpha);
 
-//    float4 lightSourceContrib = lightSource->contribution(ray); //  distance;
+	float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
+    float4 L = (float4)lightSource->light.position - hitPoint;
 
-//    float4 diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-//    float4 specular = prod((lightSourceContrib * power), ks) * ray.w;
+    L = normalize(L);
+    float NdotL = fmaxf(0.f, (N * L));
+    float4 R = ((N * 2.f) * NdotL) - L;
+    float VdotR = max(0.f, (R * (-1*ray.direction)));
+    float power = VdotR * pow(VdotR, material->alpha);
 
-//    float4 finalColor = (diffuse + specular);
-//    return finalColor;
-//  }
+    float4 lightSourceContrib = lightSource->contribution(hitPoint); //  distance;
 
-//   __device__ float4 BlinnPhong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-//    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-//    float4 L = (float4)lightSource->light.position - hitPoint;
-//    L = normalize(L);
-//    float NdotL = fmaxf(0.f, (N * L));
+    float4 diffuse = prod((lightSourceContrib * NdotL), material->kd) * ray.w;
+    float4 specular = prod((lightSourceContrib * power), material->ks) * ray.w;
 
-//    float4 H = normalize((L - ray.direction));
+    float4 finalColor = (diffuse + specular);
+    return finalColor;
+  }
 
-//    float NdotH = (H * N);
-//    float power = NdotH * std::pow(NdotH, alpha);
+   __device__ float4 blinnShade(const gvt::render::data::primitives::CUDABlinnPhong* material,
+		   const Ray &ray, const float4 &N, const Light *lightSource) {
+    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
+    float4 L = (float4)lightSource->light.position - hitPoint;
+    L = normalize(L);
+    float NdotL = fmaxf(0.f, (N * L));
 
-//    float4 lightSourceContrib = lightSource->contribution(ray);
+    float4 H = normalize((L - ray.direction));
 
-//    float4 diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-//    float4 specular = prod((lightSourceContrib * power), ks) * ray.w;
+    float NdotH = (H * N);
+    float power = NdotH * pow(NdotH, material->alpha);
 
-//    float4 finalColor = (diffuse + specular);
-//    return finalColor;
-//  }
+    float4 lightSourceContrib = lightSource->contribution(hitPoint);
+
+    float4 diffuse = prod((lightSourceContrib * NdotL), material->kd) * ray.w;
+    float4 specular = prod((lightSourceContrib * power), material->ks) * ray.w;
+
+    float4 finalColor = (diffuse + specular);
+    return finalColor;
+  }
 
 
    __device__  float4 gvt::render::data::cuda_primitives::Shade(
@@ -78,13 +82,16 @@ using namespace gvt::render::data::primitives;
                            r = lambertShade((CUDALambert*)material,
                                             ray, sufaceNormal, lightSource);
                            break;
-//                   case CUDA_PHONG:
-//                           r = phong.shade(ray, sufaceNormal, lightSource);
-//                           break;
-//                   case CUDA_BLINN:
-//                           r = blinn.shade(ray, sufaceNormal, lightSource);
-//                           break;
+                   case CUDA_PHONG:
+                           r = phongShade((CUDAPhong*)material,
+                        		   ray, sufaceNormal, lightSource);
+                           break;
+                   case CUDA_BLINN:
+                           r = blinnShade((CUDABlinnPhong*)material,
+                        		   ray, sufaceNormal, lightSource);
+                           break;
                    default:
+                	   printf("Unknown material type\n");
                            break;
                    }
                  return r;

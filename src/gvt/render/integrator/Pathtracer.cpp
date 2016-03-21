@@ -146,7 +146,7 @@ bool Pathtracer::L(Ray& r, const glm::vec3 &normal,
 
       // TODO: remove this dependency on mesh, store material object in the database
       // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-      r.setDirection(CosWeightedRandomHemisphereDirection2(normal));
+      r.direction = CosWeightedRandomHemisphereDirection2(normal);
 
       r.w = r.w * glm::dot(r.direction, normal);
       r.depth = ndepth;

@@ -63,7 +63,7 @@ glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Ma
 
     glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
     glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
-    glm::vec3 lightSourceContrib = lightSource->contribution(ray);
+    glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
 
     DifferentialGeometry dg;
     dg.Ns = Vec3fa(L.x, L.y, L.z);
@@ -76,6 +76,8 @@ glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Ma
   return color;
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////
 //                          GVT Materials                                     //
 ////////////////////////////////////////////////////////////////////////////////
@@ -86,8 +88,8 @@ glm::vec3 lambertShade(const gvt::render::data::primitives::Lambert *material, c
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
   glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
   float NdotL = std::max(0.f, std::abs(glm::dot(N, L)));
-  glm::vec3 lightSourceContrib = lightSource->contribution(ray);
-  glm::vec3 diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
+  glm::vec3  lightSourceContrib = lightSource->contribution(hitPoint);
+  glm::vec3  diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
   return diffuse;
 }
 
@@ -101,7 +103,7 @@ glm::vec3 phongShade(const gvt::render::data::primitives::Phong *material, const
   float VdotR = std::max(0.f, glm::dot(R, (-ray.direction)));
   float power = VdotR * std::pow(VdotR, material->alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(ray); //  distance;
+  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint); //  distance;
 
   gvt::render::data::Color finalColor = (lightSourceContrib * material->kd) * (NdotL * ray.w);
   finalColor += (lightSourceContrib * material->ks) * (power * ray.w);
@@ -119,7 +121,7 @@ glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Blinn *material, 
   float NdotH = std::max(0.f, glm::dot(H, N));
   float power = NdotH * std::pow(NdotH, material->alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(ray);
+  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
 
   gvt::render::data::Color diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
   gvt::render::data::Color specular = (lightSourceContrib * material->ks) * (power * ray.w);

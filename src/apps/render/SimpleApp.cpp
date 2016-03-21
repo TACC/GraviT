@@ -93,11 +93,15 @@ int main(int argc, char **argv) {
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("lpos", ParseCommandLine::FLOAT, "Light position", 3);
+  cmd.addoption("lcolor", ParseCommandLine::FLOAT, "Light color", 3);
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
   cmd.addconflict("image", "domain");
+
   cmd.parse(argc, argv);
+
   if (!cmd.isSet("threads")) {
     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
@@ -290,7 +294,7 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   // second light just for fun
@@ -303,13 +307,22 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)10;
-  camNode["raySamples"] = (int)3;
-  camNode["jitterWindowSize"] = (float)0;
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
+  camNode["jitterWindowSize"] = (float)0.5;
 
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
+
+  if (cmd.isSet("lpos")) {
+    std::vector<float> pos = cmd.getValue<float>("lpos");
+    lightNode["position"] = glm::vec3(pos[0], pos[1], pos[2]);
+  }
+  if (cmd.isSet("lcolor")) {
+    std::vector<float> color = cmd.getValue<float>("lcolor");
+    lightNode["color"] = glm::vec3(color[0], color[1], color[2]);
+  }
 
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
@@ -381,6 +394,7 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
+    std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();

@@ -59,28 +59,24 @@
 
 // TODO: add logic for other packet sizes
 
-#ifdef GVT_SSE_TARGET
-#define GVT_EMBREE_ALGORITHM RTC_INTERSECT4
-#define GVT_EMBREE_PACKET_SIZE 4
-#define GVT_EMBREE_PACKET_TYPE RTCRay4
-#define GVT_EMBREE_INTERSECTION rtcIntersect4
-#define GVT_EMBREE_OCCULUSION rtcOccluded4
-#endif
-
-#ifdef GVT_AVX_TARGET
+#if defined(GVT_AVX_TARGET)
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT8
 #define GVT_EMBREE_PACKET_SIZE 8
 #define GVT_EMBREE_PACKET_TYPE RTCRay8
 #define GVT_EMBREE_INTERSECTION rtcIntersect8
 #define GVT_EMBREE_OCCULUSION rtcOccluded8
-#endif
-
-#ifdef GVT_AVX2_TARGET
+#elif defined(GVT_AVX2_TARGET)
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
 #define GVT_EMBREE_PACKET_SIZE 16
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
 #define GVT_EMBREE_INTERSECTION rtcIntersect16
 #define GVT_EMBREE_OCCULUSION rtcOccluded16
+#else
+#define GVT_EMBREE_ALGORITHM RTC_INTERSECT4
+#define GVT_EMBREE_PACKET_SIZE 4
+#define GVT_EMBREE_PACKET_TYPE RTCRay4
+#define GVT_EMBREE_INTERSECTION rtcIntersect4
+#define GVT_EMBREE_OCCULUSION rtcOccluded4
 #endif
 
 using namespace gvt::render::actor;
@@ -289,13 +285,13 @@ struct embreeParallelTrace {
         ray4.dirx[i] = direction[0];
         ray4.diry[i] = direction[1];
         ray4.dirz[i] = direction[2];
-        ray4.tnear[i] = 0.0;
+        ray4.tnear[i] = gvt::render::actor::Ray::RAY_EPSILON;
         ray4.tfar[i] = FLT_MAX;
         ray4.geomID[i] = RTC_INVALID_GEOMETRY_ID;
         ray4.primID[i] = RTC_INVALID_GEOMETRY_ID;
         ray4.instID[i] = RTC_INVALID_GEOMETRY_ID;
         ray4.mask[i] = -1;
-        ray4.time[i] = 0;
+        ray4.time[i] = gvt::render::actor::Ray::RAY_EPSILON;
       }
     }
   }

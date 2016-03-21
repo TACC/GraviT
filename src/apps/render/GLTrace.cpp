@@ -218,7 +218,9 @@ void PrintHelpAndSettings() {
     PrintHelpString(15, fontOffset, "h", "toggle Help");
 
     fontOffset += 15;
-    PrintHelpString(15, fontOffset, "frame time", boost::timer::format(lastFrameTime).c_str());
+    // PrintHelpString(15, fontOffset, "frame time", boost::timer::format(lastFrameTime).c_str());
+
+    // PrintHelpString(15, fontOffset, "frame time", lastFrameTime.format().c_str());
 
     glPopMatrix();
 
@@ -929,7 +931,10 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Material(MatteMaterial(glm::vec3(0.0, 0.0, 0.5))));
+    //Mesh *mesh = new Mesh(new Material(CUDALambert(glm::vec3(0.0, 0.0, 0.5))));
+    Mesh *mesh = new Mesh(new Material(
+    		CUDABlinnPhong(glm::vec3(0.0, 0.0, 0.5),glm::vec3(0.0, 0.0, 0.5),0.5)));
+
     int numPoints = 7;
     glm::vec3 points[7];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -960,7 +965,7 @@ void ConfigSceneCubeCone() {
       }
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
+    mesh->generateNormals();
     // add cone mesh to the database
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
@@ -969,7 +974,7 @@ void ConfigSceneCubeCone() {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.0, 0.5, 0.0))));
+    Mesh *mesh = new Mesh(new Material(CUDALambert(glm::vec3(0.0, 0.5, 0.0))));
     int numPoints = 24;
     glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -1031,7 +1036,7 @@ void ConfigSceneCubeCone() {
       }
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
+    mesh->generateNormals();
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
@@ -1348,11 +1353,13 @@ int main(int argc, char *argv[]) {
 
   cmd.parse(argc, argv);
 
-  if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
-  } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
-  }
+   if (!cmd.isSet("threads")) {
+     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+   } else {
+     tbb::task_scheduler_init init(cmd.get<int>("threads"));
+   }
+
+  //tbb::task_scheduler_init init(1);
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1413,7 +1420,7 @@ int main(int argc, char *argv[]) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Embree;
+  schedNode["adapter"] = gvt::render::adapter::Optix;
 
   camNode = root["Camera"];
 
@@ -1438,6 +1445,19 @@ int main(int argc, char *argv[]) {
 
   imageptr = new Image(width, height, "spoot");
   imagebuffer = imageptr->GetBuffer();
+
+
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
+  camNode["jitterWindowSize"] = (float)0.5;
+
+  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
 
   mycamera.setFilmsize(root["Film"]["width"].value().toInteger(), root["Film"]["height"].value().toInteger());
 

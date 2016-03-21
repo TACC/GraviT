@@ -32,6 +32,8 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 #define GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 
+#include <stdio.h>
+
 namespace gvt {
 namespace render {
 namespace data {
@@ -58,6 +60,8 @@ struct Material {
 
     type=m->type;
     memcpy(buf, m->buf,m->size());
+
+    printf("%d\n", type);
   }
 
 

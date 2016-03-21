@@ -46,31 +46,15 @@ template <typename T> inline T fastmin(const T &a, const T &b) { return (a < b) 
 template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) ? a : b; }
 
 template <size_t simd_width> struct RayPacketIntersection {
-  union {
-    struct {
-      float ox[simd_width];
-      float oy[simd_width];
-      float oz[simd_width];
-      float dx[simd_width];
-      float dy[simd_width];
-      float dz[simd_width];
-      float t[simd_width];
-      int mask[simd_width];
-    };
-    unsigned char packet[];
-  };
+  float ox[simd_width];
+  float oy[simd_width];
+  float oz[simd_width];
+  float dx[simd_width];
+  float dy[simd_width];
+  float dz[simd_width];
+  float t[simd_width];
+  int mask[simd_width];
 
-  union {
-    struct {
-      float lx[simd_width];
-      float ly[simd_width];
-      float lz[simd_width];
-      float ux[simd_width];
-      float uy[simd_width];
-      float uz[simd_width];
-    };
-    float tmpbuffer[];
-  };
   //
   // float data[simd_width * 6];
   // float *lx, *ly, *lz, *ux, *uy, *uz;
@@ -85,48 +69,34 @@ template <size_t simd_width> struct RayPacketIntersection {
       dx[i] = 1.f / ray.direction[0];
       dy[i] = 1.f / ray.direction[1];
       dz[i] = 1.f / ray.direction[2];
-      t[i] = FLT_MAX;
+      t[i] = ray.t_max;
       mask[i] = 1;
     }
     for (; i < simd_width; ++i) {
-      t[i] = FLT_MAX;
+      t[i] = -1;
       mask[i] = -1;
     }
   }
 
-  inline RayPacketIntersection(const RayPacketIntersection &other) {
-    std::memcpy(packet, other.packet, sizeof(RayPacketIntersection));
-  }
+  inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[], bool update = false) {
+    float lx[simd_width];
+    float ly[simd_width];
+    float lz[simd_width];
+    float ux[simd_width];
+    float uy[simd_width];
+    float uz[simd_width];
 
-  inline float *min(const float a[simd_width], const float b[simd_width]) {
-    float m[simd_width];
-#pragma simd
-    for (int i = 0; i < simd_width; i++) m[i] = fastmin(a[i], b[i]);
-    return std::move(m);
-  }
+    float minx[simd_width];
+    float miny[simd_width];
+    float minz[simd_width];
 
-  inline float *max(const float a[simd_width], const float b[simd_width]) {
-    float m[simd_width];
-#pragma simd
-    for (int i = 0; i < simd_width; i++) m[i] = fastmax(a[i], b[i]);
-    return std::move(m);
-  }
+    float maxx[simd_width];
+    float maxy[simd_width];
+    float maxz[simd_width];
 
-  inline RayPacketIntersection(RayPacketIntersection &&other) { std::swap(packet, other.packet); }
-
-  inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[]) {
-
-    // float *lx = &data[simd_width * 0];
-    // float *ly = &data[simd_width * 1];
-    // float *lz = &data[simd_width * 2];
-    // float *ux = &data[simd_width * 3];
-    // float *uy = &data[simd_width * 4];
-    // float *uz = &data[simd_width * 5];
     float tnear[simd_width];
     float tfar[simd_width];
 
-#pragma simd
-    for (size_t i = 0; i < simd_width; ++i) hit[i] = -1;
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) lx[i] = (bb.bounds_min[0] - ox[i]) * dx[i];
 #pragma simd
@@ -140,64 +110,39 @@ template <size_t simd_width> struct RayPacketIntersection {
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) uz[i] = (bb.bounds_max[2] - oz[i]) * dz[i];
 
-    // tnear = max(min(lx, ux), max(min(ly, uy), min(lz, uz)));
-    // tfar = min(max(lx, ux), min(max(ly, uy), max(lz, uz)));
-
-    float minx[simd_width];
-    float miny[simd_width];
-    float minz[simd_width];
-
-    float maxx[simd_width];
-    float maxy[simd_width];
-    float maxz[simd_width];
-
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
       minx[i] = fastmin(lx[i], ux[i]);
-    }
-
-#pragma simd
-    for (size_t i = 0; i < simd_width; ++i) {
-      miny[i] = fastmin(ly[i], uy[i]);
-    }
-
-#pragma simd
-    for (size_t i = 0; i < simd_width; ++i) {
-      minz[i] = fastmin(lz[i], uz[i]);
-    }
-
-#pragma simd
-    for (size_t i = 0; i < simd_width; ++i) {
-      tnear[i] = fastmax(fastmax(minx[i], miny[i]), minz[i]);
-    }
-
-#pragma simd
-    for (size_t i = 0; i < simd_width; ++i) {
       maxx[i] = fastmax(lx[i], ux[i]);
     }
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
+      miny[i] = fastmin(ly[i], uy[i]);
       maxy[i] = fastmax(ly[i], uy[i]);
     }
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
+      minz[i] = fastmin(lz[i], uz[i]);
       maxz[i] = fastmax(lz[i], uz[i]);
     }
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
+      tnear[i] = fastmax(fastmax(minx[i], miny[i]), minz[i]);
       tfar[i] = fastmin(fastmin(maxx[i], maxy[i]), maxz[i]);
     }
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
-      hit[i] = (tfar[i] > tnear[i] && tnear[i] > FLT_EPSILON) ? 1 : -1;
+      hit[i] = (tfar[i] > tnear[i] && (!update || tnear[i] > gvt::render::actor::Ray::RAY_EPSILON) && t[i] > tnear[i])
+                   ? 1
+                   : -1;
     }
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
-      if (hit[i] == 1) t[i] = tnear[i];
+      if (hit[i] == 1 && update) t[i] = tnear[i];
     }
 
     for (size_t i = 0; i < simd_width; ++i)

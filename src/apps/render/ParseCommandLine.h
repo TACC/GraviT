@@ -213,7 +213,7 @@ template <> double ParseCommandLine::get<double>(const std::string name) { retur
 
 template <> std::vector<std::string> ParseCommandLine::getValue<std::string>(std::string name) {
   std::vector<std::string> value;
-  if (_value.find(name) == _value.end()) return std::move(value);
+  if (_value.find(name) == _value.end()) return (value);
   unsigned size = _option[name] & 0xF;
   std::istringstream f(_value[name]);
   std::string s;
@@ -222,12 +222,12 @@ template <> std::vector<std::string> ParseCommandLine::getValue<std::string>(std
     count++;
     value.push_back(s);
   }
-  return std::move(value);
+  return value;
 };
 
 template <> std::vector<int> ParseCommandLine::getValue<int>(std::string name) {
   std::vector<int> value;
-  if (_value.find(name) == _value.end()) return std::move(value);
+  if (_value.find(name) == _value.end()) return (value);
   unsigned size = _option[name] & 0xF;
   std::istringstream f(_value[name]);
   std::string s;
@@ -236,12 +236,12 @@ template <> std::vector<int> ParseCommandLine::getValue<int>(std::string name) {
     count++;
     value.push_back(std::stoi(s));
   }
-  return std::move(value);
+  return (value);
 };
 
 template <> std::vector<long> ParseCommandLine::getValue<long>(std::string name) {
   std::vector<long> value;
-  if (_value.find(name) == _value.end()) return std::move(value);
+  if (_value.find(name) == _value.end()) return (value);
   unsigned size = _option[name] & 0xF;
   std::istringstream f(_value[name]);
   std::string s;
@@ -250,12 +250,12 @@ template <> std::vector<long> ParseCommandLine::getValue<long>(std::string name)
     count++;
     value.push_back(std::stol(s));
   }
-  return std::move(value);
+  return (value);
 };
 
 template <> std::vector<float> ParseCommandLine::getValue<float>(std::string name) {
   std::vector<float> value;
-  if (_value.find(name) == _value.end()) return std::move(value);
+  if (_value.find(name) == _value.end()) return (value);
   unsigned size = _option[name] & 0xF;
   std::istringstream f(_value[name]);
   std::string s;
@@ -264,12 +264,12 @@ template <> std::vector<float> ParseCommandLine::getValue<float>(std::string nam
     count++;
     value.push_back(std::stof(s));
   }
-  return std::move(value);
+  return (value);
 };
 
 template <> std::vector<double> ParseCommandLine::getValue<double>(std::string name) {
   std::vector<double> value;
-  if (_value.find(name) == _value.end()) return std::move(value);
+  if (_value.find(name) == _value.end()) return (value);
   unsigned size = _option[name] & 0xF;
   std::istringstream f(_value[name]);
   std::string s;
@@ -278,7 +278,7 @@ template <> std::vector<double> ParseCommandLine::getValue<double>(std::string n
     count++;
     value.push_back(std::stod(s));
   }
-  return std::move(value);
+  return (value);
 };
 
 #endif /*PARSE_COMMAND_LINE_H*/
