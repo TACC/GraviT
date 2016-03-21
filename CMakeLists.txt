@@ -305,7 +305,6 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/Mesh.cuh
 		src/gvt/render/adapter/optix/data/Light.cuh
 		src/gvt/render/adapter/optix/data/Material.cuh
-		src/gvt/render/adapter/optix/data/CUDAMaterial.h
 		src/gvt/render/adapter/optix/data/Ray.cuh
 		src/gvt/render/adapter/optix/data/cutil_math.h
 		)

@@ -931,9 +931,15 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
+
+	  Material* m = new Material();
+	  m->type = LAMBERT;
+	  m->kd = glm::vec3(0.0, 0.5, 0.5);
+	  m->ks = glm::vec3(0.0, 0.0, 0.5);
+	  m->alpha = 0.5;
+
     //Mesh *mesh = new Mesh(new Material(CUDALambert(glm::vec3(0.0, 0.0, 0.5))));
-    Mesh *mesh = new Mesh(new Material(
-    		CUDABlinnPhong(glm::vec3(0.0, 0.0, 0.5),glm::vec3(0.0, 0.0, 0.5),0.5)));
+    Mesh *mesh = new Mesh(m);
 
     int numPoints = 7;
     glm::vec3 points[7];
@@ -974,7 +980,16 @@ void ConfigSceneCubeCone() {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Material(CUDALambert(glm::vec3(0.0, 0.5, 0.0))));
+
+	  Material* m = new Material();
+	  m->type = LAMBERT;
+		  m->kd = glm::vec3(0.0, 0.5, 0.0);
+		  m->ks = glm::vec3(0.0, 0.5, 0.0);
+		  m->alpha = 0.5;
+
+	Mesh *mesh = new Mesh(m);
+
+
     int numPoints = 24;
     glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -1107,8 +1122,13 @@ void ConfigSceneCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
-    int numPoints = 7;
+	  Material* m = new Material();
+	  m->type = LAMBERT;
+		  m->kd = glm::vec3(0.5, 0.5, 0.5);
+
+
+	Mesh *mesh = new Mesh(m);
+	int numPoints = 7;
     glm::vec3 points[7];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
     points[1] = glm::vec3(-0.5, 0.5, 0.0);
@@ -1254,8 +1274,13 @@ void ConfigEnzo(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
-      vert = vlist[0];
+  	  Material* m = new Material();
+  	  m->type = LAMBERT;
+  		  m->kd = glm::vec3(0.5, 0.5, 0.5);
+
+
+  	Mesh *mesh = new Mesh(m);
+  	vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
       zmin = vert->z;

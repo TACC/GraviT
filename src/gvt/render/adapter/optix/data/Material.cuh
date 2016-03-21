@@ -38,8 +38,6 @@
 #include "Ray.cuh"
 #include "Light.cuh"
 
-#include <gvt/render/adapter/optix/data/CUDAMaterial.h>
-
 
 
 namespace gvt {

@@ -199,7 +199,12 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Material(MatteMaterial(glm::vec3(1.0, 1.0, 1.0))));
+  	  Material* m = new Material();
+  	  m->type = LAMBERT;
+  	  m->kd = glm::vec3(0.5, 0.5, 0.5);
+
+
+      Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;

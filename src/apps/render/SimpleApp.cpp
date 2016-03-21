@@ -140,8 +140,13 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
-    int numPoints = 7;
+	  Material* m = new Material();
+	  m->type = LAMBERT;
+		  m->kd = glm::vec3(0.5, 0.5, 0.5);
+
+
+	Mesh *mesh = new Mesh(m);
+	int numPoints = 7;
     glm::vec3 points[6];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
     points[1] = glm::vec3(-0.5, 0.5, 0.0);
@@ -182,7 +187,14 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Material(Lambert(glm::vec3(0.5, 0.5, 0.5))));
+
+	  Material* m = new Material();
+	  m->type = LAMBERT;
+		  m->kd = glm::vec3(0.5, 0.5, 0.5);
+
+
+	Mesh *mesh = new Mesh(m);
+
     int numPoints = 24;
     glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);

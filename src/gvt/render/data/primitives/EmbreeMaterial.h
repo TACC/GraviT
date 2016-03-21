@@ -48,11 +48,6 @@
 
 #include <gvt/render/data/primitives/Material.h>
 
-//#include "../embree/tutorials/common/tutorial/tutorial_device.h"
-//#include "../embree/tutorials/common/tutorial/scene_device.h"
-//#include "../embree/tutorials/common/tutorial/random_sampler.h"
-//#include "../embree/tutorials/pathtracer/shapesampler.h"
-
 namespace gvt {
 namespace render {
 namespace data {
@@ -67,64 +62,8 @@ glm::vec3 Shade(
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//                          GVT Materials                                     //
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-struct Lambert {
-  Lambert(glm::vec3 v){
-    kd = v;
-    type = GVT_LAMBERT;
-  }
-
-  MATERIAL_TYPE type;
-  glm::vec3 kd;
-};
-
-struct Phong {
-  Phong(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
-    kd = _kd;
-    ks=_ks;
-    alpha=_alpha;
-    type = GVT_PHONG;
-  }
-
-  MATERIAL_TYPE type;
-  glm::vec3 kd;
-  glm::vec3 ks;
-  float alpha;
-
-};
-
-struct Blinn {
-  Blinn(const glm::vec3 &_kd, const glm::vec3 &_ks, const float &_alpha){
-    kd = _kd;
-    ks=_ks;
-    alpha=_alpha;
-    type = GVT_BLINN;
-  }
-
-  MATERIAL_TYPE type;
-  glm::vec3 kd;
-  glm::vec3 ks;
-  float alpha;
-
-};
-
-glm::vec3 MaterialShade(
-    const gvt::render::data::primitives::Material* material,
-                        const gvt::render::actor::Ray &ray,
-                        const glm::vec3 &sufaceNormal,
-                        const gvt::render::data::scene::Light *lightSource,
-                        const glm::vec3 lightPostion) ;
-
-////////////////////////////////////////////////////////////////////////////////
 //                          Embree Materials                                  //
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 struct DifferentialGeometry
 {
@@ -175,68 +114,6 @@ inline embree::Vec3fa Material__eval(Material* materials,
                              const DifferentialGeometry& dg,
                              const embree::Vec3fa& wi);
 
-struct MatteMaterial
-{
-public:
-
-  MatteMaterial (glm::vec3 v)
-  : ty(EMBREE_MATERIAL_MATTE), reflectance(embree::Vec3fa(v[0],v[1],v[2])) {}
-
-  MatteMaterial (const embree::Vec3fa& reflectance)
-  : ty(EMBREE_MATERIAL_MATTE), reflectance(reflectance) {}
-
-public:
-  int ty;
-  int align[3];
-  embree::Vec3fa reflectance;
-};
-
-struct MetalMaterial
-{
-public:
-
-  MetalMaterial (glm::vec3 v, glm::vec3 e, glm::vec3 kk, float r)
-  : ty(EMBREE_MATERIAL_METAL), reflectance(embree::Vec3fa(v[0],v[1],v[2])),
-    eta(embree::Vec3fa(e[0],e[1],e[2])),
-    k(embree::Vec3fa(kk[0],kk[1],kk[2])),
-    roughness(r) {}
-
-  MetalMaterial (const embree::Vec3fa& reflectance, const embree::Vec3fa& eta, const embree::Vec3fa& k)
-  : ty(EMBREE_MATERIAL_REFLECTIVE_METAL), reflectance(reflectance), eta(eta), k(k), roughness(0.0f) {}
-
-  MetalMaterial (const embree::Vec3fa& reflectance, const embree::Vec3fa& eta, const embree::Vec3fa& k, const float roughness)
-  : ty(EMBREE_MATERIAL_METAL), reflectance(reflectance), eta(eta), k(k), roughness(roughness) {}
-
-public:
-  int ty;
-  int align[3];
-
-  embree::Vec3fa reflectance;
-  embree::Vec3fa eta;
-  embree::Vec3fa k;
-  float roughness;
-};
-
-struct VelvetMaterial
-{
-
-  VelvetMaterial (const glm::vec3 reflectance, const float backScattering, const glm::vec3 horizonScatteringColor, const float horizonScatteringFallOff)
-  : ty(EMBREE_MATERIAL_VELVET), reflectance(reflectance[0], reflectance[1],reflectance[2]),
-    backScattering(backScattering), horizonScatteringColor(horizonScatteringColor[0],horizonScatteringColor[1],horizonScatteringColor[2]),
-    horizonScatteringFallOff(horizonScatteringFallOff) {}
-
-  VelvetMaterial (const embree::Vec3fa& reflectance, const float backScattering, const embree::Vec3fa& horizonScatteringColor, const float horizonScatteringFallOff)
-  : ty(EMBREE_MATERIAL_VELVET), reflectance(reflectance), backScattering(backScattering), horizonScatteringColor(horizonScatteringColor), horizonScatteringFallOff(horizonScatteringFallOff) {}
-
-public:
-  int ty;
-  int align[3];
-
-  embree::Vec3fa reflectance;
-  embree::Vec3fa horizonScatteringColor;
-  float backScattering;
-  float horizonScatteringFallOff;
-};
 
 }
 }

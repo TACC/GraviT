@@ -39,50 +39,12 @@ using namespace gvt::render::data::scene;
 
 using namespace embree;
 
-/*
- * Proxy call used by adapater/integator
- * Will temporarly call the sub-proxy of each sub-set of materials
- * Interfaces to the different shading materials are significantly different
- * mainly due to light assessing
- */
-glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
-                                               const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                               const gvt::render::data::scene::Light *lightSource,
-                                               const glm::vec3 lightPostion) {
-
-  glm::vec3 color;
-
-  switch (material->type) {
-  case GVT_PHONG:
-  case GVT_LAMBERT:
-  case GVT_BLINN:
-    color = gvt::render::data::primitives::MaterialShade(material, ray, sufaceNormal, lightSource, lightPostion);
-
-    break;
-  default:
-
-    glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-    glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
-    glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
-
-    DifferentialGeometry dg;
-    dg.Ns = Vec3fa(L.x, L.y, L.z);
-    Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), Vec3fa(), dg,
-                                                             Vec3fa(sufaceNormal.x, sufaceNormal.y, sufaceNormal.z));
-
-    color = lightSourceContrib * glm::vec3(r.x, r.y, r.z) * ray.w;
-  }
-
-  return color;
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
-//                          GVT Materials                                     //
+//                          GVT Legacy Materials                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-glm::vec3 lambertShade(const gvt::render::data::primitives::Lambert *material, const gvt::render::actor::Ray &ray,
+glm::vec3 lambertShade(const gvt::render::data::primitives::Material *material, const gvt::render::actor::Ray &ray,
                        const glm::vec3 &N, const gvt::render::data::scene::Light *lightSource,
                        const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
@@ -93,7 +55,7 @@ glm::vec3 lambertShade(const gvt::render::data::primitives::Lambert *material, c
   return diffuse;
 }
 
-glm::vec3 phongShade(const gvt::render::data::primitives::Phong *material, const Ray &ray, const glm::vec3 &N,
+glm::vec3 phongShade(const gvt::render::data::primitives::Material *material, const Ray &ray, const glm::vec3 &N,
                      const Light *lightSource, const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
   glm::vec3 L = glm::normalize(lightPostion - hitPoint);
@@ -110,7 +72,7 @@ glm::vec3 phongShade(const gvt::render::data::primitives::Phong *material, const
   return finalColor;
 }
 
-glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Blinn *material, const Ray &ray, const glm::vec3 &N,
+glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Material *material, const Ray &ray, const glm::vec3 &N,
                           const Light *lightSource, const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
   glm::vec3 L = glm::normalize(lightPostion - hitPoint);
@@ -130,28 +92,6 @@ glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Blinn *material, 
   return finalColor;
 }
 
-glm::vec3 gvt::render::data::primitives::MaterialShade(const gvt::render::data::primitives::Material *material,
-                                                       const gvt::render::actor::Ray &ray,
-                                                       const glm::vec3 &sufaceNormal,
-                                                       const gvt::render::data::scene::Light *lightSource,
-                                                       const glm::vec3 lightPostion) {
-
-  glm::vec3 r;
-  switch (material->type) {
-  case GVT_LAMBERT:
-    r = lambertShade((Lambert *)material, ray, sufaceNormal, lightSource, lightPostion);
-    break;
-  case GVT_PHONG:
-    r = phongShade((Phong *)material, ray, sufaceNormal, lightSource, lightPostion);
-    break;
-  case GVT_BLINN:
-    r = blinnPhongShade((Blinn *)material, ray, sufaceNormal, lightSource, lightPostion);
-    break;
-  default:
-    break;
-  }
-  return r;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 //                          Embree Materials                                  //
@@ -166,13 +106,17 @@ glm::vec3 gvt::render::data::primitives::MaterialShade(const gvt::render::data::
 #include "../embree/tutorials/pathtracer/shapesampler.h"
 #include "../embree/tutorials/pathtracer/optics.h"
 
+inline Vec3fa toVec3fa(glm::vec3& v){
+	return Vec3fa(v.x,v.y,v.z);
+}
+
 struct Lambertian {
   Vec3fa R;
 };
 
 inline Vec3fa Lambertian__eval(const Lambertian *This, const Vec3fa &wo, const DifferentialGeometry &dg,
                                const Vec3fa &wi) {
-  return This->R * /*(1.0f/(float)(float(pi))) **/ clamp(dot(wi, dg.Ns));
+  return This->R * (1.0f/(float)(float(pi))) * clamp(dot(wi, dg.Ns));
 }
 
 inline Vec3fa Lambertian__sample(const Lambertian *This, const Vec3fa &wo, const DifferentialGeometry &dg, Sample3f &wi,
@@ -189,16 +133,10 @@ inline Lambertian make_Lambertian(const Vec3fa &R) {
   return v;
 }
 
-Vec3fa MatteMaterial__eval(MatteMaterial *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
+Vec3fa MatteMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
                            const Vec3fa &wi) {
-  Lambertian lambertian = make_Lambertian(Vec3fa((Vec3fa)This->reflectance));
+  Lambertian lambertian = make_Lambertian(Vec3fa(toVec3fa(This->ks)));
   return Lambertian__eval(&lambertian, wo, dg, wi);
-}
-
-Vec3fa MatteMaterial__sample(MatteMaterial *This, const BRDF &brdf, const Vec3fa &Lw, const Vec3fa &wo,
-                             const DifferentialGeometry &dg, Sample3f &wi_o, Medium &medium, const Vec2f &s) {
-  Lambertian lambertian = make_Lambertian(Vec3fa((Vec3fa)This->reflectance));
-  return Lambertian__sample(&lambertian, wo, dg, wi_o, s);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -266,11 +204,11 @@ inline Vec3fa Velvety__eval(const Velvety *This, const Vec3fa &wo, const Differe
   return (horizonScatter * cosThetaI * float(one_over_pi)) * This->R;
 }
 
-inline Vec3fa Velvety__sample(const Velvety *This, const Vec3fa &wo, const DifferentialGeometry &dg, Sample3f &wi,
-                              const Vec2f &s) {
-  wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-  return Velvety__eval(This, wo, dg, wi.v);
-}
+//inline Vec3fa Velvety__sample(const Velvety *This, const Vec3fa &wo, const DifferentialGeometry &dg, Sample3f &wi,
+//                              const Vec2f &s) {
+//  wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
+//  return Velvety__eval(This, wo, dg, wi.v);
+//}
 
 inline void Velvety__Constructor(Velvety *This, const Vec3fa &R, const float f) {
   This->R = R;
@@ -283,15 +221,15 @@ inline Velvety make_Velvety(const Vec3fa &R, const float f) {
   return m;
 }
 
-void VelvetMaterial__preprocess(VelvetMaterial *material, BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
+void VelvetMaterial__preprocess(Material *material, BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
                                 const Medium &medium) {}
 
-Vec3fa VelvetMaterial__eval(VelvetMaterial *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
+Vec3fa VelvetMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
                             const Vec3fa &wi) {
   Minneart minneart;
-  Minneart__Constructor(&minneart, (Vec3fa)Vec3fa(This->reflectance), This->backScattering);
+  Minneart__Constructor(&minneart, toVec3fa(This->ks), This->backScattering);
   Velvety velvety;
-  Velvety__Constructor(&velvety, Vec3fa((Vec3fa)This->horizonScatteringColor), This->horizonScatteringFallOff);
+  Velvety__Constructor(&velvety, toVec3fa(This->horizonScatteringColor), This->horizonScatteringFallOff);
   return Minneart__eval(&minneart, wo, dg, wi) + Velvety__eval(&velvety, wo, dg, wi);
 }
 
@@ -299,9 +237,9 @@ Vec3fa VelvetMaterial__eval(VelvetMaterial *This, const BRDF &brdf, const Vec3fa
 //                        Metal Material                                      //
 ////////////////////////////////////////////////////////////////////////////////
 
-Vec3fa MetalMaterial__eval(MetalMaterial *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
+Vec3fa MetalMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
                            const Vec3fa &wi) {
-  const FresnelConductor fresnel = make_FresnelConductor(Vec3fa(This->eta), Vec3fa(This->k));
+  const FresnelConductor fresnel = make_FresnelConductor(toVec3fa(This->eta), toVec3fa(This->k));
   const PowerCosineDistribution distribution = make_PowerCosineDistribution(rcp(This->roughness));
 
   const float cosThetaO = dot(wo, dg.Ns);
@@ -313,8 +251,63 @@ Vec3fa MetalMaterial__eval(MetalMaterial *This, const BRDF &brdf, const Vec3fa &
   const Vec3fa F = eval(fresnel, cosTheta);
   const float D = eval(distribution, cosThetaH);
   const float G = min(1.0f, min(2.0f * cosThetaH * cosThetaO / cosTheta, 2.0f * cosThetaH * cosThetaI / cosTheta));
-  return (Vec3fa(This->reflectance) * F) * D * G * rcp(4.0f * cosThetaO);
+  return (toVec3fa(This->ks) * F) * D * G * rcp(4.0f * cosThetaO);
 }
+
+
+
+
+/*
+ * Proxy call used by adapater/integrator
+ * Will temporarly call the sub-proxy of each sub-set of materials
+ * Interfaces to the different shading materials are significantly different
+ * mainly due to light assessing
+ */
+glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
+                                               const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                               const gvt::render::data::scene::Light *lightSource,
+                                               const glm::vec3 lightPostion) {
+
+  glm::vec3 color;
+
+
+  switch (material->type) {
+  case LAMBERT:
+	  color = lambertShade(material, ray, sufaceNormal, lightSource, lightPostion);
+    break;
+  case PHONG:
+	  color = phongShade(material, ray, sufaceNormal, lightSource, lightPostion);
+    break;
+  case BLINN:
+	  color = blinnPhongShade(material, ray, sufaceNormal, lightSource, lightPostion);
+    break;
+   case EMBREE_MATERIAL_METAL:
+  case EMBREE_MATERIAL_VELVET:
+  case EMBREE_MATERIAL_MATTE:
+
+    glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
+    glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
+    glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
+
+    DifferentialGeometry dg;
+    dg.Ns = Vec3fa(L.x, L.y, L.z);
+    Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), Vec3fa(), dg,
+                                                             Vec3fa(sufaceNormal.x, sufaceNormal.y, sufaceNormal.z));
+
+    color = lightSourceContrib * glm::vec3(r.x, r.y, r.z) * ray.w;
+    break;
+  default:
+   	   printf("Material implementation missing for embree adpater\n");
+
+     break;
+   }
+
+
+  return color;
+}
+
+
+
 
 inline Vec3fa gvt::render::data::primitives::Material__eval(Material *materials, int materialID, int numMaterials,
                                                             const BRDF &brdf, const Vec3fa &wo,
@@ -328,25 +321,27 @@ inline Vec3fa gvt::render::data::primitives::Material__eval(Material *materials,
       switch (material->type) {
       //      case MATERIAL_OBJ  : c = OBJMaterial__eval  ((OBJMaterial*)  material, brdf, wo, dg, wi); break;
       case EMBREE_MATERIAL_METAL:
-        c = MetalMaterial__eval((MetalMaterial *)material, brdf, wo, dg, wi);
+        c = MetalMaterial__eval(material, brdf, wo, dg, wi);
         break;
       //      case MATERIAL_REFLECTIVE_METAL: c = ReflectiveMetalMaterial__eval((ReflectiveMetalMaterial*)material,
       //      brdf, wo, dg, wi); break;
       case EMBREE_MATERIAL_VELVET:
-        c = VelvetMaterial__eval((VelvetMaterial *)material, brdf, wo, dg, wi);
+        c = VelvetMaterial__eval(material, brdf, wo, dg, wi);
         break;
       //      case MATERIAL_DIELECTRIC: c = DielectricMaterial__eval((DielectricMaterial*)material, brdf, wo, dg, wi);
       //      break;
       //      case MATERIAL_METALLIC_PAINT: c = MetallicPaintMaterial__eval((MetallicPaintMaterial*)material, brdf, wo,
       //      dg, wi); break;
       case EMBREE_MATERIAL_MATTE:
-        c = MatteMaterial__eval((MatteMaterial *)material, brdf, wo, dg, wi);
+        c = MatteMaterial__eval(material, brdf, wo, dg, wi);
         break;
       //      case MATERIAL_MIRROR: c = MirrorMaterial__eval((MirrorMaterial*)material, brdf, wo, dg, wi); break;
       //      case MATERIAL_THIN_DIELECTRIC: c = ThinDielectricMaterial__eval((ThinDielectricMaterial*)material, brdf,
       //      wo, dg, wi); break;
       //      case MATERIAL_HAIR: c = HairMaterial__eval((HairMaterial*)material, brdf, wo, dg, wi); break;
       default:
+   	   printf("Material implementation missing for embree adpater\n");
+
         c = Vec3fa(0.0f);
       }
     }

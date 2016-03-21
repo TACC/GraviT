@@ -69,7 +69,14 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   // file.open(filename.c_str());
   // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  objMesh = new Mesh(new Material(Lambert(glm::vec3(0.8, 0.8, 0.8))));
+
+	  Material* m = new Material();
+	  m->type = LAMBERT;
+		  m->kd = glm::vec3(0.8, 0.8, 0.8);
+		  m->alpha = 0.5;
+
+
+  objMesh = new Mesh(m);
 
   // while (file.good()) {
   //   std::string line;

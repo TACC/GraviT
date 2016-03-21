@@ -81,7 +81,10 @@ void Mesh::setVertex(int which, glm::vec3 vertex, glm::vec3 normal, glm::vec3 te
   if (glm::length(texUV)) this->mapuv[which] = texUV;
 }
 
-void Mesh::setMaterial(Material *mat) { this->mat = new Material(mat); }
+void Mesh::setMaterial(Material *mat_) {
+	this->mat = new Material();
+	*(this->mat) = *mat_;
+}
 
 void Mesh::addFace(int v0, int v1, int v2) {
   GVT_ASSERT((v0 - 1 >= 0) && v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));

@@ -33,6 +33,7 @@
 #define GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 
 #include <stdio.h>
+#include <glm/vec3.hpp>
 
 namespace gvt {
 namespace render {
@@ -40,37 +41,47 @@ namespace data {
 namespace primitives {
 
 struct Material {
-  Material(){
+//  Material(){
+//
+//  }
 
-  }
-
-  Material(Material* m){
-    type=m->type;
-    memcpy(buf, m->buf,m->size());
-  }
-
-  /*
-   * This will receive a specialized material and copu the data of the material
-   * to our base Material
-   */
-  template <typename T>
-  Material(T om){
-
-    Material * m = (Material*)&om;
-
-    type=m->type;
-    memcpy(buf, m->buf,m->size());
-
-    printf("%d\n", type);
-  }
-
-
-  inline int size(){
-    return 992;
-  }
+//  Material(Material* m){
+//    type=m->type;
+//    memcpy(buf, m->buf,m->size());
+//  }
+//
+//  /*
+//   * This will receive a specialized material and copu the data of the material
+//   * to our base Material
+//   */
+//  template <typename T>
+//  Material(T om){
+//
+//    Material * m = (Material*)&om;
+//
+//    type=m->type;
+//    memcpy(buf, m->buf,m->size());
+//
+//    printf("%d\n", type);
+//  }
+//
+//
+//  inline int size(){
+//    return 992;
+//  }
 
   int type;
-  unsigned char buf[992]; //comply with Embree worst case
+//  unsigned char buf[992]; //comply with Embree worst case
+
+  glm::vec3 ks; //diffuse k
+  glm::vec3 kd; // specular k
+  float alpha;
+  glm::vec3 eta;//EmbreeMetalMaterial
+  glm::vec3 k; //EmbreeMetalMaterial
+  float roughness; //EmbreeMetalMaterial
+  glm::vec3 horizonScatteringColor; //EmbreeVelvetMaterial
+  float backScattering; //EmbreeVelvetMaterial
+  float horizonScatteringFallOff; //EmbreeVelvetMaterial
 
 };
 
@@ -79,6 +90,9 @@ struct Material {
 
 typedef enum
 {
+	  LAMBERT,
+	  PHONG,
+	  BLINN,
 //  EMBREE_MATERIAL_OBJ,
 //  EMBREE_MATERIAL_THIN_DIELECTRIC,
   EMBREE_MATERIAL_METAL,
@@ -87,14 +101,9 @@ typedef enum
 //  EMBREE_MATERIAL_METALLIC_PAINT,
   EMBREE_MATERIAL_MATTE,
 //  EMBREE_MATERIAL_MIRROR,
-  EMBREE_MATERIAL_REFLECTIVE_METAL,
+  EMBREE_MATERIAL_REFLECTIVE_METAL
 //  EMBREE_MATERIAL_HAIR,
-  GVT_LAMBERT,
-  GVT_PHONG,
-  GVT_BLINN,
-  CUDA_LAMBERT,
-  CUDA_PHONG,
-  CUDA_BLINN
+
 } MATERIAL_TYPE;
 
 
