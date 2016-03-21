@@ -895,6 +895,9 @@ void ConfigSceneFromFile(std::string filename) {
     Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
     instnode["bbox"] = (unsigned long long)ibox;
     instnode["centroid"] = ibox->centroid();
+
+      mesh->generateNormals();
+
   }
 
   // add lights, camera, and film to the database
@@ -1347,13 +1350,13 @@ int main(int argc, char *argv[]) {
 
   cmd.parse(argc, argv);
 
-  // if (!cmd.isSet("threads")) {
-  //   tbb::task_scheduler_init init(std::thread::hardware_concurrency());
-  // } else {
-  //   tbb::task_scheduler_init init(cmd.get<int>("threads"));
-  // }
+   if (!cmd.isSet("threads")) {
+     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+   } else {
+     tbb::task_scheduler_init init(cmd.get<int>("threads"));
+   }
 
-  tbb::task_scheduler_init init(1);
+  //tbb::task_scheduler_init init(1);
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1439,6 +1442,19 @@ int main(int argc, char *argv[]) {
 
   imageptr = new Image(width, height, "spoot");
   imagebuffer = imageptr->GetBuffer();
+
+
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
+  camNode["jitterWindowSize"] = (float)0.5;
+
+  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
 
   mycamera.setFilmsize(root["Film"]["width"].value().toInteger(), root["Film"]["height"].value().toInteger());
 

@@ -32,19 +32,66 @@
 #include <cuda_runtime.h>
 #include <optix_prime/optix_primepp.h>
 
+
+
+/**
+ * CUDA shading API /////
+ */
+#include "Mesh.cuh"
+#include "Ray.cuh"
+#include "Light.cuh"
+#include "Material.cuh"
+#include "curand_kernel.h"
+#include "OptixMeshAdapter.cuh"
+
+void shade( gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
+
+curandState* set_random_states(int N);
+
+void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay* optixrays, bool* valid,
+                  const int localPacketSize, gvt::render::data::cuda_primitives::Ray* rays,
+                    gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx, bool,
+                    cudaStream_t& stream);
+
+
+void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
+
+/**
+ * /////// CUDA shading API
+ */
+
 namespace gvt {
 namespace render {
 namespace adapter {
 namespace optix {
 namespace data {
 
+
+
 struct OptixContext {
 
-  OptixContext() { optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA); }
+
+  OptixContext() {
+	  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
+  }
+
+  void initCuda(int packetSize){
+	  if (!_cudaGvtCtx[0]){
+
+	      cudaMallocHost(&(_cudaGvtCtx[0]), sizeof (gvt::render::data::cuda_primitives::CudaGvtContext));
+	      cudaMallocHost(&(_cudaGvtCtx[1]), sizeof (gvt::render::data::cuda_primitives::CudaGvtContext));
+
+	      _cudaGvtCtx[0]->initCudaBuffers(packetSize);
+	      _cudaGvtCtx[1]->initCudaBuffers(packetSize);
+	  }
+  }
 
   static OptixContext *singleton() {
     if (!_singleton) {
+
       _singleton = new OptixContext();
+      printf("Initizalized cuda-optix adpater...\n");
+
     }
     return _singleton;
   };
@@ -53,51 +100,29 @@ struct OptixContext {
 
   static OptixContext *_singleton;
   ::optix::prime::Context optix_context_;
+  /*
+   * Two contexts due to memory transfer and computation overlap
+   */
+  gvt::render::data::cuda_primitives::CudaGvtContext* _cudaGvtCtx[2] = {NULL, NULL};
+
 };
 
 class OptixMeshAdapter : public gvt::render::Adapter {
 public:
-  /**
-   * Construct the Embree mesh adapter.  Convert the mesh
-   * at the given node to Embree's format.
-   *
-   * Initializes Embree the first time it is called.
-   */
+
   OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
 
-  /**
-   * Release Embree copy of the mesh.
-   */
   virtual ~OptixMeshAdapter();
 
-  /**
-   * Return the Embree scene handle;
-   */
   ::optix::prime::Model getScene() const { return optix_model_; }
 
-  /**
-   * Return the geometry id.
-   */
-  unsigned getGeomId() const { return geomId; }
-
-  /**
-   * Return the packet size
-   */
   unsigned long long getPacketSize() const { return packetSize; }
 
-  /**
-   * Trace rays using the Embree adapter.
-   *
-   * Creates threads and traces rays in packets defined by GVT_EMBREE_PACKET_SIZE
-   * (currently set to 4).
-   *
-   * \param rayList incoming rays
-   * \param moved_rays outgoing rays [rays that did not hit anything]
-   * \param instNode instance db node containing dataRef and transforms
-   */
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
                      glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
                      size_t begin = 0, size_t end = 0);
+
+  gvt::render::data::cuda_primitives::Mesh cudaMesh;
 
 protected:
   /**
@@ -113,28 +138,19 @@ protected:
   float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
 
   /**
-   * Static bool to initialize Optix before use.
-   *
-   * // TODO: this will need to move in the future when we have different types of Embree adapters (ex: mesh + volume)
-   */
-  static bool init;
-
-  /**
    * Currently selected packet size flag.
    */
   unsigned long long packetSize;
 
-  /**
-   * Handle to Embree scene.
-   */
-  // RTCScene scene;
-
-  /**
-   * Handle to the Embree triangle mesh.
-   */
-  unsigned geomId;
-
   size_t begin, end;
+
+	gvt::render::data::cuda_primitives::Ray* disp_Buff[2];
+
+	gvt::render::data::cuda_primitives::Ray* cudaRaysBuff[2];
+
+	glm::mat4 *m_pinned;
+	glm::mat4 *minv_pinned;
+	glm::mat3* normi_pinned;
 };
 }
 }

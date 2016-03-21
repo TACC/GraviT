@@ -36,7 +36,7 @@
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::heterogeneous::data;
-using namespace gvt::render::data::primitives;
+//using namespace gvt::render::data::primitives;
 
 HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
   _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
@@ -55,61 +55,59 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
   boost::timer::auto_cpu_timer t_functor("HeterogeneousMeshAdapter: trace time: %w\n");
 #endif
 
-  gvt::render::actor::RayVector rEmbree, rOptix;
-  gvt::render::actor::RayVector mEmbree, mOptix;
+  gvt::render::actor::RayVector mOptix;
   std::mutex _lock_rays;
 
   {
     const size_t size = rayList.size();
-    const size_t work = 4096;
-    size_t current = 0;
+    //const size_t work = 4096;
+    //size_t current = 0;
 
-    std::atomic<size_t> cput(0), gput(0);
+    //std::atomic<size_t> cput(0), gput(0);
     tbb::task_group g;
 
-    // std::future<void> of(std::async(std::launch::async,
+
+    size_t split = size * 0.25;
 
     g.run([&]() {
-      while (current < size) {
-        if (_lock_rays.try_lock()) {
-          size_t start = current;
-          current += work;
-          size_t end = current;
-          _lock_rays.unlock();
+//      while (current < size) {
+//        if (_lock_rays.try_lock()) {
+//          size_t start = current;
+//          current += work;
+//          size_t end = current;
+//          _lock_rays.unlock();
+//
+//          if (start >= size) continue;
+//          if (end >= size) end = size;
+//
+//          gput++;
+          _optix->trace(rayList, mOptix, m, minv, normi, lights, 0, split);
+ //       }
+ //     }
+    });
 
-          if (start >= size) continue;
-          if (end >= size) end = size;
-
-          gput++;
-          _optix->trace(rayList, mOptix, m, minv, normi, lights, start, end);
-        }
-      }
-    }); //);
-
-    // std::future<void> ef(std::async(std::launch::async,
     g.run([&]() {
-      while (current < size) {
-        if (_lock_rays.try_lock()) {
-          size_t start = current;
-          current += work;
-          size_t end = current;
-          _lock_rays.unlock();
+//      while (current < size) {
+//        if (_lock_rays.try_lock()) {
+//          size_t start = current;
+//          current += work;
+//          size_t end = current;
+//          _lock_rays.unlock();
+//
+//          if (start >= size) continue;
+//          if (end >= size) end = size;
+//
+//          cput++;
+            _embree->trace(rayList, moved_rays, m, minv, normi, lights, split, end);
 
-          if (start >= size) continue;
-          if (end >= size) end = size;
+//        }
+ //     }
+    });
 
-          cput++;
-          _embree->trace(rayList, moved_rays, m, minv, normi, lights, start, end);
-        }
-      }
-    }); //);
-        //    ef.wait();
-        //    of.wait();
     g.wait();
     moved_rays.reserve(moved_rays.size() + mOptix.size());
     moved_rays.insert(moved_rays.end(), std::make_move_iterator(mOptix.begin()), std::make_move_iterator(mOptix.end()));
 
-    // std::cout << "C: " << cput.load() << " G: " << gput.load() << std::endl;
   }
 
   // rayList.clear();

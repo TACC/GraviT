@@ -277,12 +277,17 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 
 if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
-  set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-    src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
-    src/gvt/render/adapter/manta/data/Transforms.h
-    src/gvt/render/adapter/manta/override/DynBVH.h
-    src/gvt/render/adapter/manta/Wrapper.h
-  )
+	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
+		src/gvt/render/adapter/manta/data/Transforms.h
+		src/gvt/render/adapter/manta/override/DynBVH.h
+		src/gvt/render/adapter/manta/Wrapper.h
+		src/gvt/render/adapter/optix/data/Mesh.cuh
+		src/gvt/render/adapter/optix/data/Light.cuh
+		src/gvt/render/adapter/optix/data/Material.cuh
+		src/gvt/render/adapter/optix/data/Ray.cuh
+		src/gvt/render/adapter/optix/data/cutil_math.h
+		)
 
   set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
     src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
@@ -293,20 +298,24 @@ endif(GVT_RENDER_ADAPTER_MANTA)
 
 if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
   add_definitions(-DGVT_RENDER_ADAPTER_OPTIX)
-  set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
-    src/gvt/render/adapter/optix/data/Formats.h
-    src/gvt/render/adapter/optix/data/Transforms.h
-    src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
-    src/gvt/render/adapter/optix/Wrapper.h
-  )
+	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
+		src/gvt/render/adapter/optix/data/Formats.h
+		src/gvt/render/adapter/optix/data/Transforms.h
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
+		src/gvt/render/adapter/optix/Wrapper.h
+		)
 
-  set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
-  )
-  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-    src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
-  )
-  set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-  )
+	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
+	        src/gvt/render/adapter/optix/data/OptixMeshAdapter.cu
+		src/gvt/render/adapter/optix/data/Light.cu
+		src/gvt/render/adapter/optix/data/Material.cu
+		src/gvt/render/adapter/optix/data/Ray.cu
+		)
+	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+		src/gvt/render/adapter/optix/data/OptixMeshAdapter.cpp
+		)
+	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+		)
 endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
@@ -360,53 +369,63 @@ if (GVT_RENDER)
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader)
   include_directories(${TINYOBJPATH})
 
-  find_package(Boost REQUIRED COMPONENTS thread timer system)
-  include_directories(${Boost_INCLUDE_DIRS})
-  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
+    find_package(Boost REQUIRED COMPONENTS thread timer system)
+    include_directories(${Boost_INCLUDE_DIRS})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
 
   if(GVT_RENDER_ADAPTER_MANTA)
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS } ${MANTA_TARGET_LINK_LIBRARIES})
   endif(GVT_RENDER_ADAPTER_MANTA)
 
-  if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
-    find_package(CUDA REQUIRED)
-    find_package(OptiX REQUIRED)
+    if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
+    	find_package(CUDA REQUIRED)
+    	find_package(OptiX REQUIRED)
 
-    include_directories(${CUDA_INCLUDE_DIRS})
-    include_directories(${OptiX_INCLUDE})
-    set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-      --compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
-      -gencode arch=compute_30,code=sm_30
-      -gencode arch=compute_35,code=sm_35
-    )
-    cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
-    set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-      ${GVT_RENDER_CUDA_OBJS}
-    )
-  endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
+	set(CUDA_SEPARABLE_COMPILATION ON)
+	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-  include_directories(${OptiX_INCLUDE})
+    	include_directories(${CUDA_INCLUDE_DIRS})
+    	include_directories(${OptiX_INCLUDE})
+	set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
+    	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
+    	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
+    		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
+                -gencode arch=compute_20,code=sm_20
+    		-gencode arch=compute_30,code=sm_30
+    		-gencode arch=compute_35,code=sm_35
+                --compiler-options '-fPIC'
+    		)
+    	#cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+	CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
 
-  if (GVT_RENDER_ADAPTER_EMBREE)
-    find_package(Embree REQUIRED)
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
-  endif(GVT_RENDER_ADAPTER_EMBREE)
+    	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+    		${GVT_RENDER_CUDA_OBJS}
+    		)
 
-  add_library(gvtRender STATIC
-    ${GVT_CORE_HDRS}
-    ${GVT_CORE_SRCS}
-    ${GVT_RENDER_HDRS}
-    ${GVT_RENDER_SRCS}
-  )
+	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
 
-  target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
+    endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
-  install(TARGETS gvtRender
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-  )
+	include_directories(${OptiX_INCLUDE})
+
+	if (GVT_RENDER_ADAPTER_EMBREE)
+		find_package(Embree REQUIRED)
+		set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
+	endif(GVT_RENDER_ADAPTER_EMBREE)
+
+	add_library(gvtRender STATIC
+		${GVT_CORE_HDRS}
+		${GVT_CORE_SRCS}
+		${GVT_RENDER_HDRS}
+		${GVT_RENDER_SRCS}
+		)
+
+	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
+
+	install(TARGETS gvtRender
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		)
 endif(GVT_RENDER)
 
 if (GVT_SIMPLE_APP)
