@@ -48,8 +48,10 @@ template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) 
 /// bounding box for data and acceleration structures
 class Box3D {
 public:
-  glm::vec3 bounds_min GVT_ALIGN(16);
-  glm::vec3 bounds_max GVT_ALIGN(16);
+  glm::vec3 bounds_min;
+  float aa0;
+  glm::vec3 bounds_max;
+  float aa1;
 
   Box3D();
   Box3D(glm::vec3 vmin, glm::vec3 vmax);
@@ -61,7 +63,7 @@ public:
     glm::vec3 m = glm::min(l, u);
     float tmin = fastmax(fastmax(m.x, m.y), m.z);
 
-    if (tmin < FLT_EPSILON) return false;
+    if (tmin < gvt::render::actor::Ray::RAY_EPSILON) return false;
 
     glm::vec3 M = glm::max(l, u);
 
@@ -70,7 +72,7 @@ public:
     if (tmax < 0 || tmin > tmax) return false;
     t = (tmin > 0) ? tmin : -1;
 
-    return (t > FLT_EPSILON);
+    return (t > gvt::render::actor::Ray::RAY_EPSILON);
   };
   bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
