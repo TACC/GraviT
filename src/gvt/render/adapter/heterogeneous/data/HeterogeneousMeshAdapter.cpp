@@ -52,7 +52,7 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
                                      glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
                                      std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
 #ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t_functor("HeterogeneousMeshAdapter: trace time: %w\n");
+  //boost::timer::auto_cpu_timer t_functor("HeterogeneousMeshAdapter: trace time: %w\n");
 #endif
 
   gvt::render::actor::RayVector mOptix;

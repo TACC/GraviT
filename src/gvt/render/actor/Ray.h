@@ -105,6 +105,10 @@ public:
     return *this;
   }
 
+  inline Ray &operator=(Ray &&r) {
+    std::memmove(data, r.data, packedSize());
+    return *this;
+  }
   ~Ray(){};
 
   /// returns size in bytes for the ray information to be sent via MPI

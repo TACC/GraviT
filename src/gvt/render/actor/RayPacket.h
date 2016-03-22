@@ -97,18 +97,21 @@ template <size_t simd_width> struct RayPacketIntersection {
     float tnear[simd_width];
     float tfar[simd_width];
 
+    const float blx = bb.bounds_min[0], bly = bb.bounds_min[1], blz = bb.bounds_min[2];
+    const float bux = bb.bounds_max[0], buy = bb.bounds_max[1], buz = bb.bounds_max[2];
+
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) lx[i] = (bb.bounds_min[0] - ox[i]) * dx[i];
+    for (size_t i = 0; i < simd_width; ++i) lx[i] = (blx - ox[i]) * dx[i];
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) ly[i] = (bb.bounds_min[1] - oy[i]) * dy[i];
+    for (size_t i = 0; i < simd_width; ++i) ly[i] = (bly - oy[i]) * dy[i];
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) lz[i] = (bb.bounds_min[2] - oz[i]) * dz[i];
+    for (size_t i = 0; i < simd_width; ++i) lz[i] = (blz - oz[i]) * dz[i];
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) ux[i] = (bb.bounds_max[0] - ox[i]) * dx[i];
+    for (size_t i = 0; i < simd_width; ++i) ux[i] = (bux - ox[i]) * dx[i];
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) uy[i] = (bb.bounds_max[1] - oy[i]) * dy[i];
+    for (size_t i = 0; i < simd_width; ++i) uy[i] = (buy - oy[i]) * dy[i];
 #pragma simd
-    for (size_t i = 0; i < simd_width; ++i) uz[i] = (bb.bounds_max[2] - oz[i]) * dz[i];
+    for (size_t i = 0; i < simd_width; ++i) uz[i] = (buz - oz[i]) * dz[i];
 
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
