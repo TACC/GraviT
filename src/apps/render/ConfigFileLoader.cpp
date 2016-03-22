@@ -30,7 +30,7 @@
 
 #include "ConfigFileLoader.h"
 
-#include <gvt/render/data/domain/reader/ObjReader.h>
+#include <gvt/render/data/reader/ObjReader.h>
 
 #include <boost/regex.h>
 #include <boost/regex.hpp>
@@ -39,6 +39,7 @@
 #include <map>
 #include <sstream>
 #include <gvt/render/RenderContext.h>
+#include <gvt/core/Math.h>
 
 
 using namespace gvtapps::render;
@@ -125,12 +126,16 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
     } else if (elems[0] == "G") {
       GVT_DEBUG(DBG_ALWAYS, "Geometry file" << elems[1]);
 
-      gvt::render::data::domain::GeometryDomain *domain = NULL;
+     // gvt::render::data::domain::GeometryDomain *domain = NULL;
+      gvt::render::data::primitives::Mesh *mesh;
+
+      glm::mat4* m = new glm::mat4(1.f);
+      glm::mat4* minv= new glm::mat4(1.f);
+      glm::mat3* normi = new glm::mat3(1.f);
 
       if (elems[1].find(".obj") < elems[1].size()) {
         GVT_DEBUG(DBG_ALWAYS, "Found obj file : " << elems[1].find(".obj"));
 
-        gvt::render::data::primitives::Mesh *mesh;
 
       std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = meshes.find(elems[1]);
 
@@ -142,10 +147,9 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
         meshes[elems[1]] = mesh;
       }
 
-
       mesh->generateNormals();
 
-      domain = new gvt::render::data::domain::GeometryDomain(mesh);
+     // domain = new gvt::render::data::domain::GeometryDomain(mesh);
 
         glm::vec3 t;
         t[0] = std::atof(elems[2].c_str());
@@ -154,13 +158,25 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         GVT_DEBUG(DBG_ALWAYS, "Translate vector : \n" << t);
 
-        if (glm::length(t) > 0.0) domain->translate(t);
+        if (glm::length(t) > 0.0) {
+           *m = glm::translate(*m, t);
+           *minv = glm::inverse(*m);
+           *normi =  glm::transpose(glm::inverse(glm::mat3(*m)));
+        }
 
         t[0] = std::atof(elems[5].c_str());
         t[1] = std::atof(elems[6].c_str());
         t[2] = std::atof(elems[7].c_str());
 
-        if (glm::length(t) > 0.0) domain->rotate(t);
+        if (glm::length(t) > 0.0) {
+
+        	 glm::mat4 mAA = glm::rotate(*m, t[0], glm::vec3(1, 0, 0)) *
+        	                  glm::rotate(*m, t[1], glm::vec3(0, 1, 0)) *
+        	                  glm::rotate(*m, t[2], glm::vec3(0, 0, 1));
+
+             *minv = glm::inverse(*m);
+             *normi =  glm::transpose(glm::inverse(glm::mat3(*m)));
+        }
 
         t[0] = std::atof(elems[8].c_str());
         t[1] = std::atof(elems[9].c_str());
@@ -168,12 +184,11 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 
         GVT_DEBUG(DBG_ALWAYS, "Scale vector : \n" << t);
 
-        if (glm::length(t) > 0.0) domain->scale(t);
-
-        GVT_DEBUG(DBG_ALWAYS, "Aff. m : \n" << domain->m);
-        GVT_DEBUG(DBG_ALWAYS, "Aff. minv : \n" << domain->minv);
-        GVT_DEBUG(DBG_ALWAYS, "BB : \n" << domain->getWorldBoundingBox());
-        GVT_DEBUG(DBG_ALWAYS, "BB : \n" << domain->boundingBox);
+        if (glm::length(t) > 0.0) {
+                   *m = glm::scale(*m, t);
+                   *minv = glm::inverse(*m);
+                   *normi =  glm::transpose(glm::inverse(glm::mat3(*m)));
+                }
       }
       if (elems[1].find(".ply") < elems[1].size()) {
         GVT_DEBUG(DBG_ALWAYS, "Found ply file : " << elems[1].find(".ply"));
@@ -182,7 +197,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 		gvt::core::DBNodeH dataNodes = root["Data"];
 		gvt::core::DBNodeH instNodes = root["Instances"];
 
-		gvt::render::data::primitives::Mesh *mesh = domain->getMesh();
+		//gvt::render::data::primitives::Mesh *mesh = domain->getMesh();
 
 		gvt::core::DBNodeH meshNode = cntxt->createNodeFromType("Mesh",
 				filename.c_str(), dataNodes.UUID());
@@ -199,15 +214,13 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 				(gvt::render::data::primitives::Box3D *) meshNode["bbox"].value().toULongLong();
 		instnode["id"] = domainCount++;
 		instnode["meshRef"] = meshNode.UUID();
-		auto m = &(domain->m);
-		auto minv = &(domain->minv);
-		auto normi = &(domain->normi);
+
 		instnode["mat"] = (unsigned long long) m;
 		instnode["matInv"] = (unsigned long long) minv;
 		instnode["normi"] = (unsigned long long) normi;
 
-		auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-		auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+		auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+		auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
 		gvt::render::data::primitives::Box3D *ibox =
 				new gvt::render::data::primitives::Box3D(il, ih);
 		instnode["bbox"] = (unsigned long long) ibox;

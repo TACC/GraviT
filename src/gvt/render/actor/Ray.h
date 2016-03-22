@@ -42,6 +42,7 @@
 #include <boost/smart_ptr.hpp>
 #include <limits>
 
+#include <iomanip>
 #include <vector>
 
 namespace gvt {
@@ -87,48 +88,61 @@ public:
 
   const static float RAY_EPSILON;
   // clang-format on
+  inline Ray() /*: t_min(gvt::render::actor::Ray::RAY_EPSILON), t_max(FLT_MAX), t(FLT_MAX), id(-1), depth(8), w(0.f), type(PRIMARY) */ {
+  }
+  inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
+      : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
+        t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
 
-  Ray(glm::vec3 origin = glm::vec3(0, 0, 0), glm::vec3 direction = glm::vec3(0, 0, 0), float contribution = 1.f,
-      RayType type = PRIMARY, int depth = 10);
-  Ray(Ray &ray, glm::mat4 &m);
-  Ray(const Ray &orig);
-  Ray(Ray &&ray);
-  Ray(const unsigned char *buf);
+  inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
 
-  Ray operator=(const Ray &r) { return std::move(Ray(r)); }
+  inline Ray(Ray &&r) { std::memmove(data, r.data, packedSize()); }
 
-  virtual ~Ray();
+  inline Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
 
-  void setDirection(glm::vec3 dir);
-  void setDirection(double *dir);
-  void setDirection(float *dir);
+  inline Ray &operator=(const Ray &r) {
+    std::memcpy(data, r.data, packedSize());
+    return *this;
+  }
+
+  inline Ray &operator=(Ray &&r) {
+    std::memmove(data, r.data, packedSize());
+    return *this;
+  }
+  ~Ray(){};
 
   /// returns size in bytes for the ray information to be sent via MPI
-  int packedSize();
+  size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
-  int pack(unsigned char *buffer);
+  int pack(unsigned char *buffer) {
+    unsigned char *buf = buffer;
+    std::memcpy(buf, data, packedSize());
+    return packedSize();
+  }
 
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
-    stream << ray.origin << "-->" << ray.direction << " [" << ray.type << "]";
+    stream << std::setprecision(4) << std::fixed << std::scientific;
+    stream << "Ray[" << ray.id << "][" << ((ray.type == PRIMARY) ? "P" : (ray.type == SHADOW) ? "SH" : "S");
+    stream << "]" << ray.origin << " " << ray.direction << " " << ray.color;
+    stream << " t[" << ray.t_min << ", " << ray.t << ", " << ray.t_max << "]";
     return stream;
   }
 
   union {
     struct {
-      mutable glm::vec3 origin;
-      mutable glm::vec3 direction;
-      mutable glm::vec3 inverseDirection;
-      mutable GVT_COLOR_ACCUM color;
+      glm::vec3 origin;
+      float t_min;
+      glm::vec3 direction;
+      float t_max;
+      glm::vec3 color;
+      float t;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
       float w;   ///<! weight of image contribution
-      mutable float t;
-      mutable float t_min;
-      mutable float t_max;
       int type;
     };
-    unsigned char data[21 * 4];
+    unsigned char data[64] GVT_ALIGN(16);
   };
 
 protected:

@@ -22,33 +22,36 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 /*
- * File:   Ray.cpp
- * Author: jbarbosa
+ * File:   Light.cu
+ * Author: Roberto Ribeiro
  *
- * Created on March 28, 2014, 1:29 PM
+ * Created on February 4, 2016, 11:00 PM
  */
 
-#include <gvt/render/actor/Ray.h>
+#include "Light.cuh"
+#include "cutil_math.h"
 
-#include <boost/foreach.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/pool/singleton_pool.hpp>
+using namespace gvt::render::data::cuda_primitives;
 
-using namespace gvt::render::actor;
 
-const float Ray::RAY_EPSILON = 1.e-6;
-// void Ray::setDirection(glm::vec3 dir) {
-//   direction = glm::normalize(dir);
-//   //  inverseDirection = 1.f / direction;
-//   //  for (int i = 0; i < 3; i++) {
-//   //    if (direction[i] != 0)
-//   //      inverseDirection[i] = 1.0 / direction[i];
-//   //    else
-//   //      inverseDirection[i] = 0.;
-//   //  }
-// }
-/*
-void Ray::setDirection(double *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
+//BaseLight::BaseLight(const float4 position) : position(position) {}
 
-void Ray::setDirection(float *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
-*/
+//BaseLight::~BaseLight() {}
+
+__device__ float4 BaseLight::contribution(const float4 &hit) const { return make_float4(0.f); }
+
+//PointLight::PointLight(const float4 position, const float4 color) : BaseLight(position), color(color) {}
+
+//PointLight::~PointLight() {}
+
+__device__ float4 PointLight::contribution(const float4 &hit) const {
+  float distance = 1.f / length(((float4)position -hit));
+  distance = (distance > 1.f) ? 1.f : distance;
+  return color * (distance);
+}
+
+//AmbientLight::AmbientLight(const float4 color) : BaseLight(), color(color) {}
+
+//AmbientLight::~AmbientLight() {}
+
+__device__ float4 AmbientLight::contribution(const float4 &hit) const { return color; }

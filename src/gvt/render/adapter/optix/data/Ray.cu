@@ -22,33 +22,46 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 /*
- * File:   Ray.cpp
- * Author: jbarbosa
+ * File:   Ray.cu
+ * Author: Roberto Ribeiro
  *
- * Created on March 28, 2014, 1:29 PM
+ * Created on February 20, 2016, 19:00 PM
  */
 
-#include <gvt/render/actor/Ray.h>
+#include "Ray.cuh"
+#include "cutil_math.h"
 
-#include <boost/foreach.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/pool/singleton_pool.hpp>
-
-using namespace gvt::render::actor;
-
-const float Ray::RAY_EPSILON = 1.e-6;
-// void Ray::setDirection(glm::vec3 dir) {
-//   direction = glm::normalize(dir);
-//   //  inverseDirection = 1.f / direction;
-//   //  for (int i = 0; i < 3; i++) {
-//   //    if (direction[i] != 0)
-//   //      inverseDirection[i] = 1.0 / direction[i];
-//   //    else
-//   //      inverseDirection[i] = 0.;
-//   //  }
-// }
-/*
-void Ray::setDirection(double *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
-
-void Ray::setDirection(float *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
+namespace gvt {
+namespace render {
+namespace data {
+namespace cuda_primitives {
+/// surface material properties
+/** surface material properties used to shade intersected geometry
 */
+
+__device__ void Ray::setDirection(float4 dir) {
+		//direction = dir;
+	  dir.w = 0;
+	  direction = normalize(dir);
+	  //for (int i = 0; i < 3; i++) {
+//	    if (direction.x != 0)
+//	      inverseDirection.x = 1.0 / direction.x;
+//	    else
+//	      inverseDirection.x = 0.;
+//
+//	    if (direction.y != 0)
+//	    	      inverseDirection.y = 1.0 / direction.y;
+//	    	    else
+//	    	      inverseDirection.y = 0.;
+//
+//	    if (direction.z != 0)
+//	    	      inverseDirection.z = 1.0 / direction.z;
+//	    	    else
+//	    	      inverseDirection.z = 0.;
+	  //}
+	}
+
+}
+}
+}
+}

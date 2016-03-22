@@ -25,8 +25,6 @@ IF   (EMBREE_BUILD_PREFIX)
 
   SET(EMBREE_TARGET_LINK_LIBRARIES
     embree
-    tbb
-    tbbmalloc
     )
 
 IF(EXISTS "${EMBREE_BUILD_PREFIX}/lib")

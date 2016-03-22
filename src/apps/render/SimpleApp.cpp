@@ -86,16 +86,22 @@ void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
 
+  std::cout << "Ray :" << sizeof(gvt::render::actor::Ray) << std::endl;
+
   ParseCommandLine cmd("gvtSimple");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("lpos", ParseCommandLine::FLOAT, "Light position", 3);
+  cmd.addoption("lcolor", ParseCommandLine::FLOAT, "Light color", 3);
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
   cmd.addconflict("image", "domain");
+
   cmd.parse(argc, argv);
+
   if (!cmd.isSet("threads")) {
     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
@@ -136,7 +142,7 @@ int main(int argc, char **argv) {
   {
     Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
     int numPoints = 7;
-    glm::vec3 points[7];
+    glm::vec3 points[6];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
     points[1] = glm::vec3(-0.5, 0.5, 0.0);
     points[2] = glm::vec3(-0.5, 0.25, 0.433013);
@@ -177,8 +183,8 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
     Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 8;
-    glm::vec3 points[8];
+    int numPoints = 24;
+    glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
     points[1] = glm::vec3(0.5, -0.5, 0.5);
     points[2] = glm::vec3(0.5, 0.5, 0.5);
@@ -188,22 +194,48 @@ int main(int argc, char **argv) {
     points[6] = glm::vec3(0.5, 0.5, -0.5);
     points[7] = glm::vec3(-0.5, 0.5, -0.5);
 
+    points[8] = glm::vec3(0.5, 0.5, 0.5);
+    points[9] = glm::vec3(-0.5, 0.5, 0.5);
+    points[10] = glm::vec3(0.5, 0.5, -0.5);
+    points[11] = glm::vec3(-0.5, 0.5, -0.5);
+
+    points[12] = glm::vec3(-0.5, -0.5, 0.5);
+    points[13] = glm::vec3(0.5, -0.5, 0.5);
+    points[14] = glm::vec3(-0.5, -0.5, -0.5);
+    points[15] = glm::vec3(0.5, -0.5, -0.5);
+
+    points[16] = glm::vec3(0.5, -0.5, 0.5);
+    points[17] = glm::vec3(0.5, 0.5, 0.5);
+    points[18] = glm::vec3(0.5, -0.5, -0.5);
+    points[19] = glm::vec3(0.5, 0.5, -0.5);
+
+    points[20] = glm::vec3(-0.5, -0.5, 0.5);
+    points[21] = glm::vec3(-0.5, 0.5, 0.5);
+    points[22] = glm::vec3(-0.5, -0.5, -0.5);
+    points[23] = glm::vec3(-0.5, 0.5, -0.5);
+
     for (int i = 0; i < numPoints; i++) {
       mesh->addVertex(points[i]);
     }
     // faces are 1 indexed
     mesh->addFace(1, 2, 3);
     mesh->addFace(1, 3, 4);
-    mesh->addFace(2, 6, 7);
-    mesh->addFace(2, 7, 3);
+
+    mesh->addFace(17, 19, 20);
+    mesh->addFace(17, 20, 18);
+
     mesh->addFace(6, 5, 8);
     mesh->addFace(6, 8, 7);
-    mesh->addFace(5, 1, 4);
-    mesh->addFace(5, 4, 8);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 2);
-    mesh->addFace(4, 3, 7);
-    mesh->addFace(4, 7, 8);
+
+    mesh->addFace(23, 21, 22);
+    mesh->addFace(23, 22, 24);
+
+    mesh->addFace(10, 9, 11);
+    mesh->addFace(10, 11, 12);
+
+    mesh->addFace(13, 15, 16);
+    mesh->addFace(13, 16, 14);
+
     mesh->generateNormals();
 
     // calculate bbox
@@ -251,8 +283,8 @@ int main(int argc, char **argv) {
       instnode["matInv"] = (unsigned long long)minv;
       *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
       instnode["normi"] = (unsigned long long)normi;
-      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds[0], 1.f));
-      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds[1], 1.f));
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
@@ -262,7 +294,7 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 
   // second light just for fun
@@ -275,10 +307,22 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
+  camNode["jitterWindowSize"] = (float)0.5;
 
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
+
+  if (cmd.isSet("lpos")) {
+    std::vector<float> pos = cmd.getValue<float>("lpos");
+    lightNode["position"] = glm::vec3(pos[0], pos[1], pos[2]);
+  }
+  if (cmd.isSet("lcolor")) {
+    std::vector<float> color = cmd.getValue<float>("lcolor");
+    lightNode["color"] = glm::vec3(color[0], color[1], color[2]);
+  }
 
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
@@ -325,6 +369,14 @@ int main(int argc, char **argv) {
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
   glm::vec3 up = camNode["upVector"].value().tovec3();
+
+  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
+  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
+
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
+  mycamera.setJitterWindowSize(jitterWindowSize);
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
@@ -342,6 +394,7 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
+    std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();

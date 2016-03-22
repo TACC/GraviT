@@ -85,6 +85,8 @@ public:
     return glm::normalize(direction);
   }
 
+  virtual void pack(unsigned char *buffer)=0;
+
 protected:
 };
 
@@ -100,6 +102,11 @@ public:
                                            float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
+
+  virtual void pack(unsigned char *buffer){
+	  glm::vec3* buf = (glm::vec3*)buffer;
+	  *buf=kd;
+  };
 
 protected:
   glm::vec3 kd;
@@ -117,6 +124,21 @@ public:
                                            float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
+
+
+  virtual void pack(unsigned char *buffer){
+	  glm::vec3* buf = ( glm::vec3*)buffer;
+	  *buf=kd;
+
+	  glm::vec3* buf2 = ( glm::vec3*)(buffer+16);
+	  *buf2=ks;
+
+	  float* buf3= ( float*)(buffer+32);
+	  *buf3=alpha;
+
+
+
+  };
 
 protected:
   glm::vec3 kd;
@@ -136,6 +158,21 @@ public:
                                            float samples);
   virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
+
+
+  virtual void pack(unsigned char *buffer){
+	  glm::vec3* buf = (glm::vec3*)buffer;
+	  *buf=kd;
+
+	  glm::vec3* buf2 = (glm::vec3*)(buffer+16);
+	  *buf2=ks;
+
+	  float* buf3= ( float*)(buffer+32);
+	  *buf3=alpha;
+
+
+
+  };
 
 protected:
   glm::vec3 kd;

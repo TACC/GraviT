@@ -54,6 +54,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("upVector");
     n += gvt::core::CoreContext::createNode("fov");
     n += gvt::core::CoreContext::createNode("cam2wrld");
+    n += gvt::core::CoreContext::createNode("rayMaxDepth");
+    n += gvt::core::CoreContext::createNode("raySamples");
+    n += gvt::core::CoreContext::createNode("jitterWindowSize");
   } else if (type == String("Film")) {
     n += gvt::core::CoreContext::createNode("width");
     n += gvt::core::CoreContext::createNode("height");
