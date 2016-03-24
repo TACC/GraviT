@@ -70,14 +70,15 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 int main(int argc, char **argv) {
-  ParseCommandLine cmd("gvtSimple");
+  ParseCommandLine cmd("gvtFileLoad");
+  cmd.addoption("obj", ParseCommandLine::PATH, "Location of Obj object", 1);
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
-
+  cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
   cmd.addconflict("image", "domain");
   cmd.parse(argc, argv);
   if (!cmd.isSet("threads")) {
@@ -104,8 +105,15 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH bunnyMeshNode = cntxt->createNodeFromType("Mesh", "bunny", dataNodes.UUID());
   {
+
+    std::string objPath = std::string("../data/geom/bunny.obj");
+    if(cmd.isSet("obj"))
+    {
+      objPath = cmd.getValue<std::string>("obj")[0];
+    }
+
     // path assumes binary is run as bin/gvtFileApp
-    gvt::render::data::domain::reader::ObjReader objReader("../data/geom/bunny.obj");
+    gvt::render::data::domain::reader::ObjReader objReader(objPath);
     // right now mesh must be converted to gvt format
     Mesh *mesh = objReader.getMesh();
     mesh->generateNormals();
@@ -114,7 +122,8 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = mesh->getBoundingBox();
 
     // add bunny mesh to the database
-    bunnyMeshNode["file"] = string("../data/geom/bunny.obj");
+
+    bunnyMeshNode["file"] = objPath;
     bunnyMeshNode["bbox"] = (unsigned long long)meshbbox;
     bunnyMeshNode["ptr"] = (unsigned long long)mesh;
   }
@@ -173,14 +182,15 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(0.0, 0.1, -0.3);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(45.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)10;
-  camNode["raySamples"] = (int)3;
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
   camNode["jitterWindowSize"]= (float) 0;
 
   // set image width/height
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
+  filmNode["outputPath"] = (std::string)"bunny";
 
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
@@ -195,6 +205,11 @@ int main(int argc, char **argv) {
     std::vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
+  }
+  if (cmd.isSet("output"))
+  {
+    std::vector<std::string> output = cmd.getValue<std::string>("output");
+    filmNode["outputPath"] = output[0];
   }
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
@@ -244,7 +259,7 @@ int main(int argc, char **argv) {
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "bunny");
+  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), filmNode["outputPath"].value().toString());
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();

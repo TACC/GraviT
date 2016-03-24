@@ -60,6 +60,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
   } else if (type == String("Film")) {
     n += gvt::core::CoreContext::createNode("width");
     n += gvt::core::CoreContext::createNode("height");
+    n += gvt::core::CoreContext::createNode("outputPath");
   } else if (type == String("View")) // TODO: remove view db entries
   {
     n += gvt::core::CoreContext::createNode("width");

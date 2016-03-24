@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
+  cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
   cmd.addconflict("image", "domain");
 
   cmd.parse(argc, argv);
@@ -314,6 +315,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
+  filmNode["outputPath"] = (std::string)"simple";
 
   if (cmd.isSet("lpos")) {
     std::vector<float> pos = cmd.getValue<float>("lpos");
@@ -338,6 +340,12 @@ int main(int argc, char **argv) {
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
+  if (cmd.isSet("output"))
+  {
+    std::vector<std::string> output = cmd.getValue<std::string>("output");
+    filmNode["outputPath"] = output[0];
+  }
+
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
   if (cmd.isSet("domain"))
@@ -385,7 +393,7 @@ int main(int argc, char **argv) {
   MPE_Log_event(readend, 0, NULL);
 #endif
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "simple");
+  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), filmNode["outputPath"].value().toString());
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
@@ -410,7 +418,6 @@ int main(int argc, char **argv) {
     MPE_Log_event(renderstart, 0, NULL);
 #endif
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
-    std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
