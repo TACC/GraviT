@@ -334,7 +334,7 @@ struct embreeParallelTrace {
    */
   void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
           gvt::render::data::primitives::Material * material, unsigned int *randSeed,
-					 gvt::render::actor::RayVector& shadowRays) {
+                                         gvt::render::actor::RayVector& shadowRays) {
 
 	for (gvt::render::data::scene::Light *light : lights) {
 	GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
@@ -351,17 +351,14 @@ struct embreeParallelTrace {
 	lightPos = light->position;
 	}
 
-	//c = material->shade(r, normal, light, lightPos);
-	//AMaterial m;
-
 	c = gvt::render::data::primitives::Shade(
 	   material, r, normal, light, lightPos);
 
-	const float multiplier = 1.0f - 16.0f * std::numeric_limits<float>::epsilon();
+	const float multiplier = 1.0f - 16.0f * gvt::render::actor::Ray::RAY_EPSILON;
 	const float t_shadow = multiplier * r.t;
 
 	const glm::vec3 origin = r.origin + r.direction * t_shadow;
-	const glm::vec3 dir = light->position - origin;
+	const glm::vec3 dir = lightPos - origin;
 	const float t_max = dir.length();
 
 	// note: ray copy constructor is too heavy, so going to build it manually
@@ -603,7 +600,7 @@ struct embreeParallelTrace {
 
               Material *mat;
               if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]])
-            	  mat = mesh->faces_to_materials[ray4.primID[pi]];
+                  mat = mesh->faces_to_materials[ray4.primID[pi]];
               else
                   mat = mesh->getMaterial();
 

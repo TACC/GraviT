@@ -42,9 +42,9 @@
 
 
 
-#include "../embree/common/math/vec3.h"
-#include "../embree/common/math/vec3fa.h"
-#include "../embree/common/math/vec2.h"
+#include <embree-shaders/common/math/vec3.h>
+#include <embree-shaders/common/math/vec3fa.h>
+#include <embree-shaders/common/math/vec2.h>
 
 #include <gvt/render/data/primitives/Material.h>
 
@@ -53,12 +53,11 @@ namespace render {
 namespace data {
 namespace primitives {
 
-glm::vec3 Shade(
-     gvt::render::data::primitives::Material* material,
+glm::vec3 Shade(gvt::render::data::primitives::Material* material,
                         const gvt::render::actor::Ray &ray,
                         const glm::vec3 &sufaceNormal,
                         const gvt::render::data::scene::Light *lightSource,
-                        const glm::vec3 lightPostion);
+                        const glm::vec3 lightPosSample);
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -35,43 +35,19 @@
 #include <stdio.h>
 #include <glm/vec3.hpp>
 
+#include <cmath>
+#include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/actor/Ray.h>
+#include <gvt/render/data/scene/Light.h>
+
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
 
 struct Material {
-//  Material(){
-//
-//  }
-
-//  Material(Material* m){
-//    type=m->type;
-//    memcpy(buf, m->buf,m->size());
-//  }
-//
-//  /*
-//   * This will receive a specialized material and copu the data of the material
-//   * to our base Material
-//   */
-//  template <typename T>
-//  Material(T om){
-//
-//    Material * m = (Material*)&om;
-//
-//    type=m->type;
-//    memcpy(buf, m->buf,m->size());
-//
-//    printf("%d\n", type);
-//  }
-//
-//
-//  inline int size(){
-//    return 992;
-//  }
 
   int type;
-//  unsigned char buf[992]; //comply with Embree worst case
 
   glm::vec3 ks; //diffuse k
   glm::vec3 kd; // specular k
@@ -85,25 +61,13 @@ struct Material {
 
 };
 
-
-
-
-typedef enum
-{
-	  LAMBERT,
-	  PHONG,
-	  BLINN,
-//  EMBREE_MATERIAL_OBJ,
-//  EMBREE_MATERIAL_THIN_DIELECTRIC,
+typedef enum {
+  LAMBERT,
+  PHONG,
+  BLINN,
   EMBREE_MATERIAL_METAL,
   EMBREE_MATERIAL_VELVET,
-//  EMBREE_MATERIAL_DIELECTRIC,
-//  EMBREE_MATERIAL_METALLIC_PAINT,
-  EMBREE_MATERIAL_MATTE,
-//  EMBREE_MATERIAL_MIRROR,
-  EMBREE_MATERIAL_REFLECTIVE_METAL
-//  EMBREE_MATERIAL_HAIR,
-
+  EMBREE_MATERIAL_MATTE
 } MATERIAL_TYPE;
 
 

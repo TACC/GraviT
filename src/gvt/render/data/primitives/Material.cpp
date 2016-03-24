@@ -39,7 +39,6 @@ using namespace gvt::render::data::scene;
 
 using namespace embree;
 
-
 ////////////////////////////////////////////////////////////////////////////////
 //                          GVT Legacy Materials                              //
 ////////////////////////////////////////////////////////////////////////////////
@@ -48,10 +47,11 @@ glm::vec3 lambertShade(const gvt::render::data::primitives::Material *material, 
                        const glm::vec3 &N, const gvt::render::data::scene::Light *lightSource,
                        const glm::vec3 lightPostion) {
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-  glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
+  glm::vec3 L = glm::normalize(lightPostion - hitPoint);
   float NdotL = std::max(0.f, std::abs(glm::dot(N, L)));
-  glm::vec3  lightSourceContrib = lightSource->contribution(hitPoint);
+  glm::vec3  lightSourceContrib = lightSource->contribution(hitPoint, lightPostion);
   glm::vec3  diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
+
   return diffuse;
 }
 
@@ -65,7 +65,7 @@ glm::vec3 phongShade(const gvt::render::data::primitives::Material *material, co
   float VdotR = std::max(0.f, glm::dot(R, (-ray.direction)));
   float power = VdotR * std::pow(VdotR, material->alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint); //  distance;
+  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint, lightPostion); //  distance;
 
   gvt::render::data::Color finalColor = (lightSourceContrib * material->kd) * (NdotL * ray.w);
   finalColor += (lightSourceContrib * material->ks) * (power * ray.w);
@@ -83,7 +83,7 @@ glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Material *materia
   float NdotH = std::max(0.f, glm::dot(H, N));
   float power = NdotH * std::pow(NdotH, material->alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
+  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint, lightPostion);
 
   gvt::render::data::Color diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
   gvt::render::data::Color specular = (lightSourceContrib * material->ks) * (power * ray.w);
@@ -101,13 +101,13 @@ glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Material *materia
 //                          Matte Material                                    //
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "../embree/common/math/math.h"
-#include "../embree/common/math/linearspace3.h"
-#include "../embree/tutorials/pathtracer/shapesampler.h"
-#include "../embree/tutorials/pathtracer/optics.h"
+#include <embree-shaders/common/math/math.h>
+#include <embree-shaders/common/math/linearspace3.h>
+#include <embree-shaders/tutorials/pathtracer/shapesampler.h>
+#include <embree-shaders/tutorials/pathtracer/optics.h>
 
 inline Vec3fa toVec3fa(glm::vec3& v){
-	return Vec3fa(v.x,v.y,v.z);
+        return Vec3fa(v.x,v.y,v.z);
 }
 
 struct Lambertian {
@@ -116,13 +116,7 @@ struct Lambertian {
 
 inline Vec3fa Lambertian__eval(const Lambertian *This, const Vec3fa &wo, const DifferentialGeometry &dg,
                                const Vec3fa &wi) {
-  return This->R * (1.0f/(float)(float(pi))) * clamp(dot(wi, dg.Ns));
-}
-
-inline Vec3fa Lambertian__sample(const Lambertian *This, const Vec3fa &wo, const DifferentialGeometry &dg, Sample3f &wi,
-                                 const Vec2f &s) {
-  wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-  return Lambertian__eval(This, wo, dg, wi.v);
+  return This->R  * /*(1.0f/(float)(float(pi))) */ clamp(dot(wi, dg.Ns));
 }
 
 inline void Lambertian__Constructor(Lambertian *This, const Vec3fa &R) { This->R = R; }
@@ -135,7 +129,7 @@ inline Lambertian make_Lambertian(const Vec3fa &R) {
 
 Vec3fa MatteMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, const DifferentialGeometry &dg,
                            const Vec3fa &wi) {
-  Lambertian lambertian = make_Lambertian(Vec3fa(toVec3fa(This->ks)));
+  Lambertian lambertian = make_Lambertian(Vec3fa(toVec3fa(This->kd)));
   return Lambertian__eval(&lambertian, wo, dg, wi);
 }
 
@@ -157,12 +151,6 @@ inline Vec3fa Minneart__eval(const Minneart *This, const Vec3fa &wo, const Diffe
   const float cosThetaI = clamp(dot(wi, dg.Ns));
   const float backScatter = powf(clamp(dot(wo, wi)), This->b);
   return (backScatter * cosThetaI * float(one_over_pi)) * This->R;
-}
-
-inline Vec3fa Minneart__sample(const Minneart *This, const Vec3fa &wo, const DifferentialGeometry &dg, Sample3f &wi,
-                               const Vec2f &s) {
-  wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-  return Minneart__eval(This, wo, dg, wi.v);
 }
 
 inline void Minneart__Constructor(Minneart *This, const Vec3fa &R, const float b) {
@@ -203,12 +191,6 @@ inline Vec3fa Velvety__eval(const Velvety *This, const Vec3fa &wo, const Differe
   const float horizonScatter = powf(sinThetaO, This->f);
   return (horizonScatter * cosThetaI * float(one_over_pi)) * This->R;
 }
-
-//inline Vec3fa Velvety__sample(const Velvety *This, const Vec3fa &wo, const DifferentialGeometry &dg, Sample3f &wi,
-//                              const Vec2f &s) {
-//  wi = cosineSampleHemisphere(s.x, s.y, dg.Ns);
-//  return Velvety__eval(This, wo, dg, wi.v);
-//}
 
 inline void Velvety__Constructor(Velvety *This, const Vec3fa &R, const float f) {
   This->R = R;
@@ -251,14 +233,14 @@ Vec3fa MetalMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, c
   const Vec3fa F = eval(fresnel, cosTheta);
   const float D = eval(distribution, cosThetaH);
   const float G = min(1.0f, min(2.0f * cosThetaH * cosThetaO / cosTheta, 2.0f * cosThetaH * cosThetaI / cosTheta));
-  return (toVec3fa(This->ks) * F) * D * G * rcp(4.0f * cosThetaO);
+  Vec3fa c = (toVec3fa(This->ks) * F) * D * G * rcp(4.0f * cosThetaO);
+
+
+  return c;
 }
 
-
-
-
 /*
- * Proxy call used by adapater/integrator
+ * Proxy call used by adapater
  * Will temporarly call the sub-proxy of each sub-set of materials
  * Interfaces to the different shading materials are significantly different
  * mainly due to light assessing
@@ -266,48 +248,45 @@ Vec3fa MetalMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, c
 glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
                                                const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                const gvt::render::data::scene::Light *lightSource,
-                                               const glm::vec3 lightPostion) {
+                                               const glm::vec3 lightPosSample) {
 
   glm::vec3 color;
 
-
   switch (material->type) {
   case LAMBERT:
-	  color = lambertShade(material, ray, sufaceNormal, lightSource, lightPostion);
+    color = lambertShade(material, ray, sufaceNormal, lightSource, lightPosSample);
     break;
   case PHONG:
-	  color = phongShade(material, ray, sufaceNormal, lightSource, lightPostion);
+    color = phongShade(material, ray, sufaceNormal, lightSource, lightPosSample);
     break;
   case BLINN:
-	  color = blinnPhongShade(material, ray, sufaceNormal, lightSource, lightPostion);
+    color = blinnPhongShade(material, ray, sufaceNormal, lightSource, lightPosSample);
     break;
-   case EMBREE_MATERIAL_METAL:
+  case EMBREE_MATERIAL_METAL:
   case EMBREE_MATERIAL_VELVET:
-  case EMBREE_MATERIAL_MATTE:
-
+  case EMBREE_MATERIAL_MATTE: {
     glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-    glm::vec3 L = glm::normalize(lightSource->position - hitPoint);
-    glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint);
+    glm::vec3 L = glm::normalize(lightPosSample - hitPoint);
+    glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint, lightPosSample);
 
     DifferentialGeometry dg;
-    dg.Ns = Vec3fa(L.x, L.y, L.z);
-    Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), Vec3fa(), dg,
-                                                             Vec3fa(sufaceNormal.x, sufaceNormal.y, sufaceNormal.z));
+    dg.Ns = Vec3fa(sufaceNormal.x, sufaceNormal.y, sufaceNormal.z);
+    Vec3fa wi = Vec3fa(L.x, L.y, L.z);
+    Vec3fa wo = Vec3fa(-ray.direction.x, -ray.direction.y, -ray.direction.z);
 
-    color = lightSourceContrib * glm::vec3(r.x, r.y, r.z) * ray.w;
-    break;
+    Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), wo, dg, wi);
+
+    color = lightSourceContrib * 2.f * glm::vec3(r.x, r.y, r.z) * ray.w;
+
+  } break;
   default:
-   	   printf("Material implementation missing for embree adpater\n");
+    printf("Material implementation missing for embree adpater\n");
 
-     break;
-   }
-
+    break;
+  }
 
   return color;
 }
-
-
-
 
 inline Vec3fa gvt::render::data::primitives::Material__eval(Material *materials, int materialID, int numMaterials,
                                                             const BRDF &brdf, const Vec3fa &wo,
@@ -340,7 +319,7 @@ inline Vec3fa gvt::render::data::primitives::Material__eval(Material *materials,
       //      wo, dg, wi); break;
       //      case MATERIAL_HAIR: c = HairMaterial__eval((HairMaterial*)material, brdf, wo, dg, wi); break;
       default:
-   	   printf("Material implementation missing for embree adpater\n");
+           printf("Material implementation missing for embree adpater\n");
 
         c = Vec3fa(0.0f);
       }

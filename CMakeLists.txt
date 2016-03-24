@@ -123,6 +123,13 @@ if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
   MESSAGE(SEND ERRORS "ply reader header not found")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
+#TODO best way to just include embre folder ?
+set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
+#find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_EMBREE})
+#if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+#  MESSAGE(SEND ERRORS "ply reader header not found")
+#endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+
 # if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 #   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 # elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -408,6 +415,9 @@ if (GVT_RENDER)
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	include_directories(${OptiX_INCLUDE})
+        include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
+
+
 
 	if (GVT_RENDER_ADAPTER_EMBREE)
 		find_package(Embree REQUIRED)
