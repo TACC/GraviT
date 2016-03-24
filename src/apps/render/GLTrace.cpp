@@ -372,8 +372,6 @@ void SyncFilmSize() {
   gvt::core::DBNodeH rootNode = cntxt->getRootNode();
   gvt::core::DBNodeH filmNode = rootNode["Film"];
 
-  unsigned char *v_new = new unsigned char[4 * sizeof(float)];
-
   MPI_Bcast(&width, 1, MPI_INT, opengl_rank, MPI_COMM_WORLD);
 
   if (mpi_rank != opengl_rank) {
@@ -392,18 +390,16 @@ void SyncFilmSize() {
  */
 void SyncCamera() {
 
-  unsigned char *v_new = new unsigned char[4 * sizeof(float)];
-
   glm::vec3 eye = camNode["eyePoint"].value().tovec3();
-  MPI_Bcast(glm::value_ptr(eye), 4, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
+  MPI_Bcast(glm::value_ptr(eye), 3, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
   if (mpi_rank != opengl_rank) camNode["eyePoint"] = eye;
 
   glm::vec3 focus = camNode["focus"].value().tovec3();
-  MPI_Bcast(glm::value_ptr(focus), 4, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
+  MPI_Bcast(glm::value_ptr(focus), 3, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
   if (mpi_rank != opengl_rank) camNode["focus"] = focus;
 
   glm::vec3 upVector = camNode["upVector"].value().tovec3();
-  MPI_Bcast(glm::value_ptr(upVector), 4, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
+  MPI_Bcast(glm::value_ptr(upVector), 3, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
   if (mpi_rank != opengl_rank) camNode["upVector"] = upVector;
 }
 
@@ -447,7 +443,7 @@ void UpdateCamera(glm::vec3 focus, glm::vec3 eye1, glm::vec3 up) {
       // rotate it 90 deg
       rot = (float)(90.0 * M_PI / 180.0) * rot;
 
-      // ratation matrix
+      // rotation matrix
       // glm::mat4 mAA;
       // mAA = glm::mat4::createRotation(rot[0], 1.0, 0.0, 0.0) * glm::mat4::createRotation(rot[1], 0.0, 1.0, 0.0) *
       //       glm::mat4::createRotation(rot[2], 0.0, 0.0, 1.0);
@@ -559,11 +555,11 @@ void reshape(int w, int h) {
     glm::vec3 up = camNode["upVector"].value().tovec3();
     float fov = camNode["fov"].value().toFloat() * (180 / M_PI);
     // simply calculating the zfar according to camera view dir for now
-    float zfar = (focus - eye1).length() * 1.5;
+    float zfar = glm::length(focus - eye1)* 1.5;
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(fov, (double)w / (double)h, .1, zfar);
+    gluPerspective(fov, (double)w / (double)h, .01, zfar);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -619,12 +615,12 @@ void UpdateRenderMode() {
     glm::vec3 up = camNode["upVector"].value().tovec3();
     float fov = camNode["fov"].value().toFloat() * (180 / M_PI);
     // simply calculating the zfar according to camera view dir for now
-    float zfar = (focus - eye1).length() * 1.5;
+    float zfar = glm::length(focus - eye1)*1.5;
 
     renderMode = BVH_RENDER_MODE;
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(fov, (double)width / (double)height, .1, zfar);
+    gluPerspective(fov, (double)width / (double)height, .01, zfar);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
@@ -854,72 +850,6 @@ void dispfunc(void) {
   }
 }
 
-void ConfigSceneFromFile(std::string filename) {
-// NEed to modify COnfigLo
-#if 0
-  gvtapps::render::ConfigFileLoader cl(filename);
-  gvt::render::data::Dataset &scene = cl.scene;
-
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH instNodes = root["Instances"];
-
-  for (int i = 0; i < scene.domainSet.size(); i++) {
-    Mesh *mesh = ((GeometryDomain *)scene.getDomain(i))->getMesh();
-
-    gvt::core::DBNodeH meshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
-
-    meshNode["file"] = filename;
-    // mesh->computeBoundingBox();
-    gvt::render::data::primitives::Box3D *bbox = mesh->getBoundingBox();
-    meshNode["bbox"] = (unsigned long long)bbox;
-    meshNode["ptr"] = (unsigned long long)mesh;
-
-    // add instance
-    gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-    instnode["id"] = i;
-    instnode["meshRef"] = meshNode.UUID();
-    auto m = new glm::mat4(true);
-    auto minv = new glm::mat4(true);
-    auto normi = new glm::mat3();
-    instnode["mat"] = (unsigned long long)m;
-    *minv = glm::inverse(*m);
-    instnode["matInv"] = (unsigned long long)minv;
-    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-    instnode["normi"] = (unsigned long long)normi;
-    auto il = (*m) * mbox->bounds_min;
-    auto ih = (*m) * mbox->bounds_max;
-    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    instnode["bbox"] = (unsigned long long)ibox;
-    instnode["centroid"] = ibox->centroid();
-
-      mesh->generateNormals();
-
-  }
-
-  // add lights, camera, and film to the database
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
-  gvt::render::data::scene::PointLight *lp = (gvt::render::data::scene::PointLight *)scene.getLight(0);
-  lightNode["position"] = glm::vec3(lp->position);
-  lightNode["color"] = glm::vec3(lp->color);
-
-  // camera
-  gvt::core::DBNodeH _camNode = root["Camera"];
-  _camNode["eyePoint"] = glm::vec3(scene.camera.getEye());
-  _camNode["focus"] = glm::vec3(scene.camera.getFocus());
-  _camNode["upVector"] = scene.camera.getUp();
-  _camNode["fov"] = (float)(45.0 * M_PI / 180.0); // TODO
-
-  // film
-  gvt::core::DBNodeH filmNode = root["Film"];
-
-  filmNode["width"] = int(scene.camera.getFilmSizeWidth());
-  filmNode["height"] = int(scene.camera.getFilmSizeHeight());
-#endif
-}
 
 void ConfigSceneCubeCone() {
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
@@ -1392,7 +1322,7 @@ int main(int argc, char *argv[]) {
   if (cmd.isSet("enzo"))
     ConfigEnzo(cmd.get<std::string>("enzo"));
   else if (cmd.isSet("scene"))
-    ConfigSceneFromFile(cmd.get<std::string>("scene"));
+	gvtapps::render::ConfigFileLoader cl(cmd.get<std::string>("scene"));
   else
     ConfigSceneCubeCone();
   //
@@ -1430,7 +1360,7 @@ int main(int argc, char *argv[]) {
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
-  }
+}
 
   if (cmd.isSet("look")) {
     std::vector<float> eye = cmd.getValue<float>("look");
@@ -1511,11 +1441,11 @@ int main(int argc, char *argv[]) {
       glm::vec3 up = camNode["upVector"].value().tovec3();
       float fov = camNode["fov"].value().toFloat() * (180 / M_PI);
       // simply calculating the zfar according to camera view dir for now
-      float zfar = (focus - eye1).length() * 1.5;
+      float zfar = glm::length(focus - eye1) * 1.5;
 
       glMatrixMode(GL_PROJECTION);
       glLoadIdentity();
-      gluPerspective(fov, (double)width / (double)height, .1, zfar);
+      gluPerspective(fov, (double)width / (double)height, .01, zfar);
       glMatrixMode(GL_MODELVIEW);
       glLoadIdentity();
 
