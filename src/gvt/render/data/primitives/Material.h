@@ -58,9 +58,20 @@ public:
   virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                   float samples);
 
-  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n) {
-    float Xi1 = (float)rand() / (float)RAND_MAX;
-    float Xi2 = (float)rand() / (float)RAND_MAX;
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, unsigned int *randSeed = nullptr) {
+
+    float Xi1 = 0;
+    float Xi2 = 0;
+    if(randSeed == nullptr)
+    {
+      Xi1 = (float)rand() / (float)RAND_MAX;
+      Xi2 = (float)rand() / (float)RAND_MAX;
+    }
+    else
+    {
+      Xi1 = randEngine.fastrand(randSeed, 0, 1);
+      Xi2 = randEngine.fastrand(randSeed, 0, 1);
+    }
 
     float theta = acos(sqrt(1.0 - Xi1));
     float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
@@ -88,6 +99,7 @@ public:
   virtual void pack(unsigned char *buffer)=0;
 
 protected:
+  RandEngine randEngine;
 };
 
 class Lambert : public Material {

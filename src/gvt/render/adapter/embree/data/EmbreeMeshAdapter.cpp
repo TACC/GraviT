@@ -437,7 +437,7 @@ struct embreeParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
-    TLRand randEngine;
+    RandEngine randEngine;
     randEngine.SetSeed(begin);
     // std::random_device rd;
 
@@ -585,7 +585,7 @@ struct embreeParallelTrace {
 
                 // TODO: remove this dependency on mesh, store material object in the database
                 // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-                r.direction = glm::normalize(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
+                r.direction = glm::normalize(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal, randSeed));
 
                 r.w = r.w * glm::dot(r.direction, normal);
                 r.depth = ndepth;

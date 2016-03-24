@@ -1,4 +1,4 @@
-class TLRand {
+class RandEngine {
 public:
   inline float fastrand(float min, float max) {
     g_seed = 214013 * (g_seed) + 2531011;
