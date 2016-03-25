@@ -37,7 +37,7 @@
 
 #include "Ray.cuh"
 #include "Light.cuh"
-
+#include <gvt/render/data/primitives/Material.h>
 
 
 namespace gvt {

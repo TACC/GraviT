@@ -3,7 +3,6 @@
 //#include "cutil_math.h"
 //#include "Material.cuh"
 
-#include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/adapter/optix/data/Material.cuh>
 
 #include "cutil_math.h"

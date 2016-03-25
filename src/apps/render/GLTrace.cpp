@@ -1045,7 +1045,7 @@ void ConfigSceneCubeCone() {
   }
 
   // add lights, camera, and film to the database
-#if 0
+#if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
   lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);

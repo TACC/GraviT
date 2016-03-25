@@ -32,13 +32,12 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 #define GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 
-#include <stdio.h>
-#include <glm/vec3.hpp>
+//#include <stdio.h>
+#include <glm/glm.hpp>
 
-#include <cmath>
-#include <gvt/render/data/DerivedTypes.h>
-#include <gvt/render/actor/Ray.h>
-#include <gvt/render/data/scene/Light.h>
+//#include <cmath>
+//#include <gvt/render/data/DerivedTypes.h>
+
 
 namespace gvt {
 namespace render {

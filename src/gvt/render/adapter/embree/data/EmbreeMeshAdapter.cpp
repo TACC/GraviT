@@ -351,10 +351,16 @@ struct embreeParallelTrace {
 	lightPos = light->position;
 	}
 
+	 glm::vec3 hitPoint = r.origin + r.direction * r.t;
+	  glm::vec3 L = glm::normalize(lightPos - hitPoint);
+	  float NdotL = std::max(0.f, glm::dot(normal, L));
+
+	  if (NdotL == 0) continue;
+
 	c = gvt::render::data::primitives::Shade(
 	   material, r, normal, light, lightPos);
 
-	const float multiplier = 1.0f - 16.0f * gvt::render::actor::Ray::RAY_EPSILON;
+	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON;
 	const float t_shadow = multiplier * r.t;
 
 	const glm::vec3 origin = r.origin + r.direction * t_shadow;
@@ -532,6 +538,7 @@ struct embreeParallelTrace {
 
         prepGVT_EMBREE_PACKET_TYPE(ray4, valid, resetValid, localPacketSize, rayList, localIdx);
         GVT_EMBREE_INTERSECTION(valid, scene, ray4);
+
         resetValid = false;
 
         for (size_t pi = 0; pi < localPacketSize; pi++) {
@@ -557,12 +564,9 @@ struct embreeParallelTrace {
               //
               // old fixme: fix embree normal calculation to remove dependency
               // from gvt mesh
-              // for some reason the embree normals aren't working, so just
-              // going to manually calculate the triangle normal
-              // glm::vec3 embreeNormal = glm::vec3(ray4.Ngx[pi], ray4.Ngy[pi],
-              // ray4.Ngz[pi], 0.0);
 
               glm::vec3 manualNormal;
+              glm::vec3 normalflat = glm::normalize((*normi) * -glm::vec3(ray4.Ngx[pi], ray4.Ngy[pi], ray4.Ngz[pi]));
               {
                 const int triangle_id = ray4.primID[pi];
 #ifndef FLAT_SHADING
@@ -578,25 +582,46 @@ struct embreeParallelTrace {
                 const glm::vec3 &c = mesh->normals[normals.get<0>()];
                 manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                manualNormal = glm::normalize((*normi) * manualNormal);
-#else
-                int I = mesh->faces[triangle_id].get<0>();
-                int J = mesh->faces[triangle_id].get<1>();
-                int K = mesh->faces[triangle_id].get<2>();
+//				glm::vec3 dPdu, dPdv;
+//				int geomID = ray4.geomID[pi];
+//				{
+//					rtcInterpolate(scene, geomID,
+//							ray4.primID[pi], ray4.u[pi],
+//							ray4.v[pi], RTC_VERTEX_BUFFER0,
+//							nullptr, &dPdu.x, &dPdv.x, 3);
+//				}
+//				manualNormal = glm::cross(dPdv, dPdu);
 
-                glm::vec3 a = mesh->vertices[I];
-                glm::vec3 b = mesh->vertices[J];
-                glm::vec3 c = mesh->vertices[K];
-                glm::vec3 u = b - a;
-                glm::vec3 v = c - a;
-                rayList glm::vec3 normal;
-                normal[0] = u[1] * v[2] - u[2] * v[1];
-                normal[1] = u[2] * v[0] - u[0] * v[2];
-                normal[2] = u[0] * v[1] - u[1] * v[0];
-                manualNormal = glm::normalize((*normi) * normal);
+                manualNormal = glm::normalize((*normi) * manualNormal);
+
+#else
+//                {
+//                int I = mesh->faces[triangle_id].get<0>();
+//                int J = mesh->faces[triangle_id].get<1>();
+//                int K = mesh->faces[triangle_id].get<2>();
+//
+//                glm::vec3 a = mesh->vertices[I];
+//                glm::vec3 b = mesh->vertices[J];
+//                glm::vec3 c = mesh->vertices[K];
+//                glm::vec3 u = b - a;
+//                glm::vec3 v = c - a;
+//                 glm::vec3 normal;
+//                normal[0] = u[1] * v[2] - u[2] * v[1];
+//                normal[1] = u[2] * v[0] - u[0] * v[2];
+//                normal[2] = u[0] * v[1] - u[1] * v[0];
+//                }
+                manualNormal = normalflat;
+
 #endif
               }
-              const glm::vec3 &normal = manualNormal;
+
+
+              //backface check
+              if (glm::dot(-r.direction, normalflat) <= 0.f ) {
+            	 manualNormal = -manualNormal;
+                 }
+
+             const glm::vec3 &normal = manualNormal;
 
               Material *mat;
               if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]])
@@ -609,7 +634,6 @@ struct embreeParallelTrace {
                 t = (t > 1) ? 1.f / t : t;
                 r.w = r.w * t;
               }
-              //unsigned int *randSeed = randEngine.ReturnSeed();
 
               generateShadowRays(r, normal,mat, randEngine.ReturnSeed(), shadowRays);
 
