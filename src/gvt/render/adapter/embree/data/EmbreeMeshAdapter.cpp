@@ -351,14 +351,9 @@ struct embreeParallelTrace {
 	lightPos = light->position;
 	}
 
-	 glm::vec3 hitPoint = r.origin + r.direction * r.t;
-	  glm::vec3 L = glm::normalize(lightPos - hitPoint);
-	  float NdotL = std::max(0.f, glm::dot(normal, L));
-
-	  if (NdotL == 0) continue;
-
-	c = gvt::render::data::primitives::Shade(
-	   material, r, normal, light, lightPos);
+	 if (!gvt::render::data::primitives::Shade(
+	   material, r, normal, light, lightPos, c))
+	     continue;
 
 	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON;
 	const float t_shadow = multiplier * r.t;
@@ -595,30 +590,15 @@ struct embreeParallelTrace {
                 manualNormal = glm::normalize((*normi) * manualNormal);
 
 #else
-//                {
-//                int I = mesh->faces[triangle_id].get<0>();
-//                int J = mesh->faces[triangle_id].get<1>();
-//                int K = mesh->faces[triangle_id].get<2>();
-//
-//                glm::vec3 a = mesh->vertices[I];
-//                glm::vec3 b = mesh->vertices[J];
-//                glm::vec3 c = mesh->vertices[K];
-//                glm::vec3 u = b - a;
-//                glm::vec3 v = c - a;
-//                 glm::vec3 normal;
-//                normal[0] = u[1] * v[2] - u[2] * v[1];
-//                normal[1] = u[2] * v[0] - u[0] * v[2];
-//                normal[2] = u[0] * v[1] - u[1] * v[0];
-//                }
+
                 manualNormal = normalflat;
 
 #endif
               }
 
-
-              //backface check
+              //backface check, requires flat normal
               if (glm::dot(-r.direction, normalflat) <= 0.f ) {
-            	 manualNormal = -manualNormal;
+                 manualNormal = -manualNormal;
                  }
 
              const glm::vec3 &normal = manualNormal;

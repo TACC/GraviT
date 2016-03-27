@@ -44,49 +44,39 @@ using namespace embree;
 ////////////////////////////////////////////////////////////////////////////////
 
 glm::vec3 lambertShade(const gvt::render::data::primitives::Material *material, const gvt::render::actor::Ray &ray,
-                       const glm::vec3 &N, const gvt::render::data::scene::Light *lightSource,
-                       const glm::vec3 lightPostion) {
-  glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-  glm::vec3 L = glm::normalize(lightPostion - hitPoint);
-  float NdotL = std::max(0.f, glm::dot(N, L));
-  glm::vec3  lightSourceContrib = lightSource->contribution(hitPoint, lightPostion);
-  glm::vec3  diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
+                       const glm::vec3 &N, const glm::vec3 &wi) {
+
+  float NdotL = std::max(0.f, glm::dot(N, wi));
+  glm::vec3  diffuse = material->kd * (NdotL * ray.w);
 
   return diffuse;
 }
 
-glm::vec3 phongShade(const gvt::render::data::primitives::Material *material, const Ray &ray, const glm::vec3 &N,
-                     const Light *lightSource, const glm::vec3 lightPostion) {
-  glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
-  glm::vec3 L = glm::normalize(lightPostion - hitPoint);
+glm::vec3 phongShade(const gvt::render::data::primitives::Material *material, const gvt::render::actor::Ray &ray,
+                     const glm::vec3 &N, const glm::vec3 &wi) {
 
-  float NdotL = std::max(0.f, glm::dot(N, L));
-  glm::vec3 R = ((N * 2.f) * NdotL) - L;
+  float NdotL = std::max(0.f, glm::dot(N, wi));
+  glm::vec3 R = ((N * 2.f) * NdotL) - wi;
   float VdotR = std::max(0.f, glm::dot(R, (-ray.direction)));
   float power = VdotR * std::pow(VdotR, material->alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint, lightPostion); //  distance;
-
-  gvt::render::data::Color finalColor = (lightSourceContrib * material->kd) * (NdotL * ray.w);
-  finalColor += (lightSourceContrib * material->ks) * (power * ray.w);
+  gvt::render::data::Color finalColor =  material->kd * (NdotL * ray.w);
+  finalColor += material->ks * (power * ray.w);
   return finalColor;
 }
 
-glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Material *material, const Ray &ray, const glm::vec3 &N,
-                          const Light *lightSource, const glm::vec3 lightPostion) {
-  glm::vec3 hitPoint = ray.origin + (ray.direction * ray.t);
-  glm::vec3 L = glm::normalize(lightPostion - hitPoint);
-  float NdotL = std::max(0.f, glm::dot(N, L));
+glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Material *material, const gvt::render::actor::Ray &ray,
+                          const glm::vec3 &N, const glm::vec3 &wi) {
 
-  glm::vec3 H = glm::normalize(L - ray.direction);
+  float NdotL = std::max(0.f, glm::dot(N, wi));
+
+  glm::vec3 H = glm::normalize(wi - ray.direction);
 
   float NdotH = std::max(0.f, glm::dot(H, N));
   float power = NdotH * std::pow(NdotH, material->alpha);
 
-  glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint, lightPostion);
-
-  gvt::render::data::Color diffuse = (lightSourceContrib * material->kd) * (NdotL * ray.w);
-  gvt::render::data::Color specular = (lightSourceContrib * material->ks) * (power * ray.w);
+  gvt::render::data::Color diffuse =  material->kd * (NdotL * ray.w);
+  gvt::render::data::Color specular =  material->ks * (power * ray.w);
 
   gvt::render::data::Color finalColor = (diffuse + specular);
   return finalColor;
@@ -245,38 +235,42 @@ Vec3fa MetalMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, c
  * Interfaces to the different shading materials are significantly different
  * mainly due to light assessing
  */
-glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
+bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
                                                const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                const gvt::render::data::scene::Light *lightSource,
-                                               const glm::vec3 lightPosSample) {
+                                               const glm::vec3 lightPosSample, glm::vec3& color) {
 
-  glm::vec3 color;
+
+  glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
+  glm::vec3 wi = glm::normalize(lightPosSample - hitPoint);
+  float NdotL = std::max(0.f, glm::dot(sufaceNormal, wi));
+  glm::vec3 Li = lightSource->contribution(hitPoint, lightPosSample);
+
+  if (NdotL == 0.f || (Li[0] == 0.f && Li[1] == 0.f && Li[2] == 0.f)) return false;
 
   switch (material->type) {
   case LAMBERT:
-    color = lambertShade(material, ray, sufaceNormal, lightSource, lightPosSample);
+    color = lambertShade(material, ray, sufaceNormal, wi);
     break;
   case PHONG:
-    color = phongShade(material, ray, sufaceNormal, lightSource, lightPosSample);
+    color = phongShade(material, ray, sufaceNormal, wi);
     break;
   case BLINN:
-    color = blinnPhongShade(material, ray, sufaceNormal, lightSource, lightPosSample);
+    color = blinnPhongShade(material, ray, sufaceNormal, wi);
     break;
   case EMBREE_MATERIAL_METAL:
   case EMBREE_MATERIAL_VELVET:
   case EMBREE_MATERIAL_MATTE: {
-    glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
-    glm::vec3 L = glm::normalize(lightPosSample - hitPoint);
-    glm::vec3 lightSourceContrib = lightSource->contribution(hitPoint, lightPosSample);
+
 
     DifferentialGeometry dg;
     dg.Ns = Vec3fa(sufaceNormal.x, sufaceNormal.y, sufaceNormal.z);
-    Vec3fa wi = Vec3fa(L.x, L.y, L.z);
+    Vec3fa ewi = Vec3fa(wi.x, wi.y, wi.z);
     Vec3fa wo = Vec3fa(-ray.direction.x, -ray.direction.y, -ray.direction.z);
 
-    Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), wo, dg, wi);
+    Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), wo, dg, ewi);
 
-    color = lightSourceContrib * 2.f * glm::vec3(r.x, r.y, r.z) * ray.w;
+    color = 2.f * glm::vec3(r.x, r.y, r.z) * ray.w;
 
   } break;
   default:
@@ -285,7 +279,9 @@ glm::vec3 gvt::render::data::primitives::Shade(gvt::render::data::primitives::Ma
     break;
   }
 
-  return color;
+  color *= Li;
+
+  return true;
 }
 
 inline Vec3fa gvt::render::data::primitives::Material__eval(Material *materials, int materialID, int numMaterials,
@@ -294,30 +290,19 @@ inline Vec3fa gvt::render::data::primitives::Material__eval(Material *materials,
   Vec3fa c = Vec3fa(0.0f);
   int id = materialID;
   {
-    if (id >= 0 && id < numMaterials) // FIXME: workaround for ISPC bug, location reached with empty execution mask
+    if (id >= 0 && id < numMaterials)
     {
       Material *material = &materials[materialID];
       switch (material->type) {
-      //      case MATERIAL_OBJ  : c = OBJMaterial__eval  ((OBJMaterial*)  material, brdf, wo, dg, wi); break;
       case EMBREE_MATERIAL_METAL:
         c = MetalMaterial__eval(material, brdf, wo, dg, wi);
         break;
-      //      case MATERIAL_REFLECTIVE_METAL: c = ReflectiveMetalMaterial__eval((ReflectiveMetalMaterial*)material,
-      //      brdf, wo, dg, wi); break;
       case EMBREE_MATERIAL_VELVET:
         c = VelvetMaterial__eval(material, brdf, wo, dg, wi);
         break;
-      //      case MATERIAL_DIELECTRIC: c = DielectricMaterial__eval((DielectricMaterial*)material, brdf, wo, dg, wi);
-      //      break;
-      //      case MATERIAL_METALLIC_PAINT: c = MetallicPaintMaterial__eval((MetallicPaintMaterial*)material, brdf, wo,
-      //      dg, wi); break;
       case EMBREE_MATERIAL_MATTE:
         c = MatteMaterial__eval(material, brdf, wo, dg, wi);
         break;
-      //      case MATERIAL_MIRROR: c = MirrorMaterial__eval((MirrorMaterial*)material, brdf, wo, dg, wi); break;
-      //      case MATERIAL_THIN_DIELECTRIC: c = ThinDielectricMaterial__eval((ThinDielectricMaterial*)material, brdf,
-      //      wo, dg, wi); break;
-      //      case MATERIAL_HAIR: c = HairMaterial__eval((HairMaterial*)material, brdf, wo, dg, wi); break;
       default:
            printf("Material implementation missing for embree adpater\n");
 

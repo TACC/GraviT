@@ -125,7 +125,7 @@ public:
 */
 public:
    data::primitives::Material* mat;
-  //float4* vertices;
+  float4* vertices;
   //float4* mapuv;
   float4* normals;
   int3* faces;

@@ -45,12 +45,13 @@ namespace render {
 namespace data {
 namespace cuda_primitives {
 
-    __device__  float4 Shade(
+    __device__  bool Shade(
            gvt::render::data::primitives::Material* material,
                               const Ray &ray,
                               const float4 &sufaceNormal,
                               const Light *lightSource,
-                              const float4 lightPostion);
+                              const float4 lightPostion,
+                                float4& color);
 
 }
 }

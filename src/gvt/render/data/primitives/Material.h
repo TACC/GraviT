@@ -44,7 +44,32 @@ namespace render {
 namespace data {
 namespace primitives {
 
+typedef enum {
+    LAMBERT,
+    PHONG,
+    BLINN,
+    EMBREE_MATERIAL_METAL,
+    EMBREE_MATERIAL_VELVET,
+    EMBREE_MATERIAL_MATTE
+  } MATERIAL_TYPE;
+
+
 struct Material {
+
+  //Default material
+  Material(){
+    type = PHONG;
+    //type = EMBREE_MATERIAL_MATTE;
+    kd = glm::vec3(.5,.5,.5);
+    ks = glm::vec3(.5,.5,.5);
+    alpha = 1.f;
+
+    //type = EMBREE_MATERIAL_METAL;
+    //copper metal
+    eta = glm::vec3(.19,1.45, 1.50);
+    k = glm::vec3(3.06,2.40, 1.88);
+    roughness = 0.05;
+  }
 
   int type;
 
@@ -59,15 +84,6 @@ struct Material {
   float horizonScatteringFallOff; //EmbreeVelvetMaterial
 
 };
-
-typedef enum {
-  LAMBERT,
-  PHONG,
-  BLINN,
-  EMBREE_MATERIAL_METAL,
-  EMBREE_MATERIAL_VELVET,
-  EMBREE_MATERIAL_MATTE
-} MATERIAL_TYPE;
 
 
 }

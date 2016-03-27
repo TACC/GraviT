@@ -98,7 +98,6 @@ public:
   float LightWidth;
   float LightHeight;
 
-protected:
   glm::vec3 u, v, w;
   TLRand randEngine;
 };
