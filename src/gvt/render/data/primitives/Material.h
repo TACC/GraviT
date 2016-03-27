@@ -58,7 +58,7 @@ struct Material {
 
   //Default material
   Material(){
-    type = PHONG;
+    type = LAMBERT;
     //type = EMBREE_MATERIAL_MATTE;
     kd = glm::vec3(.5,.5,.5);
     ks = glm::vec3(.5,.5,.5);

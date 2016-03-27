@@ -1176,9 +1176,21 @@ void ConfigEnzo(std::string rootdir) {
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = root["Lights"];
+#if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(512.0, 512.0, 1256.0);
   lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+#else
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", lightNodes.UUID());
+
+  lightNode["position"] = glm::vec3(512.0, 512.0, 1256.0);
+  lightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  lightNode["width"] = 2.f;
+  lightNode["height"] = 2.f;
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+#endif
+
   // camera
   gvt::core::DBNodeH camNode = root["Camera"];
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
