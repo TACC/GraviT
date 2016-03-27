@@ -421,6 +421,13 @@ void gvt::render::data::cuda_primitives::CudaGvtContext::initCudaBuffers(
 		} else if (lightNode.name() == std::string("AmbientLight")) {
 			lights.push_back(new gvt::render::data::scene::AmbientLight(color));
 		}
+		 else if (lightNode.name() == std::string("AreaLight")) {
+			 auto pos = lightNode["position"].value().tovec3();
+			         auto normal = lightNode["normal"].value().tovec3();
+			         auto width = lightNode["width"].value().toFloat();
+			         auto height = lightNode["height"].value().toFloat();
+			         lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+		 }
 	}
 
 	gvt::render::data::cuda_primitives::Light *cudaLights_devPtr;

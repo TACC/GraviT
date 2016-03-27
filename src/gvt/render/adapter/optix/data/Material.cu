@@ -65,7 +65,7 @@ __device__ inline float4 toFloat4(glm::vec3 v){
                                                           float4 &r) {
 
   float4 hitPoint = ray.origin + ray.direction * ray.t;
-  float4 wi = normalize(lightSource->light.position - hitPoint);
+  float4 wi = normalize(lightPosSample - hitPoint);
   float NdotL = fmaxf(0.f, (sufaceNormal * wi));
   float4 Li = lightSource->contribution(hitPoint, lightPosSample);
 
@@ -85,5 +85,8 @@ __device__ inline float4 toFloat4(glm::vec3 v){
     printf("Material implementation missing for cuda-optix adpater\n");
     break;
   }
+
+  r*=Li;
+
   return true;
 };

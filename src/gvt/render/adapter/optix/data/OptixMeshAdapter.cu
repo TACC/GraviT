@@ -216,7 +216,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
 
     float4 c;
     if(!gvt::render::data::cuda_primitives::Shade(
-          cudaGvtCtx->mesh.mat, r,normal, light, light->light.position, c))
+          cudaGvtCtx->mesh.mat, r,normal, light,lightPos, c))
       continue;
 
     const float multiplier = 1.0f - 16.0f * FLT_EPSILON;
@@ -224,7 +224,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
 
     float4 origin = r.origin + r.direction * t_shadow;
     origin.w=1.0f;
-    const float4 dir = light->light.position - origin;
+    const float4 dir =lightPos - origin;
     const float t_max = length(dir);
 
     Ray shadow_ray;
