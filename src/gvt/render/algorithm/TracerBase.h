@@ -99,7 +99,7 @@ struct GVT_COMM {
       next_neighbor = (next_neighbor + 1) % world_size;
 
       if (next_neighbor != rank) {
-        std::cout << "Node[" << rank << "] send to Node[" << next_neighbor << "]" << std::endl;
+        // std::cout << "Node[" << rank << "] send to Node[" << next_neighbor << "]" << std::endl;
         B *send = &buf[next_neighbor * partition_size];
         MPI::COMM_WORLD.Isend(send, sizeof(B) * partition_size, MPI::BYTE, next_neighbor, rank | 0xF00000000000000);
       }
@@ -107,7 +107,7 @@ struct GVT_COMM {
       prev_neighbor = (prev_neighbor > 0 ? prev_neighbor - 1 : world_size - 1);
 
       if (prev_neighbor != rank) {
-        std::cout << "Node[" << rank << "] recv to Node[" << prev_neighbor << "]" << std::endl;
+        // std::cout << "Node[" << rank << "] recv to Node[" << prev_neighbor << "]" << std::endl;
         B *recv = &gather[prev_neighbor * partition_size];
         Irecv_requests_status.push_back(MPI::COMM_WORLD.Irecv(recv, sizeof(B) * partition_size, MPI::BYTE,
                                                               prev_neighbor, prev_neighbor | 0xF00000000000000));
