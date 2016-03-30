@@ -83,59 +83,53 @@ struct GVT_COMM {
 
   template <typename B> B *gatherbuffer(B *buf, size_t size) {
 
-    if (MPI::COMM_WORLD.Get_size() < 2) return buf;
+    if (world_size <= 1) return buf;
 
-    size_t partition_size = size / MPI::COMM_WORLD.Get_size();
-    size_t next_neighbor = MPI::COMM_WORLD.Get_rank();
-    size_t prev_neighbor = MPI::COMM_WORLD.Get_rank();
+    std::cout << "World size : " << world_size << std::endl;
 
-    // std::cout << "Partition size : " << partition_size << " total " << size << "["
-    //           << (partition_size * MPI::COMM_WORLD.Get_size()) << "]" << std::endl;
+    size_t partition_size = size / world_size;
+    size_t next_neighbor = rank;
+    size_t prev_neighbor = rank;
 
-    B *acc = &buf[MPI::COMM_WORLD.Get_rank() * partition_size];
-    B *gather = new B[partition_size * MPI::COMM_WORLD.Get_size()];
+    B *acc = &buf[rank * partition_size];
+    B *gather = new B[partition_size * world_size];
     std::vector<MPI::Request> Irecv_requests_status;
 
-    for (int round = 0; round < MPI::COMM_WORLD.Get_size(); round++) {
-      next_neighbor = (next_neighbor + 1) % MPI::COMM_WORLD.Get_size();
-      prev_neighbor = (prev_neighbor != 0 ? prev_neighbor - 1 : MPI::COMM_WORLD.Get_size() - 1);
+    for (int round = 0; round < world_size; round++) {
+      next_neighbor = (next_neighbor + 1) % world_size;
 
-      if (next_neighbor != MPI::COMM_WORLD.Get_rank()) {
-        B *send = &buf[next_neighbor * next_neighbor];
-        MPI::COMM_WORLD.Isend(send, sizeof(B) * partition_size, MPI::BYTE, next_neighbor,
-                              MPI::COMM_WORLD.Get_rank() | 0xF00000000000000);
+      if (next_neighbor != rank) {
+        std::cout << "Node[" << rank << "] send to Node[" << next_neighbor << "]" << std::endl;
+        B *send = &buf[next_neighbor * partition_size];
+        MPI::COMM_WORLD.Isend(send, sizeof(B) * partition_size, MPI::BYTE, next_neighbor, rank | 0xF00000000000000);
       }
-      if (prev_neighbor != MPI::COMM_WORLD.Get_rank()) {
+
+      prev_neighbor = (prev_neighbor > 0 ? prev_neighbor - 1 : world_size - 1);
+
+      if (prev_neighbor != rank) {
+        std::cout << "Node[" << rank << "] recv to Node[" << prev_neighbor << "]" << std::endl;
         B *recv = &gather[prev_neighbor * partition_size];
-        MPI::COMM_WORLD.Irecv(recv, sizeof(B) * partition_size, MPI::BYTE, prev_neighbor,
-                              prev_neighbor | 0xF00000000000000);
+        Irecv_requests_status.push_back(MPI::COMM_WORLD.Irecv(recv, sizeof(B) * partition_size, MPI::BYTE,
+                                                              prev_neighbor, prev_neighbor | 0xF00000000000000));
       }
     }
-    const size_t chunksize = MAX(GVT_SIMD_WIDTH, partition_size / std::thread::hardware_concurrency());
-    static tbb::simple_partitioner ap;
-    for (MPI::Request &request : Irecv_requests_status) {
-      // MPI::Request::Wait(request);
-      request.Wait();
-      MPI::Status status;
-      request.Get_status(status);
 
-      // MPI::Request::Get_status(status);
-      unsigned int source = status.Get_source();
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
-                        [&](tbb::blocked_range<size_t> chunk) {
+    MPI::Request::Waitall(Irecv_requests_status.size(), &Irecv_requests_status[0]);
+
+    for (int source = 0; source < world_size; ++source) {
+      if (source == rank) continue;
 #pragma simd
-                          for (int i = chunk.begin(); i < chunk.end(); ++i) {
-                            acc[i] = gather[source * partition_size + i];
-                          }
-                        },
-                        ap);
+      for (int i = 0; i < partition_size; ++i) {
+        acc[i] += gather[source * partition_size + i];
+      }
     }
 
-    B *newbuf = (MPI::COMM_WORLD.Get_rank() == 0) ? new B[size] : nullptr;
+    B *newbuf = (rank == 0) ? new B[size] : nullptr;
     MPI::COMM_WORLD.Gather(acc, sizeof(B) * partition_size, MPI::BYTE, newbuf, sizeof(B) * partition_size, MPI::BYTE,
                            0);
 
     if (newbuf) std::memcpy(buf, newbuf, sizeof(B) * size);
+    delete gather;
     delete newbuf;
     return newbuf;
   }
