@@ -81,6 +81,12 @@ public:
 
   unsigned char *GetBuffer() { return rgb; }
 
+  unsigned char *swap(unsigned char *buf) {
+    if (buf == nullptr) return nullptr;
+    std::swap(rgb, buf);
+    return buf;
+  }
+
   void Write();
   void clear() { std::memset(rgb, 0, sizeof(char) * 3 * width * height); }
 

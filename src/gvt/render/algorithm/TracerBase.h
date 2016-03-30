@@ -80,6 +80,57 @@ struct GVT_COMM {
 
   operator bool() { return (world_size > 1); }
   bool root() { return rank == 0; }
+
+  template <typename B> B *gatherbuffer(B *buf, size_t size) {
+
+    if (MPI::COMM_WORLD.Get_size() < 2) return buf;
+
+    size_t partition_size = size / MPI::COMM_WORLD.Get_size();
+    size_t next_neighbor = MPI::COMM_WORLD.Get_rank();
+    size_t prev_neighbor = MPI::COMM_WORLD.Get_rank();
+
+    std::cout << "Partition size : " << partition_size << " total " << size << "["
+              << (partition_size * MPI::COMM_WORLD.Get_size()) << "]" << std::endl;
+
+    B *acc = &buf[MPI::COMM_WORLD.Get_rank() * partition_size];
+    B *gather = new B[partition_size * MPI::COMM_WORLD.Get_size()];
+    std::vector<MPI::Request> Irecv_requests_status;
+
+    for (int round = 0; round < MPI::COMM_WORLD.Get_size(); round++) {
+      next_neighbor = (next_neighbor + 1) % MPI::COMM_WORLD.Get_size();
+      prev_neighbor = (prev_neighbor != 0 ? prev_neighbor - 1 : MPI::COMM_WORLD.Get_size() - 1);
+
+      if (next_neighbor != MPI::COMM_WORLD.Get_rank()) {
+        B *send = &buf[next_neighbor * next_neighbor];
+        MPI::COMM_WORLD.Isend(send, sizeof(B) * partition_size, MPI::BYTE, next_neighbor,
+                              MPI::COMM_WORLD.Get_rank() | 0xF00000000000000);
+      }
+      if (prev_neighbor != MPI::COMM_WORLD.Get_rank()) {
+        B *recv = &gather[prev_neighbor * partition_size];
+        MPI::COMM_WORLD.Irecv(recv, sizeof(B) * partition_size, MPI::BYTE, prev_neighbor,
+                              prev_neighbor | 0xF00000000000000);
+      }
+    }
+
+    for (MPI::Request &request : Irecv_requests_status) {
+      // MPI::Request::Wait(request);
+      request.Wait();
+      MPI::Status status;
+      request.Get_status(status);
+
+      // MPI::Request::Get_status(status);
+      unsigned int source = status.Get_source();
+      for (int i = 0; i < partition_size; ++i) {
+        acc[i] = gather[source * partition_size + i];
+      }
+    }
+
+    B *newbuf = (MPI::COMM_WORLD.Get_rank() == 0) ? new B[size] : nullptr;
+    MPI::COMM_WORLD.Gather(acc, sizeof(B) * partition_size, MPI::BYTE, newbuf, sizeof(B) * partition_size, MPI::BYTE,
+                           0);
+
+    return newbuf;
+  }
 };
 
 struct processRay;
@@ -236,37 +287,40 @@ public:
   inline void gatherFramebuffers(int rays_traced) {
 
     localComposite();
-    // for (size_t i = 0; i < size; i++) image.Add(i, colorBuf[i]);
+    unsigned char *buf = mpi.gatherbuffer<unsigned char>(image.GetBuffer(), width * height * 3);
 
-    if (!mpi) return;
-
-    size_t size = width * height;
-    unsigned char *rgb = image.GetBuffer();
-
-    int rgb_buf_size = 3 * size;
-
-    unsigned char *bufs = mpi.root() ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
-
-    // MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-    if (mpi.root()) {
-      const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
-      static tbb::simple_partitioner ap;
-      tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize), [&](tbb::blocked_range<size_t> chunk) {
-
-        for (int j = chunk.begin() * 3; j < chunk.end() * 3; j += 3) {
-          for (size_t i = 1; i < mpi.world_size; ++i) {
-            int p = i * rgb_buf_size + j;
-            // assumes black background, so adding is fine (r==g==b== 0)
-            rgb[j + 0] += bufs[p + 0];
-            rgb[j + 1] += bufs[p + 1];
-            rgb[j + 2] += bufs[p + 2];
-          }
-        }
-      });
+    if (buf != nullptr) {
+      buf = image.swap(buf);
+      delete[] buf;
     }
 
-    delete[] bufs;
+    // size_t size = width * height;
+    // unsigned char *rgb = image.GetBuffer();
+    //
+    // int rgb_buf_size = 3 * size;
+    //
+    // unsigned char *bufs = mpi.root() ? new unsigned char[mpi.world_size * rgb_buf_size] : NULL;
+    //
+    // // MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Gather(rgb, rgb_buf_size, MPI_UNSIGNED_CHAR, bufs, rgb_buf_size, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+    // if (mpi.root()) {
+    //   const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+    //   static tbb::simple_partitioner ap;
+    //   tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize), [&](tbb::blocked_range<size_t> chunk) {
+    //
+    //     for (int j = chunk.begin() * 3; j < chunk.end() * 3; j += 3) {
+    //       for (size_t i = 1; i < mpi.world_size; ++i) {
+    //         int p = i * rgb_buf_size + j;
+    //         // assumes black background, so adding is fine (r==g==b== 0)
+    //         rgb[j + 0] += bufs[p + 0];
+    //         rgb[j + 1] += bufs[p + 1];
+    //         rgb[j + 2] += bufs[p + 2];
+    //       }
+    //     }
+    //   });
+    // }
+    //
+    // delete[] bufs;
   }
 };
 
