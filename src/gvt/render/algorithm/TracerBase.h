@@ -85,7 +85,7 @@ struct GVT_COMM {
 
     if (world_size <= 1) return buf;
 
-    std::cout << "World size : " << world_size << std::endl;
+    // std::cout << "World size : " << world_size << std::endl;
 
     size_t partition_size = size / world_size;
     size_t next_neighbor = rank;
@@ -118,10 +118,16 @@ struct GVT_COMM {
 
     for (int source = 0; source < world_size; ++source) {
       if (source == rank) continue;
+      const size_t chunksize = MAX(GVT_SIMD_WIDTH, partition_size / (std::thread::hardware_concurrency()));
+      static tbb::simple_partitioner ap;
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
+                        [&](tbb::blocked_range<size_t> chunk) {
 #pragma simd
-      for (int i = 0; i < partition_size; ++i) {
-        acc[i] += gather[source * partition_size + i];
-      }
+                          for (int i = chunk.begin(); i < chunk.end(); ++i) {
+                            acc[i] += gather[source * partition_size + i];
+                          }
+                        },
+                        ap);
     }
 
     B *newbuf = (rank == 0) ? new B[size] : nullptr;
