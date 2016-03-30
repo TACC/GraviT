@@ -89,8 +89,8 @@ struct GVT_COMM {
     size_t next_neighbor = MPI::COMM_WORLD.Get_rank();
     size_t prev_neighbor = MPI::COMM_WORLD.Get_rank();
 
-    std::cout << "Partition size : " << partition_size << " total " << size << "["
-              << (partition_size * MPI::COMM_WORLD.Get_size()) << "]" << std::endl;
+    // std::cout << "Partition size : " << partition_size << " total " << size << "["
+    //           << (partition_size * MPI::COMM_WORLD.Get_size()) << "]" << std::endl;
 
     B *acc = &buf[MPI::COMM_WORLD.Get_rank() * partition_size];
     B *gather = new B[partition_size * MPI::COMM_WORLD.Get_size()];
@@ -129,6 +129,8 @@ struct GVT_COMM {
     MPI::COMM_WORLD.Gather(acc, sizeof(B) * partition_size, MPI::BYTE, newbuf, sizeof(B) * partition_size, MPI::BYTE,
                            0);
 
+    if (newbuf) std::memcpy(buf, newbuf, sizeof(B) * size);
+    delete newbuf;
     return newbuf;
   }
 };
@@ -287,12 +289,8 @@ public:
   inline void gatherFramebuffers(int rays_traced) {
 
     localComposite();
-    unsigned char *buf = mpi.gatherbuffer<unsigned char>(image.GetBuffer(), width * height * 3);
 
-    if (buf != nullptr) {
-      buf = image.swap(buf);
-      delete[] buf;
-    }
+    mpi.gatherbuffer<unsigned char>(image.GetBuffer(), width * height * 3);
 
     // size_t size = width * height;
     // unsigned char *rgb = image.GetBuffer();
