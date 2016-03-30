@@ -111,7 +111,8 @@ struct GVT_COMM {
                               prev_neighbor | 0xF00000000000000);
       }
     }
-
+    const size_t chunksize = MAX(GVT_SIMD_WIDTH, partition_size / std::thread::hardware_concurrency());
+    static tbb::simple_partitioner ap;
     for (MPI::Request &request : Irecv_requests_status) {
       // MPI::Request::Wait(request);
       request.Wait();
@@ -120,9 +121,14 @@ struct GVT_COMM {
 
       // MPI::Request::Get_status(status);
       unsigned int source = status.Get_source();
-      for (int i = 0; i < partition_size; ++i) {
-        acc[i] = gather[source * partition_size + i];
-      }
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+                        [&](tbb::blocked_range<size_t> chunk) {
+#pragma simd
+                          for (int i = chunk.begin(); i < chunk.end(); ++i) {
+                            acc[i] = gather[source * partition_size + i];
+                          }
+                        },
+                        ap);
     }
 
     B *newbuf = (MPI::COMM_WORLD.Get_rank() == 0) ? new B[size] : nullptr;
