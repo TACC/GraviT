@@ -53,7 +53,7 @@ namespace cuda_primitives {
 
 struct CudaGvtContext {
 
-	__inline__ void initCudaBuffers(int packetSize);
+	void initCudaBuffers(int packetSize);
 
 	__inline__ CudaGvtContext* toGPU() {
 

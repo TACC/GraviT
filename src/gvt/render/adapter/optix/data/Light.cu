@@ -61,7 +61,7 @@ __device__ float4 AmbientLight::contribution(const float4 &hit,const float4 &sam
 __device__ float4 AreaLight::GetPosition() {
   // generate points on plane then transform
   float xLocation = (cudaRand() - 0.5) * LightWidth;
-  float yLocation = 0;
+  //float yLocation = 0;
   float zLocation = (cudaRand()  - 0.5) * LightHeight;
 
   // x coord
