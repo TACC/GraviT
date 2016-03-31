@@ -45,6 +45,12 @@ namespace render {
 namespace data {
 namespace cuda_primitives {
 
+
+/*
+ * Material proxy call implemented per adpater
+ * Interfaces to the different shading materials may be significantly different
+ * mainly due to light assessing and vec formats
+ */
     __device__  bool Shade(
            gvt::render::data::primitives::Material* material,
                               const Ray &ray,

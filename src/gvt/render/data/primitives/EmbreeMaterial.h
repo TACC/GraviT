@@ -53,6 +53,12 @@ namespace render {
 namespace data {
 namespace primitives {
 
+
+/*
+ * Material proxy call implemented per adpater
+ * Interfaces to the different shading materials may be significantly different
+ * mainly due to light assessing and vec formats
+ */
 bool Shade(gvt::render::data::primitives::Material* material,
                         const gvt::render::actor::Ray &ray,
                         const glm::vec3 &sufaceNormal,

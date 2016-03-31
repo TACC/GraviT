@@ -296,9 +296,9 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
           normalflat = normalize(normal);
 
 
-          normalflat =make_float4(
+          normalflat =normalize(make_float4(
                        (*(cudaGvtCtx->normi)) * make_float3(normalflat.x,
-                    		   normalflat.y,normalflat.z));
+                    		   normalflat.y,normalflat.z)));
 
           }
         {

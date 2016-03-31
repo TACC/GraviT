@@ -229,12 +229,6 @@ Vec3fa MetalMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, c
   return c;
 }
 
-/*
- * Proxy call used by adapater
- * Will temporarly call the sub-proxy of each sub-set of materials
- * Interfaces to the different shading materials are significantly different
- * mainly due to light assessing
- */
 bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
                                                const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
                                                const gvt::render::data::scene::Light *lightSource,

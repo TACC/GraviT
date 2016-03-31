@@ -99,7 +99,7 @@ public:
   float LightHeight;
 
   glm::vec3 u, v, w;
-  TLRand randEngine;
+  RandEngine randEngine;
 };
 }
 }

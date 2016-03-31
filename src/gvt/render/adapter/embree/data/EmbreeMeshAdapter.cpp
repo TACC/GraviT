@@ -297,9 +297,20 @@ struct embreeParallelTrace {
     }
   }
 
-  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n) {
-    float Xi1 = (float)rand() / (float)RAND_MAX;
-    float Xi2 = (float)rand() / (float)RAND_MAX;
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, RandEngine& randEngine) {
+
+	   float Xi1 = 0;
+	    float Xi2 = 0;
+//	    if(randSeed == nullptr)
+//	    {
+//	      Xi1 = (float)rand() / (float)RAND_MAX;
+//	      Xi2 = (float)rand() / (float)RAND_MAX;
+//	    }
+//	    else
+//	    {
+	      Xi1 = randEngine.fastrand( 0, 1);
+	      Xi2 = randEngine.fastrand( 0, 1);
+	    //}
 
     float theta = std::acos(std::sqrt(1.0 - Xi1));
     float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
@@ -473,7 +484,7 @@ struct embreeParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
-    TLRand randEngine;
+    RandEngine randEngine;
     randEngine.SetSeed(begin);
     // std::random_device rd;
 
@@ -630,7 +641,8 @@ struct embreeParallelTrace {
 
                 // TODO: remove this dependency on mesh, store material object in the database
                 // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-                r.direction = CosWeightedRandomHemisphereDirection2(normal);
+
+                r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
                 r.w = r.w * glm::dot(r.direction, normal);
                 r.depth = ndepth;

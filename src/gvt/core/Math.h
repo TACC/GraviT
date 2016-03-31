@@ -40,7 +40,7 @@
 #include <glm/vec4.hpp>
 #include <iostream>
 
-#include <gvt/core/math/TLRand.h>
+#include <gvt/core/math/RandEngine.h>
 
 #define GVT_ALIGN(x) __attribute__((aligned(x)))
 
