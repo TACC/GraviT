@@ -72,7 +72,7 @@ bool composite::initIceT() {
   icetSetColorFormat(ICET_IMAGE_COLOR_RGBA_FLOAT);
   icetSetDepthFormat(ICET_IMAGE_DEPTH_NONE);
   icetDrawCallback(draw);
-  icetStrategy(ICET_STRATEGY_REDUCE);
+  icetStrategy(ICET_STRATEGY_VTREE);
   icetSingleImageStrategy(ICET_SINGLE_IMAGE_STRATEGY_AUTOMATIC);
 
   // IceTSizeType num_pixels = icetImageGetNumPixels(result);
