@@ -42,6 +42,8 @@
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
 
+#include <gvt/render/composite/composite.h>
+
 #include <boost/foreach.hpp>
 #include <boost/range/algorithm.hpp>
 #include <boost/thread/mutex.hpp>
@@ -175,13 +177,16 @@ public:
   tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
   tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
-  glm::vec3 *colorBuf;
+  glm::vec4 *colorBuf;
+
+  gvt::render::composite::composite img;
+  bool require_composite = false;
 
   AbstractTrace(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image)
       : rays(rays), image(image) {
     GVT_DEBUG(DBG_ALWAYS, "initializing abstract trace: num rays: " << rays.size());
-    colorBuf = new glm::vec3[width * height];
-
+    colorBuf = new glm::vec4[width * height];
+    require_composite = img.initIceT();
     // TODO: alim: this queue is on the number of domains in the dataset
     // if this is on the number of domains, then it will be equivalent to the
     // number
@@ -225,7 +230,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
-  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};
@@ -263,7 +268,8 @@ public:
                             local_queue[hits[i].next].push_back(r);
                           } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                            colorBuf[r.id] += r.color;
+                            colorBuf[r.id] += glm::vec4(r.color, r.w);
+                            // colorBuf[r.id][3] += r.w;
                           }
                         }
                         for (auto &q : local_queue) {
@@ -282,21 +288,36 @@ public:
   inline bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
 
   inline void localComposite() {
+    // const size_t size = width * height;
+    // const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+    // static tbb::simple_partitioner ap;
+    // tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+    //                   [&](tbb::blocked_range<size_t> chunk) {
+    //                     for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
+    //                   },
+    //                   ap);
+  }
+
+  inline void gatherFramebuffers(int rays_traced) {
+
+    glm::vec4 * final;
+
+    if (require_composite)
+      final = img.execute(colorBuf, width, height);
+    else
+      final = colorBuf;
+
     const size_t size = width * height;
     const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
                       [&](tbb::blocked_range<size_t> chunk) {
-                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
+                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, final[i]);
                       },
                       ap);
-  }
-
-  inline void gatherFramebuffers(int rays_traced) {
-
-    localComposite();
-
-    mpi.gatherbuffer<unsigned char>(image.GetBuffer(), width * height * 3);
+    // if (require_composite) delete final;
+    // localComposite();
+    // mpi.gatherbuffer<unsigned char>(image.GetBuffer(), width * height * 3);
 
     // size_t size = width * height;
     // unsigned char *rgb = image.GetBuffer();
