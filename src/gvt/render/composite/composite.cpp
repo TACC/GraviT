@@ -12,11 +12,17 @@
 #include <IceTDevState.h>
 #include <IceTMPI.h>
 
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+#include <tbb/partitioner.h>
+#include <thread>
+
 #include <glm/glm.hpp>
 namespace gvt {
 namespace render {
 namespace composite {
 
+#define MAX(a, b) ((a > b) ? a : b)
 static glm::vec4 *local_buffer;
 const IceTDouble identity[] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 const IceTFloat black[] = { 0.0, 0.0, 0.0, 1.0 };
@@ -37,12 +43,19 @@ static void draw(const IceTDouble *projection_matrix, const IceTDouble *modelvie
 
   color_buffer = icetImageGetColorf(result);
 
-  for (i = 0; i < num_pixels; i++) {
-    color_buffer[i * 4 + 0] = local_buffer[i][0];
-    color_buffer[i * 4 + 1] = local_buffer[i][1];
-    color_buffer[i * 4 + 2] = local_buffer[i][2];
-    color_buffer[i * 4 + 3] = local_buffer[i][3];
-  }
+  const size_t size = num_pixels;
+  const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+  static tbb::simple_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+                    [&](tbb::blocked_range<size_t> chunk) {
+                      for (size_t i = chunk.begin(); i < chunk.end(); i++) {
+                        color_buffer[i * 4 + 0] = local_buffer[i][0];
+                        color_buffer[i * 4 + 1] = local_buffer[i][1];
+                        color_buffer[i * 4 + 2] = local_buffer[i][2];
+                        color_buffer[i * 4 + 3] = local_buffer[i][3];
+                      }
+                    },
+                    ap);
 }
 
 bool composite::initIceT() {
@@ -59,7 +72,7 @@ bool composite::initIceT() {
   icetSetColorFormat(ICET_IMAGE_COLOR_RGBA_FLOAT);
   icetSetDepthFormat(ICET_IMAGE_DEPTH_NONE);
   icetDrawCallback(draw);
-  icetStrategy(ICET_STRATEGY_DIRECT);
+  icetStrategy(ICET_STRATEGY_REDUCE);
   icetSingleImageStrategy(ICET_SINGLE_IMAGE_STRATEGY_AUTOMATIC);
 
   // IceTSizeType num_pixels = icetImageGetNumPixels(result);
@@ -84,13 +97,20 @@ glm::vec4 *composite::execute(glm::vec4 *buffer_in, const size_t width, const si
   color_buffer = icetImageGetColorf(result);
 
   glm::vec4 *final_image = new glm::vec4[width * height];
-  for (i = 0; i < num_pixels; i++) {
-    final_image[i][0] = color_buffer[i * 4 + 0];
-    final_image[i][1] = color_buffer[i * 4 + 1];
-    final_image[i][2] = color_buffer[i * 4 + 2];
-    final_image[i][3] = color_buffer[i * 4 + 3];
-  }
 
+  const size_t size = num_pixels;
+  const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+  static tbb::simple_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+                    [&](tbb::blocked_range<size_t> chunk) {
+                      for (size_t i = chunk.begin(); i < chunk.end(); i++) {
+                        final_image[i][0] = color_buffer[i * 4 + 0];
+                        final_image[i][1] = color_buffer[i * 4 + 1];
+                        final_image[i][2] = color_buffer[i * 4 + 2];
+                        final_image[i][3] = color_buffer[i * 4 + 3];
+                      }
+                    },
+                    ap);
   return final_image;
 }
 }
