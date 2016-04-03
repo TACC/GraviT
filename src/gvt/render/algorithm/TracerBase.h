@@ -315,7 +315,7 @@ public:
                         for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, final[i]);
                       },
                       ap);
-    // if (require_composite) delete final;
+    if (require_composite) delete[] final;
     // localComposite();
     // mpi.gatherbuffer<unsigned char>(image.GetBuffer(), width * height * 3);
 
