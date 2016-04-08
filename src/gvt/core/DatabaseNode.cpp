@@ -109,6 +109,12 @@ DBNodeH DBNodeH::operator[](const String &key) {
   }
   return DBNodeH(child->UUID());
 }
+void DBNodeH::remove() {
+  CoreContext *ctx = CoreContext::instance();
+  Database &db = *(ctx->database());
+
+  db.removeItem(_uuid);
+}
 
 DBNodeH &DBNodeH::operator+=(DBNodeH child) {
   CoreContext *ctx = CoreContext::instance();

@@ -166,6 +166,57 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
 
+  void resetBufferSize(const size_t &w, const size_t &h) {
+    width = w;
+    height = h;
+    if (colorBuf != nullptr) {
+      delete[] colorBuf;
+      delete[] colorBuf_mutex;
+    }
+    colorBuf_mutex = new tbb::mutex[width];
+    colorBuf = new glm::vec3[width * height];
+  }
+
+  void resetInstances() {
+    instancenodes = rootnode["Instances"].getChildren();
+    int numInst = instancenodes.size();
+    GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
+
+    if (acceleration) delete acceleration;
+    acceleration = new gvt::render::data::accel::BVH(instancenodes);
+    meshRef.clear();
+    instM.clear();
+    instMinv.clear();
+    instMinvN.clear();
+    for (int i = 0; i < instancenodes.size(); i++) {
+      meshRef[i] =
+          (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
+      instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
+      instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
+      instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
+    }
+
+    // auto lightNodes = rootnode["Lights"].getChildren();
+    //
+    // lights.reserve(2);
+    // for (auto lightNode : lightNodes) {
+    //   auto color = lightNode["color"].value().tovec3();
+    //
+    //   if (lightNode.name() == std::string("PointLight")) {
+    //     auto pos = lightNode["position"].value().tovec3();
+    //     lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+    //   } else if (lightNode.name() == std::string("AmbientLight")) {
+    //     lights.push_back(new gvt::render::data::scene::AmbientLight(color));
+    //   } else if (lightNode.name() == std::string("AreaLight")) {
+    //     auto pos = lightNode["position"].value().tovec3();
+    //     auto normal = lightNode["normal"].value().tovec3();
+    //     auto width = lightNode["width"].value().toFloat();
+    //     auto height = lightNode["height"].value().toFloat();
+    //     lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+    //   }
+    // }
+  }
+
   void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }
 
   // clang-format off
