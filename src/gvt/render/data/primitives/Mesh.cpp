@@ -176,3 +176,20 @@ Box3D Mesh::computeBoundingBox() {
 
   return box;
 }
+
+void Mesh::writeobj(std::string filename) {
+
+  std::ofstream file;
+  file.open(filename);
+  {
+    file << "#vertices " << vertices.size() << std::endl;
+    for (auto &v : vertices) file << "v " << v[0] << " " << v[1] << " " << v[2] << std::endl;
+
+    file << "#vertices normal " << normals.size() << std::endl;
+    for (auto &vn : normals) file << "vn " << vn[0] << " " << vn[1] << " " << vn[2] << std::endl;
+
+    file << "#vertices " << faces.size() << std::endl;
+    for (auto &f : faces) file << "f " << f.get<0>() << " " << f.get<1>() << " " << f.get<2>() << std::endl;
+    file.close();
+  }
+}

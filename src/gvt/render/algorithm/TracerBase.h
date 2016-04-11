@@ -175,15 +175,18 @@ public:
     }
     colorBuf_mutex = new tbb::mutex[width];
     colorBuf = new glm::vec3[width * height];
+    std::cout << "Resized buffer" << std::endl;
   }
 
   void resetInstances() {
     instancenodes = rootnode["Instances"].getChildren();
     int numInst = instancenodes.size();
-    GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
 
     if (acceleration) delete acceleration;
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
+
+    if (queue_mutex) delete[] queue_mutex;
+    queue_mutex = new tbb::mutex[numInst];
     meshRef.clear();
     instM.clear();
     instMinv.clear();
@@ -196,6 +199,7 @@ public:
       instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
     }
 
+    std::cout << "Reseted instances" << std::endl;
     // auto lightNodes = rootnode["Lights"].getChildren();
     //
     // lights.reserve(2);
@@ -240,6 +244,8 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
+    std::cout << "Suffle rays" << rays.size() << std::endl;
+
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
@@ -268,6 +274,8 @@ public:
                         }
                       },
                       ap);
+
+    std::cout << "Finished shuffle" << std::endl;
     rays.clear();
   }
 

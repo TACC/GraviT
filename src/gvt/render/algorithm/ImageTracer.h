@@ -161,6 +161,9 @@ public:
         }
       }
       t_sort.stop();
+
+      std::cout << "Instance[" << instTarget << "] " << instTargetCount << std::endl;
+
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
       if (instTarget >= 0) {

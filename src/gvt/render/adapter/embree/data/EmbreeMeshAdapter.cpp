@@ -95,7 +95,7 @@ struct embTriangle {
 };
 
 EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
- // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
+  // GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: converting mesh node " << node.UUID().toString());
 
   if (!EmbreeMeshAdapter::init) {
     rtcInit(0);
@@ -107,6 +107,8 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   GVT_ASSERT(mesh, "EmbreeMeshAdapter: mesh pointer in the database is null");
 
   mesh->generateNormals();
+
+  mesh->writeobj("mesh.obj");
 
   // switch (GVT_EMBREE_PACKET_SIZE) {
   // case 4:
@@ -500,12 +502,14 @@ struct embreeParallelTrace {
         resetValid = false;
 
         for (size_t pi = 0; pi < localPacketSize; pi++) {
+
           if (valid[pi]) {
             // counter++; // tracks rays processed [atomic]
+
             auto &r = rayList[localIdx + pi];
             if (ray4.geomID[pi] != (int)RTC_INVALID_GEOMETRY_ID) {
               // ray has hit something
-
+              std::cout << "-";
               // shadow ray hit something, so it should be dropped
               if (r.type == gvt::render::actor::Ray::SHADOW) {
                 continue;
@@ -585,7 +589,8 @@ struct embreeParallelTrace {
 
                 // TODO: remove this dependency on mesh, store material object in the database
                 // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-                r.direction = glm::normalize(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal, randSeed));
+                r.direction =
+                    glm::normalize(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal, randSeed));
 
                 r.w = r.w * glm::dot(r.direction, normal);
                 r.depth = ndepth;
