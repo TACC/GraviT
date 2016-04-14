@@ -159,6 +159,7 @@ Color Mesh::shadeFaceAreaLight(const int face_id, const Ray &r, const glm::vec3 
 }
 
 Color Mesh::shade(const Ray &r, const glm::vec3 &normal, const Light *lsource, const glm::vec3 areaLightPosition) {
+
   return mat->shade(r, normal, lsource, areaLightPosition);
 }
 
@@ -189,7 +190,7 @@ void Mesh::writeobj(std::string filename) {
     for (auto &vn : normals) file << "vn " << vn[0] << " " << vn[1] << " " << vn[2] << std::endl;
 
     file << "#vertices " << faces.size() << std::endl;
-    for (auto &f : faces) file << "f " << f.get<0>() << " " << f.get<1>() << " " << f.get<2>() << std::endl;
+    for (auto &f : faces) file << "f " << f.get<0>() + 1 << " " << f.get<1>() + 1 << " " << f.get<2>() + 1 << std::endl;
     file.close();
   }
 }
