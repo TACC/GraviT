@@ -38,6 +38,8 @@
 #define MIN(a, b) ((a < b) ? (a) : (b))
 #endif
 
+#define CONTEXT_LEAF_MARSH_SIZE 256
+
 namespace gvt {
 namespace core {
 /// context base class for GraviT internal state
@@ -86,6 +88,64 @@ public:
       \param parent the uuid of the parent node
       */
   DBNodeH createNodeFromType(String type, String name, Uuid parent = Uuid::null());
+
+  /**
+   * Packs a node and its leaf children in a buffer
+   * Byte structure:
+   * <nodeParentName><nodeName><int variant type><value><#children><child0Name><int variant type><value><...>
+   * Each node or leaf is packed in CONTEXT_LEAF_MARSH_SIZE max byte size,
+   * i.e. <nodeName><int variant type><value> = CONTEXT_LEAF_MARSH_SIZE bytes
+   */
+	void marshNode(unsigned char *buffer, DBNodeH& node) {
+
+		const char * parentName =
+				__database->getItem(node.parentUUID())->value().toString().c_str();
+
+		memcpy(buffer, parentName, strlen(parentName) + 1);
+		buffer += strlen(parentName) + 1;
+
+		DatabaseNode::marshLeaf(buffer, node.getNode());
+		buffer += CONTEXT_LEAF_MARSH_SIZE;
+
+		Vector<DBNodeH> children = node.getChildren();
+		int nChildren = children.size();
+		memcpy(buffer, &(nChildren), sizeof(int));
+		buffer += sizeof(int);
+		for (auto leaf : children) {
+			DatabaseNode::marshLeaf(buffer, leaf.getNode());
+			buffer += CONTEXT_LEAF_MARSH_SIZE;
+		}
+	}
+
+  // check marsh
+  DBNodeH unmarsh(unsigned char *buffer){
+
+	  String parentName = std::string((char*) buffer);
+	  buffer+=parentName.size()+1;
+
+	  DatabaseNode * unmarshedParent = DatabaseNode::unmarshLeaf(buffer, Uuid());
+	  DBNodeH unmarshedParentHandler = DBNodeH(unmarshedParent->UUID());
+	  __database->setItem(unmarshedParent);
+
+	  buffer+=CONTEXT_LEAF_MARSH_SIZE;
+
+	  int nChildren =*(int*)buffer;
+	  buffer+=sizeof(int);
+
+
+	  for(int i=0; i < nChildren; i++){
+		  DatabaseNode *unmarshedChild = DatabaseNode::unmarshLeaf(buffer, unmarshedParentHandler.UUID());
+		  DBNodeH unmarshedChildHandler = DBNodeH(unmarshedChild->UUID());
+		  __database->setItem(unmarshedChild);
+		  buffer+=CONTEXT_LEAF_MARSH_SIZE;
+
+	  }
+
+	  return unmarshedParentHandler;
+
+  }
+
+
 
 protected:
   CoreContext();
