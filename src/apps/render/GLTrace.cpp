@@ -1313,11 +1313,11 @@ int main(int argc, char *argv[]) {
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
 
-  cntxt->createNodeFromType("Data", "Data", root.UUID());
-  cntxt->createNodeFromType("Instances", "Instances", root.UUID());
-  cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  cntxt->createNodeFromType("Camera", "Camera", root.UUID());
-  cntxt->createNodeFromType("Film", "Film", root.UUID());
+  cntxt->createNodeFromType("Data", "glTraceData", root.UUID());
+  cntxt->createNodeFromType("Instances", "glTraceInstances", root.UUID());
+  cntxt->createNodeFromType("Lights", "glTraceLights", root.UUID());
+  cntxt->createNodeFromType("Camera", "glTraceCamera", root.UUID());
+  cntxt->createNodeFromType("Film", "glTraceFilm", root.UUID());
 
   if (cmd.isSet("enzo"))
     ConfigEnzo(cmd.get<std::string>("enzo"));
@@ -1330,7 +1330,7 @@ int main(int argc, char *argv[]) {
   // ConfigSceneCone();
   // ConfigEnzo();
 
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Schedule", root.UUID());
+  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "glTraceSchedule", root.UUID());
   if (cmd.isSet("domain"))
     schedNode["type"] = gvt::render::scheduler::Domain;
   else
@@ -1377,6 +1377,25 @@ int main(int argc, char *argv[]) {
   camNode["rayMaxDepth"] = (int)1;
   camNode["raySamples"] = (int)1;
   camNode["jitterWindowSize"] = (float)0.5;
+
+
+  //cntxt->database()->printTree(root.UUID(), 100, std::cout);
+
+
+
+  gvt::core::DBNodeH cone = root["Data"].getChildren()[0];
+  cntxt->database()->printTree(cone.UUID(), 2, std::cout);
+
+
+  unsigned char * buf = new unsigned char[CONTEXT_LEAF_MARSH_SIZE*(cone.getChildren().size() + 1)];
+  cntxt->marshNode(buf, cone);
+
+  gvt::core::DBNodeH unmarshedMeshNode = cntxt->unmarsh(buf);
+   cntxt->database()->printTree(unmarshedMeshNode.UUID(), 2, std::cout);
+
+
+exit(0);
+
 
   int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
   int raySamples = camNode["raySamples"].value().toInteger();
