@@ -91,6 +91,7 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("file");
     n += gvt::core::CoreContext::createNode("ptr");
     n += gvt::core::CoreContext::createNode("bbox");
+    n += gvt::core::CoreContext::createNode("location", MPI::COMM_WORLD.Get_rank());
   } else if (type == String("Instance")) {
     n += gvt::core::CoreContext::createNode("id");
     n += gvt::core::CoreContext::createNode("meshRef");

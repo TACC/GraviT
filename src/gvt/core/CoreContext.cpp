@@ -175,3 +175,43 @@ void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
 	  return unmarshedParentHandler;
 
   }
+
+
+void CoreContext::syncContext(){
+
+	const int rankSize = MPI::COMM_WORLD.Get_size();
+	const int myRank = MPI::COMM_WORLD.Get_rank();
+	int bytesRequired=0;
+
+	std::vector<int> mySyncTable(rankSize, 0);
+	std::vector<int> syncTable(rankSize,0);
+	std::vector<unsigned char> buf;
+
+	mySyncTable[myRank]=__nodesToSync.size();
+	MPI::COMM_WORLD.Allreduce(&mySyncTable[0], &syncTable[0], rankSize, MPI_INT, MPI_MAX);
+
+	for (int i = 0; i < rankSize; i++) {
+		if (syncTable[i] == 0)
+			continue;
+		for (int message = 0; message < syncTable[i]; message++) {
+
+			if (i == myRank) {
+				DBNodeH node = __nodesToSync[message];
+				bytesRequired = CONTEXT_LEAF_MARSH_SIZE
+						* (node.getChildren().size() + 1);
+
+				buf.reserve(bytesRequired);
+				marshNode(&buf[0], node);
+			}
+
+			MPI::COMM_WORLD.Bcast(&bytesRequired, 1, MPI::INT, i);
+			MPI::COMM_WORLD.Bcast(&buf[0], bytesRequired, MPI_UNSIGNED_CHAR, i);
+
+			if (i != myRank)  unmarsh(&buf[0]);
+
+		}
+	}
+
+	MPI::COMM_WORLD.Barrier();
+
+  }

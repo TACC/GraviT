@@ -29,6 +29,8 @@
 #include "gvt/core/DatabaseNode.h"
 #include "gvt/core/Types.h"
 #include <gvt/core/Database.h>
+#include <mpi.h>
+
 
 #ifndef MAX
 #define MAX(a, b) ((a > b) ? (a) : (b))
@@ -101,12 +103,22 @@ public:
   // check marsh for buffer structure
   DBNodeH unmarsh(unsigned char *buffer);
 
+  void addToSync(DBNodeH node){
+	  __nodesToSync.push_back(node);
+  }
+
+
+ void syncContext();
+
 
 protected:
   CoreContext();
   static CoreContext *__singleton;
   Database *__database = nullptr;
   DBNodeH __rootNode;
+
+  std::vector<DBNodeH> __nodesToSync;
+
 };
 }
 }
