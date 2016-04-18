@@ -449,6 +449,7 @@ if (GVT_CTEST)
   ## Testing Configuration
   set(SimpleFileLoadObjLocation ${PROJECT_SOURCE_DIR}/data/geom/bunny.obj)
   set(TestOutputFolder ${PROJECT_SOURCE_DIR}/Test/CTESTtest/testOutput)
+  file(MAKE_DIRECTORY ${TestOutputFolder})
   set(ImageDiffTolerance 300)
 
   ## Integration Test for SimpleApp --Image Scheduler
