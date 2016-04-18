@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 
     // add cone mesh to the database
     gvt::core::Variant meshvariant(mesh);
-    std::cout << "meshvariant " << meshvariant << std::endl;
+//    std::cout << "meshvariant " << meshvariant << std::endl;
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
@@ -401,8 +401,8 @@ int main(int argc, char **argv) {
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
-    std::cout << "starting image scheduler" << std::endl;
-    std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
+ //   std::cout << "starting image scheduler" << std::endl;
+  //  std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
@@ -413,7 +413,7 @@ int main(int argc, char **argv) {
     break;
   }
   case gvt::render::scheduler::Domain: {
-    std::cout << "starting domain scheduler" << std::endl;
+    //std::cout << "starting domain scheduler" << std::endl;
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderstart, 0, NULL);
 #endif

@@ -438,7 +438,7 @@ if (GVT_CTEST)
   SET(runConfig "" )
   if (GVT_USE_MPI)
     set (no_mpi_proc 2)
-    set (runConfig mpirun -np ${no_mpi_proc})
+    set (runConfig ibrun -np ${no_mpi_proc})
   endif(GVT_USE_MPI)
 
   ## Enable gvtSimple and gvtFileLoad, needed for tests
@@ -448,12 +448,12 @@ if (GVT_CTEST)
 
   ## Testing Configuration
   set(SimpleFileLoadObjLocation ${PROJECT_SOURCE_DIR}/data/geom/bunny.obj)
-  set(TestOutputFolder ${PROJECT_SOURCE_DIR}/test/CTESTtest/testOutput)
+  set(TestOutputFolder ${PROJECT_SOURCE_DIR}/Test/CTESTtest/testOutput)
   set(ImageDiffTolerance 300)
 
   ## Integration Test for SimpleApp --Image Scheduler
-    add_test( SimpleApp_ImageScheduler  ${runConfig} ${PROJECT_SOURCE_DIR}/build/bin/gvtSimple -image -output ${TestOutputFolder}/test1)
-    add_test( SimpleAppImageDiff_ImageScheduler ${PROJECT_SOURCE_DIR}/build/bin/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test1.ppm")
+  add_test( SimpleApp_ImageScheduler  ${runConfig} ${PROJECT_BINARY_DIR}/bin/gvtSimple -image -output ${TestOutputFolder}/test1)
+  add_test( SimpleAppImageDiff_ImageScheduler ${PROJECT_BINARY_DIR}/bin/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test1.ppm")
 
   ## Integration Test for SimpleFileLoad --Image Scheduler
     add_test( SimpleFileLoad_ImageScheduler  ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -image -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test2)
