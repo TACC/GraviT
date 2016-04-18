@@ -70,3 +70,108 @@ DBNodeH CoreContext::createNodeFromType(String type, String name, Uuid parent) {
 
   return n;
 }
+
+void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
+
+	const char * parentName =
+			__database->getItem(node.parentUUID())->value().toString().c_str();
+
+	memcpy(buffer, parentName, strlen(parentName) + 1);
+	buffer += strlen(parentName) + 1;
+
+	Database::marshLeaf(buffer, node.getNode());
+	buffer += CONTEXT_LEAF_MARSH_SIZE;
+
+	Vector<DBNodeH> children = node.getChildren();
+	int nChildren = children.size();
+	memcpy(buffer, &(nChildren), sizeof(int));
+	buffer += sizeof(int);
+	for (auto leaf : children) {
+		if (leaf.getChildren().size() > 0) GVT_ASSERT(false, "leaf with children");
+		Database::marshLeaf(buffer, leaf.getNode());
+		buffer += CONTEXT_LEAF_MARSH_SIZE;
+	}
+}
+
+// check marsh for buffer structure
+  DBNodeH CoreContext::unmarsh(unsigned char *buffer){
+
+	  String grandParentName = std::string((char*) buffer);
+	  buffer+=grandParentName.size()+1;
+
+	  //searchs where the node is going to be added/updated
+	  DBNodeH grandParentNode;
+	  if (__database->hasParentNode(grandParentName)){
+		  grandParentNode = DBNodeH(getNode(__database->getParentNode(grandParentName)->UUID()));
+	  } else {
+		GVT_ASSERT(false,"Grand parent node not found");
+	  }
+
+
+	  DatabaseNode * unmarshedParent = Database::unmarshLeaf(buffer, grandParentNode.UUID());
+	  DBNodeH unmarshedParentHandler = DBNodeH(unmarshedParent->UUID());
+
+
+	  //checks if non-leaf parent node exists
+	  if (unmarshedParent->value().type() == 6) {
+
+			//if does not exist, add new node
+		  	  String unmarshedParentValueName = unmarshedParent->value().toString();
+			if (!__database->hasParentNode(
+					unmarshedParentValueName)) {
+
+				__database->setItem(unmarshedParent);
+
+				buffer += CONTEXT_LEAF_MARSH_SIZE;
+
+				int nChildren = *(int*) buffer;
+				buffer += sizeof(int);
+
+				for (int i = 0; i < nChildren; i++) {
+					DatabaseNode *unmarshedChild = Database::unmarshLeaf(
+							buffer, unmarshedParentHandler.UUID());
+					DBNodeH unmarshedChildHandler = DBNodeH(
+							unmarshedChild->UUID());
+					__database->setItem(unmarshedChild);
+					buffer += CONTEXT_LEAF_MARSH_SIZE;
+
+				}
+
+			//if exists udpate children data
+			} else {
+
+				DBNodeH existingParentNode = DBNodeH(getNode(__database->getParentNode(
+						unmarshedParent->value().toString())->UUID()));
+
+
+				buffer += CONTEXT_LEAF_MARSH_SIZE;
+
+				int nChildren = *(int*) buffer;
+				buffer += sizeof(int);
+
+				if (existingParentNode.getChildren().size() != nChildren){
+					GVT_ASSERT(false, "Updating node with different number of children");
+				}
+
+				for (int i = 0; i < nChildren; i++) {
+					DatabaseNode *unmarshedChild = Database::unmarshLeaf(
+							buffer, existingParentNode.UUID());
+					DBNodeH unmarshedChildHandler = DBNodeH(
+							unmarshedChild->UUID());
+
+					existingParentNode[unmarshedChild->name()] = unmarshedChild->value();
+
+					buffer += CONTEXT_LEAF_MARSH_SIZE;
+				}
+
+				unmarshedParentHandler = existingParentNode;
+
+			}
+		}
+	  else {
+		  GVT_ASSERT(false, "parent node is unexpectadly a non-string");
+	  }
+
+	  return unmarshedParentHandler;
+
+  }

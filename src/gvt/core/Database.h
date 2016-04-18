@@ -48,9 +48,16 @@ public:
   bool hasNode(Uuid);
   // does the database contain this node
   bool hasNode(DatabaseNode *);
+  
+  //checks if non-leaf node exists by name
+  bool hasParentNode(String parentName);
 
   // get the database node with the given unique id
   DatabaseNode *getItem(Uuid);
+
+  //return non-leaf node exists by name
+  DatabaseNode * getParentNode(String parentName);
+
   /// add this node to the database
   void setItem(DatabaseNode *);
   /// set this node as the root of the database hierarchy
@@ -80,9 +87,18 @@ public:
   /// print the complete database hierarchy rooted at the given node
   void printTree(const Uuid &parent, const int depth = 0, std::ostream &os = std::cout);
 
+  // Copies the node data to a byte buffer
+  // Structure: <nodeName><int variant type><value>
+  static void marshLeaf(unsigned char *buffer, DatabaseNode& leaf);
+
+  // Create a node from byte buffer
+  //check marshLeaf for structure
+  static DatabaseNode * unmarshLeaf(unsigned char *buffer, Uuid parent);
+
 private:
   Map<Uuid, DatabaseNode *> __nodes;
   Map<Uuid, ChildList> __tree;
+  Map<String, Uuid> __parents; //non-leaf nodes by name
 };
 }
 }
