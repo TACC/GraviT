@@ -363,49 +363,12 @@ void RotateDown(glm::vec3 &eye, glm::vec3 &focus, float angle) {
   Rotate(eye, focus, -angle, move_dir);
 }
 
-/*
- * Temporary camera film size across mpi nodes until we have context consistent
- */
-void SyncFilmSize() {
-
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-  gvt::core::DBNodeH rootNode = cntxt->getRootNode();
-  gvt::core::DBNodeH filmNode = rootNode["Film"];
-
-  MPI_Bcast(&width, 1, MPI_INT, opengl_rank, MPI_COMM_WORLD);
-
-  if (mpi_rank != opengl_rank) {
-    filmNode["width"] = width;
-  }
-
-  MPI_Bcast(&height, 1, MPI_INT, opengl_rank, MPI_COMM_WORLD);
-
-  if (mpi_rank != opengl_rank) {
-    filmNode["height"] = height;
-  }
-}
-
-/*
- * Temporary camera sync across mpi nodes until we have context consistent
- */
-void SyncCamera() {
-
-  glm::vec3 eye = camNode["eyePoint"].value().tovec3();
-  MPI_Bcast(glm::value_ptr(eye), 3, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
-  if (mpi_rank != opengl_rank) camNode["eyePoint"] = eye;
-
-  glm::vec3 focus = camNode["focus"].value().tovec3();
-  MPI_Bcast(glm::value_ptr(focus), 3, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
-  if (mpi_rank != opengl_rank) camNode["focus"] = focus;
-
-  glm::vec3 upVector = camNode["upVector"].value().tovec3();
-  MPI_Bcast(glm::value_ptr(upVector), 3, MPI_FLOAT, opengl_rank, MPI_COMM_WORLD);
-  if (mpi_rank != opengl_rank) camNode["upVector"] = upVector;
-}
-
 void UpdateCamera(glm::vec3 focus, glm::vec3 eye1, glm::vec3 up) {
 
   if (update) {
+
+	  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+
 
     //      glm::vec3 old_focus = camNode["focus"].value().tovec3();
     //      std::cout << "old_focus: " << old_focus[0] << " "
@@ -458,9 +421,11 @@ void UpdateCamera(glm::vec3 focus, glm::vec3 eye1, glm::vec3 up) {
 
     camNode["upVector"] = up;
 
-    unsigned char key = 'c';
+    cntxt->addToSync(camNode);
+
+    unsigned char key = 's';
     MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
-    SyncCamera();
+    cntxt->syncContext();
   }
 
   if (renderMode == BVH_RENDER_MODE) {
@@ -533,9 +498,12 @@ void reshape(int w, int h) {
   filmNode["width"] = w;
   filmNode["height"] = h;
 
-  unsigned char key = 'f';
+
+  cntxt->addToSync(filmNode);
+
+  unsigned char key = 's';
   MPI_Bcast(&key, 1, MPI_UNSIGNED_CHAR, opengl_rank, MPI_COMM_WORLD);
-  SyncFilmSize();
+  cntxt->syncContext();
 
   update = true;
 
@@ -753,6 +721,9 @@ void Render() {
   gvt::core::DBNodeH camNode = rootNode["Camera"];
   gvt::core::DBNodeH filmNode = rootNode["Film"];
 
+  width = filmNode["width"].value().toInteger();
+  height = filmNode["height"].value().toInteger();
+
   // setup gvtCamera from database entries
 
   glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
@@ -762,7 +733,7 @@ void Render() {
   float fov = camNode["fov"].value().toFloat();
   mycamera.lookAt(cameraposition, focus, up);
   mycamera.setFOV(fov);
-  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
+  mycamera.setFilmsize(width, height);
 
   int schedType = rootNode["Schedule"]["type"].value().toInteger();
 
@@ -1468,11 +1439,8 @@ int main(int argc, char *argv[]) {
       case 'r':
         Render();
         break;
-      case 'c':
-        SyncCamera();
-        break;
-      case 'f':
-        SyncFilmSize();
+      case 's':
+        cntxt->syncContext();
         break;
       default:
         break;

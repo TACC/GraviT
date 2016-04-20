@@ -207,7 +207,11 @@ void CoreContext::syncContext(){
 			buf.reserve(bytesRequired);
 			MPI::COMM_WORLD.Bcast(&buf[0], bytesRequired, MPI_UNSIGNED_CHAR, i);
 
-			if (i != myRank)  unmarsh(&buf[0]);
+			if (i != myRank)  {
+				DBNodeH node = unmarsh(&buf[0]);
+				//database()->printTree(node.UUID(), 4, std::cout);
+
+			}
 
 		}
 	}
