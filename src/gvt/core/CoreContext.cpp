@@ -199,12 +199,12 @@ void CoreContext::syncContext(){
 				DBNodeH node = __nodesToSync[message];
 				bytesRequired = CONTEXT_LEAF_MARSH_SIZE
 						* (node.getChildren().size() + 1);
-
 				buf.reserve(bytesRequired);
 				marshNode(&buf[0], node);
 			}
 
 			MPI::COMM_WORLD.Bcast(&bytesRequired, 1, MPI::INT, i);
+			buf.reserve(bytesRequired);
 			MPI::COMM_WORLD.Bcast(&buf[0], bytesRequired, MPI_UNSIGNED_CHAR, i);
 
 			if (i != myRank)  unmarsh(&buf[0]);

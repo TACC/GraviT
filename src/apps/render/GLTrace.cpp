@@ -859,141 +859,116 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH dataNodes = root["Data"];
 
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
-  gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
 
-  if (MPI::COMM_WORLD.Get_rank() == 0){
+  {
+    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    int numPoints = 7;
+    glm::vec3 points[7];
+    points[0] = glm::vec3(0.5, 0.0, 0.0);
+    points[1] = glm::vec3(-0.5, 0.5, 0.0);
+    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
+    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
+    points[4] = glm::vec3(-0.5, -0.5, 0.0);
+    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
+    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
 
+    for (int i = 0; i < numPoints; i++) {
+      mesh->addVertex(points[i]);
+    }
+    mesh->addFace(1, 2, 3);
+    mesh->addFace(1, 3, 4);
+    mesh->addFace(1, 4, 5);
+    mesh->addFace(1, 5, 6);
+    mesh->addFace(1, 6, 7);
+    mesh->addFace(1, 7, 2);
+    mesh->generateNormals();
 
-	  {
-		Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-		int numPoints = 7;
-		glm::vec3 points[7];
-		points[0] = glm::vec3(0.5, 0.0, 0.0);
-		points[1] = glm::vec3(-0.5, 0.5, 0.0);
-		points[2] = glm::vec3(-0.5, 0.25, 0.433013);
-		points[3] = glm::vec3(-0.5, -0.25, 0.43013);
-		points[4] = glm::vec3(-0.5, -0.5, 0.0);
-		points[5] = glm::vec3(-0.5, -0.25, -0.433013);
-		points[6] = glm::vec3(-0.5, 0.25, -0.433013);
-
-		for (int i = 0; i < numPoints; i++) {
-		  mesh->addVertex(points[i]);
-		}
-		mesh->addFace(1, 2, 3);
-		mesh->addFace(1, 3, 4);
-		mesh->addFace(1, 4, 5);
-		mesh->addFace(1, 5, 6);
-		mesh->addFace(1, 6, 7);
-		mesh->addFace(1, 7, 2);
-		mesh->generateNormals();
-
-		// calculate bbox
-		glm::vec3 lower = points[0], upper = points[0];
-		for (int i = 1; i < numPoints; i++) {
-		  for (int j = 0; j < 3; j++) {
-			lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-			upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
-		  }
-		}
-		Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-		mesh->generateNormals();
-		// add cone mesh to the database
-		coneMeshNode["file"] = string("/fake/path/to/cone");
-		coneMeshNode["bbox"] = (unsigned long long)meshbbox;
-		coneMeshNode["ptr"] = (unsigned long long)mesh;
-
-
-		cntxt->addToSync(coneMeshNode);
-	  }
-
-  } else {
-
-	  {
-		Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-		int numPoints = 24;
-		glm::vec3 points[24];
-		points[0] = glm::vec3(-0.5, -0.5, 0.5);
-		points[1] = glm::vec3(0.5, -0.5, 0.5);
-		points[2] = glm::vec3(0.5, 0.5, 0.5);
-		points[3] = glm::vec3(-0.5, 0.5, 0.5);
-		points[4] = glm::vec3(-0.5, -0.5, -0.5);
-		points[5] = glm::vec3(0.5, -0.5, -0.5);
-		points[6] = glm::vec3(0.5, 0.5, -0.5);
-		points[7] = glm::vec3(-0.5, 0.5, -0.5);
-
-		points[8] = glm::vec3(0.5, 0.5, 0.5);
-		points[9] = glm::vec3(-0.5, 0.5, 0.5);
-		points[10] = glm::vec3(0.5, 0.5, -0.5);
-		points[11] = glm::vec3(-0.5, 0.5, -0.5);
-
-		points[12] = glm::vec3(-0.5, -0.5, 0.5);
-		points[13] = glm::vec3(0.5, -0.5, 0.5);
-		points[14] = glm::vec3(-0.5, -0.5, -0.5);
-		points[15] = glm::vec3(0.5, -0.5, -0.5);
-
-		points[16] = glm::vec3(0.5, -0.5, 0.5);
-		points[17] = glm::vec3(0.5, 0.5, 0.5);
-		points[18] = glm::vec3(0.5, -0.5, -0.5);
-		points[19] = glm::vec3(0.5, 0.5, -0.5);
-
-		points[20] = glm::vec3(-0.5, -0.5, 0.5);
-		points[21] = glm::vec3(-0.5, 0.5, 0.5);
-		points[22] = glm::vec3(-0.5, -0.5, -0.5);
-		points[23] = glm::vec3(-0.5, 0.5, -0.5);
-
-		for (int i = 0; i < numPoints; i++) {
-		  mesh->addVertex(points[i]);
-		}
-		// faces are 1 indexed
-		mesh->addFace(1, 2, 3);
-		mesh->addFace(1, 3, 4);
-
-		mesh->addFace(17, 19, 20);
-		mesh->addFace(17, 20, 18);
-
-		mesh->addFace(6, 5, 8);
-		mesh->addFace(6, 8, 7);
-
-		mesh->addFace(23, 21, 22);
-		mesh->addFace(23, 22, 24);
-
-		mesh->addFace(10, 9, 11);
-		mesh->addFace(10, 11, 12);
-
-		mesh->addFace(13, 15, 16);
-		mesh->addFace(13, 16, 14);
-		// calculate bbox
-		glm::vec3 lower = points[0], upper = points[0];
-		for (int i = 1; i < numPoints; i++) {
-		  for (int j = 0; j < 3; j++) {
-			lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-			upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
-		  }
-		}
-		Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-		mesh->generateNormals();
-		// add cube mesh to the database
-		cubeMeshNode["file"] = string("/fake/path/to/cube");
-		cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
-		cubeMeshNode["ptr"] = (unsigned long long)mesh;
-
-		cntxt->addToSync(cubeMeshNode);
-
-	  }
+    // calculate bbox
+    glm::vec3 lower = points[0], upper = points[0];
+    for (int i = 1; i < numPoints; i++) {
+      for (int j = 0; j < 3; j++) {
+        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
+        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+      }
+    }
+    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+    mesh->generateNormals();
+    // add cone mesh to the database
+    coneMeshNode["file"] = string("/fake/path/to/cone");
+    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
+    coneMeshNode["ptr"] = (unsigned long long)mesh;
   }
 
-    cntxt->database()->printTree(root.UUID(), 4, std::cout);
+  gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
+  {
+    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    int numPoints = 24;
+    glm::vec3 points[24];
+    points[0] = glm::vec3(-0.5, -0.5, 0.5);
+    points[1] = glm::vec3(0.5, -0.5, 0.5);
+    points[2] = glm::vec3(0.5, 0.5, 0.5);
+    points[3] = glm::vec3(-0.5, 0.5, 0.5);
+    points[4] = glm::vec3(-0.5, -0.5, -0.5);
+    points[5] = glm::vec3(0.5, -0.5, -0.5);
+    points[6] = glm::vec3(0.5, 0.5, -0.5);
+    points[7] = glm::vec3(-0.5, 0.5, -0.5);
 
-	cntxt->syncContext();
+    points[8] = glm::vec3(0.5, 0.5, 0.5);
+    points[9] = glm::vec3(-0.5, 0.5, 0.5);
+    points[10] = glm::vec3(0.5, 0.5, -0.5);
+    points[11] = glm::vec3(-0.5, 0.5, -0.5);
 
-	printf("\n\n\n");
-	cntxt->database()->printTree(root.UUID(), 4, std::cout);
+    points[12] = glm::vec3(-0.5, -0.5, 0.5);
+    points[13] = glm::vec3(0.5, -0.5, 0.5);
+    points[14] = glm::vec3(-0.5, -0.5, -0.5);
+    points[15] = glm::vec3(0.5, -0.5, -0.5);
 
-	  exit(0);
+    points[16] = glm::vec3(0.5, -0.5, 0.5);
+    points[17] = glm::vec3(0.5, 0.5, 0.5);
+    points[18] = glm::vec3(0.5, -0.5, -0.5);
+    points[19] = glm::vec3(0.5, 0.5, -0.5);
 
+    points[20] = glm::vec3(-0.5, -0.5, 0.5);
+    points[21] = glm::vec3(-0.5, 0.5, 0.5);
+    points[22] = glm::vec3(-0.5, -0.5, -0.5);
+    points[23] = glm::vec3(-0.5, 0.5, -0.5);
 
-  coneMeshNode = dataNodes.getChildren()[0];
-  cubeMeshNode =  dataNodes.getChildren()[1];
+    for (int i = 0; i < numPoints; i++) {
+      mesh->addVertex(points[i]);
+    }
+    // faces are 1 indexed
+    mesh->addFace(1, 2, 3);
+    mesh->addFace(1, 3, 4);
+
+    mesh->addFace(17, 19, 20);
+    mesh->addFace(17, 20, 18);
+
+    mesh->addFace(6, 5, 8);
+    mesh->addFace(6, 8, 7);
+
+    mesh->addFace(23, 21, 22);
+    mesh->addFace(23, 22, 24);
+
+    mesh->addFace(10, 9, 11);
+    mesh->addFace(10, 11, 12);
+
+    mesh->addFace(13, 15, 16);
+    mesh->addFace(13, 16, 14);
+    // calculate bbox
+    glm::vec3 lower = points[0], upper = points[0];
+    for (int i = 1; i < numPoints; i++) {
+      for (int j = 0; j < 3; j++) {
+        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
+        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+      }
+    }
+    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+    mesh->generateNormals();
+    // add cube mesh to the database
+    cubeMeshNode["file"] = string("/fake/path/to/cube");
+    cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
+    cubeMeshNode["ptr"] = (unsigned long long)mesh;
+  }
 
   gvt::core::DBNodeH instNodes = root["Instances"];
 
