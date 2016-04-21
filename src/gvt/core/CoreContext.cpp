@@ -79,7 +79,7 @@ void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
 	memcpy(buffer, parentName, strlen(parentName) + 1);
 	buffer += strlen(parentName) + 1;
 
-	Database::marshLeaf(buffer, node.getNode());
+	__database->marshLeaf(buffer, node.getNode());
 	buffer += CONTEXT_LEAF_MARSH_SIZE;
 
 	Vector<DBNodeH> children = node.getChildren();
@@ -88,7 +88,7 @@ void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
 	buffer += sizeof(int);
 	for (auto leaf : children) {
 		if (leaf.getChildren().size() > 0) GVT_ASSERT(false, "leaf with children");
-		Database::marshLeaf(buffer, leaf.getNode());
+		__database->marshLeaf(buffer, leaf.getNode());
 		buffer += CONTEXT_LEAF_MARSH_SIZE;
 	}
 }
@@ -104,11 +104,11 @@ void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
 	  if (__database->hasParentNode(grandParentName)){
 		  grandParentNode = DBNodeH(getNode(__database->getParentNode(grandParentName)->UUID()));
 	  } else {
-		GVT_ASSERT(false,"Grand parent node not found");
+		GVT_ASSERT(false, grandParentName + " Grand parent node not found");
 	  }
 
 
-	  DatabaseNode * unmarshedParent = Database::unmarshLeaf(buffer, grandParentNode.UUID());
+	  DatabaseNode * unmarshedParent = __database->unmarshLeaf(buffer, grandParentNode.UUID());
 	  DBNodeH unmarshedParentHandler = DBNodeH(unmarshedParent->UUID());
 
 
@@ -128,7 +128,7 @@ void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
 				buffer += sizeof(int);
 
 				for (int i = 0; i < nChildren; i++) {
-					DatabaseNode *unmarshedChild = Database::unmarshLeaf(
+					DatabaseNode *unmarshedChild = __database->unmarshLeaf(
 							buffer, unmarshedParentHandler.UUID());
 					DBNodeH unmarshedChildHandler = DBNodeH(
 							unmarshedChild->UUID());
@@ -154,7 +154,7 @@ void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
 				}
 
 				for (int i = 0; i < nChildren; i++) {
-					DatabaseNode *unmarshedChild = Database::unmarshLeaf(
+					DatabaseNode *unmarshedChild = __database->unmarshLeaf(
 							buffer, existingParentNode.UUID());
 					DBNodeH unmarshedChildHandler = DBNodeH(
 							unmarshedChild->UUID());

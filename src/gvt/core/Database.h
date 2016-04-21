@@ -89,11 +89,11 @@ public:
 
   // Copies the node data to a byte buffer
   // Structure: <nodeName><int variant type><value>
-  static void marshLeaf(unsigned char *buffer, DatabaseNode& leaf);
+  void marshLeaf(unsigned char *buffer, DatabaseNode& leaf);
 
   // Create a node from byte buffer
   //check marshLeaf for structure
-  static DatabaseNode * unmarshLeaf(unsigned char *buffer, Uuid parent);
+  DatabaseNode * unmarshLeaf(unsigned char *buffer, Uuid parent);
 
 private:
   Map<Uuid, DatabaseNode *> __nodes;

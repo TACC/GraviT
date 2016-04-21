@@ -40,11 +40,20 @@ DatabaseNode *Database::getItem(Uuid uuid) { return __nodes[uuid]; }
 DatabaseNode *Database::getParentNode(String parentName) { return getItem(__parents[parentName]); }
 
 void Database::setItem(DatabaseNode *node) {
-  __nodes[node->UUID()] = node;
-  addChild(node->parentUUID(), node);
+	__nodes[node->UUID()] = node;
+	addChild(node->parentUUID(), node);
+
+	String valueName;
+	if (node->value().type() == 6) {
+		valueName = node->value().toString();
+		__parents[valueName] = node->UUID();
+	}
 }
 
-void Database::setRoot(DatabaseNode *root) { __nodes[root->UUID()] = root; }
+void Database::setRoot(DatabaseNode *root) {
+	__nodes[root->UUID()] = root;
+	__parents[root->value().toString()] = root->UUID();
+}
 
 bool Database::hasNode(Uuid uuid) { return (__nodes.find(uuid) != __nodes.end()); }
 
@@ -58,16 +67,6 @@ ChildList &Database::getChildren(Uuid parent) { return __tree[parent]; }
 void Database::addChild(Uuid parent, DatabaseNode *node) {
 	if (parent == Uuid::null())
 		return;
-
-	DatabaseNode *parentNode = getItem(parent);
-	String valueName;
-	if (parentNode->value().type() == 6) {
-		valueName = parentNode->value().toString();
-		__parents[valueName] = parent;
-	} else {
-		GVT_ASSERT(false, "Parent node value is not a string");
-	}
-
 	__tree[parent].push_back(node);
 }
 
@@ -225,6 +224,16 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 				v = glm::value_ptr(bbox->bounds_max);
 				memcpy(buffer, v, sizeof(float) * 3);
 				buffer += sizeof(float) * 3;
+			} else if (strcmp(name,"mat") == 0 || strcmp(name,"matInv") == 0) {
+				const float* v = (float*)(leaf.value().toULongLong());
+				memcpy(buffer, v, sizeof(glm::mat4));
+				buffer += sizeof(glm::mat4);
+				break;
+			} else if (strcmp(name,"normi") == 0) {
+				const float* v = (float*)(leaf.value().toULongLong());
+				memcpy(buffer, v, sizeof(glm::mat3));
+				buffer += sizeof(glm::mat3);
+				break;
 			} else if (strcmp(name,"ptr") == 0) { //if it is actually a pointer, invalidate - separate memory adresses
 				memset(buffer, 0,sizeof(unsigned long long));
 			} else
@@ -238,7 +247,15 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 			break;
 		}
 		case 7: { // UUIDs are invalid across different trees
-			GVT_ASSERT(false, "UUID used in marsh");
+			DatabaseNode* referencedItem = getItem(leaf.value().toUuid());
+			if (referencedItem->value().type() == 6){
+				const char * vname = referencedItem->value().toString().c_str();
+				memcpy(buffer, vname, strlen(vname) + 1);
+				buffer += strlen(vname) + 1;
+
+			} else {
+				GVT_ASSERT(false, "node referencing a unsupported type");
+			}
 			break;
 		}
 		case 8: {
@@ -296,6 +313,19 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 								bounds_max);
 
 				v = (unsigned long long) meshbbox;
+
+			} else if (name == String("mat") || name == String("matInv")) {
+				float* fs = (float*) buffer;
+				glm::mat4* mat = new glm::mat4();
+				memcpy(mat, fs, sizeof(glm::mat4));
+				v= (unsigned long long)mat;
+
+			} else if (name == String("normi")) {
+				float* fs = (float*) buffer;
+				glm::mat3* mat = new glm::mat3();
+				memcpy(mat, fs, sizeof(glm::mat3));
+				v= (unsigned long long)mat;
+
 			} else if (name == String("ptr")) {
 				v = (unsigned long long) NULL;
 			} else
@@ -308,7 +338,8 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 			break;
 		}
 		case 7: {
-			GVT_ASSERT(false, "UUID used in marsh");
+			String s = String((char*) buffer);
+			v = __parents[s];
 			break;
 		}
 		case 8: {
