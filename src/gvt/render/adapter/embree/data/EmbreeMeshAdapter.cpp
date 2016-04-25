@@ -665,10 +665,10 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   unsigned instID = rtcNewInstance(global_scene, scene);
   // (gvt::core::math::AffineTransformMatrix<float> *)node["mat"].value().toULongLong();
   glm::mat4 tt = glm::transpose(*m);
-  float *n = glm::value_ptr(*m);
-  // float mm[] = { n[0], n[4], n[8], n[1], n[5], n[9], n[2], n[6], n[10], n[3], n[7], n[11] };
+  float *n = glm::value_ptr(tt);
+  float mm[] = { n[0], n[4], n[8], n[1], n[5], n[9], n[2], n[6], n[10], n[3], n[7], n[11] };
 
-  float mm[] = { n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10], n[3], n[7], n[11] };
+  // float mm[] = { n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10], n[3], n[7], n[11] };
 
   std::cout << "Embree mat" << *m << std::endl;
 
