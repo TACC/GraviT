@@ -61,6 +61,7 @@ if (GVT_RENDER)
   option(GVT_SIMPLE_APP			"Build the simple application" ON)
   option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
   option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
+  option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
   add_definitions(-DGVT_RENDER)
 endif(GVT_RENDER)
 
@@ -427,6 +428,52 @@ if (GVT_RENDER)
 		)
 endif(GVT_RENDER)
 
+
+## CTEST
+if (GVT_CTEST)
+    
+  enable_testing()
+  ## Check if run in mpi
+  
+  SET(runConfig "" )
+  if (GVT_USE_MPI)
+    set (no_mpi_proc 2)
+    set (runConfig ibrun -np ${no_mpi_proc})
+  endif(GVT_USE_MPI)
+
+  ## Enable gvtSimple and gvtFileLoad, needed for tests
+  set(GVT_SIMPLE_APP ON CACHE BOOL "Build libfoo shared library" FORCE)
+  set(GVT_SIMPLE_FILE_LOAD_APP ON CACHE BOOL "Build libfoo shared library" FORCE)
+  set(GVT_BIN_DIR ${PROJECT_BINARY_DIR}/bin)
+
+  ## Testing Configuration
+  set(SimpleFileLoadObjLocation ${PROJECT_SOURCE_DIR}/data/geom/bunny.obj)
+  set(TestOutputFolder ${PROJECT_SOURCE_DIR}/Test/CTESTtest/testOutput)
+  file(MAKE_DIRECTORY ${TestOutputFolder})
+  set(ImageDiffTolerance 300)
+
+  ## Integration Test for SimpleApp --Image Scheduler
+  add_test( SimpleApp_ImageScheduler  ${runConfig} ${PROJECT_BINARY_DIR}/bin/gvtSimple -image -output ${TestOutputFolder}/test1)
+  add_test( SimpleAppImageDiff_ImageScheduler ${PROJECT_BINARY_DIR}/bin/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test1.ppm")
+
+  ## Integration Test for SimpleFileLoad --Image Scheduler
+    add_test( SimpleFileLoad_ImageScheduler  ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -image -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test2)
+    add_test( SimpleFileLoadImageDiff_ImageScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test2.ppm")
+
+  ## Integration Test for SimpleApp --Domain Scheduler
+    add_test( SimpleApp_DomainScheduler   ${runConfig} ${GVT_BIN_DIR}/gvtSimple -domain -output ${TestOutputFolder}/test3)
+    add_test( SimpleAppImageDiff_DomainScheduler  ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test3.ppm")
+
+  ## Integration Test for SimpleFileLoad --Domain Scheduler
+    add_test( SimpleFileLoad_DomainScheduler ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -domain -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test4)
+    add_test( SimpleFileLoadImageDiff_DomainScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test4.ppm")
+
+  ## Image difference program to verify integration tests
+  set(GVTIMAGE_DIFF_SRCS  src/apps/render/ImageDiff.cpp)
+  add_executable(gvtImageDiff ${GVTIMAGE_DIFF_SRCS})
+
+endif(GVT_CTEST)
+
 if (GVT_SIMPLE_APP)
   if (GVT_MPE)
     if (DEFINED ENV{MPEHOME})
@@ -537,3 +584,7 @@ if (GVT_GLRENDER_APP)
     RUNTIME DESTINATION bin
   )
 endif(GVT_GLRENDER_APP)
+
+
+
+
