@@ -24,6 +24,7 @@
 #include "gvt/core/Database.h"
 #include "gvt/core/Debug.h"
 #include <iostream>
+#include <mpi.h>
 
 using namespace gvt::core;
 
@@ -37,29 +38,20 @@ Database::~Database() {
 
 DatabaseNode *Database::getItem(Uuid uuid) { return __nodes[uuid]; }
 
-DatabaseNode *Database::getParentNode(String parentName) { return getItem(__parents[parentName]); }
-
 void Database::setItem(DatabaseNode *node) {
 	__nodes[node->UUID()] = node;
+	__tree[node->UUID()] = ChildList();
 	addChild(node->parentUUID(), node);
 
-	String valueName;
-	if (node->value().type() == 6) {
-		valueName = node->value().toString();
-		__parents[valueName] = node->UUID();
-	}
 }
 
 void Database::setRoot(DatabaseNode *root) {
 	__nodes[root->UUID()] = root;
-	__parents[root->value().toString()] = root->UUID();
 }
 
 bool Database::hasNode(Uuid uuid) { return (__nodes.find(uuid) != __nodes.end()); }
 
 bool Database::hasNode(DatabaseNode *node) { return (__nodes.find(node->UUID()) != __nodes.end()); }
-
-bool Database::hasParentNode(String parentName) { return (__parents.find(parentName) != __parents.end()); }
 
 ChildList &Database::getChildren(Uuid parent) { return __tree[parent]; }
 
@@ -129,7 +121,20 @@ void Database::print(const Uuid &parent, const int depth, std::ostream &os) {
     DatabaseNode *node = (*it);
     os << offset << node->UUID().toString() << " : " << node->name() << " : " << node->value() << std::endl;
   }
+
+  os.flush();
 }
+
+void Database::printTree(const Uuid &parent, int rank, const int depth,
+		std::ostream &os) {
+	if (MPI::COMM_WORLD.Get_rank() == rank) {
+		std::cout << std::endl << "Rank " << MPI::COMM_WORLD.Get_rank()
+				<< " tree:" << std::endl;
+		printTree(parent, depth, os);
+	}
+	MPI::COMM_WORLD.Barrier();
+}
+
 
 void Database::printTree(const Uuid &parent, const int depth, std::ostream &os) {
   DatabaseNode *pnode = this->getItem(parent);
@@ -173,6 +178,12 @@ void Database::setChildValue(Uuid parent, String child, Variant value) {
 }
 
 void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
+
+
+		Uuid leafUUID = leaf.UUID();
+		memcpy(buffer, &leafUUID, sizeof(Uuid));
+		buffer += sizeof(Uuid);
+
 		const char * name = leaf.name().c_str();
 		memcpy(buffer, name, strlen(name) + 1);
 		buffer += strlen(name) + 1;
@@ -186,31 +197,26 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 		case 0: {
 			int v = leaf.value().toInteger();
 			memcpy(buffer, &(v), sizeof(int));
-			buffer += sizeof(int);
 			break;
 		}
 		case 1: {
 			long v = leaf.value().toLong();
 			memcpy(buffer, &(v), sizeof(long));
-			buffer += sizeof(long);
 			break;
 		}
 		case 2: {
 			float v = leaf.value().toFloat();
 			memcpy(buffer, &(v), sizeof(float));
-			buffer += sizeof(float);
 			break;
 		}
 		case 3: {
 			double v = leaf.value().toDouble();
 			memcpy(buffer, &(v), sizeof(double));
-			buffer += sizeof(double);
 			break;
 		}
 		case 4: {
 			bool v = leaf.value().toBoolean();
 			memcpy(buffer, &(v), sizeof(bool));
-			buffer += sizeof(bool);
 			break;
 		}
 		case 5: { //if pointer, handle according to what the pointer points
@@ -223,16 +229,14 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 
 				v = glm::value_ptr(bbox->bounds_max);
 				memcpy(buffer, v, sizeof(float) * 3);
-				buffer += sizeof(float) * 3;
+
 			} else if (strcmp(name,"mat") == 0 || strcmp(name,"matInv") == 0) {
 				const float* v = (float*)(leaf.value().toULongLong());
 				memcpy(buffer, v, sizeof(glm::mat4));
-				buffer += sizeof(glm::mat4);
 				break;
 			} else if (strcmp(name,"normi") == 0) {
 				const float* v = (float*)(leaf.value().toULongLong());
 				memcpy(buffer, v, sizeof(glm::mat3));
-				buffer += sizeof(glm::mat3);
 				break;
 			} else if (strcmp(name,"ptr") == 0) { //if it is actually a pointer, invalidate - separate memory adresses
 				memset(buffer, 0,sizeof(unsigned long long));
@@ -243,20 +247,13 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 		case 6: {
 			const char * vname = leaf.value().toString().c_str();
 			memcpy(buffer, vname, strlen(vname) + 1);
-			buffer += strlen(vname) + 1;
 			break;
 		}
-		case 7: { // UUIDs are invalid across different trees
-			DatabaseNode* referencedItem = getItem(leaf.value().toUuid());
-			if (referencedItem->value().type() == 6){
-				const char * vname = referencedItem->value().toString().c_str();
-				memcpy(buffer, vname, strlen(vname) + 1);
-				buffer += strlen(vname) + 1;
-
-			} else {
-				GVT_ASSERT(false, "node referencing a unsupported type");
-			}
-			break;
+		case 7: {
+		      Uuid leafUUID = leaf.value().toUuid();
+		      memcpy(buffer, &leafUUID, sizeof(Uuid));
+		      buffer += sizeof(Uuid);
+		      break;
 		}
 		case 8: {
 			const float* v = glm::value_ptr(leaf.value().tovec3());
@@ -265,12 +262,16 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 			break;
 		}
 		default:
-			GVT_ASSERT(false, "Unknown variant type");
+			GVT_ASSERT(false, "marshLeaf: Unknown variant type");
 			break;
 		}
 	}
 
  DatabaseNode * Database::unmarshLeaf(unsigned char *buffer, Uuid parent) {
+
+	 	Uuid shippedUUID;
+		memcpy(&shippedUUID, buffer, sizeof(Uuid));
+		buffer += sizeof(Uuid);
 
 		String name =String((char*) buffer);
 		buffer += strlen(name.c_str()) + 1;
@@ -327,7 +328,7 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 				v= (unsigned long long)mat;
 
 			} else if (name == String("ptr")) {
-				v = (unsigned long long) NULL;
+				v = (unsigned long long) 0;
 			} else
 				GVT_ASSERT(false, "Pointer used in marsh");
 			break;
@@ -338,8 +339,9 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 			break;
 		}
 		case 7: {
-			String s = String((char*) buffer);
-			v = __parents[s];
+		      Uuid shippedUUID;
+		      memcpy(&shippedUUID, buffer, sizeof(Uuid));
+		      v = shippedUUID;
 			break;
 		}
 		case 8: {
@@ -348,10 +350,10 @@ void Database::marshLeaf(unsigned char *buffer, DatabaseNode& leaf) {
 			break;
 		}
 		default:
-			GVT_ASSERT(false, "Unknown variant type");
+			GVT_ASSERT(false, "unmarshLeaf: Unknown variant type ");
 			break;
 		}
 
-		return new DatabaseNode(name, v, Uuid(), parent);
+		return new DatabaseNode(name, v, shippedUUID, parent);
 	}
 

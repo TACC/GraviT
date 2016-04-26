@@ -30,7 +30,25 @@ CoreContext *CoreContext::__singleton = nullptr;
 
 CoreContext::CoreContext() {
   __database = new Database();
-  DatabaseNode *root = new DatabaseNode(String("GraviT"), String("GVT ROOT"), Uuid(), Uuid::null());
+  std::vector<MarshedDatabaseNode> buf;
+  buf.reserve(1);
+  DatabaseNode *root;
+
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+
+		root = new DatabaseNode(String("GraviT"),
+				String("GVT ROOT"), Uuid(), Uuid::null());
+
+		marsh(buf, *root);
+	}
+
+	MPI::COMM_WORLD.Bcast(&buf[0], CONTEXT_LEAF_MARSH_SIZE, MPI_UNSIGNED_CHAR,
+			0);
+
+	if (MPI::COMM_WORLD.Get_rank() != 0) {
+		root = unmarsh(buf,1);
+	}
+
   __database->setRoot(root);
   __rootNode = DBNodeH(root->UUID());
 }
@@ -54,9 +72,10 @@ DBNodeH CoreContext::getNode(Uuid node) {
 
 DBNodeH CoreContext::createNode(String name, Variant val, Uuid parent) {
   DatabaseNode *np = new DatabaseNode(name, val, Uuid(), parent);
+  DBNodeH node = DBNodeH(np->UUID());
   __database->setItem(np);
   GVT_DEBUG(DBG_LOW, "createNode: " << name << " " << np->UUID().toString());
-  return DBNodeH(np->UUID());
+  return node;
 }
 
 DBNodeH CoreContext::createNodeFromType(String type, Uuid parent) { return createNodeFromType(type, type, parent); }
@@ -71,151 +90,113 @@ DBNodeH CoreContext::createNodeFromType(String type, String name, Uuid parent) {
   return n;
 }
 
-void CoreContext::marshNode(unsigned char *buffer, DBNodeH& node) {
+void CoreContext::marsh(std::vector<MarshedDatabaseNode>& messagesBuffer, DatabaseNode& node) {
 
-	const char * parentName =
-			__database->getItem(node.parentUUID())->value().toString().c_str();
 
-	memcpy(buffer, parentName, strlen(parentName) + 1);
-	buffer += strlen(parentName) + 1;
+	messagesBuffer.push_back(MarshedDatabaseNode());
+	unsigned char* buffer = &(messagesBuffer.back().data[0]);
 
-	__database->marshLeaf(buffer, node.getNode());
-	buffer += CONTEXT_LEAF_MARSH_SIZE;
+	Uuid parentUUID = node.parentUUID();
+	memcpy(buffer, &parentUUID, sizeof(Uuid));
+	buffer += sizeof(Uuid);
 
-	Vector<DBNodeH> children = node.getChildren();
+
+	Vector<DatabaseNode*> children;
+
+	//if syncing root node
+	if (CoreContext::__singleton != nullptr ){
+		children = node.getChildren();
+	}
+
 	int nChildren = children.size();
-	memcpy(buffer, &(nChildren), sizeof(int));
-	buffer += sizeof(int);
-	for (auto leaf : children) {
-		if (leaf.getChildren().size() > 0) GVT_ASSERT(false, "leaf with children");
-		__database->marshLeaf(buffer, leaf.getNode());
-		buffer += CONTEXT_LEAF_MARSH_SIZE;
+
+	__database->marshLeaf(buffer, node);
+
+	for (int i = 0; i < nChildren; i++) {
+		DatabaseNode* leaf = children[i];
+		marsh(messagesBuffer, *leaf);
 	}
 }
 
-// check marsh for buffer structure
-  DBNodeH CoreContext::unmarsh(unsigned char *buffer){
+DatabaseNode* CoreContext::unmarsh(
+		std::vector<MarshedDatabaseNode>& messagesBuffer, int nNodes) {
 
-	  String grandParentName = std::string((char*) buffer);
-	  buffer+=grandParentName.size()+1;
+	DatabaseNode *unmarshedParent;
 
-	  //searchs where the node is going to be added/updated
-	  DBNodeH grandParentNode;
-	  if (__database->hasParentNode(grandParentName)){
-		  grandParentNode = DBNodeH(getNode(__database->getParentNode(grandParentName)->UUID()));
-	  } else {
-		GVT_ASSERT(false, grandParentName + " Grand parent node not found");
-	  }
+	for (int i = 0; i < nNodes; i++) {
 
+		unsigned char* buffer = &(messagesBuffer[i].data[0]);
 
-	  DatabaseNode * unmarshedParent = __database->unmarshLeaf(buffer, grandParentNode.UUID());
-	  DBNodeH unmarshedParentHandler = DBNodeH(unmarshedParent->UUID());
+		Uuid grandParentUUID;
+		memcpy(&grandParentUUID, buffer, sizeof(Uuid));
+		buffer += sizeof(Uuid);
 
+		DatabaseNode *grandParentNode;
 
-	  //checks if non-leaf parent node exists
-	  if (unmarshedParent->value().type() == 6) {
-
-			//if does not exist, add new node
-		  	  String unmarshedParentValueName = unmarshedParent->value().toString();
-			if (!__database->hasParentNode(
-					unmarshedParentValueName)) {
-
-				__database->setItem(unmarshedParent);
-
-				buffer += CONTEXT_LEAF_MARSH_SIZE;
-
-				int nChildren = *(int*) buffer;
-				buffer += sizeof(int);
-
-				for (int i = 0; i < nChildren; i++) {
-					DatabaseNode *unmarshedChild = __database->unmarshLeaf(
-							buffer, unmarshedParentHandler.UUID());
-					DBNodeH unmarshedChildHandler = DBNodeH(
-							unmarshedChild->UUID());
-					__database->setItem(unmarshedChild);
-					buffer += CONTEXT_LEAF_MARSH_SIZE;
-
-				}
-
-			//if exists udpate children data
-			} else {
-
-				DBNodeH existingParentNode = DBNodeH(getNode(__database->getParentNode(
-						unmarshedParent->value().toString())->UUID()));
-
-
-				buffer += CONTEXT_LEAF_MARSH_SIZE;
-
-				int nChildren = *(int*) buffer;
-				buffer += sizeof(int);
-
-				if (existingParentNode.getChildren().size() != nChildren){
-					GVT_ASSERT(false, "Updating node with different number of children");
-				}
-
-				for (int i = 0; i < nChildren; i++) {
-					DatabaseNode *unmarshedChild = __database->unmarshLeaf(
-							buffer, existingParentNode.UUID());
-					DBNodeH unmarshedChildHandler = DBNodeH(
-							unmarshedChild->UUID());
-
-					existingParentNode[unmarshedChild->name()] = unmarshedChild->value();
-
-					buffer += CONTEXT_LEAF_MARSH_SIZE;
-				}
-
-				unmarshedParentHandler = existingParentNode;
-
-			}
+		// searchs where the node is going to be added/updated
+		if (__database->hasNode(grandParentUUID)) {
+			grandParentNode = __database->getItem(grandParentUUID);
+		} else { // should only be the case of syncing root
+			unmarshedParent = __database->unmarshLeaf(buffer, Uuid::null());
+			return unmarshedParent;
 		}
-	  else {
-		  GVT_ASSERT(false, "parent node is unexpectadly a non-string");
-	  }
 
-	  return unmarshedParentHandler;
+		unmarshedParent = __database->unmarshLeaf(buffer, grandParentUUID);
 
-  }
+		// if does not exist add node
+		if (!__database->hasNode(unmarshedParent->UUID())) {
 
+			__database->setItem(unmarshedParent);
 
-void CoreContext::syncContext(){
-
-	const int rankSize = MPI::COMM_WORLD.Get_size();
-	const int myRank = MPI::COMM_WORLD.Get_rank();
-	int bytesRequired=0;
-
-	std::vector<int> mySyncTable(rankSize, 0);
-	std::vector<int> syncTable(rankSize,0);
-	std::vector<unsigned char> buf;
-
-	mySyncTable[myRank]=__nodesToSync.size();
-	MPI::COMM_WORLD.Allreduce(&mySyncTable[0], &syncTable[0], rankSize, MPI_INT, MPI_MAX);
-
-	for (int i = 0; i < rankSize; i++) {
-		if (syncTable[i] == 0)
-			continue;
-		for (int message = 0; message < syncTable[i]; message++) {
-
-			if (i == myRank) {
-				DBNodeH node = __nodesToSync[message];
-				bytesRequired = CONTEXT_LEAF_MARSH_SIZE
-						* (node.getChildren().size() + 1);
-				buf.reserve(bytesRequired);
-				marshNode(&buf[0], node);
-			}
-
-			MPI::COMM_WORLD.Bcast(&bytesRequired, 1, MPI::INT, i);
-			buf.reserve(bytesRequired);
-			MPI::COMM_WORLD.Bcast(&buf[0], bytesRequired, MPI_UNSIGNED_CHAR, i);
-
-			if (i != myRank)  {
-				DBNodeH node = unmarsh(&buf[0]);
-				//database()->printTree(node.UUID(), 4, std::cout);
-
-			}
-
+			// if exists udpate data
+		} else {
+			if (unmarshedParent->name() != String("ptr"))
+			__database->getItem(unmarshedParent->UUID())->setValue(
+					unmarshedParent->value());
 		}
 	}
 
-	MPI::COMM_WORLD.Barrier();
+	return unmarshedParent;
+}
 
+void CoreContext::syncContext(){
+
+  const int rankSize = MPI::COMM_WORLD.Get_size();
+  const int myRank = MPI::COMM_WORLD.Get_rank();
+  int nTreeNodeEntries = 0;
+
+  std::vector<int> mySyncTable(rankSize, 0); //array with the # tree-nodes to send
+  std::vector<int> syncTable(rankSize, 0); //reduced array with the # tree-nodes to send from all nodes
+  std::vector<MarshedDatabaseNode> buf;
+  //buf.reserve( 10); //weird sysmalloc: Assertion fail without this pre-reserve
+
+  mySyncTable[myRank] = __nodesToSync.size();
+  MPI::COMM_WORLD.Allreduce(&mySyncTable[0], &syncTable[0], rankSize, MPI_INT, MPI_MAX);
+
+  for (int i = 0; i < rankSize; i++) {
+    if (syncTable[i] == 0) continue;
+    for (int treeNode = 0; treeNode < syncTable[i]; treeNode++) {
+
+      if (i == myRank) {
+        DatabaseNode &node = __nodesToSync[treeNode].getNode();
+        marsh(buf, node);
+        nTreeNodeEntries = buf.size();
+      }
+
+      //agree on message length, strings length and # leaf are arbitrary
+      MPI::COMM_WORLD.Bcast(&nTreeNodeEntries, 1, MPI::INT, i);
+      buf.reserve(nTreeNodeEntries);
+      MPI::COMM_WORLD.Bcast(&buf[0], nTreeNodeEntries*CONTEXT_LEAF_MARSH_SIZE, MPI_UNSIGNED_CHAR, i);
+
+      if (i != myRank) {
+        unmarsh(buf,nTreeNodeEntries);
+      }
+
+     buf.clear();
+    }
   }
+
+  MPI::COMM_WORLD.Barrier();
+
+  __nodesToSync.clear();
+}

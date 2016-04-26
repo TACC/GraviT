@@ -87,8 +87,12 @@ public:
   /// print the complete database hierarchy rooted at the given node
   void printTree(const Uuid &parent, const int depth = 0, std::ostream &os = std::cout);
 
+  /// print the complete database hierarchy rooted at the given node for a single mpi-rank
+  //synced print, all nodes required
+  void printTree(const Uuid &parent, int rank, const int depth = 0, std::ostream &os = std::cout);
+
   // Copies the node data to a byte buffer
-  // Structure: <nodeName><int variant type><value>
+  // Structure: <uuid><nodeName><int variant type><value>
   void marshLeaf(unsigned char *buffer, DatabaseNode& leaf);
 
   // Create a node from byte buffer
@@ -98,7 +102,6 @@ public:
 private:
   Map<Uuid, DatabaseNode *> __nodes;
   Map<Uuid, ChildList> __tree;
-  Map<String, Uuid> __parents; //non-leaf nodes by name
 };
 }
 }

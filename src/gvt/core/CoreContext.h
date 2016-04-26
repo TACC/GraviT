@@ -49,8 +49,14 @@ namespace core {
 The context contains the object-store database and helper methods to create and
 manage the internal state.
 */
+
 class CoreContext {
 public:
+
+	typedef struct {
+		unsigned char data[CONTEXT_LEAF_MARSH_SIZE];
+	} MarshedDatabaseNode;
+
   virtual ~CoreContext();
 
   /// return the context singleton
@@ -92,22 +98,27 @@ public:
   DBNodeH createNodeFromType(String type, String name, Uuid parent = Uuid::null());
 
   /**
-   * Packs a node and its leaf children in a buffer
+   * Packs a node and its children in a buffer
+   * assigned UUIDs are guaranteed to be unique across all nodes, e.g. camera node will have the same
+   * uuid in all nodes. This requires that a single mpi-node creates the tree node.
    * Byte structure:
-   * <nodeParentName><nodeName><int variant type><value><#children><child0Name><int variant type><value><...>
-   * Each node or leaf is packed in CONTEXT_LEAF_MARSH_SIZE max byte size,
-   * i.e. <nodeName><int variant type><value> = CONTEXT_LEAF_MARSH_SIZE bytes
+   * <parentUUID><UUID><nodeName><int variant type><value><parentUUID><UUID><child0Name><int variant type><value><...>
+   * Each node or leaf is packed in CONTEXT_LEAF_MARSH_SIZE max byte size in database->marshLeaf routine
+   * i.e.<parentUUID><UUID><nodeName><int variant type><value> = CONTEXT_LEAF_MARSH_SIZE max bytes
    */
-	void marshNode(unsigned char *buffer, DBNodeH& node);
+  void marsh( std::vector<MarshedDatabaseNode>& buffer, DatabaseNode& node);
 
   // check marsh for buffer structure
-  DBNodeH unmarsh(unsigned char *buffer);
+  DatabaseNode* unmarsh(std::vector<MarshedDatabaseNode>& messagesBuffer, int nNodes);
 
-  void addToSync(DBNodeH node){
+  DBNodeH addToSync(DBNodeH node){
 	  __nodesToSync.push_back(node);
+	  return node;
   }
 
-
+ // send and reveives all the tree-nodes marked for syncronization
+ // requires all nodes
+ // one to all communication model
  void syncContext();
 
 

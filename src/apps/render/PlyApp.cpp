@@ -109,6 +109,8 @@ PlyProperty face_props[] = {
 static Vertex **vlist;
 static Face **flist;
 
+//#define DOMAIN_PER_NODE
+
 int main(int argc, char **argv) {
 
   ParseCommandLine cmd("gvtPly");
@@ -159,15 +161,36 @@ int main(int argc, char **argv) {
     exit(0);
   }
   gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
-  gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+
+
+  if (MPI::COMM_WORLD.Get_rank()==0){
+	  cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+  	  cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+  }
+
+  cntxt->syncContext();
+
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
+
 
   // Enzo isosurface...
   for (k = 0; k < 8; k++) {
+#ifdef DOMAIN_PER_NODE
+	if (MPI::COMM_WORLD.Get_rank() != k) continue;
+#endif
     sprintf(txt, "%d", k);
     filename = "block";
     filename += txt;
-    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
+#ifndef DOMAIN_PER_NODE
+    if (MPI::COMM_WORLD.Get_rank()==0)
+#endif
+    	gvt::core::DBNodeH EnzoMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID()));
+
+#ifndef DOMAIN_PER_NODE
+    cntxt->syncContext();
+    gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
+#endif
     // read in some ply data and get ready to load it into the mesh
     // filepath = rootdir + "block" + std::string(txt) + ".ply";
     filepath = rootdir + filename + ".ply";
@@ -232,27 +255,43 @@ int main(int argc, char **argv) {
       EnzoMeshNode["file"] = string(filepath);
       EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
       EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+
+      gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
+      EnzoMeshNode["Locations"] += loc;
+
+      cntxt->addToSync(EnzoMeshNode);
     }
-    // add instance
-    gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-    gvt::core::DBNodeH meshNode = EnzoMeshNode;
-    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-    instnode["id"] = k;
-    instnode["meshRef"] = meshNode.UUID();
-    auto m = new glm::mat4(1.f);
-    auto minv = new glm::mat4(1.f);
-    auto normi = new glm::mat3(1.f);
-    instnode["mat"] = (unsigned long long)m;
-    *minv = glm::inverse(*m);
-    instnode["matInv"] = (unsigned long long)minv;
-    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-    instnode["normi"] = (unsigned long long)normi;
-    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    instnode["bbox"] = (unsigned long long)ibox;
-    instnode["centroid"] = ibox->centroid();
   }
+
+   cntxt->syncContext();
+
+   for (k = 0; k < 8; k++) {
+     	if (MPI::COMM_WORLD.Get_rank()==0) {
+			// add instance
+			gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+			gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+			Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+			instnode["id"] = k;
+			instnode["meshRef"] = meshNode.UUID();
+			auto m = new glm::mat4(1.f);
+			auto minv = new glm::mat4(1.f);
+			auto normi = new glm::mat3(1.f);
+			instnode["mat"] = (unsigned long long)m;
+			*minv = glm::inverse(*m);
+			instnode["matInv"] = (unsigned long long)minv;
+			*normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+			instnode["normi"] = (unsigned long long)normi;
+			auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+			auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+			Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+			instnode["bbox"] = (unsigned long long)ibox;
+			instnode["centroid"] = ibox->centroid();
+
+			cntxt->addToSync(instnode);
+     	}
+   }
+
+   cntxt->syncContext();
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
@@ -331,7 +370,7 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 100; z++) {
+    for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();
@@ -347,7 +386,7 @@ int main(int argc, char **argv) {
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 100; z++) {
+    for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();

@@ -85,6 +85,8 @@ typedef enum { BVH_RENDER_MODE, FILM_RENDER_MODE } render_mode;
 #define ROTATE_STEP .1
 #define MOVE_STEP 0.1
 
+//#define DOMAIN_PER_NODE
+
 // global variables used by glut callbacks.
 //
 GLubyte *imagebuffer;
@@ -93,6 +95,7 @@ static GLint height;
 
 int opengl_rank;
 int mpi_rank;
+bool master;
 bool update = false;
 // render_mode renderMode = BVH_RENDER_MODE;
 render_mode renderMode = FILM_RENDER_MODE;
@@ -685,7 +688,7 @@ void RenderBVH() {
 
   int schedType = rootNode["Schedule"]["type"].value().toInteger();
 
-  std::map<int, size_t> mpiInstanceMap;
+  std::map<int, int> mpiInstanceMap;
   if (schedType == gvt::render::scheduler::Domain)
     mpiInstanceMap = ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> *)tracer)->mpiInstanceMap;
 
@@ -821,7 +824,6 @@ void dispfunc(void) {
   }
 }
 
-
 void ConfigSceneCubeCone() {
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
 
@@ -829,157 +831,195 @@ void ConfigSceneCubeCone() {
 
   gvt::core::DBNodeH dataNodes = root["Data"];
 
-  gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
+  gvt::core::DBNodeH coneMeshNode;
+  gvt::core::DBNodeH cubeMeshNode;
 
-  {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 7;
-    glm::vec3 points[7];
-    points[0] = glm::vec3(0.5, 0.0, 0.0);
-    points[1] = glm::vec3(-0.5, 0.5, 0.0);
-    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
-    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
-    points[4] = glm::vec3(-0.5, -0.5, 0.0);
-    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
-    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
-
-    for (int i = 0; i < numPoints; i++) {
-      mesh->addVertex(points[i]);
-    }
-    mesh->addFace(1, 2, 3);
-    mesh->addFace(1, 3, 4);
-    mesh->addFace(1, 4, 5);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 7);
-    mesh->addFace(1, 7, 2);
-    mesh->generateNormals();
-
-    // calculate bbox
-    glm::vec3 lower = points[0], upper = points[0];
-    for (int i = 1; i < numPoints; i++) {
-      for (int j = 0; j < 3; j++) {
-        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
-      }
-    }
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-    mesh->generateNormals();
-    // add cone mesh to the database
-    coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
-    coneMeshNode["ptr"] = (unsigned long long)mesh;
+ if (master) {
+    coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
+    cntxt->addToSync(coneMeshNode);
+    cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
+    cntxt->addToSync(cubeMeshNode);
   }
 
-  gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
-  {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 24;
-    glm::vec3 points[24];
-    points[0] = glm::vec3(-0.5, -0.5, 0.5);
-    points[1] = glm::vec3(0.5, -0.5, 0.5);
-    points[2] = glm::vec3(0.5, 0.5, 0.5);
-    points[3] = glm::vec3(-0.5, 0.5, 0.5);
-    points[4] = glm::vec3(-0.5, -0.5, -0.5);
-    points[5] = glm::vec3(0.5, -0.5, -0.5);
-    points[6] = glm::vec3(0.5, 0.5, -0.5);
-    points[7] = glm::vec3(-0.5, 0.5, -0.5);
+ cntxt->syncContext();
 
-    points[8] = glm::vec3(0.5, 0.5, 0.5);
-    points[9] = glm::vec3(-0.5, 0.5, 0.5);
-    points[10] = glm::vec3(0.5, 0.5, -0.5);
-    points[11] = glm::vec3(-0.5, 0.5, -0.5);
+ coneMeshNode = dataNodes.getChildren()[0];
+ cubeMeshNode =  dataNodes.getChildren()[1];
 
-    points[12] = glm::vec3(-0.5, -0.5, 0.5);
-    points[13] = glm::vec3(0.5, -0.5, 0.5);
-    points[14] = glm::vec3(-0.5, -0.5, -0.5);
-    points[15] = glm::vec3(0.5, -0.5, -0.5);
+// if (master)
+ {
+	  {
+		Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+		int numPoints = 7;
+		glm::vec3 points[7];
+		points[0] = glm::vec3(0.5, 0.0, 0.0);
+		points[1] = glm::vec3(-0.5, 0.5, 0.0);
+		points[2] = glm::vec3(-0.5, 0.25, 0.433013);
+		points[3] = glm::vec3(-0.5, -0.25, 0.43013);
+		points[4] = glm::vec3(-0.5, -0.5, 0.0);
+		points[5] = glm::vec3(-0.5, -0.25, -0.433013);
+		points[6] = glm::vec3(-0.5, 0.25, -0.433013);
 
-    points[16] = glm::vec3(0.5, -0.5, 0.5);
-    points[17] = glm::vec3(0.5, 0.5, 0.5);
-    points[18] = glm::vec3(0.5, -0.5, -0.5);
-    points[19] = glm::vec3(0.5, 0.5, -0.5);
+		for (int i = 0; i < numPoints; i++) {
+		  mesh->addVertex(points[i]);
+		}
+		mesh->addFace(1, 2, 3);
+		mesh->addFace(1, 3, 4);
+		mesh->addFace(1, 4, 5);
+		mesh->addFace(1, 5, 6);
+		mesh->addFace(1, 6, 7);
+		mesh->addFace(1, 7, 2);
+		mesh->generateNormals();
 
-    points[20] = glm::vec3(-0.5, -0.5, 0.5);
-    points[21] = glm::vec3(-0.5, 0.5, 0.5);
-    points[22] = glm::vec3(-0.5, -0.5, -0.5);
-    points[23] = glm::vec3(-0.5, 0.5, -0.5);
+		// calculate bbox
+		glm::vec3 lower = points[0], upper = points[0];
+		for (int i = 1; i < numPoints; i++) {
+		  for (int j = 0; j < 3; j++) {
+			lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
+			upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+		  }
+		}
+		Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+		mesh->generateNormals();
+		// add cone mesh to the database
+		coneMeshNode["file"] = string("/fake/path/to/cone");
+		coneMeshNode["bbox"] = (unsigned long long)meshbbox;
+		coneMeshNode["ptr"] = (unsigned long long)mesh;
 
-    for (int i = 0; i < numPoints; i++) {
-      mesh->addVertex(points[i]);
-    }
-    // faces are 1 indexed
-    mesh->addFace(1, 2, 3);
-    mesh->addFace(1, 3, 4);
+		gvt::core::DBNodeH loc = cntxt->createNode("rank", mpi_rank);
+		coneMeshNode["Locations"] += loc;
 
-    mesh->addFace(17, 19, 20);
-    mesh->addFace(17, 20, 18);
+	    cntxt->addToSync(coneMeshNode);
 
-    mesh->addFace(6, 5, 8);
-    mesh->addFace(6, 8, 7);
+	  }
+ }
+ //else if (mpi_rank == 1 || mpi_rank == 2)
+ {
+	  {
+		Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+		int numPoints = 24;
+		glm::vec3 points[24];
+		points[0] = glm::vec3(-0.5, -0.5, 0.5);
+		points[1] = glm::vec3(0.5, -0.5, 0.5);
+		points[2] = glm::vec3(0.5, 0.5, 0.5);
+		points[3] = glm::vec3(-0.5, 0.5, 0.5);
+		points[4] = glm::vec3(-0.5, -0.5, -0.5);
+		points[5] = glm::vec3(0.5, -0.5, -0.5);
+		points[6] = glm::vec3(0.5, 0.5, -0.5);
+		points[7] = glm::vec3(-0.5, 0.5, -0.5);
 
-    mesh->addFace(23, 21, 22);
-    mesh->addFace(23, 22, 24);
+		points[8] = glm::vec3(0.5, 0.5, 0.5);
+		points[9] = glm::vec3(-0.5, 0.5, 0.5);
+		points[10] = glm::vec3(0.5, 0.5, -0.5);
+		points[11] = glm::vec3(-0.5, 0.5, -0.5);
 
-    mesh->addFace(10, 9, 11);
-    mesh->addFace(10, 11, 12);
+		points[12] = glm::vec3(-0.5, -0.5, 0.5);
+		points[13] = glm::vec3(0.5, -0.5, 0.5);
+		points[14] = glm::vec3(-0.5, -0.5, -0.5);
+		points[15] = glm::vec3(0.5, -0.5, -0.5);
 
-    mesh->addFace(13, 15, 16);
-    mesh->addFace(13, 16, 14);
-    // calculate bbox
-    glm::vec3 lower = points[0], upper = points[0];
-    for (int i = 1; i < numPoints; i++) {
-      for (int j = 0; j < 3; j++) {
-        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
-      }
-    }
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-    mesh->generateNormals();
-    // add cube mesh to the database
-    cubeMeshNode["file"] = string("/fake/path/to/cube");
-    cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
-    cubeMeshNode["ptr"] = (unsigned long long)mesh;
-  }
+		points[16] = glm::vec3(0.5, -0.5, 0.5);
+		points[17] = glm::vec3(0.5, 0.5, 0.5);
+		points[18] = glm::vec3(0.5, -0.5, -0.5);
+		points[19] = glm::vec3(0.5, 0.5, -0.5);
+
+		points[20] = glm::vec3(-0.5, -0.5, 0.5);
+		points[21] = glm::vec3(-0.5, 0.5, 0.5);
+		points[22] = glm::vec3(-0.5, -0.5, -0.5);
+		points[23] = glm::vec3(-0.5, 0.5, -0.5);
+
+		for (int i = 0; i < numPoints; i++) {
+		  mesh->addVertex(points[i]);
+		}
+		// faces are 1 indexed
+		mesh->addFace(1, 2, 3);
+		mesh->addFace(1, 3, 4);
+
+		mesh->addFace(17, 19, 20);
+		mesh->addFace(17, 20, 18);
+
+		mesh->addFace(6, 5, 8);
+		mesh->addFace(6, 8, 7);
+
+		mesh->addFace(23, 21, 22);
+		mesh->addFace(23, 22, 24);
+
+		mesh->addFace(10, 9, 11);
+		mesh->addFace(10, 11, 12);
+
+		mesh->addFace(13, 15, 16);
+		mesh->addFace(13, 16, 14);
+		// calculate bbox
+		glm::vec3 lower = points[0], upper = points[0];
+		for (int i = 1; i < numPoints; i++) {
+		  for (int j = 0; j < 3; j++) {
+			lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
+			upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+		  }
+		}
+		Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+		mesh->generateNormals();
+		// add cube mesh to the database
+		cubeMeshNode["file"] = string("/fake/path/to/cube");
+		cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
+		cubeMeshNode["ptr"] = (unsigned long long)mesh;
+
+		gvt::core::DBNodeH loc = cntxt->createNode("rank", mpi_rank);
+		cubeMeshNode["Locations"] += loc;
+
+	    cntxt->addToSync(cubeMeshNode);
+
+	  }
+ }
+
+   cntxt->syncContext();
 
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-  // create a NxM grid of alternating cones / cubes, offset using i and j
-  int instId = 0;
-  int ii[2] = { -2, 3 }; // i range
-  int jj[2] = { -2, 3 }; // j range
-  for (int i = ii[0]; i < ii[1]; i++) {
-    for (int j = jj[0]; j < jj[1]; j++) {
-      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-      // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode :
-      // cubeMeshNode;
-      gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
-      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+  if (master) {
 
-      instnode["id"] = instId++;
-      instnode["meshRef"] = meshNode.UUID();
+	  // create a NxM grid of alternating cones / cubes, offset using i and j
+	  int instId = 0;
+	  int ii[2] = { -2, 3 }; // i range
+	  int jj[2] = { -2, 3 }; // j range
+	  for (int i = ii[0]; i < ii[1]; i++) {
+		for (int j = jj[0]; j < jj[1]; j++) {
+		  gvt::core::DBNodeH instnode = cntxt->createNodeFromType(
+				  "Instance", "inst" + to_string(instId), instNodes.UUID());
+		  // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode :
+		  // cubeMeshNode;
+		  gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
+		  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
 
-      auto m = new glm::mat4(1);
-      auto minv = new glm::mat4(1);
-      auto normi = new glm::mat3(1);
-      *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
-      *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
+		  instnode["id"] = instId++;
+		  instnode["meshRef"] = meshNode.UUID();
 
-      instnode["mat"] = (unsigned long long)m;
-      *minv = glm::inverse(*m);
-      instnode["matInv"] = (unsigned long long)minv;
-      *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-      instnode["normi"] = (unsigned long long)normi;
+		  auto m = new glm::mat4(1);
+		  auto minv = new glm::mat4(1);
+		  auto normi = new glm::mat3(1);
+		  *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
+		  *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
 
-      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-      Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-      instnode["bbox"] = (unsigned long long)ibox;
-      instnode["centroid"] = ibox->centroid();
-    }
+		  instnode["mat"] = (unsigned long long)m;
+		  *minv = glm::inverse(*m);
+		  instnode["matInv"] = (unsigned long long)minv;
+		  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+		  instnode["normi"] = (unsigned long long)normi;
+
+		  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+		  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+		  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+		  instnode["bbox"] = (unsigned long long)ibox;
+		  instnode["centroid"] = ibox->centroid();
+
+		  cntxt->addToSync(instnode);
+		}
+	  }
   }
 
-  // add lights, camera, and film to the database
+  cntxt->syncContext();
 
+  // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
   lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
@@ -992,104 +1032,6 @@ void ConfigSceneCubeCone() {
   _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
   gvt::core::DBNodeH filmNode = root["Film"];
-  filmNode["width"] = 512;
-  filmNode["height"] = 512;
-}
-
-void ConfigSceneCone() {
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = root["Data"];
-
-  gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
-
-  {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 7;
-    glm::vec3 points[7];
-    points[0] = glm::vec3(0.5, 0.0, 0.0);
-    points[1] = glm::vec3(-0.5, 0.5, 0.0);
-    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
-    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
-    points[4] = glm::vec3(-0.5, -0.5, 0.0);
-    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
-    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
-
-    for (int i = 0; i < numPoints; i++) {
-      mesh->addVertex(points[i]);
-    }
-    mesh->addFace(1, 2, 3);
-    mesh->addFace(1, 3, 4);
-    mesh->addFace(1, 4, 5);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 7);
-    mesh->addFace(1, 7, 2);
-    mesh->generateNormals();
-
-    // calculate bbox
-    glm::vec3 lower = points[0], upper = points[0];
-    for (int i = 1; i < numPoints; i++) {
-      for (int j = 0; j < 3; j++) {
-        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
-      }
-    }
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
-    // add cone mesh to the database
-    coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
-    coneMeshNode["ptr"] = (unsigned long long)mesh;
-  }
-
-  gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", root["Instances"].UUID());
-
-  gvt::core::DBNodeH meshNode = coneMeshNode;
-
-  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-
-  instnode["id"] = 0;
-  instnode["meshRef"] = meshNode.UUID();
-
-  auto m = new glm::mat4(true);
-  auto minv = new glm::mat4(true);
-  auto normi = new glm::mat3();
-  //          *m =
-  //              *m *
-  //              glm::mat4::createTranslation(
-  //                0.0, i * 0.5, j * 0.5);
-  //          *m = *m *
-  //          glm::mat4::createScale(
-  //                0.4, 0.4, 0.4);
-
-  instnode["mat"] = (unsigned long long)m;
-  *minv = glm::inverse(*m);
-  instnode["matInv"] = (unsigned long long)minv;
-  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-  instnode["normi"] = (unsigned long long)normi;
-
-  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-  instnode["bbox"] = (unsigned long long)ibox;
-  instnode["centroid"] = ibox->centroid();
-
-  // add lights, camera, and film to the database
-
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
-  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
-
-  gvt::core::DBNodeH _camNode = root["Camera"];
-
-  _camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
-  _camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
-  _camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
-  _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
-
-  gvt::core::DBNodeH filmNode = root["Film"];
-
   filmNode["width"] = 512;
   filmNode["height"] = 512;
 }
@@ -1117,10 +1059,22 @@ void ConfigEnzo(std::string rootdir) {
 
   // Enzo isosurface...
   for (k = 0; k < 8; k++) {
+#ifdef DOMAIN_PER_NODE
+	  if (mpi_rank != k) continue;
+#endif
     sprintf(txt, "%d", k);
     filename = "block";
     filename += txt;
-    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
+
+#ifndef DOMAIN_PER_NODE
+   if (master)
+#endif
+    gvt::core::DBNodeH EnzoMeshNode = cntxt->addToSync(cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID()));
+
+#ifndef DOMAIN_PER_NODE
+   	cntxt->syncContext();
+    gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
+#endif
     // read in some ply data and get ready to load it into the mesh
     // filepath = rootdir + "block" + std::string(txt) + ".ply";
     filepath = rootdir + filename + ".ply";
@@ -1185,27 +1139,44 @@ void ConfigEnzo(std::string rootdir) {
       EnzoMeshNode["file"] = string(filepath);
       EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
       EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+
+      gvt::core::DBNodeH loc = cntxt->createNode("rank", mpi_rank);
+      EnzoMeshNode["Locations"] += loc;
+
+      cntxt->addToSync(EnzoMeshNode);
     }
-    // add instance
-    gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", root["Instances"].UUID());
-    gvt::core::DBNodeH meshNode = EnzoMeshNode;
-    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-    instnode["id"] = k;
-    instnode["meshRef"] = meshNode.UUID();
-    auto m = new glm::mat4(1.f);
-    auto minv = new glm::mat4(1.f);
-    auto normi = new glm::mat3(1.f);
-    instnode["mat"] = (unsigned long long)m;
-    *minv = glm::inverse(*m);
-    instnode["matInv"] = (unsigned long long)minv;
-    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-    instnode["normi"] = (unsigned long long)normi;
-    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    instnode["bbox"] = (unsigned long long)ibox;
-    instnode["centroid"] = ibox->centroid();
   }
+
+  cntxt->syncContext();
+
+  for (k = 0; k < 8; k++) {
+    	if (master) {
+			// add instance
+			gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", root["Instances"].UUID());
+			gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+			Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+			instnode["id"] = k;
+			instnode["meshRef"] = meshNode.UUID();
+			auto m = new glm::mat4(1.f);
+			auto minv = new glm::mat4(1.f);
+			auto normi = new glm::mat3(1.f);
+			instnode["mat"] = (unsigned long long)m;
+			*minv = glm::inverse(*m);
+			instnode["matInv"] = (unsigned long long)minv;
+			*normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+			instnode["normi"] = (unsigned long long)normi;
+			auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+			auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+			Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+			instnode["bbox"] = (unsigned long long)ibox;
+			instnode["centroid"] = ibox->centroid();
+
+			cntxt->addToSync(instnode);
+    	}
+    }
+
+    cntxt->syncContext();
+
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = root["Lights"];
@@ -1264,16 +1235,8 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
   MPI_Barrier(MPI_COMM_WORLD);
   opengl_rank = 0;
+  master = mpi_rank == 0 ? true : false;
 
-  // string filename;
-  //
-  // if (argc > 1) {
-  //   filename = argv[1];
-  // } else {
-  //   cerr << " application requires input config file" << endl;
-  //   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-  //   exit(1);
-  // }
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
 
@@ -1284,11 +1247,16 @@ int main(int argc, char *argv[]) {
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
 
-  cntxt->createNodeFromType("Data", "glTraceData", root.UUID());
-  cntxt->createNodeFromType("Instances", "glTraceInstances", root.UUID());
-  cntxt->createNodeFromType("Lights", "glTraceLights", root.UUID());
-  cntxt->createNodeFromType("Camera", "glTraceCamera", root.UUID());
-  cntxt->createNodeFromType("Film", "glTraceFilm", root.UUID());
+  if (master){
+       cntxt->addToSync(cntxt->createNodeFromType("Data", "glTraceData", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType("Instances", "glTraceInstances", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType("Lights", "glTraceLights", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType("Camera", "glTraceCamera", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType("Film", "glTraceFilm", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType("Schedule", "glTraceSchedule", root.UUID()));
+  }
+
+  cntxt->syncContext();
 
   if (cmd.isSet("enzo"))
     ConfigEnzo(cmd.get<std::string>("enzo"));
@@ -1296,17 +1264,13 @@ int main(int argc, char *argv[]) {
 	gvtapps::render::ConfigFileLoader cl(cmd.get<std::string>("scene"));
   else
     ConfigSceneCubeCone();
-  //
-  // ConfigSceneCubeCone();
-  // ConfigSceneCone();
-  // ConfigEnzo();
 
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "glTraceSchedule", root.UUID());
+  gvt::core::DBNodeH schedNode = root["Schedule"];
   if (cmd.isSet("domain"))
     schedNode["type"] = gvt::render::scheduler::Domain;
   else
-    schedNode["type"] = gvt::render::scheduler::Image;
-// schedNode["type"] = gvt::render::scheduler::Domain;
+   schedNode["type"] = gvt::render::scheduler::Image;
+ schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -1360,6 +1324,8 @@ int main(int argc, char *argv[]) {
 
   mycamera.AllocateCameraRays();
 
+  cntxt->database()->printTree(root.UUID(),0 ,4, std::cout);
+
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image:
@@ -1373,8 +1339,6 @@ int main(int argc, char *argv[]) {
     std::cout << "unknown schedule type provided: " << schedType << std::endl;
     break;
   }
-
-  // Render();
 
   if (mpi_rank == opengl_rank) { // max rank process does display
 
