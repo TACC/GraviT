@@ -182,7 +182,7 @@ public:
     instancenodes = rootnode["Instances"].getChildren();
     int numInst = instancenodes.size();
 
-    if (acceleration) delete acceleration;
+    // if (acceleration) delete acceleration;
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
 
     if (queue_mutex) delete[] queue_mutex;
