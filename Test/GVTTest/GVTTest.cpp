@@ -160,12 +160,7 @@ int main(int argc, char **argv) {
   string scheduletype("image");
   string adapter("embree");
 
-#if 1
-  MPI_Init(&argc, &argv);
-  MPI_Pcontrol(0);
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+
 
   // initialize gravit context database structure
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
@@ -192,6 +187,15 @@ int main(int argc, char **argv) {
     init.initialize(cmd.get<int>("threads"));
     //tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
+
+
+#if 1
+  MPI_Init(&argc, &argv);
+  MPI_Pcontrol(0);
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
   filepath = cmd.get<std::string>("infile");
   outputfile = cmd.get<std::string>("outfile");
 
