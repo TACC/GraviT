@@ -68,7 +68,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "ParseCommandLine.h"
+#include <apps/render/ParseCommandLine.h>
 
 using namespace std;
 using namespace gvt::render;
@@ -159,6 +159,14 @@ int main(int argc, char **argv) {
   // gravit behavior
   string scheduletype("image");
   string adapter("embree");
+
+#if 1
+  MPI_Init(&argc, &argv);
+  MPI_Pcontrol(0);
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
   // initialize gravit context database structure
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
@@ -342,12 +350,7 @@ int main(int argc, char **argv) {
     numtriangles += nfaces;
   }
 
-#if 1
-  MPI_Init(&argc, &argv);
-  MPI_Pcontrol(0);
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+
   timeCurrent(&startTime);
   // add lights, camera, and film to the database
   lightNode["position"] = light_pos;
@@ -447,6 +450,9 @@ int main(int argc, char **argv) {
   modeltime += timeDifferenceMS(&startTime, &endTime);
   int schedType = root["Schedule"]["type"].value().toInteger();
 
+  mycamera.AllocateCameraRays();
+  mycamera.generateRays();
+
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     timeCurrent(&startTime);
@@ -505,7 +511,7 @@ int main(int argc, char **argv) {
   std::cout << scheduletype << "," << width << "," << height << "," << warmupframes << ",";
   std::cout << benchmarkframes << "," << iotime << "," << modeltime << ",";
   std::cout << warmupframetime << "," << millisecondsperframe << "," << framespersecond << std::endl;
-#ifdef GVT_USE_MPI
+//#ifdef GVT_USE_MPI
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#endif
+//#endif
 }
