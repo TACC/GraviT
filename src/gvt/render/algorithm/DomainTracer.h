@@ -125,6 +125,9 @@ public:
   std::map<int, std::set<std::string> > meshAvailbyMPI; // where meshes are by mpi node
   std::map<int, std::set<std::string> >::iterator lastAssigned; //instance-node round-robin assigment
 
+  for (size_t i = 0; i < mpi.world_size; i++)
+	  meshAvailbyMPI[i].clear();
+
   //build location map, where meshes are by mpi node
   for (size_t i = 0; i < dataNodes.size(); i++) {
       std::vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
@@ -195,10 +198,10 @@ public:
 		} while (lastAssigned != startedAt);
     }
 
-//    if (mpi.rank==0)
-//          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
-//          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
-//                                                 std::endl;
+    if (mpi.rank==0)
+          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
+          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
+                                                 std::endl;
   }
 }
 

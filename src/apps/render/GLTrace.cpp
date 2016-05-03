@@ -85,7 +85,7 @@ typedef enum { BVH_RENDER_MODE, FILM_RENDER_MODE } render_mode;
 #define ROTATE_STEP .1
 #define MOVE_STEP 0.1
 
-//#define DOMAIN_PER_NODE
+//#define DOMAIN_PER_NODE 4
 
 // global variables used by glut callbacks.
 //
@@ -1060,7 +1060,8 @@ void ConfigEnzo(std::string rootdir) {
   // Enzo isosurface...
   for (k = 0; k < 8; k++) {
 #ifdef DOMAIN_PER_NODE
-	  if (mpi_rank != k) continue;
+  	if (!((k >= mpi_rank * DOMAIN_PER_NODE) && (k < mpi_rank * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
+
 #endif
     sprintf(txt, "%d", k);
     filename = "block";
@@ -1323,8 +1324,6 @@ int main(int argc, char *argv[]) {
   mycamera.setFilmsize(root["Film"]["width"].value().toInteger(), root["Film"]["height"].value().toInteger());
 
   mycamera.AllocateCameraRays();
-
-  cntxt->database()->printTree(root.UUID(),0 ,4, std::cout);
 
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {

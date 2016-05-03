@@ -109,7 +109,7 @@ PlyProperty face_props[] = {
 static Vertex **vlist;
 static Face **flist;
 
-//#define DOMAIN_PER_NODE
+//#define DOMAIN_PER_NODE 1
 
 int main(int argc, char **argv) {
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
   // Enzo isosurface...
   for (k = 0; k < 8; k++) {
 #ifdef DOMAIN_PER_NODE
-	if (MPI::COMM_WORLD.Get_rank() != k) continue;
+  	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
 #endif
     sprintf(txt, "%d", k);
     filename = "block";

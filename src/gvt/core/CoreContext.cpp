@@ -168,7 +168,6 @@ void CoreContext::syncContext(){
   std::vector<int> mySyncTable(rankSize, 0); //array with the # tree-nodes to send
   std::vector<int> syncTable(rankSize, 0); //reduced array with the # tree-nodes to send from all nodes
   std::vector<MarshedDatabaseNode> buf;
-  //buf.reserve( 10); //weird sysmalloc: Assertion fail without this pre-reserve
 
   mySyncTable[myRank] = __nodesToSync.size();
   MPI::COMM_WORLD.Allreduce(&mySyncTable[0], &syncTable[0], rankSize, MPI_INT, MPI_MAX);

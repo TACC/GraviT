@@ -41,6 +41,8 @@
 #include <tbb/task_scheduler_init.h>
 #include <thread>
 
+//#define DOMAIN_PER_NODE 1
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -266,7 +268,7 @@ int main(int argc, char **argv) {
         for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
 
 #ifdef DOMAIN_PER_NODE
-        	if (MPI::COMM_WORLD.Get_rank() != k) continue;
+        	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
 #endif
           timeCurrent(&startTime);
           ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
