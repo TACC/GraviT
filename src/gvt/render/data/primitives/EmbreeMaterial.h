@@ -68,7 +68,8 @@ bool Shade(gvt::render::data::primitives::Material* material,
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//                          Embree Materials                                  //
+//                          Embree Materials
+//			Shading kernels retrieved from Embree rendering samples
 ////////////////////////////////////////////////////////////////////////////////
 
 struct DifferentialGeometry
