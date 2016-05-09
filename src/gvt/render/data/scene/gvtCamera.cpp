@@ -226,7 +226,7 @@ void gvtPerspectiveCamera::generateRays() {
   // for (j = 0; j < buffer_height; j++)
   //   for (i = 0; i < buffer_width; i++) {
 
-  std::cout << "Camera " << cam2wrld << std::endl;
+  //std::cout << "Camera " << cam2wrld << std::endl;
 
   const size_t chunksize = (buffer_width * buffer_height) / (std::thread::hardware_concurrency() * 4);
   static tbb::simple_partitioner ap;

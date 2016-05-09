@@ -339,6 +339,9 @@ struct embreeParallelTrace {
       const glm::vec3 dir = light->position - origin;
       const float t_max = glm::length(dir);
 
+
+      c= normal;
+
       // note: ray copy constructor is too heavy, so going to build it manually
       shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
 
@@ -566,7 +569,7 @@ struct embreeParallelTrace {
                 glm::vec3 c = mesh->vertices[K];
                 glm::vec3 u = b - a;
                 glm::vec3 v = c - a;
-                rayList glm::vec3 normal;
+                glm::vec3 normal;
                 normal[0] = u[1] * v[2] - u[2] * v[1];
                 normal[1] = u[2] * v[0] - u[0] * v[2];
                 normal[2] = u[0] * v[1] - u[1] * v[0];
@@ -670,7 +673,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
 
   // float mm[] = { n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10], n[3], n[7], n[11] };
 
-  std::cout << "Embree mat" << *m << std::endl;
+  //std::cout << "Embree zmat" << *m << std::endl;
 
   rtcSetTransform(global_scene, instID, RTC_MATRIX_COLUMN_MAJOR, mm);
   rtcUpdate(global_scene, instID);
