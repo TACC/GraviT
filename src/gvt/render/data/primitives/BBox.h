@@ -81,6 +81,8 @@ public:
   glm::vec3 centroid() const;
   float surfaceArea() const;
 
+  Box3D transform(glm::mat4 m);
+
   friend std::ostream &operator<<(std::ostream &os, const Box3D &bbox) {
     os << bbox.bounds_min << " x ";
     os << bbox.bounds_max;

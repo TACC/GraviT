@@ -247,7 +247,7 @@ public:
    // std::cout << "Suffle rays" << rays.size() << std::endl;
 
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
-    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
+    gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
@@ -257,7 +257,7 @@ public:
                         for (size_t i = 0; i < hits.size(); i++) {
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
-                            r.origin = r.origin + r.direction /** (hits[i].t * 0.95f)*/;
+                            r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
                             local_queue[hits[i].next].push_back(r);
                           } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
