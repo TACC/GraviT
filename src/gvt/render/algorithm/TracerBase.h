@@ -199,26 +199,26 @@ public:
       instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
     }
 
-    //std::cout << "Reseted instances" << std::endl;
-    // auto lightNodes = rootnode["Lights"].getChildren();
-    //
-    // lights.reserve(2);
-    // for (auto lightNode : lightNodes) {
-    //   auto color = lightNode["color"].value().tovec3();
-    //
-    //   if (lightNode.name() == std::string("PointLight")) {
-    //     auto pos = lightNode["position"].value().tovec3();
-    //     lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-    //   } else if (lightNode.name() == std::string("AmbientLight")) {
-    //     lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-    //   } else if (lightNode.name() == std::string("AreaLight")) {
-    //     auto pos = lightNode["position"].value().tovec3();
-    //     auto normal = lightNode["normal"].value().tovec3();
-    //     auto width = lightNode["width"].value().toFloat();
-    //     auto height = lightNode["height"].value().toFloat();
-    //     lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
-    //   }
-    // }
+    lights.clear();
+     auto lightNodes = rootnode["Lights"].getChildren();
+
+     lights.reserve(2);
+     for (auto lightNode : lightNodes) {
+       auto color = lightNode["color"].value().tovec3();
+
+       if (lightNode.name() == std::string("PointLight")) {
+         auto pos = lightNode["position"].value().tovec3();
+         lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+       } else if (lightNode.name() == std::string("AmbientLight")) {
+         lights.push_back(new gvt::render::data::scene::AmbientLight(color));
+       } else if (lightNode.name() == std::string("AreaLight")) {
+         auto pos = lightNode["position"].value().tovec3();
+         auto normal = lightNode["normal"].value().tovec3();
+         auto width = lightNode["width"].value().toFloat();
+         auto height = lightNode["height"].value().toFloat();
+         lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+       }
+     }
   }
 
   void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }

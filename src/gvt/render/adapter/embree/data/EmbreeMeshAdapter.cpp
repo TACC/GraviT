@@ -339,9 +339,6 @@ struct embreeParallelTrace {
       const glm::vec3 dir = light->position - origin;
       const float t_max = glm::length(dir);
 
-
-      c= normal;
-
       // note: ray copy constructor is too heavy, so going to build it manually
       shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
 
