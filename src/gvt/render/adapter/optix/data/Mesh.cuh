@@ -124,8 +124,8 @@ public:
                                              const gvt::render::data::scene::Light *lsource);
 */
 public:
-   Material* mat;
-  //float4* vertices;
+   data::primitives::Material* mat;
+  float4* vertices;
   //float4* mapuv;
   float4* normals;
   int3* faces;

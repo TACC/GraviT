@@ -68,6 +68,8 @@
 
 #include <float.h>
 
+#include <gvt/render/data/primitives/Material.h>
+
 
 __inline__ void cudaRayToGvtRay(
 		const gvt::render::data::cuda_primitives::Ray& cudaRay,
@@ -190,60 +192,43 @@ cudaCreateFaces(
 
 }
 
-gvt::render::data::cuda_primitives::Material *
-cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
+float4*
+cudaCreateVertices(std::vector<glm::vec3>& gvt_verts) {
 
-	gvt::render::data::cuda_primitives::Material cudaMat;
-	gvt::render::data::cuda_primitives::Material *cudaMat_ptr;
+	float4* buff;
 
 	gpuErrchk(
-			cudaMalloc((void ** ) &cudaMat_ptr,
-					sizeof(gvt::render::data::cuda_primitives::Material)));
+			cudaMalloc((void ** ) &buff,
+					sizeof(float4) * gvt_verts.size()));
 
-	if (dynamic_cast<gvt::render::data::primitives::Lambert *>(gvtMat) != NULL) {
+	std::vector<float4> verts;
+	for (int i = 0; i < gvt_verts.size(); i++) {
 
-		gvtMat->pack((unsigned char *) &(cudaMat.lambert.kd));
-
-		cudaMat.type = gvt::render::data::cuda_primitives::LAMBERT;
-
-	} else if (dynamic_cast<gvt::render::data::primitives::Phong *>(gvtMat) !=
-	NULL) {
-
-		unsigned char *buff = new unsigned char[sizeof(glm::vec3) * 2
-				+ sizeof(float)];
-
-		gvtMat->pack(buff);
-
-		cudaMat.phong.kd = *(float4 *) buff;
-		cudaMat.phong.ks = *(float4 *) (buff + 16);
-		cudaMat.phong.alpha = *(float *) (buff + 32);
-
-		delete[] buff;
-		cudaMat.type = gvt::render::data::cuda_primitives::PHONG;
-
-	} else if (dynamic_cast<gvt::render::data::primitives::BlinnPhong *>(gvtMat)
-			!= NULL) {
-
-		unsigned char *buff = new unsigned char[sizeof(glm::vec3) * 2
-				+ sizeof(float)];
-
-		gvtMat->pack(buff);
-
-		cudaMat.blinn.kd = *(float4 *) buff;
-		cudaMat.blinn.ks = *(float4 *) (buff + 16);
-		cudaMat.blinn.alpha = *(float *) (buff + 32);
-
-		delete[] buff;
-		cudaMat.type = gvt::render::data::cuda_primitives::BLINN;
-
-	} else {
-		std::cout << "Unknown material" << std::endl;
-		return NULL;
+		float4 v = make_float4(gvt_verts[i].x, gvt_verts[i].y,
+				gvt_verts[i].z, 0.f);
+		verts.push_back(v);
 	}
 
 	gpuErrchk(
-			cudaMemcpy(cudaMat_ptr, &cudaMat,
-					sizeof(gvt::render::data::cuda_primitives::Material),
+			cudaMemcpy(buff, &verts[0],
+					sizeof(float4) * gvt_verts.size(),
+					cudaMemcpyHostToDevice));
+
+	return buff;
+
+}
+gvt::render::data::primitives::Material *
+cudaCreateMaterial(gvt::render::data::primitives::Material *gvtMat) {
+
+	gvt::render::data::primitives::Material *cudaMat_ptr;
+
+	gpuErrchk(
+			cudaMalloc((void ** ) &cudaMat_ptr,
+					sizeof(gvt::render::data::primitives::Material)));
+
+	gpuErrchk(
+			cudaMemcpy(cudaMat_ptr, gvtMat,
+					sizeof(gvt::render::data::primitives::Material),
 					cudaMemcpyHostToDevice));
 
 	return cudaMat_ptr;
@@ -340,19 +325,52 @@ void cudaGetLights(std::vector<gvt::render::data::scene::Light *> gvtLights,
 			cudaLights[i].type =
 					gvt::render::data::cuda_primitives::LIGH_TYPE::AMBIENT;
 
-		} else if (dynamic_cast<gvt::render::data::scene::PointLight *>(gvtLights[i])
+		} else if (dynamic_cast<gvt::render::data::scene::AreaLight *>(gvtLights[i])
 				!= NULL) {
 
-			gvt::render::data::scene::PointLight *l =
-					dynamic_cast<gvt::render::data::scene::PointLight *>(gvtLights[i]);
+			gvt::render::data::scene::AreaLight *l =
+					dynamic_cast<gvt::render::data::scene::AreaLight *>(gvtLights[i]);
 
-			memcpy(&(cudaLights[i].point.position.x), &(l->position.x),
+			memcpy(&(cudaLights[i].area.position.x), &(l->position.x),
 					sizeof(float4));
-			memcpy(&(cudaLights[i].point.color.x), &(l->color.x),
+
+			memcpy(&(cudaLights[i].area.color.x), &(l->color.x),
 					sizeof(float4));
+
+			memcpy(&(cudaLights[i].area.u.x), &(l->u.x),
+					sizeof(float4));
+
+			memcpy(&(cudaLights[i].area.v.x), &(l->v.x),
+					sizeof(float4));
+
+			memcpy(&(cudaLights[i].area.w.x), &(l->w.x),
+					sizeof(float4));
+
+			memcpy(&(cudaLights[i].area.LightNormal.x), &(l->LightNormal.x),
+					sizeof(float4));
+
+			cudaLights[i].area.LightHeight = l->LightHeight;
+
+			cudaLights[i].area.LightWidth = l->LightWidth;
+
 
 			cudaLights[i].type =
-					gvt::render::data::cuda_primitives::LIGH_TYPE::POINT;
+					gvt::render::data::cuda_primitives::LIGH_TYPE::AREA;
+
+		  } else if (dynamic_cast<gvt::render::data::scene::PointLight *>(gvtLights[i])
+				  != NULL) {
+
+                          gvt::render::data::scene::PointLight *l =
+                                          dynamic_cast<gvt::render::data::scene::PointLight *>(gvtLights[i]);
+
+                          memcpy(&(cudaLights[i].point.position.x), &(l->position.x),
+                                          sizeof(float4));
+                          memcpy(&(cudaLights[i].point.color.x), &(l->color.x),
+                                          sizeof(float4));
+
+                          cudaLights[i].type =
+                                          gvt::render::data::cuda_primitives::LIGH_TYPE::POINT;
+
 
 		} else {
 			std::cout << "Unknown light" << std::endl;
@@ -379,6 +397,8 @@ gvt::render::data::cuda_primitives::Mesh cudaInstanceMesh(
 	cudaMesh.normals = cudaCreateNormals(mesh->normals);
 	cudaMesh.faces = cudaCreateFaces(mesh->faces);
 	cudaMesh.mat = cudaCreateMaterial(mesh->mat);
+	cudaMesh.vertices = cudaCreateVertices(mesh->vertices);
+
 
 	return cudaMesh;
 }
@@ -401,6 +421,13 @@ void gvt::render::data::cuda_primitives::CudaGvtContext::initCudaBuffers(
 		} else if (lightNode.name() == std::string("AmbientLight")) {
 			lights.push_back(new gvt::render::data::scene::AmbientLight(color));
 		}
+		 else if (lightNode.name() == std::string("AreaLight")) {
+			 auto pos = lightNode["position"].value().tovec3();
+			         auto normal = lightNode["normal"].value().tovec3();
+			         auto width = lightNode["width"].value().toFloat();
+			         auto height = lightNode["height"].value().toFloat();
+			         lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+		 }
 	}
 
 	gvt::render::data::cuda_primitives::Light *cudaLights_devPtr;
