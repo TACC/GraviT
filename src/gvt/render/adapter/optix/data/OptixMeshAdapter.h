@@ -109,9 +109,17 @@ struct OptixContext {
 
 class OptixMeshAdapter : public gvt::render::Adapter {
 public:
-
+  /**
+   * Construct the Embree mesh adapter.  Convert the mesh
+   * at the given node to Embree's format.
+   *
+   * Initializes Embree the first time it is called.
+   */
   OptixMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
 
+  /**
+   * Release Embree copy of the mesh.
+   */
   virtual ~OptixMeshAdapter();
 
   ::optix::prime::Model getScene() const { return optix_model_; }

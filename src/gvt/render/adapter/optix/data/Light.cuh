@@ -43,7 +43,7 @@ namespace render {
 namespace data {
 namespace cuda_primitives {
 
-typedef enum {BASE_LIGHT, AMBIENT, POINT} LIGH_TYPE;
+typedef enum {BASE_LIGHT, AMBIENT, POINT, AREA} LIGH_TYPE;
 
 class BaseLight {
 public:
@@ -51,7 +51,7 @@ public:
 	BaseLight(const float4 position = make_float4(0.f));
   virtual ~BaseLight();
 */
-	   __device__ float4 contribution(const float4 &hit) const;
+           __device__ float4 contribution(const float4 &hit,const float4 &samplePos) const;
 
 
   float4 position;
@@ -68,7 +68,7 @@ public:
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 */
-	   __device__ float4 contribution(const float4 &hit) const;
+           __device__ float4 contribution(const float4 &hit,const float4 &samplePos) const;
 
   float4 color;
 };
@@ -80,9 +80,26 @@ public:
 
   virtual ~PointLight();
 */
-	   __device__  float4 contribution(const float4 &hit) const;
+           __device__  float4 contribution(const float4 &hit,const float4 &samplePos) const;
 
   float4 color;
+};
+
+class AreaLight : public BaseLight {
+public:
+
+
+  __device__ float4 contribution(const float4 &hitpoint, const float4 &samplePos) const;
+
+  __device__ float4  GetPosition();
+
+  float4 color;
+  float4 LightNormal;
+  float LightWidth;
+  float LightHeight;
+
+  float4 u, v, w;
+
 };
 
 
@@ -92,20 +109,25 @@ typedef struct {
 		BaseLight light;
 		AmbientLight ambient;
 		PointLight point;
+                AreaLight area;
+
 	};
 
-	   __device__ float4 contribution(const float4 &hit) const {
+           __device__ float4 contribution(const float4 &hit,const float4 &samplePos) const {
 		float4 r;
 		switch (type) {
 		case BASE_LIGHT:
-			r = light.contribution(hit);
+                        r = light.contribution(hit,samplePos);
 			break;
 		case AMBIENT:
-			r = ambient.contribution(hit);
+                        r = ambient.contribution(hit,samplePos);
 			break;
 		case POINT:
-			r = point.contribution(hit);
+                        r = point.contribution(hit,samplePos);
 			break;
+                case AREA:
+                        r = area.contribution(hit,samplePos);
+                            break;
 		default:
 			break;
 		}

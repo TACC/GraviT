@@ -33,19 +33,20 @@
 
 using namespace gvt::render::data::cuda_primitives;
 
+__device__ float cudaRand( );
 
 //BaseLight::BaseLight(const float4 position) : position(position) {}
 
 //BaseLight::~BaseLight() {}
 
-__device__ float4 BaseLight::contribution(const float4 &hit) const { return make_float4(0.f); }
+__device__ float4 BaseLight::contribution(const float4 &hit,const float4 &samplePos) const { return make_float4(0.f); }
 
 //PointLight::PointLight(const float4 position, const float4 color) : BaseLight(position), color(color) {}
 
 //PointLight::~PointLight() {}
 
-__device__ float4 PointLight::contribution(const float4 &hit) const {
-  float distance = 1.f / length(((float4)position -hit));
+__device__ float4 PointLight::contribution(const float4 &hit,const float4 &samplePos) const {
+  float distance = 1.f / length((samplePos -hit));
   distance = (distance > 1.f) ? 1.f : distance;
   return color * (distance);
 }
@@ -54,4 +55,25 @@ __device__ float4 PointLight::contribution(const float4 &hit) const {
 
 //AmbientLight::~AmbientLight() {}
 
-__device__ float4 AmbientLight::contribution(const float4 &hit) const { return color; }
+__device__ float4 AmbientLight::contribution(const float4 &hit,const float4 &samplePos) const { return color; }
+
+
+__device__ float4 AreaLight::GetPosition() {
+  // generate points on plane then transform
+  float xLocation = (cudaRand() - 0.5) * LightWidth;
+  //float yLocation = 0;
+  float zLocation = (cudaRand()  - 0.5) * LightHeight;
+
+  // x coord
+  float xCoord = xLocation * u.x + zLocation * w.x;
+  float yCoord = xLocation * u.y + zLocation * w.y;
+  float zCoord = xLocation * u.z + zLocation * w.z;
+
+  return make_float4(position.x + xCoord, position.y + yCoord, position.z + zCoord,0.f);
+}
+
+__device__ float4 AreaLight::contribution(const float4 &hit,const float4 &samplePos) const {
+  float distance = 1.f / length(samplePos - hit);
+  distance = (distance > 1.f) ? 1.f : distance;
+  return color * (distance);
+}

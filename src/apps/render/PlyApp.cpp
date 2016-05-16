@@ -199,7 +199,20 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
+      Material* m = new Material();
+      m->type = LAMBERT;
+      //m->type = EMBREE_MATERIAL_MATTE;
+      m->kd = glm::vec3(1.0,1.0, 1.0);
+      m->ks = glm::vec3(1.0,1.0,1.0);
+      m->alpha = 0.5;
+
+      //m->type = EMBREE_MATERIAL_METAL;
+      //copper metal
+      m->eta = glm::vec3(.19,1.45, 1.50);
+      m->k = glm::vec3(3.06,2.40, 1.88);
+      m->roughness = 0.05;
+
+      Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -265,6 +278,8 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 1900;
@@ -313,7 +328,11 @@ int main(int argc, char **argv) {
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
   glm::vec3 up = camNode["upVector"].value().tovec3();
+  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
   mycamera.lookAt(cameraposition, focus, up);
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
@@ -331,7 +350,7 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 100; z++) {
+    for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();
@@ -347,7 +366,7 @@ int main(int argc, char **argv) {
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 100; z++) {
+    for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();

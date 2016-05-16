@@ -247,16 +247,31 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
         lightNode["color"] = glm::vec3(lp->color);
 
     } else if (elems[0] == "LA") {
-      glm::vec3 pos[2], color;
-      pos[0][0] = std::atof(elems[1].c_str());
-      pos[0][1] = std::atof(elems[2].c_str());
-      pos[0][2] = std::atof(elems[3].c_str());
-      pos[1][0] = std::atof(elems[4].c_str());
-      pos[1][1] = std::atof(elems[5].c_str());
-      pos[1][2] = std::atof(elems[6].c_str());
-      color[0] = std::atof(elems[7].c_str());
-      color[1] = std::atof(elems[8].c_str());
-      color[2] = std::atof(elems[9].c_str());
+      glm::vec3 pos, normal, color;
+      float width,height;
+      pos[0] = std::atof(elems[1].c_str());
+      pos[1] = std::atof(elems[2].c_str());
+      pos[2] = std::atof(elems[3].c_str());
+      normal[0] = std::atof(elems[4].c_str());
+      normal[1] = std::atof(elems[5].c_str());
+      normal[2] = std::atof(elems[6].c_str());
+      width = std::atof(elems[7].c_str());
+      height = std::atof(elems[8].c_str());
+      color[0] = std::atof(elems[9].c_str());
+      color[1] = std::atof(elems[10].c_str());
+      color[2] = std::atof(elems[11].c_str());
+
+      gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+                  "AreaLight", "AreaLight", root["Lights"].UUID());
+
+
+      lightNode["position"] = pos;
+      lightNode["normal"] = normal;
+      lightNode["width"] = width;
+      lightNode["height"] = height;
+      lightNode["color"] = color;
+
+
       GVT_DEBUG(DBG_ALWAYS, "Light area not implemented");
     } else if (elems[0] == "RT") {
       GVT_DEBUG(DBG_ALWAYS, "option RT not supported");

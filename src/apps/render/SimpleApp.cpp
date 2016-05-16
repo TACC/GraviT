@@ -141,7 +141,20 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    Material* m = new Material();
+    m->type = LAMBERT;
+    //m->type = EMBREE_MATERIAL_MATTE;
+    m->kd = glm::vec3(1.0,1.0, 1.0);
+    m->ks = glm::vec3(1.0,1.0,1.0);
+    m->alpha = 0.5;
+
+    //m->type = EMBREE_MATERIAL_METAL;
+    //copper metal
+    m->eta = glm::vec3(.19,1.45, 1.50);
+    m->k = glm::vec3(3.06,2.40, 1.88);
+    m->roughness = 0.05;
+
+    Mesh *mesh = new Mesh(m);
     int numPoints = 7;
     glm::vec3 points[6];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -183,7 +196,22 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+
+    Material* m = new Material();
+    m->type = LAMBERT;
+    //m->type = EMBREE_MATERIAL_MATTE;
+    m->kd = glm::vec3(1.0,1.0, 1.0);
+    m->ks = glm::vec3(1.0,1.0,1.0);
+    m->alpha = 0.5;
+
+    //m->type = EMBREE_MATERIAL_METAL;
+    //copper metal
+    m->eta = glm::vec3(.19,1.45, 1.50);
+    m->k = glm::vec3(3.06,2.40, 1.88);
+    m->roughness = 0.05;
+
+    Mesh *mesh = new Mesh(m);
+
     int numPoints = 24;
     glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -294,10 +322,20 @@ int main(int argc, char **argv) {
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+ #if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#else
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", lightNodes.UUID());
 
+  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  lightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  lightNode["width"] = 2.f;
+  lightNode["height"] = 2.f;
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#endif
   // second light just for fun
   // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   // lN2["position"] = glm::vec3(2.0, 2.0, 2.0, 0.0);
