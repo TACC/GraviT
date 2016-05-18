@@ -182,7 +182,7 @@ public:
     instancenodes = rootnode["Instances"].getChildren();
     int numInst = instancenodes.size();
 
-    // if (acceleration) delete acceleration;
+    if (acceleration) delete acceleration;
     acceleration = new gvt::render::data::accel::BVH(instancenodes);
 
     if (queue_mutex) delete[] queue_mutex;
@@ -197,6 +197,10 @@ public:
       instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
       instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
       instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
+    }
+
+    for (auto &l : lights) {
+    	delete l;
     }
 
     lights.clear();

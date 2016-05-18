@@ -377,7 +377,7 @@ struct embreeParallelTrace {
 	   material, r, normal, light, lightPos, c))
 	     continue;
 
-	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON;
+	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON *16;
 	const float t_shadow = multiplier * r.t;
 
 	const glm::vec3 origin = r.origin + r.direction * t_shadow;
