@@ -1,3 +1,4 @@
+
 /* =======================================================================================
    This file is released as part of GraviT - scalable, platform independent ray tracing
    tacc.github.io/GraviT
@@ -31,169 +32,64 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 #define GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H
 
-#include <gvt/core/Math.h>
-#include <gvt/render/actor/Ray.h>
-#include <gvt/render/data/scene/Light.h>
+//#include <stdio.h>
+#include <glm/glm.hpp>
 
-#include <boost/container/vector.hpp>
-#include <time.h>
+//#include <cmath>
+//#include <gvt/render/data/DerivedTypes.h>
+
 
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
-/// surface material properties
-/** surface material properties used to shade intersected geometry
-*/
-class Material {
-public:
-  Material();
-  Material(const Material &orig);
-  virtual ~Material();
 
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secondary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
+typedef enum {
+    LAMBERT,
+    PHONG,
+    BLINN,
+    EMBREE_MATERIAL_METAL,
+    EMBREE_MATERIAL_VELVET,
+    EMBREE_MATERIAL_MATTE
+  } MATERIAL_TYPE;
 
-  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, unsigned int *randSeed = nullptr) {
 
-    float Xi1 = 0;
-    float Xi2 = 0;
-    if(randSeed == nullptr)
-    {
-      Xi1 = (float)rand() / (float)RAND_MAX;
-      Xi2 = (float)rand() / (float)RAND_MAX;
-    }
-    else
-    {
-      Xi1 = randEngine.fastrand(randSeed, 0, 1);
-      Xi2 = randEngine.fastrand(randSeed, 0, 1);
-    }
+struct Material {
 
-    float theta = acos(sqrt(1.0 - Xi1));
-    float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
+  //Default material
+  Material(){
+    type = LAMBERT;
+    //type = EMBREE_MATERIAL_MATTE;
+    kd = glm::vec3(.5,.5,.5);
+    ks = glm::vec3(.5,.5,.5);
+    alpha = 1.f;
 
-    float xs = sinf(theta) * cosf(phi);
-    float ys = cosf(theta);
-    float zs = sinf(theta) * sinf(phi);
-
-    glm::vec3 y(n);
-    glm::vec3 h = y;
-    if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
-      h[0] = 1.0;
-    else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
-      h[1] = 1.0;
-    else
-      h[2] = 1.0;
-
-    glm::vec3 x = glm::cross(h, y);
-    glm::vec3 z = glm::cross(x, y);
-
-    glm::vec3 direction = x * xs + y * ys + z * zs;
-    return glm::normalize(direction);
+    //type = EMBREE_MATERIAL_METAL;
+    //copper metal
+    eta = glm::vec3(.19,1.45, 1.50);
+    k = glm::vec3(3.06,2.40, 1.88);
+    roughness = 0.05;
   }
 
-  virtual void pack(unsigned char *buffer)=0;
+  int type;
 
-protected:
-  RandEngine randEngine;
-};
-
-class Lambert : public Material {
-public:
-  Lambert(const glm::vec3 &kd = glm::vec3());
-  Lambert(const Lambert &orig);
-  virtual ~Lambert();
-
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
-
-  virtual void pack(unsigned char *buffer){
-	  glm::vec3* buf = (glm::vec3*)buffer;
-	  *buf=kd;
-  };
-
-protected:
-  glm::vec3 kd;
-};
-
-class Phong : public Material {
-public:
-  Phong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
-  Phong(const Phong &orig);
-  virtual ~Phong();
-
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
-
-
-  virtual void pack(unsigned char *buffer){
-	  glm::vec3* buf = ( glm::vec3*)buffer;
-	  *buf=kd;
-
-	  glm::vec3* buf2 = ( glm::vec3*)(buffer+16);
-	  *buf2=ks;
-
-	  float* buf3= ( float*)(buffer+32);
-	  *buf3=alpha;
-
-
-
-  };
-
-protected:
-  glm::vec3 kd;
-  glm::vec3 ks;
+  glm::vec3 ks; //diffuse k
+  glm::vec3 kd; // specular k
   float alpha;
+  glm::vec3 eta;//EmbreeMetalMaterial
+  glm::vec3 k; //EmbreeMetalMaterial
+  float roughness; //EmbreeMetalMaterial
+  glm::vec3 horizonScatteringColor; //EmbreeVelvetMaterial
+  float backScattering; //EmbreeVelvetMaterial
+  float horizonScatteringFallOff; //EmbreeVelvetMaterial
+
 };
 
-class BlinnPhong : public Material {
-public:
-  BlinnPhong(const glm::vec3 &kd = glm::vec3(), const glm::vec3 &ks = glm::vec3(), const float &alpha = 1.f);
-  BlinnPhong(const BlinnPhong &orig);
-  virtual ~BlinnPhong();
 
-  virtual glm::vec3 shade(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                          const gvt::render::data::scene::Light *lightSource, const glm::vec3 lightPostion);
-  virtual gvt::render::actor::RayVector ao(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                           float samples);
-  virtual gvt::render::actor::RayVector secundary(const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
-                                                  float samples);
-
-
-  virtual void pack(unsigned char *buffer){
-	  glm::vec3* buf = (glm::vec3*)buffer;
-	  *buf=kd;
-
-	  glm::vec3* buf2 = (glm::vec3*)(buffer+16);
-	  *buf2=ks;
-
-	  float* buf3= ( float*)(buffer+32);
-	  *buf3=alpha;
-
-
-
-  };
-
-protected:
-  glm::vec3 kd;
-  glm::vec3 ks;
-  float alpha;
-};
 }
 }
 }
 }
 
 #endif /* GVT_RENDER_DATA_PRIMITIVES_MATERIAL_H */
+

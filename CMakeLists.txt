@@ -124,6 +124,13 @@ if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
   MESSAGE(SEND ERRORS "ply reader header not found")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
+#TODO best way to just include embre folder ?
+set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
+#find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_EMBREE})
+#if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+#  MESSAGE(SEND ERRORS "ply reader header not found")
+#endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+
 # if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 #   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 # elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -234,28 +241,29 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/Primitives.h
   src/gvt/render/data/primitives/BBox.h
   src/gvt/render/data/primitives/Material.h
-  src/gvt/render/data/primitives/Mesh.h
-  src/gvt/render/data/scene/gvtCamera.h
-  src/gvt/render/data/scene/CameraConfig.h
-  src/gvt/render/data/scene/ColorAccumulator.h
-  src/gvt/render/data/scene/Image.h
-  src/gvt/render/data/scene/Light.h
-  src/gvt/render/data/accel/AbstractAccel.h
-  src/gvt/render/data/accel/BVH.h
-  src/gvt/render/schedule/DomainScheduler.h
-  src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
-  src/gvt/render/schedule/hybrid/GreedySchedule.h
-  src/gvt/render/schedule/hybrid/HybridScheduleBase.h
-  src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
-  src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
-  src/gvt/render/schedule/hybrid/LoadManySchedule.h
-  src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
-  src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
-  src/gvt/render/schedule/hybrid/SpreadSchedule.h
-  src/gvt/render/schedule/HybridScheduler.h
-  src/gvt/render/schedule/ImageScheduler.h
-  src/gvt/render/Schedulers.h
-  src/gvt/render/Types.h
+	src/gvt/render/data/primitives/EmbreeMaterial.h
+	src/gvt/render/data/primitives/Mesh.h
+	src/gvt/render/data/scene/gvtCamera.h
+	src/gvt/render/data/scene/CameraConfig.h
+	src/gvt/render/data/scene/ColorAccumulator.h
+	src/gvt/render/data/scene/Image.h
+	src/gvt/render/data/scene/Light.h
+	src/gvt/render/data/accel/AbstractAccel.h
+	src/gvt/render/data/accel/BVH.h
+	src/gvt/render/schedule/DomainScheduler.h
+	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
+	src/gvt/render/schedule/hybrid/GreedySchedule.h
+	src/gvt/render/schedule/hybrid/HybridScheduleBase.h
+	src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
+	src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
+	src/gvt/render/schedule/hybrid/LoadManySchedule.h
+	src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
+	src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
+	src/gvt/render/schedule/hybrid/SpreadSchedule.h
+	src/gvt/render/schedule/HybridScheduler.h
+	src/gvt/render/schedule/ImageScheduler.h
+	src/gvt/render/Schedulers.h
+	src/gvt/render/Types.h
 )
 
 
@@ -282,11 +290,6 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
 		src/gvt/render/adapter/manta/Wrapper.h
-		src/gvt/render/adapter/optix/data/Mesh.cuh
-		src/gvt/render/adapter/optix/data/Light.cuh
-		src/gvt/render/adapter/optix/data/Material.cuh
-		src/gvt/render/adapter/optix/data/Ray.cuh
-		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
   set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
@@ -303,6 +306,11 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/Transforms.h
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
+		src/gvt/render/adapter/optix/data/Mesh.cuh
+		src/gvt/render/adapter/optix/data/Light.cuh
+		src/gvt/render/adapter/optix/data/Material.cuh
+		src/gvt/render/adapter/optix/data/Ray.cuh
+		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
@@ -407,6 +415,9 @@ if (GVT_RENDER)
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	include_directories(${OptiX_INCLUDE})
+        include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
+
+
 
 	if (GVT_RENDER_ADAPTER_EMBREE)
 		find_package(Embree REQUIRED)

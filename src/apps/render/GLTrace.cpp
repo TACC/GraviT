@@ -740,6 +740,13 @@ void RenderBVH() {
     drawWireBox(*bbox);
   }
 
+
+  glm::vec3 pos = rootNode["Lights"].getChildren()[0]["position"].value().tovec3();
+  glPushMatrix();
+  glTranslatef(pos[0],pos[1],pos[2]);
+  glutSolidTorus(.01,.02,50,50);
+  glPopMatrix();
+
   // glutSolidTeapot(.1);
 
   PrintHelpAndSettings();
@@ -861,7 +868,10 @@ void ConfigSceneCubeCone() {
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
 
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+
+    Material* m = new Material();
+    Mesh *mesh = new Mesh(m);
+
     int numPoints = 7;
     glm::vec3 points[7];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -901,7 +911,10 @@ void ConfigSceneCubeCone() {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+
+    Material* m = new Material();
+    Mesh *mesh = new Mesh(m);
+
     int numPoints = 24;
     glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -1008,10 +1021,20 @@ void ConfigSceneCubeCone() {
   }
 
   // add lights, camera, and film to the database
-
+#if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
   lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#else
+  gvt::core::DBNodeH ArealightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", root["Lights"].UUID());
+
+  ArealightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  ArealightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  ArealightNode["width"] = 2.f;
+  ArealightNode["height"] = 2.f;
+  ArealightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#endif
 
   gvt::core::DBNodeH _camNode = root["Camera"];
 
@@ -1021,104 +1044,6 @@ void ConfigSceneCubeCone() {
   _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
 
   gvt::core::DBNodeH filmNode = root["Film"];
-  filmNode["width"] = 512;
-  filmNode["height"] = 512;
-}
-
-void ConfigSceneCone() {
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = root["Data"];
-
-  gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
-
-  {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
-    int numPoints = 7;
-    glm::vec3 points[7];
-    points[0] = glm::vec3(0.5, 0.0, 0.0);
-    points[1] = glm::vec3(-0.5, 0.5, 0.0);
-    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
-    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
-    points[4] = glm::vec3(-0.5, -0.5, 0.0);
-    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
-    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
-
-    for (int i = 0; i < numPoints; i++) {
-      mesh->addVertex(points[i]);
-    }
-    mesh->addFace(1, 2, 3);
-    mesh->addFace(1, 3, 4);
-    mesh->addFace(1, 4, 5);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 7);
-    mesh->addFace(1, 7, 2);
-    mesh->generateNormals();
-
-    // calculate bbox
-    glm::vec3 lower = points[0], upper = points[0];
-    for (int i = 1; i < numPoints; i++) {
-      for (int j = 0; j < 3; j++) {
-        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
-      }
-    }
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
-    // add cone mesh to the database
-    coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
-    coneMeshNode["ptr"] = (unsigned long long)mesh;
-  }
-
-  gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", root["Instances"].UUID());
-
-  gvt::core::DBNodeH meshNode = coneMeshNode;
-
-  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-
-  instnode["id"] = 0;
-  instnode["meshRef"] = meshNode.UUID();
-
-  auto m = new glm::mat4(true);
-  auto minv = new glm::mat4(true);
-  auto normi = new glm::mat3();
-  //          *m =
-  //              *m *
-  //              glm::mat4::createTranslation(
-  //                0.0, i * 0.5, j * 0.5);
-  //          *m = *m *
-  //          glm::mat4::createScale(
-  //                0.4, 0.4, 0.4);
-
-  instnode["mat"] = (unsigned long long)m;
-  *minv = glm::inverse(*m);
-  instnode["matInv"] = (unsigned long long)minv;
-  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-  instnode["normi"] = (unsigned long long)normi;
-
-  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-  instnode["bbox"] = (unsigned long long)ibox;
-  instnode["centroid"] = ibox->centroid();
-
-  // add lights, camera, and film to the database
-
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
-  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
-
-  gvt::core::DBNodeH _camNode = root["Camera"];
-
-  _camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
-  _camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
-  _camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
-  _camNode["fov"] = (float)(45.0 * M_PI / 180.0);
-
-  gvt::core::DBNodeH filmNode = root["Film"];
-
   filmNode["width"] = 512;
   filmNode["height"] = 512;
 }
@@ -1181,7 +1106,9 @@ void ConfigEnzo(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
+      Material* m = new Material();
+
+      Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -1238,9 +1165,21 @@ void ConfigEnzo(std::string rootdir) {
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = root["Lights"];
+#if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
+  lightNode["position"] = glm::vec3(512.0, 512.0, 1256.0);
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+#else
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", lightNodes.UUID());
+
+  lightNode["position"] = glm::vec3(512.0, 512.0, 1256.0);
+  lightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  lightNode["width"] = 2.f;
+  lightNode["height"] = 2.f;
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+#endif
+
   // camera
   gvt::core::DBNodeH camNode = root["Camera"];
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
