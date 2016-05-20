@@ -163,7 +163,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   }
   rtcUnmapBuffer(scene, geomId, RTC_INDEX_BUFFER);
 
-  mesh->writeobj("mesh.obj");
+  //mesh->writeobj("mesh.obj");
 
   // TODO: note: embree doesn't save normals in its mesh structure, have to
   // calculate the normal based on uv value
