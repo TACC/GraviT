@@ -41,7 +41,6 @@
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
-
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -159,7 +158,7 @@ public:
                         for (size_t i = 0; i < hits.size(); i++) {
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
-                            r.origin = r.origin + r.direction * (hits[i].t * 0.8f);
+                            r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
                             const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
                             if (inRank) local_queue[hits[i].next].push_back(r);
                           }
@@ -279,9 +278,9 @@ public:
             GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
             switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-              case gvt::render::adapter::Embree:
-                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
-                break;
+            case gvt::render::adapter::Embree:
+              adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+              break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
             case gvt::render::adapter::Manta:
@@ -289,15 +288,15 @@ public:
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-              case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
-                break;
+            case gvt::render::adapter::Optix:
+              adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+              break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-              case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
-                break;
+            case gvt::render::adapter::Heterogeneous:
+              adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+              break;
 #endif
             default:
               GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
