@@ -23,57 +23,60 @@ bool is_file_exist(const std::string fileName)
 
 unsigned int Difference(std::string fileA, std::string fileB)
 {
-	std::ifstream fA(fileA.c_str());
-	std::ifstream fB(fileB.c_str());  
+    std::ifstream fA(fileA.c_str());
+    std::ifstream fB(fileB.c_str());  
 
-	char Ac;
-	char Bc;
+    char Ac;
+    char Bc;
 
-	unsigned int difference = 0;
+    unsigned int difference = 0;
 
-	while (fA.get(Ac))          // loop getting single characters
-	{
-		fB.get(Bc);
-		difference += (unsigned int) Ac - (unsigned int) Bc; 
-	}
-	
-	fA.close();
-	fB.close();
+    while (fA.get(Ac))          // loop getting single characters
+    {
+        fB.get(Bc);
+        unsigned int k = (unsigned int) Ac;
+        unsigned int kk = (unsigned int) Bc;
+        unsigned int diff = (k > kk)? k-kk: kk-k;
+        difference += diff;                                      
+    }
 
-	return difference;
+    fA.close();
+    fB.close();
+
+    return difference;
 }
 
 int main(int argc, char **argv) 
 {
-	ParseCommandLine cmd("gvtImageDiff");
-	cmd.addoption("diff", ParseCommandLine::PATH, "2 args, Image A & Image B", 2);
-	cmd.addoption("tolerance", ParseCommandLine::INT, "The tolerance of the image.", 1);
-	cmd.parse(argc, argv);
+    ParseCommandLine cmd("gvtImageDiff");
+    cmd.addoption("diff", ParseCommandLine::PATH, "2 args, Image A & Image B", 2);
+    cmd.addoption("tolerance", ParseCommandLine::INT, "The tolerance of the image.", 1);
+    cmd.parse(argc, argv);
 
-	int tolerance = 10;
+    int tolerance = 10;
 
-	if (!cmd.isSet("diff")) {
-		std::cout<<"No Images to diff."<<std::endl;
-		return -1;
-	}
+    if (!cmd.isSet("diff")) {
+        std::cout<<"No Images to diff."<<std::endl;
+        return -1;
+    }
 
-	if (cmd.isSet("tolerance")) {
-		tolerance = cmd.getValue<int>("tolerance")[0];
-	}
+    if (cmd.isSet("tolerance")) {
+        tolerance = cmd.getValue<int>("tolerance")[0];
+    }
 
-	std::cout<<"Setting tolerance to: "<<tolerance<<std::endl;
+    std::cout<<"Setting tolerance to: "<<tolerance<<std::endl;
 
-	std::string ImageA = trim(cmd.getValue<std::string>("diff")[0]);
-	std::string ImageB = trim(cmd.getValue<std::string>("diff")[1]);
+    std::string ImageA = trim(cmd.getValue<std::string>("diff")[0]);
+    std::string ImageB = trim(cmd.getValue<std::string>("diff")[1]);
 
-	std::cout<<"Comparing: "<<ImageA<<" With : "<<ImageB<<std::endl;
+    std::cout<<"Comparing: "<<ImageA<<" With : "<<ImageB<<std::endl;
 
-	assert(is_file_exist(ImageA) == true && "File A does not exist");
-	assert(is_file_exist(ImageB)  == true && "File B does not exist");
+    assert(is_file_exist(ImageA) == true && "File A does not exist");
+    assert(is_file_exist(ImageB)  == true && "File B does not exist");
 
-	unsigned int difference = Difference(ImageA,ImageB);
+    unsigned int difference = Difference(ImageA,ImageB);
 
-	std::cout<<"Image Difference is: "<< difference<<std::endl;
+    std::cout<<"Image Difference is: "<< difference<<std::endl;
 
-	return  difference< tolerance ? 0 : -1;
+    return  difference< tolerance ? 0 : -1;
 }
