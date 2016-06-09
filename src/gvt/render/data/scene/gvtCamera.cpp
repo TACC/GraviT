@@ -237,7 +237,6 @@ void gvtPerspectiveCamera::generateRays() {
                         // int i = idx;
                         int idx = j * buffer_width;
                         for (size_t i = 0; i < buffer_width; i++) {
-                          idx++;
                           const float x0 = float(i) * wmult - 1.0, y0 = float(j) * hmult - 1.0;
                           float x, y;
                           // glm::vec4 camera_space_ray_direction;
@@ -264,6 +263,7 @@ void gvtPerspectiveCamera::generateRays() {
                               ray.depth = depth;
                             }
                           }
+                          idx++;
                         }
                       }
                     },
