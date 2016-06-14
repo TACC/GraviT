@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
     gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
     // read in some ply data and get ready to load it into the mesh
     // filepath = rootdir + "block" + std::string(txt) + ".ply";
-    filepath = rootdir + filename + ".ply";
+    filepath = rootdir + "/" + filename + ".ply";
     myfile = fopen(filepath.c_str(), "r");
     in_ply = read_ply(myfile);
     for (i = 0; i < in_ply->num_elem_types; i++) {
