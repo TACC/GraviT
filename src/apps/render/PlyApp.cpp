@@ -206,13 +206,13 @@ int main(int argc, char **argv) {
   vector<string>::const_iterator file;
   //for (k = 0; k < 8; k++) {
   for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
-    sprintf(txt, "%d", k);
-    filename = "block";
-    filename += txt;
-    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
+    //sprintf(txt, "%d", k);
+    //filename = "block";
+    //filename += txt;
+    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID());
     // read in some ply data and get ready to load it into the mesh
     // filepath = rootdir + "block" + std::string(txt) + ".ply";
-    filepath = rootdir + "/" + filename + ".ply";
+    filepath =  *file;
     myfile = fopen(filepath.c_str(), "r");
     in_ply = read_ply(myfile);
     for (i = 0; i < in_ply->num_elem_types; i++) {
