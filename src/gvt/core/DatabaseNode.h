@@ -49,7 +49,6 @@ public:
   void setName(String name);
   void setParentUUID(Uuid parentUUID);
   void setValue(Variant value);
-
   Vector<DatabaseNode *> getChildren();
 
   void propagateUpdate();
@@ -77,6 +76,7 @@ public:
 
   void propagateUpdate();
   DBNodeH deRef();
+  void remove();
 
   DatabaseNode &getNode();
 

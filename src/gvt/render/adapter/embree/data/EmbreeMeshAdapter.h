@@ -85,6 +85,11 @@ public:
                      glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
                      size_t begin = 0, size_t end = 0);
 
+  /**
+   * Handle to Embree scene.
+   */
+  RTCScene global_scene;
+
 protected:
   /**
    * Static bool to initialize Embree (calling rtcInit) before use.
@@ -92,6 +97,8 @@ protected:
    * // TODO: this will need to move in the future when we have different types of Embree adapters (ex: mesh + volume)
    */
   static bool init;
+
+  RTCDevice device;
 
   /**
    * Currently selected packet size flag.
@@ -107,6 +114,7 @@ protected:
    * Handle to the Embree triangle mesh.
    */
   unsigned geomId;
+  unsigned instID;
 
   size_t begin, end;
 };
