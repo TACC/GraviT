@@ -158,7 +158,6 @@ public:
         // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
         gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
-
         // TODO: Make cache generic needs to accept any kind of adpater
 
         // 'getAdapterFromCache' functionality

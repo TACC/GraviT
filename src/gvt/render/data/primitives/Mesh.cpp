@@ -81,7 +81,10 @@ void Mesh::setVertex(int which, glm::vec3 vertex, glm::vec3 normal, glm::vec3 te
   if (glm::length(texUV)) this->mapuv[which] = texUV;
 }
 
-void Mesh::setMaterial(Material *mat) { this->mat = mat; }
+void Mesh::setMaterial(Material *mat_) {
+	this->mat = new Material();
+	*(this->mat) = *mat_;
+}
 
 void Mesh::addFace(int v0, int v1, int v2) {
   GVT_ASSERT((v0 - 1 >= 0) && v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));
@@ -132,35 +135,35 @@ void Mesh::generateNormals() {
   haveNormals = true;
 }
 
-Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource) {
-  // XXX TODO: shadeFace returns constant color, fix?
-
-  if (!faces_to_materials.size()) return shade(r, normal, lsource, lsource->position);
-
-  Color c(0.5f, 0.5f, 0.5f);
-  Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
-  if (m) {
-    c = m->shade(r, normal, lsource, lsource->position);
-  }
-  return c;
-}
-
-Color Mesh::shadeFaceAreaLight(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource,
-                               const glm::vec3 areaLightPosition) {
-
-  if (!faces_to_materials.size()) return shade(r, normal, lsource, areaLightPosition);
-
-  Color c(0.5f, 0.5f, 0.5f);
-  Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
-  if (m) {
-    c = m->shade(r, normal, lsource, areaLightPosition);
-  }
-  return c;
-}
-
-Color Mesh::shade(const Ray &r, const glm::vec3 &normal, const Light *lsource, const glm::vec3 areaLightPosition) {
-  return mat->shade(r, normal, lsource, areaLightPosition);
-}
+//Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource) {
+//  // XXX TODO: shadeFace returns constant color, fix?
+//
+//  if (!faces_to_materials.size()) return shade(r, normal, lsource, lsource->position);
+//
+//  Color c(0.5f, 0.5f, 0.5f);
+//  Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
+//  if (m) {
+//    c = m->shade(r, normal, lsource, lsource->position);
+//  }
+//  return c;
+//}
+//
+//Color Mesh::shadeFaceAreaLight(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource,
+//                               const glm::vec3 areaLightPosition) {
+//
+//  if (!faces_to_materials.size()) return shade(r, normal, lsource, areaLightPosition);
+//
+//  Color c(0.5f, 0.5f, 0.5f);
+//  Material *m = (faces_to_materials[face_id] ? faces_to_materials[face_id] : mat);
+//  if (m) {
+//    c = m->shade(r, normal, lsource, areaLightPosition);
+//  }
+//  return c;
+//}
+//
+//Color Mesh::shade(const Ray &r, const glm::vec3 &normal, const Light *lsource, const glm::vec3 areaLightPosition) {
+//  return mat->shade(r, normal, lsource, areaLightPosition);
+//}
 
 Box3D Mesh::computeBoundingBox() {
 

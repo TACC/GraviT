@@ -711,6 +711,13 @@ void RenderBVH() {
     drawWireBox(*bbox);
   }
 
+
+  glm::vec3 pos = rootNode["Lights"].getChildren()[0]["position"].value().tovec3();
+  glPushMatrix();
+  glTranslatef(pos[0],pos[1],pos[2]);
+  glutSolidTorus(.01,.02,50,50);
+  glPopMatrix();
+
   // glutSolidTeapot(.1);
 
   PrintHelpAndSettings();
@@ -849,7 +856,9 @@ void ConfigSceneCubeCone() {
 // if (master)
  {
 	  {
-		Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+
+ 	    Material* m = new Material();
+  	    Mesh *mesh = new Mesh(m);
 		int numPoints = 7;
 		glm::vec3 points[7];
 		points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -896,7 +905,8 @@ void ConfigSceneCubeCone() {
  //else if (mpi_rank == 1 || mpi_rank == 2)
  {
 	  {
-		Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+		Material* m = new Material();
+  		Mesh *mesh = new Mesh(m);
 		int numPoints = 24;
 		glm::vec3 points[24];
 		points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -1018,11 +1028,21 @@ void ConfigSceneCubeCone() {
   }
 
   cntxt->syncContext();
-
+#if 1
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "PointLight", root["Lights"].UUID());
   lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#else
+  gvt::core::DBNodeH ArealightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", root["Lights"].UUID());
+
+  ArealightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  ArealightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  ArealightNode["width"] = 2.f;
+  ArealightNode["height"] = 2.f;
+  ArealightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#endif
 
   gvt::core::DBNodeH _camNode = root["Camera"];
 
@@ -1107,7 +1127,9 @@ void ConfigEnzo(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
+      Material* m = new Material();
+
+      Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -1181,9 +1203,21 @@ void ConfigEnzo(std::string rootdir) {
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = root["Lights"];
+#if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
+  lightNode["position"] = glm::vec3(512.0, 512.0, 1256.0);
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+#else
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", lightNodes.UUID());
+
+  lightNode["position"] = glm::vec3(512.0, 512.0, 1256.0);
+  lightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  lightNode["width"] = 2.f;
+  lightNode["height"] = 2.f;
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+#endif
+
   // camera
   gvt::core::DBNodeH camNode = root["Camera"];
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);

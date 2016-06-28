@@ -67,6 +67,9 @@
 #include <iostream>
 #include <math.h>
 #include <ply.h>
+#include <glob.h>
+#include <sys/stat.h>
+#include <cstdint>
 #include <stdio.h>
 
 #include "ParseCommandLine.h"
@@ -79,6 +82,28 @@ using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
+// determine if file is a directory
+bool isdir(const char *path) {
+  struct stat buf;
+  stat(path, &buf);
+  return S_ISDIR(buf.st_mode);
+}
+// determine if a file exists
+bool file_exists(const char *path) {
+  struct stat buf;
+  return(stat(path, &buf) == 0);
+}
+std::vector<std::string> findply(const std::string dirname) {
+  glob_t result;
+  std::string exp = dirname + "/*.ply";
+  glob(exp.c_str(), GLOB_TILDE, NULL, &result);
+  std::vector<std::string> ret;
+  for (int i = 0; i < result.gl_pathc; i++) {
+    ret.push_back(std::string(result.gl_pathv[i]));
+  }
+  globfree(&result);
+  return ret;
+}
 void test_bvh(gvtPerspectiveCamera &camera);
 typedef struct Vertex {
   float x, y, z;
@@ -175,25 +200,40 @@ int main(int argc, char **argv) {
 
 
   // Enzo isosurface...
-  for (k = 0; k < 8; k++) {
+  if(!file_exists(rootdir.c_str())) {
+    cout << "File \"" << rootdir << "\" does not exist. Exiting." << endl;
+    return 0;
+  }
+  
+  if(!isdir(rootdir.c_str())) {
+    cout << "File \"" << rootdir << "\" is not a directory. Exiting." << endl;
+    return 0;
+  }
+  vector<string> files = findply(rootdir);
+  if(files.empty()) {
+    cout << "Directory \"" << rootdir << "\" contains no .ply files. Exiting." << endl;
+    return 0;
+  }
+  // read 'em 
+  vector<string>::const_iterator file;
+  //for (k = 0; k < 8; k++) {
+  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
+
 #ifdef DOMAIN_PER_NODE
   	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
 #endif
-    sprintf(txt, "%d", k);
-    filename = "block";
-    filename += txt;
+
 #ifndef DOMAIN_PER_NODE
     if (MPI::COMM_WORLD.Get_rank()==0)
 #endif
-    	gvt::core::DBNodeH EnzoMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID()));
+
+    gvt::core::DBNodeH EnzoMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID()));
 
 #ifndef DOMAIN_PER_NODE
     cntxt->syncContext();
     gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
 #endif
-    // read in some ply data and get ready to load it into the mesh
-    // filepath = rootdir + "block" + std::string(txt) + ".ply";
-    filepath = rootdir + filename + ".ply";
+    filepath =  *file;
     myfile = fopen(filepath.c_str(), "r");
     in_ply = read_ply(myfile);
     for (i = 0; i < in_ply->num_elem_types; i++) {
@@ -222,7 +262,20 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Mesh *mesh = new Mesh(new Lambert(glm::vec3(1.0, 1.0, 1.0)));
+      Material* m = new Material();
+      //m->type = LAMBERT;
+      //m->type = EMBREE_MATERIAL_MATTE;
+      //m->kd = glm::vec3(1.0,1.0, 1.0);
+      //m->ks = glm::vec3(1.0,1.0,1.0);
+      //m->alpha = 0.5;
+
+      //m->type = EMBREE_MATERIAL_METAL;
+      //copper metal
+      //m->eta = glm::vec3(.19,1.45, 1.50);
+      //m->k = glm::vec3(3.06,2.40, 1.88);
+      //m->roughness = 0.05;
+
+      Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
       ymin = vert->y;
@@ -261,35 +314,40 @@ int main(int argc, char **argv) {
 
       cntxt->addToSync(EnzoMeshNode);
     }
-  }
 
+  }
    cntxt->syncContext();
 
-   for (k = 0; k < 8; k++) {
-     	if (MPI::COMM_WORLD.Get_rank()==0) {
-			// add instance
-			gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-			gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
-			Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-			instnode["id"] = k;
-			instnode["meshRef"] = meshNode.UUID();
-			auto m = new glm::mat4(1.f);
-			auto minv = new glm::mat4(1.f);
-			auto normi = new glm::mat3(1.f);
-			instnode["mat"] = (unsigned long long)m;
-			*minv = glm::inverse(*m);
-			instnode["matInv"] = (unsigned long long)minv;
-			*normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-			instnode["normi"] = (unsigned long long)normi;
-			auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-			auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-			Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-			instnode["bbox"] = (unsigned long long)ibox;
-			instnode["centroid"] = ibox->centroid();
 
-			cntxt->addToSync(instnode);
-     	}
-   }
+
+
+	if (MPI::COMM_WORLD.Get_rank()==0) {
+		  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
+
+		// add instance
+		gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+		gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+		Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+		instnode["id"] = k;
+		instnode["meshRef"] = meshNode.UUID();
+		auto m = new glm::mat4(1.f);
+		auto minv = new glm::mat4(1.f);
+		auto normi = new glm::mat3(1.f);
+		instnode["mat"] = (unsigned long long)m;
+		*minv = glm::inverse(*m);
+		instnode["matInv"] = (unsigned long long)minv;
+		*normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+		instnode["normi"] = (unsigned long long)normi;
+		auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+		auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+		Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+		instnode["bbox"] = (unsigned long long)ibox;
+		instnode["centroid"] = ibox->centroid();
+
+		cntxt->addToSync(instnode);
+		  }
+	}
+
 
    cntxt->syncContext();
 
@@ -297,13 +355,15 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
+  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
   camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
+  camNode["rayMaxDepth"] = (int)1;
+  camNode["raySamples"] = (int)1;
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 1900;
@@ -352,7 +412,11 @@ int main(int argc, char **argv) {
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
   glm::vec3 up = camNode["upVector"].value().tovec3();
+  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  int raySamples = camNode["raySamples"].value().toInteger();
   mycamera.lookAt(cameraposition, focus, up);
+  mycamera.setMaxDepth(rayMaxDepth);
+  mycamera.setSamples(raySamples);
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
@@ -370,7 +434,7 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 1; z++) {
+    for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();
@@ -386,7 +450,7 @@ int main(int argc, char **argv) {
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 1; z++) {
+    for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();

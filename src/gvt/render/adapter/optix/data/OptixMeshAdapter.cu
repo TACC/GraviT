@@ -165,7 +165,33 @@ void cudaProcessShadows(CudaGvtContext* cudaGvtCtx) {
 		cudaGvtCtx->toHost();
 }
 
+__device__ float4 CosWeightedRandomHemisphereDirection2(float4 n) {
 
+ float Xi1 = cudaRand();
+ float Xi2 = cudaRand();
+
+ float theta = acos(sqrt(1.0 - Xi1));
+ float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
+
+ float xs = sinf(theta) * cosf(phi);
+ float ys = cosf(theta);
+ float zs = sinf(theta) * sinf(phi);
+
+ float3 y = make_float3(n);
+ float3 h = y;
+ if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
+   h.x = 1.0;
+ else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
+   h.y = 1.0;
+ else
+   h.z = 1.0;
+
+ float3 x = cross(h,y);//(h ^ y);
+ float3 z = cross(x, y);
+
+ float4 direction = make_float4(x * xs + y * ys + z * zs);
+ return normalize(direction);
+}
 
 __device__ void generateShadowRays(const Ray &r, const float4 &normal,
                                    int primID, CudaGvtContext* cudaGvtCtx) {
@@ -179,12 +205,26 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     // triangle.
     // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
     // Using about 8 * ULP(t).
+
+
+    float4 lightPos;
+    if (light->type == AREA) {
+    lightPos = ((AreaLight *)light)->GetPosition();
+    } else {
+    lightPos = light->light.position;
+    }
+
+    float4 c;
+    if(!gvt::render::data::cuda_primitives::Shade(
+          cudaGvtCtx->mesh.mat, r,normal, light,lightPos, c))
+      continue;
+
     const float multiplier = 1.0f - 16.0f * FLT_EPSILON;
     const float t_shadow = multiplier * r.t;
 
     float4 origin = r.origin + r.direction * t_shadow;
     origin.w=1.0f;
-    const float4 dir = light->light.position - origin;
+    const float4 dir =lightPos - origin;
     const float t_max = length(dir);
 
     Ray shadow_ray;
@@ -198,7 +238,6 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.id = r.id;
     shadow_ray.t_max = t_max;
 
-    Color c = cudaGvtCtx->mesh.mat->shade(/*primID,*/ shadow_ray, normal, light);
 
 
     shadow_ray.color.x = c.x;
@@ -234,10 +273,38 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
         float t = cudaGvtCtx->traceHits[tID].t;
         r.t = t;
 
+        const int triangle_id = cudaGvtCtx->traceHits[tID].triangle_id;
+
         float4 manualNormal;
+        float4 normalflat;
+
+         {
+          int I = cudaGvtCtx->mesh.faces[triangle_id].x;
+          int J = cudaGvtCtx->mesh.faces[triangle_id].y;
+          int K = cudaGvtCtx->mesh.faces[triangle_id].z;
+
+          float4 a = cudaGvtCtx->mesh.vertices[I];
+          float4 b = cudaGvtCtx->mesh.vertices[J];
+          float4 c = cudaGvtCtx->mesh.vertices[K];
+          float4 u = b - a;
+          float4 v = c - a;
+          float4 normal;
+          normal.x = u.y * v.z - u.z * v.y;
+          normal.y = u.z * v.x - u.x * v.z;
+          normal.z = u.x * v.y - u.y * v.x;
+          normal.w = 0.0f;
+          normalflat = normalize(normal);
+
+
+          normalflat =normalize(make_float4(
+                       (*(cudaGvtCtx->normi)) * make_float3(normalflat.x,
+                    		   normalflat.y,normalflat.z)));
+
+          }
         {
-          const int triangle_id = cudaGvtCtx->traceHits[tID].triangle_id;
+
 #ifndef FLAT_SHADING
+          {
           const float u = cudaGvtCtx->traceHits[tID].u;
           const float v = cudaGvtCtx->traceHits[tID].v;
           const int3 &normals =
@@ -256,25 +323,19 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
             		  manualNormal.y,manualNormal.z));
 
           manualNormal=normalize(manualNormal);
-
+          }
 #else
-          int I = mesh->faces[triangle_id].get<0>();
-          int J = mesh->faces[triangle_id].get<1>();
-          int K = mesh->faces[triangle_id].get<2>();
 
-          Vector4f a = mesh->vertices[I];
-          Vector4f b = mesh->vertices[J];
-          Vector4f c = mesh->vertices[K];
-          Vector4f u = b - a;
-          Vector4f v = c - a;
-          Vector4f normal;
-          normal.n[0] = u.n[1] * v.n[2] - u.n[2] * v.n[1];
-          normal.n[1] = u.n[2] * v.n[0] - u.n[0] * v.n[2];
-          normal.n[2] = u.n[0] * v.n[1] - u.n[1] * v.n[0];
-          normal.n[3] = 0.0f;
-          manualNormal = normal.normalize();
+          manualNormal = normalflat;
+
 #endif
         }
+
+        //backface check, requires flat normal
+        if ((-(r.direction) * normalflat) <= 0.f  ) {
+           manualNormal = -manualNormal;
+           }
+
         const float4 &normal = manualNormal;
 
 
@@ -301,8 +362,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
           r.origin = r.origin + r.direction * t_secondary;
           r.origin.w=1.0f;
 
-         float4 dir = normalize(cudaGvtCtx->mesh.mat->material.
-                  		  CosWeightedRandomHemisphereDirection2(normal));
+         float4 dir = normalize(CosWeightedRandomHemisphereDirection2(normal));
 
           r.setDirection(dir);
 

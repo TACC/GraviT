@@ -288,7 +288,9 @@ int main(int argc, char **argv) {
           cntxt->syncContext();
           gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
 #endif
-          Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 1.0)));
+          Material* m = new Material();
+          Mesh *mesh = new Mesh(m);
+
           for (int i = 0; i < nverts; i++) {
             mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
           }
@@ -359,7 +361,7 @@ int main(int argc, char **argv) {
     iotime += timeDifferenceMS(&startTime, &endTime);
     timeCurrent(&startTime);
     gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 1.0)));
+    Mesh *mesh = new Mesh(new Material());
     for (int i = 0; i < nverts; i++) {
       mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
     }
@@ -450,7 +452,7 @@ int main(int argc, char **argv) {
   // add empty mesh in case of no file path. Render empty image.
   if (filepath.empty()) {
     gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 1.0)));
+    Mesh *mesh = new Mesh(new Material());
     glm::vec3 lower = { 0., 0., 0. };
     glm::vec3 upper = { 1., 1., 1. };
     // findbounds(vertexarray, nverts, &lower, &upper);
