@@ -135,7 +135,7 @@ static Vertex **vlist;
 static Face **flist;
 
 // Used for testing purposes where it specifies the number of ply blocks read by each mpi
-#define DOMAIN_PER_NODE 2
+//#define DOMAIN_PER_NODE 2
 
 int main(int argc, char **argv) {
 
