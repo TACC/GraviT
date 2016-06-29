@@ -134,7 +134,8 @@ PlyProperty face_props[] = {
 static Vertex **vlist;
 static Face **flist;
 
-//#define DOMAIN_PER_NODE 1
+// Used for testing purposes where it specifies the number of ply blocks read by each mpi
+#define DOMAIN_PER_NODE 2
 
 int main(int argc, char **argv) {
 
@@ -187,7 +188,7 @@ int main(int argc, char **argv) {
   }
   gvt::core::DBNodeH root = cntxt->getRootNode();
 
-
+  // A single mpi node will create db nodes and then broadcast them
   if (MPI::COMM_WORLD.Get_rank()==0){
 	  cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
   	  cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
@@ -218,15 +219,17 @@ int main(int argc, char **argv) {
   vector<string>::const_iterator file;
   //for (k = 0; k < 8; k++) {
   for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
-
+//if defined, ply blocks load are divided across available mpi ranks
+//Each block will be loaded by a single mpi rank and a mpi rank can read multiple blocks
 #ifdef DOMAIN_PER_NODE
   	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
 #endif
 
+//if all ranks read all ply blocks, one has to create the db node which is then broadcasted.
+//if not, since each block will be loaded by only one mpi, this mpi rank will create the db node
 #ifndef DOMAIN_PER_NODE
     if (MPI::COMM_WORLD.Get_rank()==0)
 #endif
-
     gvt::core::DBNodeH PlyMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID()));
 
 #ifndef DOMAIN_PER_NODE
@@ -263,18 +266,6 @@ int main(int argc, char **argv) {
     // smoosh data into the mesh object
     {
       Material* m = new Material();
-      //m->type = LAMBERT;
-      //m->type = EMBREE_MATERIAL_MATTE;
-      //m->kd = glm::vec3(1.0,1.0, 1.0);
-      //m->ks = glm::vec3(1.0,1.0,1.0);
-      //m->alpha = 0.5;
-
-      //m->type = EMBREE_MATERIAL_METAL;
-      //copper metal
-      //m->eta = glm::vec3(.19,1.45, 1.50);
-      //m->k = glm::vec3(3.06,2.40, 1.88);
-      //m->roughness = 0.05;
-
       Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
@@ -318,10 +309,8 @@ int main(int argc, char **argv) {
   }
    cntxt->syncContext();
 
-
-
-
-	if (MPI::COMM_WORLD.Get_rank()==0) {
+   // context has the location information of the domain, so for simplicity only one mpi will create the instances
+   if (MPI::COMM_WORLD.Get_rank()==0) {
 		  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
 
 		// add instance
