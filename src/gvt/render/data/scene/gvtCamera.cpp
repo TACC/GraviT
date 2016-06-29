@@ -197,7 +197,7 @@ gvtPerspectiveCamera::~gvtPerspectiveCamera() {}
 // gvt::render::actor::RayVector gvtPerspectiveCamera::generateRays() {
 void gvtPerspectiveCamera::generateRays() {
 #ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
+  //boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
 #endif
   gvt::core::time::timer t(true, "generate camera rays");
   // Generate rays direction in camera space and transform to world space.
@@ -237,7 +237,6 @@ void gvtPerspectiveCamera::generateRays() {
                         // int i = idx;
                         int idx = j * buffer_width;
                         for (size_t i = 0; i < buffer_width; i++) {
-                          idx++;
                           const float x0 = float(i) * wmult - 1.0, y0 = float(j) * hmult - 1.0;
                           float x, y;
                           // glm::vec4 camera_space_ray_direction;
@@ -264,6 +263,7 @@ void gvtPerspectiveCamera::generateRays() {
                               ray.depth = depth;
                             }
                           }
+                          idx++;
                         }
                       }
                     },
