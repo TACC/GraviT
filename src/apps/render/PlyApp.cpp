@@ -227,11 +227,11 @@ int main(int argc, char **argv) {
     if (MPI::COMM_WORLD.Get_rank()==0)
 #endif
 
-    gvt::core::DBNodeH EnzoMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID()));
+    gvt::core::DBNodeH PlyMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID()));
 
 #ifndef DOMAIN_PER_NODE
     cntxt->syncContext();
-    gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
+    gvt::core::DBNodeH PlyMeshNode = dataNodes.getChildren()[k];
 #endif
     filepath =  *file;
     myfile = fopen(filepath.c_str(), "r");
@@ -303,16 +303,16 @@ int main(int argc, char **argv) {
         mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
       }
       mesh->generateNormals();
-      // add Enzo mesh to the database
-      // EnzoMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
-      EnzoMeshNode["file"] = string(filepath);
-      EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
-      EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+      // add Ply mesh to the database
+      // PlyMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
+      PlyMeshNode["file"] = string(filepath);
+      PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
+      PlyMeshNode["ptr"] = (unsigned long long)mesh;
 
       gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-      EnzoMeshNode["Locations"] += loc;
+      PlyMeshNode["Locations"] += loc;
 
-      cntxt->addToSync(EnzoMeshNode);
+      cntxt->addToSync(PlyMeshNode);
     }
 
   }
@@ -355,7 +355,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(100.0, 100.0, 100.0);
+  lightNode["color"] = glm::vec3(1000.0, 1000.0, 1000.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
@@ -384,7 +384,7 @@ int main(int argc, char **argv) {
     filmNode["height"] = wsize[1];
   }
 
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
+  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Plysched", root.UUID());
   if (cmd.isSet("domain"))
     schedNode["type"] = gvt::render::scheduler::Domain;
   else
@@ -424,7 +424,7 @@ int main(int argc, char **argv) {
   MPE_Log_event(readend, 0, NULL);
 #endif
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "enzo");
+  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "output");
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();

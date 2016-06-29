@@ -199,10 +199,10 @@ public:
 		} while (lastAssigned != startedAt);
     }
 
-    if (mpi.rank==0)
-          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
-          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
-                                                 std::endl;
+//    if (mpi.rank==0)
+//          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
+//          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
+//                                                 std::endl;
   }
 }
 
