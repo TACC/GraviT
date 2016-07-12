@@ -68,6 +68,8 @@
 #include <math.h>
 #include <stdio.h>
 
+#include <apps/render/ParseCommandLine.h>
+
 using namespace std;
 using namespace gvt::render;
 using namespace gvt::core::mpi;
@@ -101,7 +103,31 @@ void findbounds(float *array, int numelements, glm::vec3 *lower, glm::vec3 *uppe
 
 int main(int argc, char **argv) {
 
-  tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+  ParseCommandLine cmd("gvttest");
+  cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
+  cmd.addoption("wsize", ParseCommandLine::INT, "Windowsize",2);
+  cmd.addoption("bench", ParseCommandLine::INT, "benchmark frames",1);
+  cmd.addoption("warm", ParseCommandLine::INT, "warm up frames",1);
+  cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
+  cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("up", ParseCommandLine::FLOAT, "Camera up vector", 3);
+  cmd.addoption("fov", ParseCommandLine::FLOAT, "Camera vertical field of view", 1);
+  cmd.addoption("l_pos", ParseCommandLine::FLOAT, "Light position", 3);
+  cmd.addoption("l_color", ParseCommandLine::FLOAT, "Light color", 3);
+  cmd.addoption("image", ParseCommandLine::NONE, "Use domain schedule", 0);
+  cmd.addoption("domain", ParseCommandLine::NONE, "Use image schedule", 0);
+  cmd.addoption("hybrid", ParseCommandLine::NONE, "Use hybrid schedule", 0);
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+  cmd.addoption("infile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Input File path");
+  cmd.addoption("outfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Output File path");
+
+  cmd.addconflict("image", "domain");
+  cmd.addconflict("embree","manta");
+  cmd.addconflict("embree","optix");
+  cmd.addconflict("manta","optix");
+
   // default values
   int width = 1920;
   int height = 1080;
@@ -133,6 +159,9 @@ int main(int argc, char **argv) {
   // gravit behavior
   string scheduletype("image");
   string adapter("embree");
+
+
+
   // initialize gravit context database structure
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
@@ -148,89 +177,92 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
 
+  tbb::task_scheduler_init init(tbb::task_scheduler_init::deferred);
   // parse the command line
-  if ((argc < 2)) {
-    // no input so render the defalut empty image
+  cmd.parse(argc, argv);
+  if (!cmd.isSet("threads")) {
+    init.initialize(std::thread::hardware_concurrency());
+    //tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
-    // parse the input
-    for (int i = 1; i < argc; i++) {
-      const string arg = argv[i];
-      if (arg == "-i") {
-        filepath = argv[++i];
-        if (!file_exists(filepath.c_str())) {
-          cout << "File \"" << filepath << "\" does not exist. Exiting." << endl;
-          return 0;
-        } else if (isdir(filepath.c_str())) {
-          vector<string> files = findply(filepath);
-          if (!files.empty()) // directory contains .ply files
-          {
-            vector<string>::const_iterator file;
-            int k;
-            char txt[16];
-            for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
-              timeCurrent(&startTime);
-              ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
-              timeCurrent(&endTime);
-              iotime += timeDifferenceMS(&startTime, &endTime);
-              std::cout << k << " file " << timeDifferenceMS(&startTime, &endTime) << std::endl;
+    init.initialize(cmd.get<int>("threads"));
+    //tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }
 
-              timeCurrent(&startTime);
-              sprintf(txt, "%d", k);
-              filename = "block";
-              filename += txt;
-              gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
-              Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 1.0)));
-              for (int i = 0; i < nverts; i++) {
-                mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
-              }
-              for (int i = 0; i < nfaces; i++) // Add faces to mesh
-              {
-                mesh->addFace(indexarray[3 * i] + 1, indexarray[3 * i + 1] + 1, indexarray[3 * i + 2] + 1);
-              }
-              glm::vec3 lower;
-              glm::vec3 upper;
-              findbounds(vertexarray, nverts, &lower, &upper);
-              Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-              mesh->generateNormals();
-              EnzoMeshNode["file"] = string(filename);
-              EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
-              EnzoMeshNode["ptr"] = (unsigned long long)mesh;
-              // add instance
-              gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-              gvt::core::DBNodeH meshNode = EnzoMeshNode;
-              Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-              instnode["id"] = k;
-              instnode["meshRef"] = meshNode.UUID();
-              auto m = new glm::mat4(1.f);
-              auto minv = new glm::mat4(1.f);
-              auto normi = new glm::mat3(1.f);
-              instnode["mat"] = (unsigned long long)m;
-              *minv = glm::inverse(*m);
-              instnode["matInv"] = (unsigned long long)minv;
-              *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-              instnode["normi"] = (unsigned long long)normi;
-              auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-              auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-              Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-              instnode["bbox"] = (unsigned long long)ibox;
-              instnode["centroid"] = ibox->centroid();
-              timeCurrent(&endTime);
-              modeltime += timeDifferenceMS(&startTime, &endTime);
-              numtriangles += nfaces;
-            }
-          } else // directory has no .ply files
-          {
-            filepath = "";
-          }
-        } else // filepath is not a directory but a .ply file
-        {
+
+#if 1
+  MPI_Init(&argc, &argv);
+  MPI_Pcontrol(0);
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
+  filepath = cmd.get<std::string>("infile");
+  outputfile = cmd.get<std::string>("outfile");
+
+  if (cmd.isSet("bench")) 
+    benchmarkframes = cmd.get<int>("bench");
+  if (cmd.isSet("warm")) 
+    warmupframes = cmd.get<int>("warm");
+  if (cmd.isSet("wsize")) {
+    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    width = wsize[0];
+    height = wsize[1];
+  }
+  if (cmd.isSet("eye")){
+    std::vector<float> eye = cmd.getValue<float>("eye");
+    cam_pos = {eye[0],eye[1],eye[2]};
+  }
+  if (cmd.isSet("look")){
+    std::vector<float> look = cmd.getValue<float>("look");
+    cam_focus = {look[0],look[1],look[2]};
+  }
+  if (cmd.isSet("up")) {
+    std::vector<float> up = cmd.getValue<float>("look");
+    cam_up = {up[0],up[1],up[2]};
+  }
+  if (cmd.isSet("fov")) 
+    cam_fovy = (float)(cmd.get<float>("fov") * M_PI / 180.0);
+  if (cmd.isSet("domain")) {
+    scheduletype = "domain";
+  } else if (cmd.isSet("hybrid")) {
+    scheduletype = "hybrid";
+  }
+  if (cmd.isSet("manta")) {
+    adapter = "manta";
+  } else if (cmd.isSet("optix")) {
+    adapter = "optix";
+  }
+  if (cmd.isSet("l_pos")) {
+    std::vector<float> lpos = cmd.getValue<float>("l_pos");
+    light_pos = {lpos[0],lpos[1],lpos[2]};
+  }
+  if (cmd.isSet("l_color")) {
+    std::vector<float> lcolor = cmd.getValue<float>("l_color");
+    light_color = {lcolor[0],lcolor[1],lcolor[2]};
+  }
+
+  if (!file_exists(filepath.c_str())) {
+    cout << "File \"" << filepath << "\" does not exist. Exiting." << endl;
+    return 0;
+  } else if (isdir(filepath.c_str())) {
+    vector<string> files = findply(filepath);
+    if (!files.empty()) // directory contains .ply files
+      {
+        vector<string>::const_iterator file;
+        int k;
+        char txt[16];
+        for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
           timeCurrent(&startTime);
-          ReadPlyData(filepath, vertexarray, colorarray, indexarray, nverts, nfaces);
+          ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
           timeCurrent(&endTime);
           iotime += timeDifferenceMS(&startTime, &endTime);
           timeCurrent(&startTime);
-          gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
-          Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 1.0)));
+          sprintf(txt, "%d", k);
+          //filename = "block";
+          //filename += txt;
+          //gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
+          gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID());
+          Mesh *mesh = new Mesh(new Material());
           for (int i = 0; i < nverts; i++) {
             mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
           }
@@ -238,19 +270,20 @@ int main(int argc, char **argv) {
           {
             mesh->addFace(indexarray[3 * i] + 1, indexarray[3 * i + 1] + 1, indexarray[3 * i + 2] + 1);
           }
+          mesh->generateNormals();
           glm::vec3 lower;
           glm::vec3 upper;
           findbounds(vertexarray, nverts, &lower, &upper);
           Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-          mesh->generateNormals();
-          EnzoMeshNode["file"] = string(filepath);
+          //EnzoMeshNode["file"] = string(filename);
+          EnzoMeshNode["file"] = string(*file);
           EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
           EnzoMeshNode["ptr"] = (unsigned long long)mesh;
           // add instance
           gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
           gvt::core::DBNodeH meshNode = EnzoMeshNode;
           Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-          instnode["id"] = 0;
+          instnode["id"] = k;
           instnode["meshRef"] = meshNode.UUID();
           auto m = new glm::mat4(1.f);
           auto minv = new glm::mat4(1.f);
@@ -269,111 +302,59 @@ int main(int argc, char **argv) {
           modeltime += timeDifferenceMS(&startTime, &endTime);
           numtriangles += nfaces;
         }
-      } else if (arg == "-bench") {
-        if (++i < argc) {
-          std::string arg2(argv[i]);
-          size_t pos = arg2.find("x");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-            std::stringstream ss(arg2);
-            ss >> warmupframes >> benchmarkframes;
-          }
-        }
-      } else if (arg == "-geom") {
-        if (++i < argc) {
-          std::string arg2(argv[i]);
-          size_t pos = arg2.find("x");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-            std::stringstream ss(arg2);
-            ss >> width >> height;
-          }
-        }
-      } else if (arg == "-o") {
-        outputfile = argv[++i];
-      } else if (arg == "-adapt") {
-        adapter = argv[++i];
-      } else if (arg == "-sched") {
-        scheduletype = argv[++i];
-      } else if (arg == "-fov") {
-        cam_fovy = (float)(atof(argv[++i]) * M_PI / 180.0);
-      } else if (arg == "-cp") // camera location
+      } else // directory has no .ply files
       {
-        if (++i < argc) {
-          std::string arg2(argv[i]);
-          size_t pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          float camx, camy, camz;
-          std::stringstream ss(arg2);
-          ss >> camx >> camy >> camz;
-          cam_pos = { camx, camy, camz };
-        }
-      } else if (arg == "-fp") // camera focus point
-      {
-        if (++i < argc) {
-          std::string arg2(argv[i]);
-          size_t pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          float camfx, camfy, camfz;
-          std::stringstream ss(arg2);
-          ss >> camfx >> camfy >> camfz;
-          cam_focus = { camfx, camfy, camfz };
-        }
-      } else if (arg == "-cu") // camera up vector
-      {
-        if (++i < argc) {
-          std::string arg2(argv[i]);
-          size_t pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          float cux, cuy, cuz;
-          std::stringstream ss(arg2);
-          ss >> cux >> cuy >> cuz;
-          cam_up = { cux, cuy, cuz };
-        }
-      } else if (arg == "-lp") // light position
-      {
-        if (++i < argc) {
-          std::string arg2(argv[i]);
-          size_t pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          pos = arg2.find(",");
-          if (pos != std::string::npos) {
-            arg2.replace(pos, 1, " ");
-          }
-          float lpx, lpy, lpz;
-          std::stringstream ss(arg2);
-          ss >> lpx >> lpy >> lpz;
-          light_pos = { lpx, lpy, lpz };
-        }
-      }
+        filepath = "";
+      } 
+  } else // filepath is not a directory but a .ply file
+  {
+    timeCurrent(&startTime);
+    ReadPlyData(filepath, vertexarray, colorarray, indexarray, nverts, nfaces);
+    timeCurrent(&endTime);
+    iotime += timeDifferenceMS(&startTime, &endTime);
+    timeCurrent(&startTime);
+    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
+    Mesh *mesh = new Mesh(new Material());
+    for (int i = 0; i < nverts; i++) {
+      mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
     }
+    for (int i = 0; i < nfaces; i++) // Add faces to mesh
+    {
+      mesh->addFace(indexarray[3 * i] + 1, indexarray[3 * i + 1] + 1, indexarray[3 * i + 2] + 1);
+    }
+    glm::vec3 lower;
+    glm::vec3 upper;
+    findbounds(vertexarray, nverts, &lower, &upper);
+    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+    mesh->generateNormals();
+    EnzoMeshNode["file"] = string(filepath);
+    EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
+    EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+    // add instance
+    gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+    gvt::core::DBNodeH meshNode = EnzoMeshNode;
+    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+    instnode["id"] = 0;
+    instnode["meshRef"] = meshNode.UUID();
+    auto m = new glm::mat4(1.f);
+    auto minv = new glm::mat4(1.f);
+    auto normi = new glm::mat3(1.f);
+    instnode["mat"] = (unsigned long long)m;
+    *minv = glm::inverse(*m);
+    instnode["matInv"] = (unsigned long long)minv;
+    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+    instnode["normi"] = (unsigned long long)normi;
+    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+    instnode["bbox"] = (unsigned long long)ibox;
+    instnode["centroid"] = ibox->centroid();
+    timeCurrent(&endTime);
+    modeltime += timeDifferenceMS(&startTime, &endTime);
+    numtriangles += nfaces;
   }
-#if 1
-  MPI_Init(&argc, &argv);
-  MPI_Pcontrol(0);
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
+
+
   timeCurrent(&startTime);
   // add lights, camera, and film to the database
   lightNode["position"] = light_pos;
@@ -424,7 +405,7 @@ int main(int argc, char **argv) {
   // add empty mesh in case of no file path. Render empty image.
   if (filepath.empty()) {
     gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filepath.c_str(), dataNodes.UUID());
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 1.0)));
+    Mesh *mesh = new Mesh(new Material());
     glm::vec3 lower = { 0., 0., 0. };
     glm::vec3 upper = { 1., 1., 1. };
     // findbounds(vertexarray, nverts, &lower, &upper);
@@ -472,6 +453,9 @@ int main(int argc, char **argv) {
   timeCurrent(&endTime);
   modeltime += timeDifferenceMS(&startTime, &endTime);
   int schedType = root["Schedule"]["type"].value().toInteger();
+
+  mycamera.AllocateCameraRays();
+  mycamera.generateRays();
 
   switch (schedType) {
   case gvt::render::scheduler::Image: {
@@ -531,7 +515,7 @@ int main(int argc, char **argv) {
   std::cout << scheduletype << "," << width << "," << height << "," << warmupframes << ",";
   std::cout << benchmarkframes << "," << iotime << "," << modeltime << ",";
   std::cout << warmupframetime << "," << millisecondsperframe << "," << framespersecond << std::endl;
-#ifdef GVT_USE_MPI
+//#ifdef GVT_USE_MPI
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#endif
+//#endif
 }

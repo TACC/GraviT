@@ -41,6 +41,8 @@
 #include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
+#include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/EmbreeMaterial.h>
 
 #include <atomic>
 #include <future>
@@ -295,6 +297,44 @@ struct embreeParallelTrace {
     }
   }
 
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, RandEngine& randEngine) {
+
+	   float Xi1 = 0;
+	    float Xi2 = 0;
+//	    if(randSeed == nullptr)
+//	    {
+//	      Xi1 = (float)rand() / (float)RAND_MAX;
+//	      Xi2 = (float)rand() / (float)RAND_MAX;
+//	    }
+//	    else
+//	    {
+	      Xi1 = randEngine.fastrand( 0, 1);
+	      Xi2 = randEngine.fastrand( 0, 1);
+	    //}
+
+    float theta = std::acos(std::sqrt(1.0 - Xi1));
+    float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
+
+    float xs = sinf(theta) * cosf(phi);
+    float ys = cosf(theta);
+    float zs = sinf(theta) * sinf(phi);
+
+    glm::vec3 y(n);
+    glm::vec3 h = y;
+    if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
+      h[0] = 1.0;
+    else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
+      h[1] = 1.0;
+    else
+      h[2] = 1.0;
+
+    glm::vec3 x = glm::cross(h, y);
+    glm::vec3 z = glm::cross(x, y);
+
+    glm::vec3 direction = x * xs + y * ys + z * zs;
+    return glm::normalize(direction);
+  }
+
   /**
    * Generate shadow rays for a given ray
    *
@@ -303,42 +343,49 @@ struct embreeParallelTrace {
    * \param primId primitive id for shading
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
-  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal, int primID,
-                          gvt::render::data::primitives::Mesh *mesh, unsigned int *randSeed) {
-    for (gvt::render::data::scene::Light *light : lights) {
-      GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-      // Try to ensure that the shadow ray is on the correct side of the
-      // triangle.
-      // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
-      // Using about 8 * ULP(t).
+  void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
+          gvt::render::data::primitives::Material * material, unsigned int *randSeed,
+                                         gvt::render::actor::RayVector& shadowRays) {
 
-      gvt::render::data::Color c;
-      glm::vec3 lightPos;
-      if (light->LightT == gvt::render::data::scene::Light::Area) {
-        lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
-        c = mesh->shadeFaceAreaLight(primID, r, normal, light, lightPos);
-      } else {
-        // FIXME: remove dependency on mesh->shadeFace
-        c = mesh->shadeFace(primID, r, normal, light);
-        lightPos = light->position;
-      }
+	for (gvt::render::data::scene::Light *light : lights) {
+	GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
+	// Try to ensure that the shadow ray is on the correct side of the
+	// triangle.
+	// Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
+	// Using about 8 * ULP(t).
 
-      const float multiplier = 1.f - 16.0f * gvt::render::actor::Ray::RAY_EPSILON;
-      const glm::vec3 origin = r.origin + r.direction * (r.t * multiplier);
-      const glm::vec3 dir = light->position - origin;
-      const float t_max = glm::length(dir);
+	gvt::render::data::Color c;
+	glm::vec3 lightPos;
+	if (light->LightT == gvt::render::data::scene::Light::Area) {
+	lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
+	} else {
+	lightPos = light->position;
+	}
 
-      // note: ray copy constructor is too heavy, so going to build it manually
-      shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
+	 if (!gvt::render::data::primitives::Shade(
+	   material, r, normal, light, lightPos, c))
+	     continue;
 
-      Ray &shadow_ray = shadowRays.back();
-      shadow_ray.t_min = r.t_min;
-      shadow_ray.t = t_max;
-      shadow_ray.id = r.id;
-      shadow_ray.t_max = t_max;
-      shadow_ray.color = c;
-    }
-  }
+	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON;
+	const float t_shadow = multiplier * r.t;
+
+	const glm::vec3 origin = r.origin + r.direction * t_shadow;
+	const glm::vec3 dir = lightPos - origin;
+	const float t_max = dir.length();
+
+	// note: ray copy constructor is too heavy, so going to build it manually
+	shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+
+	Ray &shadow_ray = shadowRays.back();
+	shadow_ray.t = r.t;
+	shadow_ray.id = r.id;
+	shadow_ray.t_max = t_max;
+
+	// gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
+	// normal, lights[lindex]);
+	shadow_ray.color = glm::vec3( c[0], c[1], c[2]);
+	}
+}
 
   /**
    * Test occlusion for stored shadow rays.  Add missed rays
@@ -437,7 +484,7 @@ struct embreeParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
-    TLRand randEngine;
+    RandEngine randEngine;
     randEngine.SetSeed(begin);
     // std::random_device rd;
 
@@ -497,6 +544,7 @@ struct embreeParallelTrace {
 
         prepGVT_EMBREE_PACKET_TYPE(ray4, valid, resetValid, localPacketSize, rayList, localIdx);
         GVT_EMBREE_INTERSECTION(valid, scene, ray4);
+
         resetValid = false;
 
         for (size_t pi = 0; pi < localPacketSize; pi++) {
@@ -522,12 +570,9 @@ struct embreeParallelTrace {
               //
               // old fixme: fix embree normal calculation to remove dependency
               // from gvt mesh
-              // for some reason the embree normals aren't working, so just
-              // going to manually calculate the triangle normal
-              // glm::vec3 embreeNormal = glm::vec3(ray4.Ngx[pi], ray4.Ngy[pi],
-              // ray4.Ngz[pi], 0.0);
 
               glm::vec3 manualNormal;
+              glm::vec3 normalflat = glm::normalize((*normi) * -glm::vec3(ray4.Ngx[pi], ray4.Ngy[pi], ray4.Ngz[pi]));
               {
                 const int triangle_id = ray4.primID[pi];
 #ifndef FLAT_SHADING
@@ -543,34 +588,45 @@ struct embreeParallelTrace {
                 const glm::vec3 &c = mesh->normals[normals.get<0>()];
                 manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-                manualNormal = glm::normalize((*normi) * manualNormal);
-#else
-                int I = mesh->faces[triangle_id].get<0>();
-                int J = mesh->faces[triangle_id].get<1>();
-                int K = mesh->faces[triangle_id].get<2>();
+//				glm::vec3 dPdu, dPdv;
+//				int geomID = ray4.geomID[pi];
+//				{
+//					rtcInterpolate(scene, geomID,
+//							ray4.primID[pi], ray4.u[pi],
+//							ray4.v[pi], RTC_VERTEX_BUFFER0,
+//							nullptr, &dPdu.x, &dPdv.x, 3);
+//				}
+//				manualNormal = glm::cross(dPdv, dPdu);
 
-                glm::vec3 a = mesh->vertices[I];
-                glm::vec3 b = mesh->vertices[J];
-                glm::vec3 c = mesh->vertices[K];
-                glm::vec3 u = b - a;
-                glm::vec3 v = c - a;
-                rayList glm::vec3 normal;
-                normal[0] = u[1] * v[2] - u[2] * v[1];
-                normal[1] = u[2] * v[0] - u[0] * v[2];
-                normal[2] = u[0] * v[1] - u[1] * v[0];
-                manualNormal = glm::normalize((*normi) * normal);
+                manualNormal = glm::normalize((*normi) * manualNormal);
+
+#else
+
+                manualNormal = normalflat;
+
 #endif
               }
-              const glm::vec3 &normal = manualNormal;
+
+              //backface check, requires flat normal
+              if (glm::dot(-r.direction, normalflat) <= 0.f ) {
+                 manualNormal = -manualNormal;
+                 }
+
+             const glm::vec3 &normal = manualNormal;
+
+              Material *mat;
+              if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]])
+                  mat = mesh->faces_to_materials[ray4.primID[pi]];
+              else
+                  mat = mesh->getMaterial();
 
               // reduce contribution of the color that the shadow rays get
               if (r.type == gvt::render::actor::Ray::SECONDARY) {
                 t = (t > 1) ? 1.f / t : t;
                 r.w = r.w * t;
               }
-              unsigned int *randSeed = randEngine.ReturnSeed();
 
-              generateShadowRays(r, normal, ray4.primID[pi], mesh, randSeed);
+              generateShadowRays(r, normal,mat, randEngine.ReturnSeed(), shadowRays);
 
               int ndepth = r.depth - 1;
 
@@ -579,21 +635,23 @@ struct embreeParallelTrace {
               if (ndepth > 0 && r.w > p) {
                 r.type = gvt::render::actor::Ray::SECONDARY;
                 const float multiplier =
-                    1.0f - 16.0f * gvt::render::actor::Ray::RAY_EPSILON; // TODO: move out somewhere / make static
+                    1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
                 const float t_secondary = multiplier * r.t;
                 r.origin = r.origin + r.direction * t_secondary;
 
                 // TODO: remove this dependency on mesh, store material object in the database
                 // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-                r.direction = glm::normalize(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
+
+                r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
                 r.w = r.w * glm::dot(r.direction, normal);
                 r.depth = ndepth;
                 validRayLeft = true; // we still have a valid ray in the packet to trace
               } else {
                 // secondary ray is terminated, so disable its valid bit
-                valid[pi] = 0;
+                *valid = 0;
               }
+
             } else {
               // ray is valid, but did not hit anything, so add to dispatch
               // queue and disable it

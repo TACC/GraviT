@@ -1,165 +1,92 @@
 
 
-#include "cutil_math.h"
-#include "Material.cuh"
+//#include "cutil_math.h"
+//#include "Material.cuh"
 
+#include <gvt/render/adapter/optix/data/Material.cuh>
+
+#include "cutil_math.h"
 
 using namespace gvt::render::data::cuda_primitives;
+using namespace gvt::render::data::primitives;
+
+__device__ inline float4 toFloat4(glm::vec3 v){
+	return make_float4(v.x, v.y,v.z, 0.f);
+}
+
+   __device__ float4 lambertShade(const gvt::render::data::primitives::Material* material,
+       const Ray &ray, const float4 &N,const float4& wi) {
 
 
-
-
-
-   __device__  float4 BaseMaterial::CosWeightedRandomHemisphereDirection2(float4 n) {
-
-    float Xi1 = cudaRand();
-    float Xi2 = cudaRand();
-
-    float theta = acos(sqrt(1.0 - Xi1));
-    float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
-
-    float xs = sinf(theta) * cosf(phi);
-    float ys = cosf(theta);
-    float zs = sinf(theta) * sinf(phi);
-
-    float3 y = make_float3(n);
-    float3 h = y;
-    if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
-      h.x = 1.0;
-    else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
-      h.y = 1.0;
-    else
-      h.z = 1.0;
-
-    float3 x = cross(h,y);//(h ^ y);
-    float3 z = cross(x, y);
-
-    float4 direction = make_float4(x * xs + y * ys + z * zs);
-    return normalize(direction);
-  }
-
-
-
- /* Material::Material() {}s
-
-  Material::Material(const Material &orig) {}
-
-  Material::~Material() {}
-*/
-/*
-  float4 BaseMaterial::shade(const Ray &ray, const float4 &sufaceNormal, const Light *lightSource) {
-	  return make_float4(0.f);
-  }
-*/
-
-  /*RayVector Material::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  RayVector Material::secondary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  Lambert::Lambert(const float4 &kd) : Material(), kd(kd) {}
-
-  Lambert::Lambert(const Lambert &orig) : Material(orig), kd(orig.kd) {}
-
-  Lambert::~Lambert() {}
-*/
-   __device__ float4 Lambert::shade( const Ray &ray, const float4 &N, const Light *lightSource) {
-
-
-    float4 hitPoint = ray.origin + ray.direction * ray.t;
-    float4 L = normalize(lightSource->light.position - hitPoint);
-    float NdotL = fmaxf(0.f, fabs(N * L));
-    Color lightSourceContrib = lightSource->contribution(hitPoint);
-
-    Color diffuse = prod(lightSourceContrib, kd) * (NdotL * ray.w);
-
-
+    float NdotL = fmaxf(0.f, (N * wi));
+    float4 diffuse = toFloat4(material->kd) *  (NdotL * ray.w);
     return diffuse;
   }
-/*
-  RayVector Lambert::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  RayVector Lambert::secundary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
-
-  Phong::Phong(const float4 &kd, const float4 &ks, const float &alpha) : Material(), kd(kd), ks(ks), alpha(alpha) {}
-
-  Phong::Phong(const Phong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
-
-  Phong::~Phong() {}
-
-  */
-
-   __device__ float4 Phong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
 
 
-   float4 hitPoint = ray.origin + (ray.direction * ray.t);
-   float4 L =normalize(lightSource->light.position - hitPoint);
-
-    float NdotL =fmaxf(0.f, (N * L));
-    float4 R = ((N * 2.f) * NdotL) - L;
-    float4 invDir = make_float4(-ray.direction.x, -ray.direction.y, -ray.direction.z, -ray.direction.w);
-    float VdotR = fmaxf(0.f, (R * invDir));
-    float power = VdotR * pow(VdotR, alpha);
-
-    float4 lightSourceContrib = lightSource->contribution(hitPoint); //  distance;
-
-    Color finalColor = prod(lightSourceContrib , kd) * (NdotL * ray.w);
-    finalColor += prod(lightSourceContrib , ks) * (power * ray.w);
-    return finalColor;
+   __device__ float4 phongShade(const gvt::render::data::primitives::Material* material,
+                   const Ray &ray, const float4 &N,const float4& wi) {
 
 
+    float NdotL = fmaxf(0.f, (N * wi));
+    float4 R = ((N * 2.f) * NdotL) - wi;
+    float VdotR = max(0.f, (R * (-1*ray.direction)));
+    float power = VdotR * pow(VdotR, material->alpha);
+
+
+    float4 diffuse = NdotL * toFloat4(material->kd) * ray.w;
+    float4 specular = power * toFloat4(material->ks) * ray.w;
+
+    float4 finalColor = (diffuse + specular);
     return finalColor;
   }
 
-  /*
+   __device__ float4 blinnShade(const gvt::render::data::primitives::Material* material,
+                   const Ray &ray, const float4 &N, const float4& wi) {
 
-  RayVector Phong::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
+     float NdotL = fmaxf(0.f, (N * wi));
 
-  RayVector Phong::secundary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
+    float4 H = normalize((wi - ray.direction));
 
-  BlinnPhong::BlinnPhong(const float4 &kd, const float4 &ks, const float &alpha)
-      : Material(), kd(kd), ks(ks), alpha(alpha) {}
+    float NdotH = (H * N);
+    float power = NdotH * pow(NdotH, material->alpha);
 
-  BlinnPhong::BlinnPhong(const BlinnPhong &orig) : Material(orig), kd(orig.kd), ks(orig.ks), alpha(orig.alpha) {}
+    float4 diffuse = NdotL * toFloat4(material->kd) * ray.w;
+    float4 specular = power * toFloat4(material->ks) * ray.w;
 
-  BlinnPhong::~BlinnPhong() {}
-*/
-   __device__ float4 BlinnPhong::shade(const Ray &ray, const float4 &N, const Light *lightSource) {
-//    float4 hitPoint = (float4)ray.origin + (ray.direction * ray.t);
-//    float4 L = (float4)lightSource->light.position - hitPoint;
-//    L = normalize(L);
-//    float NdotL = fmaxf(0.f, (N * L));
-//
-//    float4 H = normalize((L - ray.direction));
-//
-//    float NdotH = (H * N);
-//    float power = NdotH * std::pow(NdotH, alpha);
-//
-//    float4 lightSourceContrib = lightSource->contribution(ray);
-//
-//    Color diffuse = prod((lightSourceContrib * NdotL), kd) * ray.w;
-//    Color specular = prod((lightSourceContrib * power), ks) * ray.w;
-//
-//    Color finalColor = (diffuse + specular);
-//    return finalColor;
-
-	   float4 hitPoint = ray.origin + (ray.direction * ray.t);
-	   float4 L = normalize(lightSource->light.position - hitPoint);
-	   float NdotL = fmaxf(0.f, (N* L));
-
-	   float4 H = normalize(L - ray.direction);
-
-	   float NdotH = fmaxf(0.f, (H * N));
-	   float power = NdotH * pow(NdotH, alpha);
-
-	   float4 lightSourceContrib = lightSource->contribution(hitPoint);
-
-	   Color diffuse = prod(lightSourceContrib , kd) * (NdotL * ray.w);
-	   Color specular = prod(lightSourceContrib , ks) * (power * ray.w);
-
-	   Color finalColor = (diffuse + specular);
-	   return finalColor;
+    float4 finalColor = (diffuse + specular);
+    return finalColor;
   }
-/*
-  RayVector BlinnPhong::ao(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }
 
-  RayVector BlinnPhong::secundary(const Ray &ray, const float4 &sufaceNormal, float samples) { return RayVector(); }*/
+
+  __device__ bool gvt::render::data::cuda_primitives::Shade(gvt::render::data::primitives::Material *material,
+                                                          const Ray &ray, const float4 &sufaceNormal,
+                                                          const Light *lightSource, const float4 lightPosSample,
+                                                          float4 &r) {
+
+  float4 hitPoint = ray.origin + ray.direction * ray.t;
+  float4 wi = normalize(lightPosSample - hitPoint);
+  float NdotL = fmaxf(0.f, (sufaceNormal * wi));
+  float4 Li = lightSource->contribution(hitPoint, lightPosSample);
+
+  if (NdotL == 0.f || (Li.x == 0.f && Li.y == 0.f && Li.z == 0.f)) return false;
+
+  switch (material->type) {
+  case LAMBERT:
+    r = lambertShade(material, ray, sufaceNormal, wi);
+    break;
+  case PHONG:
+    r = phongShade(material, ray, sufaceNormal, wi);
+    break;
+  case BLINN:
+    r = blinnShade(material, ray, sufaceNormal, wi);
+    break;
+  default:
+    printf("Material implementation missing for cuda-optix adpater\n");
+    break;
+  }
+
+  r*=Li;
+
+  return true;
+};

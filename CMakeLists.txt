@@ -61,6 +61,7 @@ if (GVT_RENDER)
   option(GVT_SIMPLE_APP			"Build the simple application" ON)
   option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
   option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
+  option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
   add_definitions(-DGVT_RENDER)
 endif(GVT_RENDER)
 
@@ -122,6 +123,13 @@ find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_PLY})
 if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
   MESSAGE(SEND ERRORS "ply reader header not found")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+
+#TODO best way to just include embre folder ?
+set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
+#find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_EMBREE})
+#if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+#  MESSAGE(SEND ERRORS "ply reader header not found")
+#endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
 # if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 #   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
@@ -198,7 +206,7 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
   src/gvt/core/Database.h
   src/gvt/core/DatabaseNode.h
   src/gvt/core/Debug.h
-  src/gvt/core/math/TLRand.h
+  src/gvt/core/math/RandEngine.h
   src/gvt/core/Math.h
   src/gvt/core/mpi/Comm.h
   src/gvt/core/mpi/CommData.h
@@ -211,7 +219,6 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
   src/gvt/core/Uuid.h
   src/gvt/core/Variant.h
 )
-
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
   src/gvt/core/CoreContext.cpp
@@ -237,29 +244,30 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/Primitives.h
   src/gvt/render/data/primitives/BBox.h
   src/gvt/render/data/primitives/Material.h
-  src/gvt/render/data/primitives/Mesh.h
-  src/gvt/render/data/scene/gvtCamera.h
-  src/gvt/render/data/scene/CameraConfig.h
-  src/gvt/render/data/scene/ColorAccumulator.h
-  src/gvt/render/data/scene/Image.h
-  src/gvt/render/data/scene/Light.h
-  src/gvt/render/data/accel/AbstractAccel.h
-  src/gvt/render/data/accel/BVH.h
-  src/gvt/render/schedule/DomainScheduler.h
-  src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
-  src/gvt/render/schedule/hybrid/GreedySchedule.h
-  src/gvt/render/schedule/hybrid/HybridScheduleBase.h
-  src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
-  src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
-  src/gvt/render/schedule/hybrid/LoadManySchedule.h
-  src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
-  src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
-  src/gvt/render/schedule/hybrid/SpreadSchedule.h
-  src/gvt/render/schedule/HybridScheduler.h
-  src/gvt/render/schedule/ImageScheduler.h
-  src/gvt/render/composite/composite.h
-  src/gvt/render/Schedulers.h
-  src/gvt/render/Types.h
+	src/gvt/render/data/primitives/EmbreeMaterial.h
+	src/gvt/render/data/primitives/Mesh.h
+	src/gvt/render/data/scene/gvtCamera.h
+	src/gvt/render/data/scene/CameraConfig.h
+	src/gvt/render/data/scene/ColorAccumulator.h
+	src/gvt/render/data/scene/Image.h
+	src/gvt/render/data/scene/Light.h
+	src/gvt/render/data/accel/AbstractAccel.h
+	src/gvt/render/data/accel/BVH.h
+	src/gvt/render/schedule/DomainScheduler.h
+	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
+	src/gvt/render/schedule/hybrid/GreedySchedule.h
+	src/gvt/render/schedule/hybrid/HybridScheduleBase.h
+	src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
+	src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
+	src/gvt/render/schedule/hybrid/LoadManySchedule.h
+	src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
+	src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
+	src/gvt/render/schedule/hybrid/SpreadSchedule.h
+	src/gvt/render/schedule/HybridScheduler.h
+	src/gvt/render/schedule/ImageScheduler.h
+    src/gvt/render/composite/composite.h
+	src/gvt/render/Schedulers.h
+	src/gvt/render/Types.h
 )
 
 
@@ -287,11 +295,6 @@ if (GVT_RENDER_ADAPTER_MANTA)
 		src/gvt/render/adapter/manta/data/Transforms.h
 		src/gvt/render/adapter/manta/override/DynBVH.h
 		src/gvt/render/adapter/manta/Wrapper.h
-		src/gvt/render/adapter/optix/data/Mesh.cuh
-		src/gvt/render/adapter/optix/data/Light.cuh
-		src/gvt/render/adapter/optix/data/Material.cuh
-		src/gvt/render/adapter/optix/data/Ray.cuh
-		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
   set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
@@ -308,6 +311,11 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		src/gvt/render/adapter/optix/data/Transforms.h
 		src/gvt/render/adapter/optix/data/OptixMeshAdapter.h
 		src/gvt/render/adapter/optix/Wrapper.h
+		src/gvt/render/adapter/optix/data/Mesh.cuh
+		src/gvt/render/adapter/optix/data/Light.cuh
+		src/gvt/render/adapter/optix/data/Material.cuh
+		src/gvt/render/adapter/optix/data/Ray.cuh
+		src/gvt/render/adapter/optix/data/cutil_math.h
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
@@ -415,6 +423,9 @@ if (GVT_RENDER)
     endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 	include_directories(${OptiX_INCLUDE})
+        include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
+
+
 
 	if (GVT_RENDER_ADAPTER_EMBREE)
 		find_package(Embree REQUIRED)
@@ -435,6 +446,52 @@ if (GVT_RENDER)
 		ARCHIVE DESTINATION lib
 		)
 endif(GVT_RENDER)
+
+
+## CTEST
+if (GVT_CTEST)
+    
+  enable_testing()
+  ## Check if run in mpi
+  
+  SET(runConfig "" )
+  if (GVT_USE_MPI)
+    set (no_mpi_proc 2)
+    set (runConfig ibrun -np ${no_mpi_proc})
+  endif(GVT_USE_MPI)
+
+  ## Enable gvtSimple and gvtFileLoad, needed for tests
+  set(GVT_SIMPLE_APP ON CACHE BOOL "Build libfoo shared library" FORCE)
+  set(GVT_SIMPLE_FILE_LOAD_APP ON CACHE BOOL "Build libfoo shared library" FORCE)
+  set(GVT_BIN_DIR ${PROJECT_BINARY_DIR}/bin)
+
+  ## Testing Configuration
+  set(SimpleFileLoadObjLocation ${PROJECT_SOURCE_DIR}/data/geom/bunny.obj)
+  set(TestOutputFolder ${PROJECT_SOURCE_DIR}/Test/CTESTtest/testOutput)
+  file(MAKE_DIRECTORY ${TestOutputFolder})
+  set(ImageDiffTolerance 300)
+
+  ## Integration Test for SimpleApp --Image Scheduler
+  add_test( SimpleApp_ImageScheduler  ${runConfig} ${PROJECT_BINARY_DIR}/bin/gvtSimple -image -output ${TestOutputFolder}/test1)
+  add_test( SimpleAppImageDiff_ImageScheduler ${PROJECT_BINARY_DIR}/bin/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test1.ppm")
+
+  ## Integration Test for SimpleFileLoad --Image Scheduler
+    add_test( SimpleFileLoad_ImageScheduler  ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -image -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test2)
+    add_test( SimpleFileLoadImageDiff_ImageScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test2.ppm")
+
+  ## Integration Test for SimpleApp --Domain Scheduler
+    add_test( SimpleApp_DomainScheduler   ${runConfig} ${GVT_BIN_DIR}/gvtSimple -domain -output ${TestOutputFolder}/test3)
+    add_test( SimpleAppImageDiff_DomainScheduler  ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test3.ppm")
+
+  ## Integration Test for SimpleFileLoad --Domain Scheduler
+    add_test( SimpleFileLoad_DomainScheduler ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -domain -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test4)
+    add_test( SimpleFileLoadImageDiff_DomainScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test4.ppm")
+
+  ## Image difference program to verify integration tests
+  set(GVTIMAGE_DIFF_SRCS  src/apps/render/ImageDiff.cpp)
+  add_executable(gvtImageDiff ${GVTIMAGE_DIFF_SRCS})
+
+endif(GVT_CTEST)
 
 if (GVT_SIMPLE_APP)
   if (GVT_MPE)
@@ -546,3 +603,7 @@ if (GVT_GLRENDER_APP)
     RUNTIME DESTINATION bin
   )
 endif(GVT_GLRENDER_APP)
+
+
+
+

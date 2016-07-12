@@ -117,7 +117,7 @@ protected:
   int depth;                //!< legacy variable from previous cameras. Initializes ray depth
   glm::vec3 u, v, w;        //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
-  TLRand randEngine;
+  RandEngine randEngine;
   //
   void buildTransform(); //!< Build the transformation matrix and inverse
 };

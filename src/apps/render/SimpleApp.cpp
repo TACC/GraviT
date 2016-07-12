@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
+  cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
   cmd.addconflict("image", "domain");
 
   cmd.parse(argc, argv);
@@ -140,7 +141,20 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+    Material* m = new Material();
+    m->type = LAMBERT;
+    //m->type = EMBREE_MATERIAL_MATTE;
+    m->kd = glm::vec3(1.0,1.0, 1.0);
+    m->ks = glm::vec3(1.0,1.0,1.0);
+    m->alpha = 0.5;
+
+    //m->type = EMBREE_MATERIAL_METAL;
+    //copper metal
+    m->eta = glm::vec3(.19,1.45, 1.50);
+    m->k = glm::vec3(3.06,2.40, 1.88);
+    m->roughness = 0.05;
+
+    Mesh *mesh = new Mesh(m);
     int numPoints = 7;
     glm::vec3 points[6];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
@@ -174,7 +188,7 @@ int main(int argc, char **argv) {
 
     // add cone mesh to the database
     gvt::core::Variant meshvariant(mesh);
-    std::cout << "meshvariant " << meshvariant << std::endl;
+//    std::cout << "meshvariant " << meshvariant << std::endl;
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
@@ -182,7 +196,22 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
-    Mesh *mesh = new Mesh(new Lambert(glm::vec3(0.5, 0.5, 0.5)));
+
+    Material* m = new Material();
+    m->type = LAMBERT;
+    //m->type = EMBREE_MATERIAL_MATTE;
+    m->kd = glm::vec3(1.0,1.0, 1.0);
+    m->ks = glm::vec3(1.0,1.0,1.0);
+    m->alpha = 0.5;
+
+    //m->type = EMBREE_MATERIAL_METAL;
+    //copper metal
+    m->eta = glm::vec3(.19,1.45, 1.50);
+    m->k = glm::vec3(3.06,2.40, 1.88);
+    m->roughness = 0.05;
+
+    Mesh *mesh = new Mesh(m);
+
     int numPoints = 24;
     glm::vec3 points[24];
     points[0] = glm::vec3(-0.5, -0.5, 0.5);
@@ -293,10 +322,20 @@ int main(int argc, char **argv) {
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+ #if 1
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#else
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType(
+              "AreaLight", "AreaLight", lightNodes.UUID());
 
+  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
+  lightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
+  lightNode["width"] = 2.f;
+  lightNode["height"] = 2.f;
+  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#endif
   // second light just for fun
   // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   // lN2["position"] = glm::vec3(2.0, 2.0, 2.0, 0.0);
@@ -314,6 +353,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
+  filmNode["outputPath"] = (std::string)"simple";
 
   if (cmd.isSet("lpos")) {
     std::vector<float> pos = cmd.getValue<float>("lpos");
@@ -338,6 +378,12 @@ int main(int argc, char **argv) {
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
+  if (cmd.isSet("output"))
+  {
+    std::vector<std::string> output = cmd.getValue<std::string>("output");
+    filmNode["outputPath"] = output[0];
+  }
+
 
   gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
   if (cmd.isSet("domain"))
@@ -385,7 +431,7 @@ int main(int argc, char **argv) {
   MPE_Log_event(readend, 0, NULL);
 #endif
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "simple");
+  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), filmNode["outputPath"].value().toString());
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
@@ -393,8 +439,8 @@ int main(int argc, char **argv) {
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
-    std::cout << "starting image scheduler" << std::endl;
-    std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
+ //   std::cout << "starting image scheduler" << std::endl;
+  //  std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
     gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
@@ -405,12 +451,11 @@ int main(int argc, char **argv) {
     break;
   }
   case gvt::render::scheduler::Domain: {
-    std::cout << "starting domain scheduler" << std::endl;
+    //std::cout << "starting domain scheduler" << std::endl;
 #ifdef GVT_USE_MPE
     MPE_Log_event(renderstart, 0, NULL);
 #endif
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
-    std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();

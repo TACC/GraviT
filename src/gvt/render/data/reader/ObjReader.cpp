@@ -69,7 +69,20 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   // file.open(filename.c_str());
   // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  objMesh = new Mesh(new Lambert(glm::vec3(0.8, 0.8, 0.8)));
+  Material* m = new Material();
+//  m->type = LAMBERT;
+//  //m->type = EMBREE_MATERIAL_MATTE;
+//  m->kd = glm::vec3(1.0,1.0, 1.0);
+//  m->ks = glm::vec3(1.0,1.0,1.0);
+//  m->alpha = 0.5;
+//
+//  //m->type = EMBREE_MATERIAL_METAL;
+//  //copper metal
+//  m->eta = glm::vec3(.19,1.45, 1.50);
+//  m->k = glm::vec3(3.06,2.40, 1.88);
+//  m->roughness = 0.05;
+
+  objMesh = new Mesh(m);
 
   // while (file.good()) {
   //   std::string line;
