@@ -56,6 +56,7 @@ if (GVT_RENDER)
   option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" OFF)
   option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" ON)
   option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
+  option(GVT_RENDER_ADAPTER_OSPRAY 	"Build the Intel OSPRay ray tracing engine adapter" OFF)
   option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
   option(GVT_GLRENDER_APP			"Build the interactive X application" ON)
   option(GVT_SIMPLE_APP			"Build the simple application" ON)
@@ -337,6 +338,26 @@ if (GVT_RENDER_ADAPTER_EMBREE)
     src/gvt/render/adapter/embree/data/EmbreeMeshAdapter.cpp
   )
 endif(GVT_RENDER_ADAPTER_EMBREE)
+if (GVT_RENDER_ADAPTER_OSPRAY)
+  add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
+  set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+    src/gvt/render/adapter/ospray/data/OSPRayAdapter.h
+    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.h
+    src/gvt/render/adapter/ospray/Wrapper.h
+    )
+  set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+    src/gvt/render/adapter/ospray/data/OSPRayAdapter.cpp 
+    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.cpp
+    )
+  if(GVT_VOLUME)
+    set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.h
+      )
+    set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.cpp
+      )
+  endif(GVT_VOLUME)
+endif(GVT_RENDER_ADAPTER_OSPRAY)
 
 if (GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
   set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}

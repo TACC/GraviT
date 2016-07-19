@@ -31,11 +31,11 @@ namespace render {
 namespace adapter {
 namespace ospray {
 namespace data {
-/** class to manage ospray rendering of a gravit geometry mesh */
+/** class to manage ospray rendering of a gravit volume mesh */
 class OSPRayVolAdapter : public gvt::render::Adapter {
 public: // public stuff
   /**
-   * Construct the Ospray mesh adapter. 
+   * Construct the Ospray mesh adapter. This constructor takes a volume argument. 
    */
   OSPRayVolAdapter(gvt::render::data::primitives::Volume *vol);
   /**
