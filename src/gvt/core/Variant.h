@@ -64,6 +64,10 @@ public:
   bool operator==(const Variant &) const;
   bool operator!=(const Variant &) const;
 
+  inline int type(){
+	  return coreData.which();
+  }
+
   friend std::ostream &operator<<(std::ostream &, const Variant &);
 
 protected:

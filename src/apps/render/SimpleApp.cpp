@@ -136,10 +136,21 @@ int main(int argc, char **argv) {
 
   // mix of cones and cubes
 
-  // TODO: maybe rename to 'Data' - as it can store different types of data [mesh, volume, lines]
-  gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
+  if (rank == 0) {
+	 gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+     cntxt->addToSync(cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID()));
+     cntxt->addToSync(cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID()));
+     cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+   }
 
-  gvt::core::DBNodeH coneMeshNode = cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID());
+  cntxt->syncContext();
+
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
+
+  gvt::core::DBNodeH coneMeshNode = dataNodes.getChildren()[0];
+  gvt::core::DBNodeH cubeMeshNode =  dataNodes.getChildren()[1];
+
   {
     Material* m = new Material();
     m->type = LAMBERT;
@@ -192,9 +203,13 @@ int main(int argc, char **argv) {
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
+
+	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+	coneMeshNode["Locations"] += loc;
+
+	cntxt->addToSync(coneMeshNode);
   }
 
-  gvt::core::DBNodeH cubeMeshNode = cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID());
   {
 
     Material* m = new Material();
@@ -281,10 +296,17 @@ int main(int argc, char **argv) {
     cubeMeshNode["file"] = string("/fake/path/to/cube");
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
     cubeMeshNode["ptr"] = (unsigned long long)mesh;
+
+	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+	cubeMeshNode["Locations"] += loc;
+
+    cntxt->addToSync(cubeMeshNode);
+
   }
 
-  gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+  cntxt->syncContext();
 
+  if (rank ==0 ) {
   // create a NxM grid of alternating cones / cubes, offset using i and j
   int instId = 0;
   int ii[2] = { -2, 3 }; // i range
@@ -317,8 +339,15 @@ int main(int argc, char **argv) {
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
+
+	  cntxt->addToSync(instnode);
+
     }
   }
+  }
+
+  cntxt->syncContext();
+
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());

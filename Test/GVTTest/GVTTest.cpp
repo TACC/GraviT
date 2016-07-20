@@ -41,6 +41,8 @@
 #include <tbb/task_scheduler_init.h>
 #include <thread>
 
+//#define DOMAIN_PER_NODE 1
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -160,23 +162,6 @@ int main(int argc, char **argv) {
   string scheduletype("image");
   string adapter("embree");
 
-
-
-  // initialize gravit context database structure
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-  if (cntxt == NULL) {
-    std::cout << "Something went wrong initializing the context" << std::endl;
-    exit(0);
-  }
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
-  gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
-  gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-
   tbb::task_scheduler_init init(tbb::task_scheduler_init::deferred);
   // parse the command line
   cmd.parse(argc, argv);
@@ -195,6 +180,35 @@ int main(int argc, char **argv) {
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
+
+
+  // initialize gravit context database structure
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  if (cntxt == NULL) {
+    std::cout << "Something went wrong initializing the context" << std::endl;
+    exit(0);
+  }
+
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+
+  if (MPI::COMM_WORLD.Get_rank()==0){
+	  cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+	  cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+	  cntxt->addToSync(cntxt->createNodeFromType("Lights", "Lights", root.UUID()));
+	  cntxt->addToSync(cntxt->createNodeFromType("Camera", "conecam", root.UUID()));
+	  cntxt->addToSync(cntxt->createNodeFromType("Film", "conefilm", root.UUID()));
+	  cntxt->addToSync(cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID()));
+  }
+
+  cntxt->syncContext();
+
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
+  gvt::core::DBNodeH lightNodes = root["Lights"];
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
+  gvt::core::DBNodeH camNode = root["Camera"];
+  gvt::core::DBNodeH filmNode = root["Film"];
+  gvt::core::DBNodeH schedNode = root["Schedule"];
 
   filepath = cmd.get<std::string>("infile");
   outputfile = cmd.get<std::string>("outfile");
@@ -252,6 +266,10 @@ int main(int argc, char **argv) {
         int k;
         char txt[16];
         for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+
+#ifdef DOMAIN_PER_NODE
+        	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
+#endif
           timeCurrent(&startTime);
           ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
           timeCurrent(&endTime);
@@ -260,9 +278,19 @@ int main(int argc, char **argv) {
           sprintf(txt, "%d", k);
           //filename = "block";
           //filename += txt;
-          //gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", filename.c_str(), dataNodes.UUID());
-          gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID());
-          Mesh *mesh = new Mesh(new Material());
+
+#ifndef DOMAIN_PER_NODE
+          if (MPI::COMM_WORLD.Get_rank()==0)
+#endif
+        	  gvt::core::DBNodeH EnzoMeshNode = cntxt->addToSync(cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID()));
+
+#ifndef DOMAIN_PER_NODE
+          cntxt->syncContext();
+          gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
+#endif
+          Material* m = new Material();
+          Mesh *mesh = new Mesh(m);
+
           for (int i = 0; i < nverts; i++) {
             mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
           }
@@ -279,29 +307,48 @@ int main(int argc, char **argv) {
           EnzoMeshNode["file"] = string(*file);
           EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
           EnzoMeshNode["ptr"] = (unsigned long long)mesh;
-          // add instance
-          gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-          gvt::core::DBNodeH meshNode = EnzoMeshNode;
-          Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-          instnode["id"] = k;
-          instnode["meshRef"] = meshNode.UUID();
-          auto m = new glm::mat4(1.f);
-          auto minv = new glm::mat4(1.f);
-          auto normi = new glm::mat3(1.f);
-          instnode["mat"] = (unsigned long long)m;
-          *minv = glm::inverse(*m);
-          instnode["matInv"] = (unsigned long long)minv;
-          *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-          instnode["normi"] = (unsigned long long)normi;
-          auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-          auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-          Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-          instnode["bbox"] = (unsigned long long)ibox;
-          instnode["centroid"] = ibox->centroid();
-          timeCurrent(&endTime);
-          modeltime += timeDifferenceMS(&startTime, &endTime);
-          numtriangles += nfaces;
-        }
+
+		  gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
+		  EnzoMeshNode["Locations"] += loc;
+
+		  cntxt->addToSync(EnzoMeshNode);
+
+       }
+
+       cntxt->syncContext();
+
+       for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+         	if (MPI::COMM_WORLD.Get_rank()==0) {
+
+			  // add instance
+			  gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+			  gvt::core::DBNodeH meshNode =  dataNodes.getChildren()[k];
+			  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+			  instnode["id"] = k;
+			  instnode["meshRef"] = meshNode.UUID();
+			  auto m = new glm::mat4(1.f);
+			  auto minv = new glm::mat4(1.f);
+			  auto normi = new glm::mat3(1.f);
+			  instnode["mat"] = (unsigned long long)m;
+			  *minv = glm::inverse(*m);
+			  instnode["matInv"] = (unsigned long long)minv;
+			  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+			  instnode["normi"] = (unsigned long long)normi;
+			  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+			  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+			  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+			  instnode["bbox"] = (unsigned long long)ibox;
+			  instnode["centroid"] = ibox->centroid();
+			  timeCurrent(&endTime);
+			  modeltime += timeDifferenceMS(&startTime, &endTime);
+			  numtriangles += nfaces;
+
+			  cntxt->addToSync(instnode);
+
+         	}
+       }
+
+       cntxt->syncContext();
       } else // directory has no .ply files
       {
         filepath = "";
