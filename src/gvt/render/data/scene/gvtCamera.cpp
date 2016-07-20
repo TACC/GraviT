@@ -197,7 +197,7 @@ gvtPerspectiveCamera::~gvtPerspectiveCamera() {}
 // gvt::render::actor::RayVector gvtPerspectiveCamera::generateRays() {
 void gvtPerspectiveCamera::generateRays() {
 #ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
+  //boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
 #endif
   gvt::core::time::timer t(true, "generate camera rays");
   // Generate rays direction in camera space and transform to world space.
