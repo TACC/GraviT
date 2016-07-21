@@ -89,8 +89,9 @@ DBNodeH RenderContext::createNodeFromType(String type, String name, Uuid parent)
     n += gvt::core::CoreContext::createNode("schedule", "Image");
   } else if (type == String("Mesh")) {
     n += gvt::core::CoreContext::createNode("file");
-    n += gvt::core::CoreContext::createNode("ptr");
+    n += gvt::core::CoreContext::createNode("ptr",(unsigned long long)0);
     n += gvt::core::CoreContext::createNode("bbox");
+    n += gvt::core::CoreContext::createNode("Locations", name);
   } else if (type == String("Instance")) {
     n += gvt::core::CoreContext::createNode("id");
     n += gvt::core::CoreContext::createNode("meshRef");

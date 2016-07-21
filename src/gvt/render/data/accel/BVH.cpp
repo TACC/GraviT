@@ -61,7 +61,7 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
     instanceSetID.push_back(node["id"].value().toInteger());
   }
 
-  std::cout << "BVH has " << instanceSet.size() << " instances " << root->bbox << std::endl;
+  //std::cout << "BVH has " << instanceSet.size() << " instances " << root->bbox << std::endl;
 }
 
 BVH::~BVH() {
