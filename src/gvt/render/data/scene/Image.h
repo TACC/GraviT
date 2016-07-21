@@ -82,6 +82,15 @@ public:
   unsigned char *GetBuffer() { return rgb; }
 
   void Write();
+  void resize(const size_t &w, const size_t &h) {
+    if (rgb) delete[] rgb;
+    width = w;
+    height = h;
+    int size = 3 * width * height;
+    rgb = new unsigned char[size];
+    std::memset(rgb, 0, sizeof(char) * 3 * width * height);
+  }
+
   void clear() { std::memset(rgb, 0, sizeof(char) * 3 * width * height); }
 
   ~Image() { delete[] rgb; }

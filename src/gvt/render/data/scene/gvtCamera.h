@@ -105,7 +105,7 @@ public:
     return up_vector;
   };
   // clang-format on
-protected:
+public:
   int samples;
   int jitterWindowSize;
   glm::mat4 cam2wrld;       //!< transform from camera to world coords

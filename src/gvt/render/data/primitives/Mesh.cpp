@@ -90,6 +90,12 @@ void Mesh::addFace(int v0, int v1, int v2) {
   GVT_ASSERT((v0 - 1 >= 0) && v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));
   GVT_ASSERT((v1 - 1 >= 0) && v1 - 1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1 - 1));
   GVT_ASSERT((v2 - 1 >= 0) && v2 - 1 < vertices.size(), "Vertex index 2 outside bounds : " << (v2 - 1));
+
+  if (vertices[v0 - 1] == vertices[v1 - 1] ||
+		  vertices[v1 - 1] == vertices[v2 - 1] ||
+		  vertices[v2 - 1] == vertices[v0 - 1])
+	  	  return;
+
   faces.push_back(Face(v0 - 1, v1 - 1, v2 - 1));
 }
 
@@ -178,4 +184,21 @@ Box3D Mesh::computeBoundingBox() {
   this->boundingBox = box;
 
   return box;
+}
+
+void Mesh::writeobj(std::string filename) {
+
+  std::ofstream file;
+  file.open(filename);
+  {
+    file << "#vertices " << vertices.size() << std::endl;
+    for (auto &v : vertices) file << "v " << v[0] << " " << v[1] << " " << v[2] << std::endl;
+
+    file << "#vertices normal " << normals.size() << std::endl;
+    for (auto &vn : normals) file << "vn " << vn[0] << " " << vn[1] << " " << vn[2] << std::endl;
+
+    file << "#vertices " << faces.size() << std::endl;
+    for (auto &f : faces) file << "f " << f.get<0>() + 1 << " " << f.get<1>() + 1 << " " << f.get<2>() + 1 << std::endl;
+    file.close();
+  }
 }

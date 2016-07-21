@@ -55,6 +55,8 @@ public:
   virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) = 0;
   virtual int intersect(const gvt::render::actor::Ray &ray, int from, float &t) = 0;
 
+  virtual ~AbstractAccel() {}
+
 protected:
   gvt::core::Vector<gvt::core::DBNodeH> instanceSet;
 };

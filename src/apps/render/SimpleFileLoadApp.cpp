@@ -100,10 +100,19 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
 
-  // add the data - mesh in this case
-  gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
+  if (rank == 0) {
+	 gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+     cntxt->addToSync(cntxt->createNodeFromType("Mesh", "bunny", dataNodes.UUID()));
+     cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+   }
 
-  gvt::core::DBNodeH bunnyMeshNode = cntxt->createNodeFromType("Mesh", "bunny", dataNodes.UUID());
+  cntxt->syncContext();
+
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
+
+  gvt::core::DBNodeH bunnyMeshNode = dataNodes.getChildren()[0];
+
   {
 
     std::string objPath = std::string("../data/geom/bunny.obj");
@@ -126,11 +135,18 @@ int main(int argc, char **argv) {
     bunnyMeshNode["file"] = objPath;
     bunnyMeshNode["bbox"] = (unsigned long long)meshbbox;
     bunnyMeshNode["ptr"] = (unsigned long long)mesh;
+
+	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+	bunnyMeshNode["Locations"] += loc;
+
+	cntxt->addToSync(bunnyMeshNode);
   }
 
-  // create the instance
-  gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+  cntxt->syncContext();
 
+
+  // create the instance
+  if (rank ==0 ) {
   gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
   gvt::core::DBNodeH meshNode = bunnyMeshNode;
   Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
@@ -160,6 +176,12 @@ int main(int argc, char **argv) {
   Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
   instnode["bbox"] = (unsigned long long)ibox;
   instnode["centroid"] = ibox->centroid();
+  cntxt->addToSync(instnode);
+
+  }
+
+  cntxt->syncContext();
+
 
   // add a light
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
