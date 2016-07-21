@@ -32,9 +32,8 @@
 #define GVT_RENDER_ADAPTER_MANTA_WRAPPER_H
 
 #include <gvt/render/adapter/manta/data/MantaMeshAdapter.h>
-#include <gvt/render/adapter/manta/data/Transforms.h>
-#include <gvt/render/adapter/manta/data/domain/MantaDomain.h>
-#include <gvt/render/data/Dataset.h>
+// #include <gvt/render/adapter/manta/data/domain/MantaDomain.h>
+// #include <gvt/render/data/Dataset.h>
 
 /// single include for all Manta-specific headers
 
