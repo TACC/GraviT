@@ -114,12 +114,6 @@ public:
 
 protected:
   /**
-   * Copy mesh from GVT to Manta.
-   */
-  void copyMeshToManta();
-
-protected:
-  /**
    * Pointer to the Manta interface.
    */
   Manta::MantaInterface *mantaInterface;

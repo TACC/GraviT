@@ -163,7 +163,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   }
   rtcUnmapBuffer(scene, geomId, RTC_INDEX_BUFFER);
 
-  //mesh->writeobj("mesh.obj");
+  // mesh->writeobj("mesh.obj");
 
   // TODO: note: embree doesn't save normals in its mesh structure, have to
   // calculate the normal based on uv value
@@ -355,48 +355,46 @@ struct embreeParallelTrace {
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
   void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
-          gvt::render::data::primitives::Material * material, unsigned int *randSeed,
-                                         gvt::render::actor::RayVector& shadowRays) {
+                          gvt::render::data::primitives::Material *material, unsigned int *randSeed,
+                          gvt::render::actor::RayVector &shadowRays) {
 
-	for (gvt::render::data::scene::Light *light : lights) {
-	GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-	// Try to ensure that the shadow ray is on the correct side of the
-	// triangle.
-	// Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
-	// Using about 8 * ULP(t).
+    for (gvt::render::data::scene::Light *light : lights) {
+      GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
+      // Try to ensure that the shadow ray is on the correct side of the
+      // triangle.
+      // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
+      // Using about 8 * ULP(t).
 
-	gvt::render::data::Color c;
-	glm::vec3 lightPos;
-	if (light->LightT == gvt::render::data::scene::Light::Area) {
-	lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
-	} else {
-	lightPos = light->position;
-	}
+      gvt::render::data::Color c;
+      glm::vec3 lightPos;
+      if (light->LightT == gvt::render::data::scene::Light::Area) {
+        lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
+      } else {
+        lightPos = light->position;
+      }
 
-	 if (!gvt::render::data::primitives::Shade(
-	   material, r, normal, light, lightPos, c))
-	     continue;
+      if (!gvt::render::data::primitives::Shade(material, r, normal, light, lightPos, c)) continue;
 
-	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON *16;
-	const float t_shadow = multiplier * r.t;
+      const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON * 16;
+      const float t_shadow = multiplier * r.t;
 
-	const glm::vec3 origin = r.origin + r.direction * t_shadow;
-	const glm::vec3 dir = lightPos - origin;
-	const float t_max = dir.length();
+      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 dir = lightPos - origin;
+      const float t_max = dir.length();
 
-	// note: ray copy constructor is too heavy, so going to build it manually
-	shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+      // note: ray copy constructor is too heavy, so going to build it manually
+      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
 
-	Ray &shadow_ray = shadowRays.back();
-	shadow_ray.t = r.t;
-	shadow_ray.id = r.id;
-	shadow_ray.t_max = t_max;
+      Ray &shadow_ray = shadowRays.back();
+      shadow_ray.t = r.t;
+      shadow_ray.id = r.id;
+      shadow_ray.t_max = t_max;
 
-	// gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
-	// normal, lights[lindex]);
-	shadow_ray.color = glm::vec3( c[0], c[1], c[2]);
-	}
-}
+      // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
+      // normal, lights[lindex]);
+      shadow_ray.color = glm::vec3(c[0], c[1], c[2]);
+    }
+  }
 
   /**
    * Test occlusion for stored shadow rays.  Add missed rays
@@ -727,7 +725,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
 
   // float mm[] = { n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10], n[3], n[7], n[11] };
 
-  //std::cout << "Embree zmat" << *m << std::endl;
+  // std::cout << "Embree zmat" << *m << std::endl;
 
   rtcSetTransform(global_scene, instID, RTC_MATRIX_COLUMN_MAJOR, mm);
   rtcUpdate(global_scene, instID);

@@ -76,7 +76,6 @@ using namespace gvt::render::adapter::manta::data;
 using namespace gvt::render::data::primitives;
 
 static std::atomic<size_t> counter(0);
-static boost::atomic<size_t> counter_b(0);
 
 MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::primitives::Mesh *mesh)
     : Adapter(mesh), mantaInterface(NULL), preprocessContext(NULL), renderContext(NULL), scene(NULL), bvh(NULL),
@@ -90,8 +89,49 @@ MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::primitives::Mesh *mesh)
   preprocessContext =
       new Manta::PreprocessContext(mantaInterface, 0 /* proc */, 1 /* numProcs */, NULL /* LightSet* */);
 
-  // Transform mesh (GVT to Manta)
-  copyMeshToManta();
+  // Transform mesh (GVT to Manta) begin
+
+  // generate surface normals
+  mesh->generateNormals();
+
+  // set material (just for placeholder)
+  material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
+  material->preprocess(*preprocessContext);
+
+  mantaMesh = new Manta::Mesh();
+  mantaMesh->materials.push_back(material);
+
+  for (int i = 0; i < mesh->vertices.size(); ++i) {
+    const glm::vec3 &v = mesh->vertices[i];
+    mantaMesh->vertices.push_back(Manta::Vector(v[0], v[1], v[2]));
+  }
+
+  for (int i = 0; i < mesh->normals.size(); ++i) {
+    const glm::vec3 &n = mesh->normals[i];
+    mantaMesh->vertexNormals.push_back(Manta::Vector(n[0], n[1], n[2]));
+  }
+
+  for (int i = 0; i < mesh->faces.size(); ++i) {
+    // Face being boost::tuple<int, int, int>
+    gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
+    // texture indices
+    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
+    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
+    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
+    // vertex indices
+    mantaMesh->vertex_indices.push_back(boost::get<0>(f));
+    mantaMesh->vertex_indices.push_back(boost::get<1>(f));
+    mantaMesh->vertex_indices.push_back(boost::get<2>(f));
+    // normal indices
+    mantaMesh->normal_indices.push_back(boost::get<0>(f));
+    mantaMesh->normal_indices.push_back(boost::get<1>(f));
+    mantaMesh->normal_indices.push_back(boost::get<2>(f));
+    mantaMesh->face_material.push_back(0);
+    // triangle objects (to be deleted inside Manta)
+    mantaMesh->addTriangle(new Manta::KenslerShirleyTriangle());
+  }
+
+  // Transform mesh (GVT to Manta) end
 
   // Create BVH
   bvh = new Manta::DynBVH();
@@ -129,46 +169,6 @@ MantaMeshAdapter::~MantaMeshAdapter() {
   if (material) delete material;
   if (preprocessContext) delete preprocessContext;
   if (mantaInterface) delete mantaInterface;
-}
-
-inline void MantaMeshAdapter::copyMeshToManta() {
-  mesh->generateNormals();
-
-  material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
-  material->preprocess(*preprocessContext);
-
-  mantaMesh = new Manta::Mesh();
-  mantaMesh->materials.push_back(material);
-
-  for (int i = 0; i < mesh->vertices.size(); i++) {
-    const glm::vec3 &v = mesh->vertices[i];
-    mantaMesh->vertices.push_back(Manta::Vector(v[0], v[1], v[2]));
-  }
-
-  for (int i = 0; i < mesh->normals.size(); i++) {
-    const glm::vec3 &n = mesh->normals[i];
-    mantaMesh->vertexNormals.push_back(Manta::Vector(n[0], n[1], n[2]));
-  }
-
-  for (int i = 0; i < mesh->faces.size(); i++) {
-    // Face being boost::tuple<int, int, int>
-    gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
-    // texture indices
-    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
-    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
-    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
-    // vertex indices
-    mantaMesh->vertex_indices.push_back(boost::get<0>(f));
-    mantaMesh->vertex_indices.push_back(boost::get<1>(f));
-    mantaMesh->vertex_indices.push_back(boost::get<2>(f));
-    // normal indices
-    mantaMesh->normal_indices.push_back(boost::get<0>(f));
-    mantaMesh->normal_indices.push_back(boost::get<1>(f));
-    mantaMesh->normal_indices.push_back(boost::get<2>(f));
-    mantaMesh->face_material.push_back(0);
-    // triangle objects (to be deleted inside Manta)
-    mantaMesh->addTriangle(new Manta::KenslerShirleyTriangle());
-  }
 }
 
 bool MantaMeshAdapter::load() { return true; }
@@ -278,7 +278,7 @@ struct mantaParallelTrace {
                     Manta::Vector(direction[0], direction[1], direction[2]));
     }
 
-    // reset ray packet
+    // reset ray packet (Manta sets hitMatl[i] to 0 and minT[i] to MAXT)
     mRays->resetHits();
   }
 
@@ -491,8 +491,9 @@ struct mantaParallelTrace {
         // copy rays to rayPacket
         prepRayPacket(localIdx, rayList, &rayPacket);
 
-        // do intersection test
+        // intersect ray packet with bvh and compute normals
         adapter->getAccelStruct()->intersect(renderContext, rayPacket);
+        rayPacket.computeNormals<false>(renderContext);
 
         // trace rays
         for (size_t pi = 0; pi < localPacketSize; ++pi) {
