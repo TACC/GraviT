@@ -493,7 +493,7 @@ struct mantaParallelTrace {
 
         // intersect ray packet with bvh and compute normals
         adapter->getAccelStruct()->intersect(renderContext, rayPacket);
-        rayPacket.computeNormals<false>(renderContext);
+        rayPacket.computeFFGeometricNormals<false>(renderContext);
 
         // trace rays
         for (size_t pi = 0; pi < localPacketSize; ++pi) {
@@ -510,7 +510,7 @@ struct mantaParallelTrace {
               float t = rayPacket.getMinT(pi);
               r.t = t;
 
-              Manta::Vector mantaNormal = rayPacket.getNormal(pi);
+              Manta::Vector mantaNormal = rayPacket.getFFGeometricNormal(pi);
               glm::vec3 normal = glm::normalize((*normi) * glm::vec3(mantaNormal[0], mantaNormal[1], mantaNormal[2]));
 
               // TODO: support faces_to_materials
