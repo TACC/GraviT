@@ -25,6 +25,9 @@
 #define GVT_RENDER_ADAPTER_OSPRAY_DATA_OSPAY_VOL_ADAPTER_H
 
 #include "gvt/render/Adapter.h"
+#include "gvt/render/data/primitives/Volume.h"
+#include "gvt/render/adapter/ospray/data/OSPRayAdapter.h"
+
 
 namespace gvt {
 namespace render {
@@ -32,12 +35,12 @@ namespace adapter {
 namespace ospray {
 namespace data {
 /** class to manage ospray rendering of a gravit volume mesh */
-class OSPRayVolAdapter : public gvt::render::Adapter {
+class OSPRayVolAdapter : public gvt::render::adapter::ospray::data::OSPRayAdapter {
 public: // public stuff
   /**
    * Construct the Ospray mesh adapter. This constructor takes a volume argument. 
    */
-  OSPRayVolAdapter(gvt::render::data::primitives::Volume *vol);
+  OSPRayVolAdapter(int *argc, char *argv[], gvt::render::data::primitives::Volume *vol);
   /**
    * Destruct the adapter
    */
@@ -48,8 +51,12 @@ public: // public stuff
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
       glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
       size_t begin = 0, size_t end = 0);
+  OSPVolume GetTheOSPVolume() {return theOSPVolume;}
 protected: // protected stuff
   size_t begin, end;
+  
+  OSPVolume theOSPVolume;
+  OSPData   theOSPData;
 };
 }
 }
@@ -57,4 +64,4 @@ protected: // protected stuff
 }
 }
 
-#endif //GVT_RENDER_ADAPTER_OSPRAY_DATA_OSPAY_MESH_ADAPTER_H
+#endif //GVT_RENDER_ADAPTER_OSPRAY_DATA_OSPAY_VOL_ADAPTER_H

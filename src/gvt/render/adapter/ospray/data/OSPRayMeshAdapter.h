@@ -25,6 +25,7 @@
 #define GVT_RENDER_ADAPTER_OSPRAY_DATA_OSPAY_MESH_ADAPTER_H
 
 #include "gvt/render/Adapter.h"
+#include "gvt/render/adapter/ospray/data/OSPRayAdapter.h"
 
 namespace gvt {
 namespace render {
@@ -32,12 +33,12 @@ namespace adapter {
 namespace ospray {
 namespace data {
 /** class to manage ospray rendering of a gravit geometry mesh */
-class OSPRayMeshAdapter : public gvt::render::Adapter {
+class OSPRayMeshAdapter : public gvt::render::adapter::ospray::data::OSPRayAdapter {
 public: // public stuff
   /**
    * Construct the Ospray mesh adapter. 
    */
-  OSPRayMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
+  OSPRayMeshAdapter(int *argc, char *argv[], gvt::render::data::primitives::Mesh *mesh);
   /**
    * Destruct the adapter
    */

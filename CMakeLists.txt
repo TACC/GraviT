@@ -244,6 +244,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/primitives/Material.h
 	src/gvt/render/data/primitives/EmbreeMaterial.h
 	src/gvt/render/data/primitives/Mesh.h
+        src/gvt/render/data/primitives/Volume.h
 	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
@@ -276,6 +277,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/data/primitives/BBox.cpp
   src/gvt/render/data/primitives/Material.cpp
   src/gvt/render/data/primitives/Mesh.cpp
+  src/gvt/render/data/primitives/Volume.cpp
   src/gvt/render/data/scene/gvtCamera.cpp
   src/gvt/render/data/scene/ColorAccumulator.cpp
   src/gvt/render/data/scene/Image.cpp
@@ -352,9 +354,11 @@ if (GVT_RENDER_ADAPTER_OSPRAY)
   if(GVT_VOLUME)
     set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
       src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.h
+      src/gvt/render/data/primitives/Volume.h
       )
     set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
       src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.cpp
+      src/gvt/render/data/primitives/Volume.cpp
       )
   endif(GVT_VOLUME)
 endif(GVT_RENDER_ADAPTER_OSPRAY)
@@ -398,26 +402,26 @@ if (GVT_RENDER)
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader)
   include_directories(${TINYOBJPATH})
 
-    find_package(Boost REQUIRED COMPONENTS thread timer system)
-    include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
+  find_package(Boost REQUIRED COMPONENTS thread timer system)
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
 
   if(GVT_RENDER_ADAPTER_MANTA)
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS } ${MANTA_TARGET_LINK_LIBRARIES})
   endif(GVT_RENDER_ADAPTER_MANTA)
 
-    if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
-    	find_package(CUDA REQUIRED)
-    	find_package(OptiX REQUIRED)
+  if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
+    find_package(CUDA REQUIRED)
+    find_package(OptiX REQUIRED)
 
-	set(CUDA_SEPARABLE_COMPILATION ON)
-	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+    set(CUDA_SEPARABLE_COMPILATION ON)
+    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-    	include_directories(${CUDA_INCLUDE_DIRS})
-    	include_directories(${OptiX_INCLUDE})
-	set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
-    	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
-    	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
+    include_directories(${CUDA_INCLUDE_DIRS})
+    include_directories(${OptiX_INCLUDE})
+    set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
     		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
                 -gencode arch=compute_20,code=sm_20
     		-gencode arch=compute_30,code=sm_30
@@ -425,20 +429,24 @@ if (GVT_RENDER)
                 --compiler-options '-fPIC'
     		)
     	#cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
-	CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
+    CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
 
-    	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-    		${GVT_RENDER_CUDA_OBJS}
-    		)
+    set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} ${GVT_RENDER_CUDA_OBJS})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
+  endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
-	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
-
-    endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
-
+  if(GVT_RENDER_ADAPTER_OSPRAY)
+    set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
+    if(OSPRAY_SRCDIR)
+      include_directories(${OSPRAY_SRCDIR}
+                          ${OSPRAY_SRCDIR}/ospray
+                          ${OSPRAY_SRCDIR}/ospray/embree
+                          ${OSPRAY_SRCDIR}/ospray/embree/common
+                          ${OSPRAY_SRCDIR}/ospray/include)
+    endif(OSPRAY_SRCDIR)
+  endif(GVT_RENDER_ADAPTER_OSPRAY)
 	include_directories(${OptiX_INCLUDE})
         include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
-
-
 
 	if (GVT_RENDER_ADAPTER_EMBREE)
 		find_package(Embree REQUIRED)

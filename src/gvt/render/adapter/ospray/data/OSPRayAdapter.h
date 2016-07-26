@@ -16,7 +16,8 @@ public:
   /** 
    * Construct the OSPRayAdapter base class 
    */
-  OSPRayAdapter(int *argc, char **argv[]);
+  OSPRayAdapter(int *argc, char **argv);
+  ~OSPRayAdapter();
 
 protected:
   /**
