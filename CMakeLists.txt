@@ -241,29 +241,30 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/Primitives.h
   src/gvt/render/data/primitives/BBox.h
   src/gvt/render/data/primitives/Material.h
-	src/gvt/render/data/primitives/EmbreeMaterial.h
-	src/gvt/render/data/primitives/Mesh.h
-	src/gvt/render/data/scene/gvtCamera.h
-	src/gvt/render/data/scene/CameraConfig.h
-	src/gvt/render/data/scene/ColorAccumulator.h
-	src/gvt/render/data/scene/Image.h
-	src/gvt/render/data/scene/Light.h
-	src/gvt/render/data/accel/AbstractAccel.h
-	src/gvt/render/data/accel/BVH.h
-	src/gvt/render/schedule/DomainScheduler.h
-	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
-	src/gvt/render/schedule/hybrid/GreedySchedule.h
-	src/gvt/render/schedule/hybrid/HybridScheduleBase.h
-	src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
-	src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
-	src/gvt/render/schedule/hybrid/LoadManySchedule.h
-	src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
-	src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
-	src/gvt/render/schedule/hybrid/SpreadSchedule.h
-	src/gvt/render/schedule/HybridScheduler.h
-	src/gvt/render/schedule/ImageScheduler.h
-	src/gvt/render/Schedulers.h
-	src/gvt/render/Types.h
+  src/gvt/render/data/primitives/Shade.h
+  src/gvt/render/data/primitives/EmbreeMaterial.h
+  src/gvt/render/data/primitives/Mesh.h
+  src/gvt/render/data/scene/gvtCamera.h
+  src/gvt/render/data/scene/CameraConfig.h
+  src/gvt/render/data/scene/ColorAccumulator.h
+  src/gvt/render/data/scene/Image.h
+  src/gvt/render/data/scene/Light.h
+  src/gvt/render/data/accel/AbstractAccel.h
+  src/gvt/render/data/accel/BVH.h
+  src/gvt/render/schedule/DomainScheduler.h
+  src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
+  src/gvt/render/schedule/hybrid/GreedySchedule.h
+  src/gvt/render/schedule/hybrid/HybridScheduleBase.h
+  src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
+  src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
+  src/gvt/render/schedule/hybrid/LoadManySchedule.h
+  src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
+  src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
+  src/gvt/render/schedule/hybrid/SpreadSchedule.h
+  src/gvt/render/schedule/HybridScheduler.h
+  src/gvt/render/schedule/ImageScheduler.h
+  src/gvt/render/Schedulers.h
+  src/gvt/render/Types.h
 )
 
 

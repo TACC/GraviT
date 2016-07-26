@@ -48,24 +48,12 @@
 
 #include <gvt/render/data/primitives/Material.h>
 
+#include <gvt/render/data/primitives/Shade.h>
+
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
-
-
-/*
- * Material proxy call implemented per adpater
- * Interfaces to the different shading materials may be significantly different
- * mainly due to light assessing and vec formats
- */
-bool Shade(gvt::render::data::primitives::Material* material,
-                        const gvt::render::actor::Ray &ray,
-                        const glm::vec3 &sufaceNormal,
-                        const gvt::render::data::scene::Light *lightSource,
-                        const glm::vec3 lightPosSample,
-                        glm::vec3& color);
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //                          Embree Materials

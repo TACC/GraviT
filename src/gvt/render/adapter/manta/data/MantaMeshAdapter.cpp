@@ -36,7 +36,8 @@
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 #include <gvt/render/data/primitives/Material.h>
-#include <gvt/render/data/primitives/EmbreeMaterial.h>
+// #include <gvt/render/data/primitives/EmbreeMaterial.h>
+#include <gvt/render/data/primitives/Shade.h>
 
 // Manta includes
 #include <Core/Math/CheapRNG.h>
