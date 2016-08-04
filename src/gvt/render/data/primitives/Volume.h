@@ -2,7 +2,7 @@
 #define GVT_RENDER_DATA_PRIMITIVES_VOLUME_H
 
 #include <gvt/render/data/primitives/BBox.h>
-#include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/TransferFunction.h>
 #include <gvt/render/data/scene/Light.h>
 
 #include <vector>
@@ -21,21 +21,35 @@ public:
   {
     FLOAT, UCHAR
   };
-  unsigned char *get_samples() ;
-  float *get_samples();
+  //unsigned char *get_samples() ;
+  float *GetSamples() {return floatsamples;};
+  void GetDeltas(glm::vec3 &deltas);
+  void GetGlobalOrigin(glm::vec3 *origin);
+  void GetLocalOrigin(glm::vec3 &lorigin);
+  void SetTransferFunction(TransferFunction* tf);
+  void GetTransferFunction(TransferFunction& tf);
+  void SetSlices(int n, glm::vec4 *s);
+  void GetSlices(int &n, glm::vec4 &s);
+  void SetIsovalues(int n, float* values);
+  void GetIsovalues(int *n, float* values);
+  void GetGlobalCounts(glm::vec3 &counts);
+  void GetLocalCounts(glm::vec3 &lcounts);
 protected:
   glm::vec4 *slices;
   glm::vec3 counts;
   glm::vec3 origin;
   glm::vec3 spacing;
+  TransferFunction *tf;
   int n_slices;
   float *isovalues;
   int n_isovalues;
 private:
   DataType type;
   glm::vec3 deltas;
-  unsigned char *uchar_samples;
+  //unsigned char *uchar_samples;
   float *floatsamples;
+  OSPVolume theOSPVolume;
+  OSPData theOSPData;
 };
 }
 }

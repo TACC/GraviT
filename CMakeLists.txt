@@ -245,6 +245,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 	src/gvt/render/data/primitives/EmbreeMaterial.h
 	src/gvt/render/data/primitives/Mesh.h
         src/gvt/render/data/primitives/Volume.h
+        src/gvt/render/data/primitives/TransferFunction.h
 	src/gvt/render/data/scene/gvtCamera.h
 	src/gvt/render/data/scene/CameraConfig.h
 	src/gvt/render/data/scene/ColorAccumulator.h
@@ -278,6 +279,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/data/primitives/Material.cpp
   src/gvt/render/data/primitives/Mesh.cpp
   src/gvt/render/data/primitives/Volume.cpp
+  src/gvt/render/data/primitives/TransferFunction.cpp
   src/gvt/render/data/scene/gvtCamera.cpp
   src/gvt/render/data/scene/ColorAccumulator.cpp
   src/gvt/render/data/scene/Image.cpp
