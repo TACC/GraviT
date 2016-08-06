@@ -116,7 +116,6 @@ struct timer {
   // 	return std::chrono::duration<double,
   // std::milli>(t_end-t.t_start)).count();
   // }
-
   friend std::ostream &operator<<(std::ostream &os, const timer &t) { return os << t.text << " :" << t.format(); }
 };
 #else

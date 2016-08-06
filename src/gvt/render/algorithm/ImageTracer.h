@@ -134,6 +134,17 @@ public:
 
     gvt::render::actor::RayVector moved_rays;
     int instTarget = -1, instTargetCount = 0;
+    for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) {
+      if (q->second.size() > (size_t)instTargetCount) {
+        instTargetCount = q->second.size();
+        instTarget = q->first;
+      }
+    }
+
+    if (instTargetCount == 0) {
+      //std::cout << "No work to start with" << std::endl;
+    }
+
     // process domains until all rays are terminated
     do {
       // process domain with most rays queued
@@ -150,6 +161,9 @@ public:
         }
       }
       t_sort.stop();
+
+      //std::cout << "Instance[" << instTarget << "] " << instTargetCount << std::endl;
+
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
       if (instTarget >= 0) {
@@ -221,6 +235,8 @@ public:
         shuffleRays(moved_rays, instTarget);
         moved_rays.clear();
         t_shuffle.stop();
+      } else {
+        //std::cout << "No more work" << std::endl;
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");

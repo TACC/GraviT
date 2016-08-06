@@ -101,6 +101,8 @@ public:
 //                                                      const gvt::render::data::scene::Light *lsource,
 //                                                      const glm::vec3 areaLightPosition);
 
+  void writeobj(std::string filename);
+
 public:
   gvt::render::data::primitives::Material *mat;
   std::vector<glm::vec3> vertices;
