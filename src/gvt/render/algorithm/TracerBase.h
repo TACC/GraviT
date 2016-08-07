@@ -238,7 +238,7 @@ public:
       delete[] colorBuf_mutex;
     }
     colorBuf_mutex = new tbb::mutex[width];
-    colorBuf = new glm::vec3[width * height];
+    colorBuf = new glm::vec4[width * height];
     //std::cout << "Resized buffer" << std::endl;
   }
 
@@ -289,7 +289,7 @@ public:
      }
   }
 
-  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};
