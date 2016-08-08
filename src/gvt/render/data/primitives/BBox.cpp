@@ -131,3 +131,21 @@ float Box3D::surfaceArea() const {
   glm::vec3 diag = bounds_max - bounds_min;
   return (2.f * (diag.x * diag.y + diag.y * diag.z + diag.z * diag.x));
 }
+
+Box3D Box3D::transform(glm::mat4 m){
+	Box3D newBox;
+	const glm::vec3 min = bounds_min;
+	const glm::vec3 max = bounds_max;
+
+	glm::vec3 v;
+	v = glm::vec3(m * glm::vec4(min.x, min.y, min.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(min.x, min.y, max.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(min.x, max.y, min.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(min.x, max.y, max.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(max.x, min.y, min.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(max.x, min.y, max.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(max.x, max.y, min.z, 1.0f)); newBox.expand(v);
+	v = glm::vec3(m * glm::vec4(max.x, max.y, max.z, 1.0f)); newBox.expand(v);
+
+	return newBox;
+}
