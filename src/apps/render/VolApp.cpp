@@ -83,17 +83,6 @@ bool file_exists(const char *path) {
   struct stat buf;
   return(stat(path, &buf) == 0);
 }
-std::vector<std::string> findply(const std::string dirname) {
-  glob_t result;
-  std::string exp = dirname + "/*.ply";
-  glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-  std::vector<std::string> ret;
-  for (int i = 0; i < result.gl_pathc; i++) {
-    ret.push_back(std::string(result.gl_pathv[i]));
-  }
-  globfree(&result);
-  return ret;
-}
 int main(int argc, char **argv) {
 
   ParseCommandLine cmd("gvtVol");
@@ -134,17 +123,18 @@ int main(int argc, char **argv) {
 
   std::string filename, filepath, volumefile;
   volumefile = cmd.get<std::string>("volfile");
-  // Enzo data...
+  // volume data...
   if(!file_exists(volumefile.c_str())) {
     cout << "File \"" << volumefile << "\" does not exist. Exiting." << endl;
     return 0;
   }
   
   if(isdir(volfile.c_str())) {
-    cout << "File \"" << volfile << "\" is a directory. Exiting." << endl;
+    cout << "File \"" << volfile << "\" is a directory. Need a file. Exiting." << endl;
     return 0;
   }
-  // read it 
+  // read it . reusing the mesh node type since there is nothing specific to mesh data
+  // in the node type. Except the name I suppose
   gvt::core::DBNodeH VolumeNode = cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID());
   for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
     gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID());

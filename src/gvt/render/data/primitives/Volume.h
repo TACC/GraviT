@@ -23,17 +23,14 @@ public:
   };
   //unsigned char *get_samples() ;
   float *GetSamples() {return floatsamples;};
-  void GetDeltas(glm::vec3 &deltas);
+  void GetDeltas(glm::vec3 &spacing);
   void GetGlobalOrigin(glm::vec3 *origin);
-  void GetLocalOrigin(glm::vec3 &lorigin);
   void SetTransferFunction(TransferFunction* tf);
   void GetTransferFunction(TransferFunction& tf);
   void SetSlices(int n, glm::vec4 *s);
   void GetSlices(int &n, glm::vec4 &s);
   void SetIsovalues(int n, float* values);
   void GetIsovalues(int *n, float* values);
-  void GetGlobalCounts(glm::vec3 &counts);
-  void GetLocalCounts(glm::vec3 &lcounts);
 protected:
   glm::vec4 *slices;
   glm::vec3 counts;
