@@ -57,6 +57,7 @@
 #include <boost/range/algorithm.hpp>
 
 #include <iostream>
+#include <fstream>
 #include <math.h>
 #include <glob.h>
 #include <sys/stat.h>
@@ -72,6 +73,63 @@ using namespace std;
 //using namespace gvt::render::schedule;
 //using namespace gvt::render::data::primitives;
 
+struct bovheader { 
+  std::fstream myfile;
+  char txt[128];
+  std::string datafile;
+  int datasize[3];
+  enum dataformat {
+    INT,
+    FLOAT,
+    UINT,
+    SHORT
+  };
+  std::string variable;
+  enum endian {
+    BIG,
+    LITTLE
+  };
+  bool dividebrick;
+  int bricklets[3];
+  bovheader(std::string headername){
+    myfile.open(headername.c_str());
+    while(myfile.good()) {
+      std::string line;
+      std::vector<std::string> elems;
+      std::getline(myfile,line);
+      split(line,' ',elems);
+      if(elems[0] == "DATA_FILE:") {
+        datafile = elems[1];
+      } else if(elems[0] == "DATA_SIZE:") {
+          for(int i = 1; i<elems.size(); i++) datasize[i-1] = std::stoi(elems[i]);
+      } else if(elems[0] == "DATA_FORMAT:") {
+        switch elems[1] {
+          "INT": dataformat = INT;
+          "FLOAT": dataformat = FLOAT;
+        }
+      } else if(elems[0] == "VARIABLE:" ) {
+          variable = elems[1];
+      } else if(elems[0] == "DATA_ENDIAN:") {
+          endian = (elems[1] == "BIG") ? BIG : LITTLE;
+      } else if(elems[0] == "DIVIDE_BRICK:") {
+        dividebrick = (elems[1] == "true")  ? true : false;
+      } else if(elems[0] == "DATA_BRICKLETS:"){
+          for(int i = 1; i<elems.size(); i++) bricklets[i-1] = std::stoi(elems[i]);
+      }
+    }
+  }
+}
+  std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss();
+    std::string item;
+    while (std::getline(ss,item,delim)) {
+      if(item.length() > 0) {
+        elems.push_back(item);
+      }
+    }
+    return elems;
+  }
+}
 // determine if file is a directory
 bool isdir(const char *path) {
   struct stat buf;
@@ -118,8 +176,11 @@ int main(int argc, char **argv) {
     exit(0);
   }
   gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = cntxt->createNodeFromType("Data", "Data", root.UUID());
-  gvt::core::DBNodeH instNodes = cntxt->createNodeFromType("Instances", "Instances", root.UUID());
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+  }
+  cntxt-syncContext();
 
   std::string filename, filepath, volumefile;
   volumefile = cmd.get<std::string>("volfile");

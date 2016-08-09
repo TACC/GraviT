@@ -24,7 +24,7 @@ public:
   //unsigned char *get_samples() ;
   float *GetSamples() {return floatsamples;};
   void GetDeltas(glm::vec3 &spacing);
-  void GetGlobalOrigin(glm::vec3 *origin);
+  void GetGlobalOrigin(glm::vec3 &origin);
   void SetTransferFunction(TransferFunction* tf);
   void GetTransferFunction(TransferFunction& tf);
   void SetSlices(int n, glm::vec4 *s);
