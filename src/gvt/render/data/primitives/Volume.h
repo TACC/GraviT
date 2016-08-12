@@ -22,7 +22,12 @@ public:
     FLOAT, UCHAR
   };
   //unsigned char *get_samples() ;
-  float *GetSamples() {return floatsamples;};
+  short *GetSamples() {return shortsamples;};
+  void SetSamples(short * samples) {shortsamples = samples;return;};
+  void SetCounts(int countx, int county, int countz) {counts = {countx,county,countz};return;};
+  glm::vec3* GetCounts() { return &counts; };
+  void GetCounts(glm::vec3 cnts) { cnts[0] = counts[0];cnts[1]=counts[1];cnts[2]=counts[2]; return; };
+  void SetOrigin(float x, float y, float z) { origin = {x,y,z};};
   void GetDeltas(glm::vec3 &spacing);
   void GetGlobalOrigin(glm::vec3 &origin);
   void SetTransferFunction(TransferFunction* tf);
@@ -45,6 +50,7 @@ private:
   glm::vec3 deltas;
   //unsigned char *uchar_samples;
   float *floatsamples;
+  short* shortsamples;
   OSPVolume theOSPVolume;
   OSPData theOSPData;
 };

@@ -35,6 +35,7 @@
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/data/primitives/Mesh.h>
+#include <gvt/render/data/primitives/Volume.h>
 
 /// single include for scene primitive types
 

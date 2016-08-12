@@ -58,6 +58,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <ios>
 #include <math.h>
 #include <glob.h>
 #include <sys/stat.h>
@@ -73,25 +74,51 @@ using namespace std;
 //using namespace gvt::render::schedule;
 //using namespace gvt::render::data::primitives;
 
+std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss,item,delim)) {
+      if(item.length() > 0) {
+        elems.push_back(item);
+      }
+    }
+    return elems;
+}
 struct bovheader { 
   std::fstream myfile;
-  char txt[128];
   std::string datafile;
+  // the number of points in each coordinate direction
+  // in the global mesh
   int datasize[3];
+  int numberofdomains;
+  // number of partitions of the global 
+  // index space in each direction. 
+  int xpartitions, ypartitions, zpartitions;
   enum dataformat {
     INT,
     FLOAT,
     UINT,
     SHORT
-  };
+  } dfmt;
   std::string variable;
   enum endian {
     BIG,
     LITTLE
-  };
-  bool dividebrick;
+  } dendian;
+  bool dividebrick ;
+  // the number of points in each coordinate direction 
+  // in the local block. (read from header)
   int bricklets[3];
+  // the number of points in the local block including overlap
+  // overlap one point in each direction
+  int counts[3];
+  float origin[3];
+  gvt::render::data::primitives::Box3D *volbox;
   bovheader(std::string headername){
+    for(int i=0;i<3;i++) {
+      datasize[i] = 0;
+      bricklets[i] = 1;
+    }
     myfile.open(headername.c_str());
     while(myfile.good()) {
       std::string line;
@@ -103,33 +130,71 @@ struct bovheader {
       } else if(elems[0] == "DATA_SIZE:") {
           for(int i = 1; i<elems.size(); i++) datasize[i-1] = std::stoi(elems[i]);
       } else if(elems[0] == "DATA_FORMAT:") {
-        switch elems[1] {
-          "INT": dataformat = INT;
-          "FLOAT": dataformat = FLOAT;
+        if(elems[1] == "INT") { 
+          dfmt = INT;
+        } else if(elems[1] == "FLOAT") {
+          dfmt = FLOAT;
         }
       } else if(elems[0] == "VARIABLE:" ) {
           variable = elems[1];
       } else if(elems[0] == "DATA_ENDIAN:") {
-          endian = (elems[1] == "BIG") ? BIG : LITTLE;
+          dendian = (elems[1] == "BIG") ? BIG : LITTLE;
       } else if(elems[0] == "DIVIDE_BRICK:") {
         dividebrick = (elems[1] == "true")  ? true : false;
       } else if(elems[0] == "DATA_BRICKLETS:"){
           for(int i = 1; i<elems.size(); i++) bricklets[i-1] = std::stoi(elems[i]);
       }
     }
-  }
-}
-  std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss();
-    std::string item;
-    while (std::getline(ss,item,delim)) {
-      if(item.length() > 0) {
-        elems.push_back(item);
-      }
+    myfile.close();
+    // index arithmetic, arg...
+    if(dividebrick) {
+      xpartitions = std::max(datasize[0]/bricklets[0],1);
+      ypartitions = std::max(datasize[1]/bricklets[1],1);
+      zpartitions = std::max(datasize[2]/bricklets[2],1);
+    } else {
+      xpartitions = 1;
+      ypartitions = 1;
+      zpartitions = 1;
     }
-    return elems;
+    numberofdomains = xpartitions * ypartitions * zpartitions;
   }
-}
+  unsigned char *readdata(int dom) {
+    int domi,domj,domk; // the domain index in global space
+    int sample_bytes; // number of bytes in a sample.
+    unsigned char *samples;
+    domi = dom%xpartitions;
+    domj = dom/xpartitions;
+    domk = dom/(xpartitions*ypartitions);
+    int istart,jstart,kstart;
+    istart = (domi == 0) ? 0 : domi*bricklets[0] -1;
+    jstart = (domj == 0) ? 0 : domj*bricklets[1] -1;
+    kstart = (domk == 0) ? 0 : domk*bricklets[2] -1;
+    //int count[3]; // points in each direction of this domain. 
+    counts[0] = (domi == 0) ? bricklets[0] : bricklets[0] + 1;
+    counts[1] = (domj == 0) ? bricklets[1] : bricklets[1] + 1;
+    counts[2] = (domk == 0) ? bricklets[2] : bricklets[2] + 1;
+    origin[0] = (float)istart;
+    origin[1] = (float)jstart;
+    origin[2] = (float)kstart;
+    // allocate enough space for samples
+    sample_bytes = sizeof(int); // should depend on type but for now I am sloppy.
+    samples = (unsigned char*)malloc(sample_bytes*counts[0]*counts[1]*counts[2]);
+    char *ptr = (char *)samples;
+    myfile.open(datafile.c_str(), ios::in | ios::binary);
+    for(int k=kstart;k<kstart+counts[2];k++) 
+      for(int j=jstart;j<jstart+counts[1];j++) {
+        // read a row of data at a time
+        streampos src = (k*datasize[0]*datasize[1]+j*datasize[0]+istart)*sample_bytes;
+        myfile.seekg(src,ios_base::beg);
+        myfile.read(ptr,counts[0]*sample_bytes);
+        ptr += counts[0]*sample_bytes;
+      }
+    glm::vec3 lower(origin[0],origin[1],origin[2]);
+    glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]);
+    volbox = new gvt::render::data::primitives::Box3D(lower,upper);
+    return samples;
+  }
+};
 // determine if file is a directory
 bool isdir(const char *path) {
   struct stat buf;
@@ -180,7 +245,10 @@ int main(int argc, char **argv) {
     cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
     cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
   }
-  cntxt-syncContext();
+  cntxt->syncContext();
+
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
 
   std::string filename, filepath, volumefile;
   volumefile = cmd.get<std::string>("volfile");
@@ -190,113 +258,74 @@ int main(int argc, char **argv) {
     return 0;
   }
   
-  if(isdir(volfile.c_str())) {
-    cout << "File \"" << volfile << "\" is a directory. Need a file. Exiting." << endl;
+  if(isdir(volumefile.c_str())) {
+    cout << "File \"" << volumefile << "\" is a directory. Need a file. Exiting." << endl;
     return 0;
   }
-  // read it . reusing the mesh node type since there is nothing specific to mesh data
+  // read the bov header
+  bovheader volheader(volumefile);
+  // read the volume .
+  // reusing the mesh node type since there is nothing specific to mesh data
   // in the node type. Except the name I suppose
-  gvt::core::DBNodeH VolumeNode = cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID());
-  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
-    gvt::core::DBNodeH EnzoMeshNode = cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID());
-    // read in some ply data and get ready to load it into the mesh
-    // filepath = rootdir + "block" + std::string(txt) + ".ply";
-    filepath =  *file;
-    myfile = fopen(filepath.c_str(), "r");
-    in_ply = read_ply(myfile);
-    for (i = 0; i < in_ply->num_elem_types; i++) {
-      elem_name = setup_element_read_ply(in_ply, i, &elem_count);
-      temp = elem_name;
-      if (temp == "vertex") {
-        vlist = (Vertex **)malloc(sizeof(Vertex *) * elem_count);
-        nverts = elem_count;
-        setup_property_ply(in_ply, &vert_props[0]);
-        setup_property_ply(in_ply, &vert_props[1]);
-        setup_property_ply(in_ply, &vert_props[2]);
-        for (j = 0; j < elem_count; j++) {
-          vlist[j] = (Vertex *)malloc(sizeof(Vertex));
-          get_element_ply(in_ply, (void *)vlist[j]);
-        }
-      } else if (temp == "face") {
-        flist = (Face **)malloc(sizeof(Face *) * elem_count);
-        nfaces = elem_count;
-        setup_property_ply(in_ply, &face_props[0]);
-        for (j = 0; j < elem_count; j++) {
-          flist[j] = (Face *)malloc(sizeof(Face));
-          get_element_ply(in_ply, (void *)flist[j]);
-        }
-      }
+  // typically an mpi rank will only read a subset of the total available domains 
+  // provided there are more domains than ranks. If not then each rank will read at most
+  // one domain. Either way the particular domain is responsible for creating and 
+  // sharing the database node with the rest of the ranks. 
+  int worldsize;
+  worldsize = MPI::COMM_WORLD.Get_size();
+  for(int domain =0; domain < volheader.numberofdomains; domain++) {
+    if(domain%worldsize == rank){ // read this domain 
+      gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
+        cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
+      // create a volume object which is similar to a mesh object
+      gvt::render::data::primitives::Volume *vol = 
+        new gvt::render::data::primitives::Volume();
+      // read volume file.
+      unsigned char* sampledata = volheader.readdata(domain);
+      // push the sample data into the volume and fill the other
+      // required values in the volume.
+      vol->SetSamples((short *)sampledata);
+      vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
+      vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
+      gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
+      // stuff it in the db
+      VolumeNode["file"] = volumefile.c_str();
+      VolumeNode["bbox"] = (unsigned long long)volbox;
+      VolumeNode["ptr"] = (unsigned long long)vol;
+
+      gvt::core::DBNodeH loc = cntxt->createNode("rank",MPI::COMM_WORLD.Get_rank());
+      VolumeNode["Locations"] += loc;
+      // not sure if I need this call or not based on the way VolumeNode was created.
+      //cntxt->addToSync(VolumeNode);
     }
-    close_ply(in_ply);
-    // smoosh data into the mesh object
-    {
-      Material* m = new Material();
-      m->type = LAMBERT;
-      //m->type = EMBREE_MATERIAL_MATTE;
-      m->kd = glm::vec3(1.0,1.0, 1.0);
-      m->ks = glm::vec3(1.0,1.0,1.0);
-      m->alpha = 0.5;
-
-      //m->type = EMBREE_MATERIAL_METAL;
-      //copper metal
-      m->eta = glm::vec3(.19,1.45, 1.50);
-      m->k = glm::vec3(3.06,2.40, 1.88);
-      m->roughness = 0.05;
-
-      Mesh *mesh = new Mesh(m);
-      vert = vlist[0];
-      xmin = vert->x;
-      ymin = vert->y;
-      zmin = vert->z;
-      xmax = vert->x;
-      ymax = vert->y;
-      zmax = vert->z;
-
-      for (i = 0; i < nverts; i++) {
-        vert = vlist[i];
-        xmin = MIN(vert->x, xmin);
-        ymin = MIN(vert->y, ymin);
-        zmin = MIN(vert->z, zmin);
-        xmax = MAX(vert->x, xmax);
-        ymax = MAX(vert->y, ymax);
-        zmax = MAX(vert->z, zmax);
-        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
-      }
-      glm::vec3 lower(xmin, ymin, zmin);
-      glm::vec3 upper(xmax, ymax, zmax);
-      Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-      // add faces to mesh
-      for (i = 0; i < nfaces; i++) {
-        face = flist[i];
-        mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
-      }
-      mesh->generateNormals();
-      // add Enzo mesh to the database
-      // EnzoMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
-      EnzoMeshNode["file"] = string(filepath);
-      EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
-      EnzoMeshNode["ptr"] = (unsigned long long)mesh;
-    }
-    // add instance
-    gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-    gvt::core::DBNodeH meshNode = EnzoMeshNode;
-    Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-    instnode["id"] = k;
-    instnode["meshRef"] = meshNode.UUID();
-    auto m = new glm::mat4(1.f);
-    auto minv = new glm::mat4(1.f);
-    auto normi = new glm::mat3(1.f);
-    instnode["mat"] = (unsigned long long)m;
-    *minv = glm::inverse(*m);
-    instnode["matInv"] = (unsigned long long)minv;
-    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-    instnode["normi"] = (unsigned long long)normi;
-    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    instnode["bbox"] = (unsigned long long)ibox;
-    instnode["centroid"] = ibox->centroid();
   }
+    cntxt->syncContext();
+      // add instances by looping through the domains again. It is enough for rank 0 to do this.
+  if(MPI::COMM_WORLD.Get_rank()==0) {
+    for(int domain=0;domain < volheader.numberofdomains; domain++) {
+      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+      gvt::core::DBNodeH VolumeNode = dataNodes.getChildren()[domain];
+      gvt::render::data::primitives::Box3D *mbox = 
+        (gvt::render::data::primitives::Box3D *)VolumeNode["bbox"].value().toULongLong();
+      instnode["id"] = domain;
+      instnode["meshRef"] = VolumeNode.UUID();
+      auto m = new glm::mat4(1.f);
+      auto minv = new glm::mat4(1.f);
+      auto normi = new glm::mat3(1.f);
+      instnode["mat"] = (unsigned long long)m;
+      *minv = glm::inverse(*m);
+      instnode["matInv"] = (unsigned long long)minv;
+      *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+      instnode["normi"] = (unsigned long long)normi;
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+      gvt::render::data::primitives::Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+      instnode["bbox"] = (unsigned long long)ibox;
+      instnode["centroid"] = ibox->centroid();
+      cntxt->addToSync(instnode);
+    }
+  }
+  cntxt->syncContext();
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
@@ -354,7 +383,7 @@ int main(int argc, char **argv) {
   // use db to create structs needed by system
 
   // setup gvtCamera from database entries
-  gvtPerspectiveCamera mycamera;
+  gvt::render::data::scene::gvtPerspectiveCamera mycamera;
   glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
   glm::vec3 focus = camNode["focus"].value().tovec3();
   float fov = camNode["fov"].value().toFloat();
@@ -371,7 +400,7 @@ int main(int argc, char **argv) {
   MPE_Log_event(readend, 0, NULL);
 #endif
   // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "enzo");
+  gvt::render::data::scene::Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "enzo");
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
@@ -380,7 +409,7 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
+    gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
@@ -396,7 +425,7 @@ int main(int argc, char **argv) {
 #endif
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
+    gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
