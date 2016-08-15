@@ -250,11 +250,16 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-  std::string filename, filepath, volumefile;
+  std::string filename, filepath, volumefile,tffile;
   volumefile = cmd.get<std::string>("volfile");
+  tffile = cmd.get<std::string>("tffile");
   // volume data...
   if(!file_exists(volumefile.c_str())) {
     cout << "File \"" << volumefile << "\" does not exist. Exiting." << endl;
+    return 0;
+  }
+  if(!file_exists(tffile.c_str())) {
+    cout << "Transfer function file \"" << tffile << "\" missing. Exiting. " << endl;
     return 0;
   }
   
@@ -280,11 +285,16 @@ int main(int argc, char **argv) {
       // create a volume object which is similar to a mesh object
       gvt::render::data::primitives::Volume *vol = 
         new gvt::render::data::primitives::Volume();
+      gvt::render::data::primitives::TransferFunction *tf = 
+        new gvt::render::data::primitives::TransferFunction();
       // read volume file.
       unsigned char* sampledata = volheader.readdata(domain);
+      // read transfer function. for now colormap and opacitymap are same map
+      tf->load(tffile,tffile);
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetSamples((short *)sampledata);
+      vol->SetTransferFunction(tf);
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
