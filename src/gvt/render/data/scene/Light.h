@@ -32,6 +32,7 @@
 #define GVT_RENDER_DATA_SCENE_LIGHT_H
 
 #include <gvt/core/Math.h>
+#include <gvt/core/math/RandEngine.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
 
@@ -99,7 +100,7 @@ public:
   float LightHeight;
 
   glm::vec3 u, v, w;
-  RandEngine randEngine;
+  gvt::core::math::RandEngine randEngine;
 };
 }
 }

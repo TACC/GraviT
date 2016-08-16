@@ -21,20 +21,48 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
+
+#ifndef GVT_RENDER_DATA_PRIMITIVES_SHADE_H
+#define GVT_RENDER_DATA_PRIMITIVES_SHADE_H
+
+#include <gvt/core/Math.h>
+
+namespace gvt {
+namespace render {
+namespace actor {
+class Ray;
+}
+}
+}
+
+namespace gvt {
+namespace render {
+namespace data {
+namespace scene {
+class Light;
+}
+}
+}
+}
+
+namespace gvt {
+namespace render {
+namespace data {
+namespace primitives {
+
+struct Material;
+
 /*
- * File:   gvtmanta.h
- * Author: jbarbosa
- *
- * Created on May 26, 2014, 12:01 AM
+ * Material proxy call implemented per adpater
+ * Interfaces to the different shading materials may be significantly different
+ * mainly due to light assessing and vec formats
  */
+bool Shade(gvt::render::data::primitives::Material *material, const gvt::render::actor::Ray &ray,
+           const glm::vec3 &sufaceNormal, const gvt::render::data::scene::Light *lightSource,
+           const glm::vec3 lightPosSample, glm::vec3 &color);
+}
+}
+}
+}
 
-#ifndef GVT_RENDER_ADAPTER_MANTA_WRAPPER_H
-#define GVT_RENDER_ADAPTER_MANTA_WRAPPER_H
-
-#include <gvt/render/adapter/manta/data/MantaMeshAdapter.h>
-// #include <gvt/render/adapter/manta/data/domain/MantaDomain.h>
-// #include <gvt/render/data/Dataset.h>
-
-/// single include for all Manta-specific headers
-
-#endif /* GVT_RENDER_ADAPTER_MANTA_WRAPPER_H */
+#endif

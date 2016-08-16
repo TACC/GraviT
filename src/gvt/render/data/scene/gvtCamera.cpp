@@ -230,7 +230,7 @@ void gvtPerspectiveCamera::generateRays() {
   static tbb::simple_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),
                     [&](tbb::blocked_range<size_t> &chunk) {
-                      RandEngine randEngine;
+                      gvt::core::math::RandEngine randEngine;
                       randEngine.SetSeed(chunk.begin());
                       for (size_t j = chunk.begin(); j < chunk.end(); j++) {
                         // multi - jittered samples

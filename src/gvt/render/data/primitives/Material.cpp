@@ -230,27 +230,27 @@ Vec3fa MetalMaterial__eval(Material *This, const BRDF &brdf, const Vec3fa &wo, c
 }
 
 bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Material *material,
-                                               const gvt::render::actor::Ray &ray, const glm::vec3 &sufaceNormal,
+                                               const gvt::render::actor::Ray &ray, const glm::vec3 &surfaceNormal,
                                                const gvt::render::data::scene::Light *lightSource,
                                                const glm::vec3 lightPosSample, glm::vec3& color) {
 
 
   glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
   glm::vec3 wi = glm::normalize(lightPosSample - hitPoint);
-  float NdotL = std::max(0.f, glm::dot(sufaceNormal, wi));
+  float NdotL = std::max(0.f, glm::dot(surfaceNormal, wi));
   glm::vec3 Li = lightSource->contribution(hitPoint, lightPosSample);
 
   if (NdotL == 0.f || (Li[0] == 0.f && Li[1] == 0.f && Li[2] == 0.f)) return false;
 
   switch (material->type) {
   case LAMBERT:
-    color = lambertShade(material, ray, sufaceNormal, wi);
+    color = lambertShade(material, ray, surfaceNormal, wi);
     break;
   case PHONG:
-    color = phongShade(material, ray, sufaceNormal, wi);
+    color = phongShade(material, ray, surfaceNormal, wi);
     break;
   case BLINN:
-    color = blinnPhongShade(material, ray, sufaceNormal, wi);
+    color = blinnPhongShade(material, ray, surfaceNormal, wi);
     break;
   case EMBREE_MATERIAL_METAL:
   case EMBREE_MATERIAL_VELVET:
@@ -258,7 +258,7 @@ bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Materia
 
 
     DifferentialGeometry dg;
-    dg.Ns = Vec3fa(sufaceNormal.x, sufaceNormal.y, sufaceNormal.z);
+    dg.Ns = Vec3fa(surfaceNormal.x, surfaceNormal.y, surfaceNormal.z);
     Vec3fa ewi = Vec3fa(wi.x, wi.y, wi.z);
     Vec3fa wo = Vec3fa(-ray.direction.x, -ray.direction.y, -ray.direction.z);
 

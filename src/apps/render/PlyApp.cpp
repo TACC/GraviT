@@ -389,7 +389,7 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Embree;
+  schedNode["adapter"] = adapterType;
 
   // end db setup
 

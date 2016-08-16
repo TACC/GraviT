@@ -300,7 +300,7 @@ public:
         instTargetCount = 0;
 
         t_sort.resume();
-        GVT_DEBUG(DBG_ALWAYS, "image scheduler: selecting next instance, num queues: " << this->queue.size());
+        GVT_DEBUG(DBG_ALWAYS, "domain scheduler: selecting next instance, num queues: " << this->queue.size());
         // for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
         //      ++q) {
         for (auto &q : queue) {
@@ -312,7 +312,7 @@ public:
           }
         }
         t_sort.stop();
-        GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
+        GVT_DEBUG(DBG_ALWAYS, "domain scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
         if (instTarget >= 0) {
           t_adapter.resume();
@@ -331,7 +331,7 @@ public:
             adapter = 0;
           }
           if (!adapter) {
-            GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
+            GVT_DEBUG(DBG_ALWAYS, "domain scheduler: creating new adapter");
             switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
               case gvt::render::adapter::Embree:
@@ -355,16 +355,16 @@ public:
                 break;
 #endif
             default:
-              GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
+              GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: " << adapterType);
             }
 
             adapterCache[mesh] = adapter;
           }
           t_adapter.stop();
-          GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
+          GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
           // end getAdapterFromCache concept
 
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: calling process queue");
+          GVT_DEBUG(DBG_ALWAYS, "domain scheduler: calling process queue");
           {
             t_trace.resume();
             moved_rays.reserve(this->queue[instTarget].size() * 10);
@@ -379,7 +379,7 @@ public:
             t_trace.stop();
           }
 
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
+          GVT_DEBUG(DBG_ALWAYS, "domain scheduler: marching rays");
           t_shuffle.resume();
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
