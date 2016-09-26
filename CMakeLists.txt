@@ -229,6 +229,8 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+  src/gvt/render/actor/ORays.h
+  src/gvt/render/actor/smem.h
   src/gvt/render/actor/Ray.h
   src/gvt/render/algorithm/DomainTracer.h
   src/gvt/render/algorithm/HybridTracer.h
@@ -273,6 +275,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/actor/Ray.cpp
+  src/gvt/render/actor/ORays.cpp
+  src/gvt/render/actor/smem.cpp
   src/gvt/render/RenderContext.cpp
   src/gvt/render/data/reader/ObjReader.cpp
   src/gvt/render/data/reader/PlyReader.cpp
@@ -347,20 +351,20 @@ if (GVT_RENDER_ADAPTER_OSPRAY)
   add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
   set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
     src/gvt/render/adapter/ospray/data/OSPRayAdapter.h
-    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.h
+#    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.h
     src/gvt/render/adapter/ospray/Wrapper.h
     )
   set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
     src/gvt/render/adapter/ospray/data/OSPRayAdapter.cpp 
-    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.cpp
+#    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.cpp
     )
   if(GVT_VOLUME)
     set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.h
+#      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.h
       src/gvt/render/data/primitives/Volume.h
       )
     set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.cpp
+#      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.cpp
       src/gvt/render/data/primitives/Volume.cpp
       )
   endif(GVT_VOLUME)
@@ -441,11 +445,9 @@ if (GVT_RENDER)
   if(GVT_RENDER_ADAPTER_OSPRAY)
     set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
     if(OSPRAY_SRCDIR)
-      include_directories(${OSPRAY_SRCDIR}
-                          ${OSPRAY_SRCDIR}/ospray
-                          ${OSPRAY_SRCDIR}/ospray/embree
-                          ${OSPRAY_SRCDIR}/ospray/embree/common
+      include_directories(${OSPRAY_SRCDIR} ${OSPRAY_SRCDIR}/ospray
                           ${OSPRAY_SRCDIR}/ospray/include)
+                        #${OSPRAY_SRCDIR}/ospray/embree ${OSPRAY_SRCDIR}/ospray/embree/common
     endif(OSPRAY_SRCDIR)
   endif(GVT_RENDER_ADAPTER_OSPRAY)
 	include_directories(${OptiX_INCLUDE})
@@ -583,7 +585,8 @@ if (GVT_VOL_APP)
   endif (GVT_MPE)
   find_package(MPI REQUIRED)
   include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
-  set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS}  ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
+  set(OSPRAY_LIBS $ENV{OSPRAY_BUILD}/libospray.so $ENV{OSPRAY_BUILD}/libembree.so )
+  set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS}  ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
   set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
   add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
   target_link_libraries(gvtVol gvtCore gvtRender ${GVTVOL_RENDER_LIBS} )

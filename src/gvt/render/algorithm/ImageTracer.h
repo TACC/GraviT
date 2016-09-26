@@ -52,6 +52,10 @@
 #include <gvt/render/adapter/optix/Wrapper.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#include <gvt/render/adapter/ospray/Wrapper.h>
+#endif
+
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/Wrapper.h>
 #endif
@@ -142,7 +146,7 @@ public:
     }
 
     if (instTargetCount == 0) {
-      //std::cout << "No work to start with" << std::endl;
+      // std::cout << "No work to start with" << std::endl;
     }
 
     // process domains until all rays are terminated
@@ -162,7 +166,7 @@ public:
       }
       t_sort.stop();
 
-      //std::cout << "Instance[" << instTarget << "] " << instTargetCount << std::endl;
+      // std::cout << "Instance[" << instTarget << "] " << instTargetCount << std::endl;
 
       GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
@@ -236,7 +240,7 @@ public:
         moved_rays.clear();
         t_shuffle.stop();
       } else {
-        //std::cout << "No more work" << std::endl;
+        // std::cout << "No more work" << std::endl;
       }
     } while (instTarget != -1);
     GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");

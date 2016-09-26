@@ -7,3 +7,6 @@
 gvt::render::adapter::ospray::data::OSPRayVolAdapter::OSPRayVolAdapter(int *argc, char *argv[], gvt::render::data::primitives::Volume *vol): gvt::render::adapter::ospray::data::OSPRayAdapter(argc,argv) {
   
 }
+gvt::render::adapter::ospray::data::OSPRayVolAdapter::OSPRayVolAdapter(gvt::render::data::primitives::Volume *vol) {
+
+}

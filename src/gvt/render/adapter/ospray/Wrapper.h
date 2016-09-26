@@ -25,7 +25,9 @@
 #ifndef GVT_RENDER_ADAPTER_OSPRAY_WRAPPER_H
 #define GVT_RENDER_ADAPTER_OSPRAY_WRAPPER_H
 
-#include <gvt/render/adapter/ospray/data/OSPRayMeshAdapter.h>
+#include <gvt/render/adapter/ospray/data/OSPRayAdapter.h>
+//#include <gvt/render/adapter/ospray/data/OSPRayMeshAdapter.h>
+//#include <gvt/render/adapter/ospray/data/OSPRayVolAdapter.h>
 
 
 #endif /* GVT_RENDER_ADAPTER_OSPRAY_WRAPPER_H */

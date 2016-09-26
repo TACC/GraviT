@@ -175,7 +175,7 @@ public:
     }
     colorBuf_mutex = new tbb::mutex[width];
     colorBuf = new glm::vec3[width * height];
-    //std::cout << "Resized buffer" << std::endl;
+    // std::cout << "Resized buffer" << std::endl;
   }
 
   void resetInstances() {
@@ -200,29 +200,29 @@ public:
     }
 
     for (auto &l : lights) {
-    	delete l;
+      delete l;
     }
 
     lights.clear();
-     auto lightNodes = rootnode["Lights"].getChildren();
+    auto lightNodes = rootnode["Lights"].getChildren();
 
-     lights.reserve(2);
-     for (auto lightNode : lightNodes) {
-       auto color = lightNode["color"].value().tovec3();
+    lights.reserve(2);
+    for (auto lightNode : lightNodes) {
+      auto color = lightNode["color"].value().tovec3();
 
-       if (lightNode.name() == std::string("PointLight")) {
-         auto pos = lightNode["position"].value().tovec3();
-         lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-       } else if (lightNode.name() == std::string("AmbientLight")) {
-         lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-       } else if (lightNode.name() == std::string("AreaLight")) {
-         auto pos = lightNode["position"].value().tovec3();
-         auto normal = lightNode["normal"].value().tovec3();
-         auto width = lightNode["width"].value().toFloat();
-         auto height = lightNode["height"].value().toFloat();
-         lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
-       }
-     }
+      if (lightNode.name() == std::string("PointLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+      } else if (lightNode.name() == std::string("AmbientLight")) {
+        lights.push_back(new gvt::render::data::scene::AmbientLight(color));
+      } else if (lightNode.name() == std::string("AreaLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        auto normal = lightNode["normal"].value().tovec3();
+        auto width = lightNode["width"].value().toFloat();
+        auto height = lightNode["height"].value().toFloat();
+        lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+      }
+    }
   }
 
   void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec3) * width * height); }
@@ -248,7 +248,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
-   // std::cout << "Suffle rays" << rays.size() << std::endl;
+    // std::cout << "Suffle rays" << rays.size() << std::endl;
 
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
@@ -279,7 +279,7 @@ public:
                       },
                       ap);
 
-    //std::cout << "Finished shuffle" << std::endl;
+    // std::cout << "Finished shuffle" << std::endl;
     rays.clear();
   }
 

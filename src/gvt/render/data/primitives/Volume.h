@@ -27,6 +27,7 @@
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/render/data/primitives/TransferFunction.h>
 #include <gvt/render/data/scene/Light.h>
+#include <gvt/render/data/primitives/Mesh.h>
 
 #include <vector>
 namespace gvt {
@@ -34,31 +35,35 @@ namespace render {
 namespace data {
 namespace primitives {
 
-class Volume {
+class Volume : public Data {
 public:
   Volume();
   ~Volume();
   Box3D boundingBox;
   Box3D *getBoundingBox();
-  enum DataType
+  enum DataType // a short list of possible types
   {
-    FLOAT, UCHAR
+    DOUBLE,
+    FLOAT, 
+    UCHAR,
+    SHORT,
+    INT
   };
   //unsigned char *get_samples() ;
   short *GetSamples() {return shortsamples;};
-  void SetSamples(short * samples) {shortsamples = samples;return;};
+  //int *GetSamples() {return intsamples;}
+  void SetSamples(short * samples) {shortsamples = samples;};
   void SetCounts(int countx, int county, int countz) {counts = {countx,county,countz};return;};
-  glm::vec3* GetCounts() { return &counts; };
-  void GetCounts(glm::vec3 cnts) { cnts[0] = counts[0];cnts[1]=counts[1];cnts[2]=counts[2]; return; };
+  void GetCounts(glm::vec3 &counts);
   void SetOrigin(float x, float y, float z) { origin = {x,y,z};};
   void GetDeltas(glm::vec3 &spacing);
   void GetGlobalOrigin(glm::vec3 &origin);
   void SetTransferFunction(TransferFunction* tf) {transfunction = tf;};
   void GetTransferFunction(TransferFunction* tf) {tf = transfunction;};
   void SetSlices(int n, glm::vec4 *s);
-  void GetSlices(int &n, glm::vec4 &s);
+  void GetSlices(int &n, glm::vec4 *s) { n = n_slices; s = slices;}
   void SetIsovalues(int n, float* values);
-  void GetIsovalues(int *n, float* values);
+  void GetIsovalues(int &n, float* values) {n = n_isovalues; values = isovalues; }
 protected:
   glm::vec4 *slices;
   glm::vec3 counts;
@@ -71,9 +76,10 @@ protected:
 private:
   DataType type;
   glm::vec3 deltas;
-  //unsigned char *uchar_samples;
+  unsigned char *samples;
   float *floatsamples;
-  short* shortsamples;
+  short *shortsamples;
+  int *intsamples;
   OSPVolume theOSPVolume;
   OSPData theOSPData;
 };

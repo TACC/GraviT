@@ -42,7 +42,6 @@
 #include <gvt/render/algorithm/TracerBase.h>
 #include <iterator>
 
-
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/Wrapper.h>
 #endif
@@ -52,6 +51,9 @@
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/Wrapper.h>
+#endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#include <gvt/render/adapter/ospray/Wrapper.h>
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/Wrapper.h>
@@ -102,6 +104,16 @@ public:
   int intersectbvhstart, intersectbvhend;
   int marchinstart, marchinend;
 #endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+  // here is a bit of ugly. ospray needs the command line args for initialization.
+  // all the engine hooks belong in the adapter. The adapter is created in the
+  // tracer. I have to pass argc and argv to the tracer so it can init ospray. 
+  // Blech. Here is initialization via a static method.. ugly. 
+  Tracer(int *argc, char **argv,gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : Tracer(rays, image) {
+  gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(argc, argv);
+  //gvt::render::adapter::ospray::data::OSPRayAdapter::init = true;
+  }
+#endif
 
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
 #ifdef GVT_USE_MPE
@@ -122,89 +134,62 @@ public:
     }
 #endif
 
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
-  std::map<int, std::set<std::string> > meshAvailbyMPI; // where meshes are by mpi node
-  std::map<int, std::set<std::string> >::iterator lastAssigned; //instance-node round-robin assigment
+    gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
+    std::map<int, std::set<std::string> > meshAvailbyMPI; // where meshes are by mpi node
+    std::map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
 
-  for (size_t i = 0; i < mpi.world_size; i++)
-	  meshAvailbyMPI[i].clear();
+    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
 
-  //build location map, where meshes are by mpi node
-  for (size_t i = 0; i < dataNodes.size(); i++) {
+    // build location map, where meshes are by mpi node
+    for (size_t i = 0; i < dataNodes.size(); i++) {
       std::vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
       for (auto loc : locations) {
-    	  meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
+        meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
       }
-  }
-
-  lastAssigned = meshAvailbyMPI.begin();
-
-  // create a map of instances to mpi rank
-  for (size_t i = 0; i < instancenodes.size(); i++) {
-
-//      size_t dataIdx = -1;
-//           for (size_t d = 0; d < dataNodes.size(); d++) {
-//             if (dataNodes[d].UUID() == meshNode.UUID()) {
-//               dataIdx = d;
-//               break;
-//             }
-//           }
-
-//           // NOTE: mpi-data(domain) assignment strategy
-//           size_t mpiNode = dataIdx % mpi.world_size;
-
-//           GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx
-//                                     << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
-
-//           GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
-//           mpiInstanceMap[i] = mpiNode;
-
-
-
-    mpiInstanceMap[i] = -1;
-    if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
-
-    	gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
-
-
-    	//Instance to mpi-node Round robin assignment considering mesh availability
-    	auto startedAt = lastAssigned;
-    	 do {
-    		if (lastAssigned->second.size() > 0){// if mpi-node has no meshes, don't bother
-				if (lastAssigned->second.find(meshNode.UUID().toString())!= lastAssigned->second.end()) {
-					mpiInstanceMap[i] = lastAssigned->first;
-							lastAssigned++;
-					if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-					break;
-						} else {
-							//branch out from lastAssigned and search for a mpi-node with the mesh
-							//keep lastAssigned to continue with round robin
-							auto branchOutSearch = lastAssigned;
-							do {
-								if (branchOutSearch->second.find(
-										meshNode.UUID().toString())
-										!= branchOutSearch->second.end()) {
-									mpiInstanceMap[i] = branchOutSearch->first;
-									break;
-								}
-								branchOutSearch++;
-								if (branchOutSearch == meshAvailbyMPI.end())
-									branchOutSearch = meshAvailbyMPI.begin();
-							} while (branchOutSearch != lastAssigned);
-							break; //If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
-					}
-    		}
-			lastAssigned++;
-			if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-		} while (lastAssigned != startedAt);
     }
 
-//    if (mpi.rank==0)
-//          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
-//          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
-//                                                 std::endl;
+    lastAssigned = meshAvailbyMPI.begin();
+
+    // create a map of instances to mpi rank
+    for (size_t i = 0; i < instancenodes.size(); i++) {
+      mpiInstanceMap[i] = -1;
+      if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
+        gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
+        // Instance to mpi-node Round robin assignment considering mesh availability
+        auto startedAt = lastAssigned;
+        do {
+          if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
+            if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
+              mpiInstanceMap[i] = lastAssigned->first;
+              lastAssigned++;
+              if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+              break;
+            } else {
+              // branch out from lastAssigned and search for a mpi-node with the mesh
+              // keep lastAssigned to continue with round robin
+              auto branchOutSearch = lastAssigned;
+              do {
+                if (branchOutSearch->second.find(meshNode.UUID().toString()) != branchOutSearch->second.end()) {
+                  mpiInstanceMap[i] = branchOutSearch->first;
+                  break;
+                }
+                branchOutSearch++;
+                if (branchOutSearch == meshAvailbyMPI.end()) branchOutSearch = meshAvailbyMPI.begin();
+              } while (branchOutSearch != lastAssigned);
+              break; // If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
+            }
+          }
+          lastAssigned++;
+          if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+        } while (lastAssigned != startedAt);
+      }
+
+      //    if (mpi.rank==0)
+      //          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
+      //          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
+      //                                                 std::endl;
+    }
   }
-}
 
   virtual ~Tracer() {}
 
@@ -334,9 +319,9 @@ public:
             GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
             switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-              case gvt::render::adapter::Embree:
-                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
-                break;
+            case gvt::render::adapter::Embree:
+              adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+              break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
             case gvt::render::adapter::Manta:
@@ -344,15 +329,20 @@ public:
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-              case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
-                break;
+            case gvt::render::adapter::Optix:
+              adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+              break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+            case gvt::render::adapter::Ospray:
+              adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(mesh);
+              break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-              case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
-                break;
+            case gvt::render::adapter::Heterogeneous:
+              adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+              break;
 #endif
             default:
               GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);

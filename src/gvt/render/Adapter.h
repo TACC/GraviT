@@ -25,9 +25,11 @@
 #define GVT_RENDER_ADAPTER_H
 
 #include <gvt/core/DatabaseNode.h>
+#include <gvt/render/actor/ORays.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
+#include <gvt/render/data/primitives/Volume.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 #include <mutex>
@@ -43,12 +45,16 @@ protected:
    * Data node (ex: Mesh, Volume)
    */
   gvt::render::data::primitives::Mesh *mesh;
+  gvt::render::data::primitives::Volume *volume;
+  gvt::render::data::primitives::Data *data;
 
 public:
   /**
    * Construct an adapter with a given data node
    */
+  Adapter(gvt::render::data::primitives::Data *data ) : data(data) {}; 
   Adapter(gvt::render::data::primitives::Mesh *mesh ) : mesh(mesh) {}
+  Adapter(gvt::render::data::primitives::Volume *volume) : volume(volume) {}
 
   /**
    * Destroy the adapter

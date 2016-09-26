@@ -85,8 +85,9 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
     return elems;
 }
 struct bovheader { 
-  std::fstream myfile;
+  std::ifstream myfile;
   std::string datafile;
+  std::string headerfile;
   // the number of points in each coordinate direction
   // in the global mesh
   int datasize[3];
@@ -114,35 +115,37 @@ struct bovheader {
   int counts[3];
   float origin[3];
   gvt::render::data::primitives::Box3D *volbox;
-  bovheader(std::string headername){
+  bovheader(std::string headername): headerfile(headername) {
     for(int i=0;i<3;i++) {
       datasize[i] = 0;
       bricklets[i] = 1;
     }
-    myfile.open(headername.c_str());
+    myfile.open(headerfile.c_str());
+    std::string line;
     while(myfile.good()) {
-      std::string line;
       std::vector<std::string> elems;
       std::getline(myfile,line);
-      split(line,' ',elems);
-      if(elems[0] == "DATA_FILE:") {
-        datafile = elems[1];
-      } else if(elems[0] == "DATA_SIZE:") {
-          for(int i = 1; i<elems.size(); i++) datasize[i-1] = std::stoi(elems[i]);
-      } else if(elems[0] == "DATA_FORMAT:") {
-        if(elems[1] == "INT") { 
-          dfmt = INT;
-        } else if(elems[1] == "FLOAT") {
-          dfmt = FLOAT;
-        }
-      } else if(elems[0] == "VARIABLE:" ) {
-          variable = elems[1];
-      } else if(elems[0] == "DATA_ENDIAN:") {
-          dendian = (elems[1] == "BIG") ? BIG : LITTLE;
-      } else if(elems[0] == "DIVIDE_BRICK:") {
-        dividebrick = (elems[1] == "true")  ? true : false;
-      } else if(elems[0] == "DATA_BRICKLETS:"){
-          for(int i = 1; i<elems.size(); i++) bricklets[i-1] = std::stoi(elems[i]);
+      if(!line.empty()) {
+        split(line,' ',elems);
+        if(elems[0] == "DATA_FILE:") {
+          datafile = elems[1];
+        } else if(elems[0] == "DATA_SIZE:") {
+           for(int i = 1; i<elems.size(); i++) datasize[i-1] = std::stoi(elems[i]);
+        } else if(elems[0] == "DATA_FORMAT:") {
+         if(elems[1] == "INT") { 
+           dfmt = INT;
+         } else if(elems[1] == "FLOAT") {
+           dfmt = FLOAT;
+         }
+        } else if(elems[0] == "VARIABLE:" ) {
+           variable = elems[1];
+        } else if(elems[0] == "DATA_ENDIAN:") {
+           dendian = (elems[1] == "BIG") ? BIG : LITTLE;
+        } else if(elems[0] == "DIVIDE_BRICK:") {
+         dividebrick = (elems[1] == "true")  ? true : false;
+        } else if(elems[0] == "DATA_BRICKLETS:"){
+           for(int i = 1; i<elems.size(); i++) bricklets[i-1] = std::stoi(elems[i]);
+       }
       }
     }
     myfile.close();
@@ -280,6 +283,7 @@ int main(int argc, char **argv) {
   worldsize = MPI::COMM_WORLD.Get_size();
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
+      std::cout << "rank " << rank << " reading domain " << domain <<std::cout;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
@@ -306,11 +310,11 @@ int main(int argc, char **argv) {
       gvt::core::DBNodeH loc = cntxt->createNode("rank",MPI::COMM_WORLD.Get_rank());
       VolumeNode["Locations"] += loc;
       // not sure if I need this call or not based on the way VolumeNode was created.
-      //cntxt->addToSync(VolumeNode);
+      cntxt->addToSync(VolumeNode);
     }
   }
     cntxt->syncContext();
-      // add instances by looping through the domains again. It is enough for rank 0 to do this.
+      // add instances by looping through the domains again. It is enough for rank 0 to do this. It gets synced in the end. 
   if(MPI::COMM_WORLD.Get_rank()==0) {
     for(int domain=0;domain < volheader.numberofdomains; domain++) {
       gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
@@ -337,15 +341,15 @@ int main(int argc, char **argv) {
   }
   cntxt->syncContext();
 
-  // add lights, camera, and film to the database
+  // add lights, camera, and film to the database all nodes do this.
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
+  lightNode["position"] = glm::vec3(128.0, 128.0, 2048.0);
   lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
-  camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
+  camNode["eyePoint"] = glm::vec3(128.0, 128.0, 4096.0);
+  camNode["focus"] = glm::vec3(128.0, 128.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   camNode["rayMaxDepth"] = (int)1;
@@ -382,11 +386,14 @@ int main(int argc, char **argv) {
   int adapterType = gvt::render::adapter::Manta;
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
+#elif GVT_RENDER_ADAPTER_OSPRAY
+  int adapterType = gvt::render::adapter::Ospray;
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Embree;
+  //schedNode["adapter"] = gvt::render::adapter::Embree;
+  schedNode["adapter"] = adapterType;
 
   // end db setup
 
@@ -419,6 +426,9 @@ int main(int argc, char **argv) {
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+  //  gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(&argc,argv,mycamera.rays, myimage);
+#endif
     gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
@@ -434,8 +444,11 @@ int main(int argc, char **argv) {
     MPE_Log_event(renderstart, 0, NULL);
 #endif
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
-    std::cout << "starting image scheduler" << std::endl;
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+    gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(&argc,argv,mycamera.rays, myimage);
+#elif
     gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(mycamera.rays, myimage);
+#endif
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();

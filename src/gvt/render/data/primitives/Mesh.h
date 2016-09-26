@@ -33,6 +33,7 @@
 
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/render/data/primitives/Material.h>
+#include <gvt/render/data/primitives/TransferFunction.h>
 #include <gvt/render/data/scene/Light.h>
 
 #include <vector>
@@ -46,15 +47,20 @@ namespace data {
 namespace primitives {
 
 /// base class for mesh
-class AbstractMesh {
+//class AbstractMesh {
+class Data {
 public:
-  AbstractMesh() {}
+  //AbstractMesh() {}
+  Data() {}
 
-  AbstractMesh(const AbstractMesh &) {}
+  //AbstractMesh(const AbstractMesh &) {}
+  Data(const Data &) {}
 
-  ~AbstractMesh() {}
+  //~AbstractMesh() {}
+  ~Data() {}
 
-  virtual AbstractMesh *getMesh() { return this; }
+  //virtual AbstractMesh *getMesh() { return this; }
+  virtual Data *getMesh() { return this; }
 
   virtual gvt::render::data::primitives::Box3D *getBoundingBox() { return NULL; }
 };
@@ -63,7 +69,8 @@ public:
 /** geometric mesh used within geometric domains
 \sa GeometryDomain
 */
-class Mesh : public AbstractMesh {
+//class Mesh : public AbstractMesh {
+class Mesh : public Data {
 public:
   typedef boost::tuple<int, int, int> Face;
   typedef boost::tuple<int, int, int> FaceToNormals;
@@ -89,17 +96,6 @@ public:
   virtual void generateNormals();
 
   virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
-//  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
-//                                         const gvt::render::data::scene::Light *lsource,
-//                                         const glm::vec3 areaLightPosition);
-//
-//  virtual gvt::render::data::Color shadeFace(const int face_id, const gvt::render::actor::Ray &r,
-//                                             const glm::vec3 &normal, const gvt::render::data::scene::Light *lsource);
-//
-//  virtual gvt::render::data::Color shadeFaceAreaLight(const int face_id, const gvt::render::actor::Ray &r,
-//                                                      const glm::vec3 &normal,
-//                                                      const gvt::render::data::scene::Light *lsource,
-//                                                      const glm::vec3 areaLightPosition);
 
   void writeobj(std::string filename);
 

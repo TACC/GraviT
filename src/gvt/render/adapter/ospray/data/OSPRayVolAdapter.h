@@ -39,8 +39,15 @@ class OSPRayVolAdapter : public gvt::render::adapter::ospray::data::OSPRayAdapte
 public: // public stuff
   /**
    * Construct the Ospray mesh adapter. This constructor takes a volume argument. 
+   * It also takes command line args. Ospray initialization requires these to parse
+   * out the ospray related args. 
    */
   OSPRayVolAdapter(int *argc, char *argv[], gvt::render::data::primitives::Volume *vol);
+  /**
+   * Construct the Ospray adapter without passing in the command line args. The
+   * constructor makes a dummy list and passes it to ospinit. 
+   */
+  OSPRayVolAdapter(gvt::render::data::primitives::Volume *vol);
   /**
    * Destruct the adapter
    */
