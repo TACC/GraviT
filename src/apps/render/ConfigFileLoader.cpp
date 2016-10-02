@@ -83,8 +83,12 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
    * Assumes that required base nodes are created
    */
   gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
 
   std::map<std::string, gvt::render::data::primitives::Mesh *> meshes;
+  std::map< gvt::render::data::primitives::Mesh *, gvt::core::DBNodeH> meshestoDBNode;
+
   int domainCount=0;
 
   while (file.good()) {
@@ -133,23 +137,48 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       glm::mat4* minv= new glm::mat4(1.f);
       glm::mat3* normi = new glm::mat3(1.f);
 
+      gvt::core::DBNodeH meshNode;
+
       if (elems[1].find(".obj") < elems[1].size()) {
         GVT_DEBUG(DBG_ALWAYS, "Found obj file : " << elems[1].find(".obj"));
 
 
       std::map<std::string, gvt::render::data::primitives::Mesh *>::iterator meshIt = meshes.find(elems[1]);
 
+
       if (meshIt != meshes.end()) {
         mesh = meshIt->second;
+        meshNode =  meshestoDBNode[mesh];
       } else {
         gvt::render::data::domain::reader::ObjReader objReader(elems[1]);
         mesh = objReader.getMesh();
         meshes[elems[1]] = mesh;
+
+        if (MPI::COMM_WORLD.Get_rank()==0)
+        	cntxt->addToSync(cntxt->createNodeFromType("Mesh",
+				filename.c_str(), dataNodes.UUID()));
+
+        cntxt->syncContext();
+
+        meshNode = dataNodes.getChildren().back();
+
+		meshNode["file"] = filename;
+		gvt::render::data::primitives::Box3D *bbox = mesh->getBoundingBox();
+		meshNode["bbox"] = (unsigned long long) bbox;
+		meshNode["ptr"] = (unsigned long long) mesh;
+
+
+		gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
+		meshNode["Locations"] += loc;
+
+		cntxt->addToSync(meshNode);
+
+        meshestoDBNode[mesh] = meshNode;
+
+
       }
 
       mesh->generateNormals();
-
-     // domain = new gvt::render::data::domain::GeometryDomain(mesh);
 
         glm::vec3 t;
         t[0] = std::atof(elems[2].c_str());
@@ -194,37 +223,30 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
         GVT_DEBUG(DBG_ALWAYS, "Found ply file : " << elems[1].find(".ply"));
       }
 
-		gvt::core::DBNodeH dataNodes = root["Data"];
-		gvt::core::DBNodeH instNodes = root["Instances"];
 
-		//gvt::render::data::primitives::Mesh *mesh = domain->getMesh();
 
-		gvt::core::DBNodeH meshNode = cntxt->createNodeFromType("Mesh",
-				filename.c_str(), dataNodes.UUID());
+		  if (MPI::COMM_WORLD.Get_rank()==0){
+			// add instance
+			gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance",
+					"inst", instNodes.UUID());
+			gvt::render::data::primitives::Box3D *mbox =
+					(gvt::render::data::primitives::Box3D *) meshNode["bbox"].value().toULongLong();
+			instnode["id"] = domainCount++;
+			instnode["meshRef"] = meshNode.UUID();
 
-		meshNode["file"] = filename;
-		gvt::render::data::primitives::Box3D *bbox = mesh->getBoundingBox();
-		meshNode["bbox"] = (unsigned long long) bbox;
-		meshNode["ptr"] = (unsigned long long) mesh;
+			instnode["mat"] = (unsigned long long) m;
+			instnode["matInv"] = (unsigned long long) minv;
+			instnode["normi"] = (unsigned long long) normi;
 
-		// add instance
-		gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance",
-				"inst", instNodes.UUID());
-		gvt::render::data::primitives::Box3D *mbox =
-				(gvt::render::data::primitives::Box3D *) meshNode["bbox"].value().toULongLong();
-		instnode["id"] = domainCount++;
-		instnode["meshRef"] = meshNode.UUID();
+			auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+			auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+			gvt::render::data::primitives::Box3D *ibox =
+					new gvt::render::data::primitives::Box3D(il, ih);
+			instnode["bbox"] = (unsigned long long) ibox;
+			instnode["centroid"] = ibox->centroid();
+			cntxt->addToSync(instnode);
 
-		instnode["mat"] = (unsigned long long) m;
-		instnode["matInv"] = (unsigned long long) minv;
-		instnode["normi"] = (unsigned long long) normi;
-
-		auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-		auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-		gvt::render::data::primitives::Box3D *ibox =
-				new gvt::render::data::primitives::Box3D(il, ih);
-		instnode["bbox"] = (unsigned long long) ibox;
-		instnode["centroid"] = ibox->centroid();
+		  }
 
 
 
@@ -289,6 +311,10 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       GVT_DEBUG(DBG_LOW, "Invalid option");
     }
   }
+
+  cntxt->syncContext();
+
+
 }
 
 ConfigFileLoader::ConfigFileLoader(const ConfigFileLoader &orig) {}

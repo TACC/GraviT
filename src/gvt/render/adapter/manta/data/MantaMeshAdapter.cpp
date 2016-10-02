@@ -25,28 +25,34 @@
 // MantaMeshAdapter.cpp
 //
 
-#include "gvt/render/adapter/manta/data/MantaMeshAdapter.h"
+#include <gvt/render/adapter/manta/data/MantaMeshAdapter.h>
 
-#include "gvt/core/CoreContext.h"
+#include <gvt/core/CoreContext.h>
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/math/RandEngine.h>
 #include <gvt/render/actor/Ray.h>
-#include <gvt/render/adapter/manta/data/Transforms.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
+#include <gvt/render/data/primitives/Material.h>
+// #include <gvt/render/data/primitives/EmbreeMaterial.h>
+#include <gvt/render/data/primitives/Shade.h>
 
 // Manta includes
 #include <Core/Math/CheapRNG.h>
 #include <Core/Math/MT_RNG.h>
-#include <Engine/Shadows/HardShadows.h>
-#include <Engine/Shadows/NoShadows.h>
-#include <Interface/Primitive.h>
-#include <Model/AmbientLights/AmbientOcclusionBackground.h>
-#include <Model/AmbientLights/ArcAmbient.h>
-#include <Model/AmbientLights/ConstantAmbient.h>
-#include <Model/AmbientLights/EyeAmbient.h>
-#include <Model/Primitives/Cube.h>
+#include <Model/Materials/Lambertian.h>
+#include <Interface/Context.h>
+
+// #include <Engine/Shadows/HardShadows.h>
+// #include <Engine/Shadows/NoShadows.h>
+// #include <Interface/Primitive.h>
+// #include <Model/AmbientLights/AmbientOcclusionBackground.h>
+// #include <Model/AmbientLights/ArcAmbient.h>
+// #include <Model/AmbientLights/ConstantAmbient.h>
+// #include <Model/AmbientLights/EyeAmbient.h>
+// #include <Model/Primitives/Cube.h>
 // end Manta includes
 
 #include <atomic>
@@ -55,6 +61,14 @@
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
 #include <boost/timer/timer.hpp>
+#include <boost/tuple/tuple.hpp>
+
+#include <tbb/blocked_range.h>
+#include <tbb/mutex.h>
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
+#include <tbb/partitioner.h>
+#include <tbb/tick_count.h>
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::manta::data;
@@ -63,266 +77,108 @@ using namespace gvt::render::adapter::manta::data;
 using namespace gvt::render::data::primitives;
 
 static std::atomic<size_t> counter(0);
-static boost::atomic<size_t> counter_b(0);
 
-// MantaMeshAdapter::MantaMeshAdapter(GeometryDomain* domain) : GeometryDomain(*domain)
-MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::prmitives::Mesh *mesh) : Adapter(mesh) {
-  GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: converting mesh node " << node.UUID().toString());
-
-  // Mesh *mesh = (Mesh *)node["ptr"].value().toULongLong();
-
+MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::primitives::Mesh *mesh)
+    : Adapter(mesh), mantaInterface(NULL), preprocessContext(NULL), renderContext(NULL), scene(NULL), bvh(NULL),
+      material(NULL), mantaMesh(NULL), randGen(NULL) {
   GVT_ASSERT(mesh, "MantaMeshAdapter: mesh pointer in the database is null");
 
+  // Create Manta (allocated in the heap)
+  mantaInterface = Manta::createManta();
+
+  // Create preprocess context
+  preprocessContext =
+      new Manta::PreprocessContext(mantaInterface, 0 /* proc */, 1 /* numProcs */, NULL /* LightSet* */);
+
+  // Transform mesh (GVT to Manta) begin
+
+  // generate surface normals
   mesh->generateNormals();
 
-  // Transform mesh
-  // meshManta = transform<Mesh*, Manta::Mesh*>(this->mesh);
-  meshManta = transform<Mesh *, Manta::Mesh *>(mesh);
-  Manta::Material *material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
-  Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
+  // set material (just for placeholder)
+  material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
+  material->preprocess(*preprocessContext);
+
+  mantaMesh = new Manta::Mesh();
+  mantaMesh->materials.push_back(material);
+
+  for (int i = 0; i < mesh->vertices.size(); ++i) {
+    const glm::vec3 &v = mesh->vertices[i];
+    mantaMesh->vertices.push_back(Manta::Vector(v[0], v[1], v[2]));
+  }
+
+  for (int i = 0; i < mesh->normals.size(); ++i) {
+    const glm::vec3 &n = mesh->normals[i];
+    mantaMesh->vertexNormals.push_back(Manta::Vector(n[0], n[1], n[2]));
+  }
+
+  for (int i = 0; i < mesh->faces.size(); ++i) {
+    // Face being boost::tuple<int, int, int>
+    gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
+    // texture indices
+    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
+    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
+    mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
+    // vertex indices
+    mantaMesh->vertex_indices.push_back(boost::get<0>(f));
+    mantaMesh->vertex_indices.push_back(boost::get<1>(f));
+    mantaMesh->vertex_indices.push_back(boost::get<2>(f));
+    // normal indices
+    mantaMesh->normal_indices.push_back(boost::get<0>(f));
+    mantaMesh->normal_indices.push_back(boost::get<1>(f));
+    mantaMesh->normal_indices.push_back(boost::get<2>(f));
+    mantaMesh->face_material.push_back(0);
+    // triangle objects (to be deleted inside Manta)
+    mantaMesh->addTriangle(new Manta::KenslerShirleyTriangle());
+  }
+
+  // Transform mesh (GVT to Manta) end
 
   // Create BVH
-  as = new Manta::DynBVH();
-  as->setGroup(meshManta);
+  bvh = new Manta::DynBVH();
+  bvh->setGroup(mantaMesh);
+  bvh->preprocess(*preprocessContext);
 
-  // Create Manta
-  static Manta::MantaInterface *rtrt = Manta::createManta();
+  scene = new Manta::Scene();
+  scene->setObject(bvh);
 
-  // Create light set
-  Manta::LightSet *lights = new Manta::LightSet();
-  lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
+  Manta::CheapRNG::create(randGen);
 
-  // Create ambient light
-  Manta::AmbientLight *ambient;
-  ambient = new Manta::AmbientOcclusionBackground(Manta::Color::white() * 0.5, 1, 36);
-
-  // Create context
-  Manta::PreprocessContext context(rtrt, 0, 1, lights);
-  std::cout << "context.global_lights : " << context.globalLights << std::endl;
-  material->preprocess(context);
-  as->preprocess(context);
-
-  // Select algorithm
-  Manta::ShadowAlgorithm *shadows;
-  shadows = new Manta::HardShadows();
-  Manta::Scene *scene = new Manta::Scene();
-
-  scene->setLights(lights);
-  scene->setObject(as);
-  Manta::RandomNumberGenerator *rng = NULL;
-  Manta::CheapRNG::create(rng);
-
-  rContext =
-      new Manta::RenderContext(rtrt, 0, 0 /*proc*/, 1 /*workersAnimandImage*/, 0 /*animframestate*/, 0 /*loadbalancer*/,
-                               0 /*pixelsampler*/, 0 /*renderer*/, shadows /*shadowAlgorithm*/, 0 /*camera*/,
-                               scene /*scene*/, 0 /*thread_storage*/, rng /*rngs*/, 0 /*samplegenerator*/);
+  renderContext = new Manta::RenderContext(mantaInterface,
+                                           0,       // channel index
+                                           0,       // proc
+                                           1,       // num procs
+                                           0,       // frame state
+                                           0,       // loadbalancer
+                                           0,       // pixelsampler
+                                           0,       // renderer
+                                           0,       // shadowAlgorithm
+                                           0,       // camera
+                                           scene,   // scene
+                                           0,       // thread_storage
+                                           randGen, // rngs
+                                           0        // samplegenerator
+                                           );
 }
-
-// MantaMeshAdapter::MantaMeshAdapter(std::string filename, glm::mat4 m)
-// : gvt::render::data::domain::GeometryDomain(filename, m)
-// {
-//
-// }
-//
-// MantaMeshAdapter::MantaMeshAdapter(const MantaMeshAdapter& other)
-// : gvt::render::data::domain::GeometryDomain(other)
-// {
-// }
 
 MantaMeshAdapter::~MantaMeshAdapter() {
-  // GeometryDomain::~GeometryDomain();
+  if (renderContext) delete renderContext;
+  if (randGen) delete randGen;
+  if (scene) delete scene;
+  if (bvh) delete bvh;
+  if (mantaMesh) delete mantaMesh;
+  if (material) delete material;
+  if (preprocessContext) delete preprocessContext;
+  if (mantaInterface) delete mantaInterface;
 }
 
-bool MantaMeshAdapter::load() {
-#if 0
-    if (domainIsLoaded()) return true;
-
-    GVT::Domain::GeometryDomain::load();
-    Manta::Mesh* mesh = GVT::Data::transform<GVT::Data::Mesh*, Manta::Mesh*>(this->mesh);
-
-
-    Manta::Material *material = new Manta::Lambertian(Manta::Color(Manta::RGBColor(0.f, 0.f, 0.f)));
-    Manta::MeshTriangle::TriangleType triangleType = Manta::MeshTriangle::KENSLER_SHIRLEY_TRI;
-    as = new Manta::DynBVH();
-    as->setGroup(mesh);
-
-    static Manta::MantaInterface* rtrt = Manta::createManta();
-    Manta::LightSet* lights = new Manta::LightSet();
-    lights->add(new Manta::PointLight(Manta::Vector(0, -5, 8), Manta::Color(Manta::RGBColor(1, 1, 1))));
-    Manta::AmbientLight* ambient;
-    ambient = new Manta::AmbientOcclusionBackground(Manta::Color::white()*0.5, 1, 36);
-    Manta::PreprocessContext context(rtrt, 0, 1, lights);
-    std::cout << "context.global_lights : " << context.globalLights << std::endl;
-    material->preprocess(context);
-    as->preprocess(context);
-    Manta::ShadowAlgorithm* shadows;
-    shadows = new Manta::HardShadows();
-    Manta::Scene* scene = new Manta::Scene();
-
-
-    scene->setLights(lights);
-    scene->setObject(as);
-    Manta::RandomNumberGenerator* rng = NULL;
-    Manta::CheapRNG::create(rng);
-
-    rContext = new Manta::RenderContext(rtrt, 0, 0/*proc*/, 1/*workersAnimandImage*/,
-            0/*animframestate*/,
-            0/*loadbalancer*/, 0/*pixelsampler*/, 0/*renderer*/, shadows/*shadowAlgorithm*/, 0/*camera*/, scene/*scene*/, 0/*thread_storage*/, rng/*rngs*/, 0/*samplegenerator*/);
-
-#endif
-  return true;
-}
+bool MantaMeshAdapter::load() { return true; }
 
 void MantaMeshAdapter::free() {}
 
-struct parallelTrace {
-  // gvt::render::adapter::manta::data::domain::MantaDomain* dom;
-  gvt::render::adapter::manta::data::MantaMeshAdapter *adapter;
-  gvt::render::actor::RayVector &rayList;
-  gvt::render::actor::RayVector &moved_rays;
-  const size_t workSize;
-  const glm::mat4 *m;
-  const glm::mat4 *minv;
-  const glm::mat3 *normi;
-  const std::vector<gvt::render::data::scene::Light *> &lights;
-  const gvt::render::data::primitives::Mesh *mesh;
-
-  boost::atomic<size_t> &counter;
-
-  parallelTrace(
-      // gvt::render::adapter::manta::data::domain::MantaDomain* dom,
-      gvt::render::adapter::manta::data::MantaMeshAdapter *adapter, gvt::render::actor::RayVector &rayList,
-      gvt::render::actor::RayVector &moved_rays, const size_t workSize, boost::atomic<size_t> &counter, glm::mat4 *m,
-      glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
-      gvt::render::data::primitives::Mesh *mesh)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), counter(counter), m(m),
-        minv(minv), normi(normi), lights(lights), mesh(mesh) {}
-
-  void operator()() {
-    const size_t maxPacketSize = 64;
-
-    Manta::RenderContext &renderContext = *adapter->getRenderContext();
-
-    gvt::render::actor::RayVector rayPacket;
-    gvt::render::actor::RayVector localQueue;
-    gvt::render::actor::RayVector localDispatch;
-
-    Manta::RayPacketData rpData;
-
-    localQueue.reserve(workSize * 2);
-    localDispatch.reserve(rayList.size() * 2);
-
-    //                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertices.size());
-    //                GVT_DEBUG(DBG_ALWAYS, dom->meshManta->vertex_indices.size());
-    //
-    //                BOOST_FOREACH(int i, dom->meshManta->vertex_indices) {
-    //                    GVT_DEBUG(DBG_ALWAYS, i);
-    //                }
-
-    while (!rayList.empty()) {
-      std::unique_lock<std::mutex> queue(adapter->_inqueue);
-      std::size_t range = std::min(workSize, rayList.size());
-      localQueue.assign(rayList.begin(), rayList.begin() + range);
-      rayList.erase(rayList.begin(), rayList.begin() + range);
-      queue.unlock();
-
-      GVT_DEBUG(DBG_ALWAYS, "Got " << localQueue.size() << " rays");
-      while (!localQueue.empty()) {
-        rayPacket.clear();
-
-        while (rayPacket.size() < 64 && !localQueue.empty()) {
-          rayPacket.push_back(localQueue.back());
-          localQueue.pop_back();
-        }
-
-        Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, rayPacket.size(), 0,
-                               Manta::RayPacket::NormalizedDirections);
-        for (int i = 0; i < rayPacket.size(); i++) {
-          Ray ray(rayPacket[i]);
-          ray.origin = (*minv) * ray.origin; // transform ray to local space
-          ray.direction = (*minv) * ray.direction;
-          // mRays.setRay(i, transform<Ray, Manta::Ray>(dom->toLocal(rayPacket[i])));
-          mRays.setRay(i, transform<Ray, Manta::Ray>(ray));
-          // mRays.setRay(i, GVT::Data::transform<GVT::Data::ray, Manta::Ray>(rayPacket[i]));
-        }
-
-        mRays.resetHits();
-        adapter->getAccelStruct()->intersect(renderContext, mRays);
-        mRays.computeNormals<false>(renderContext);
-
-        //                        GVT_DEBUG(DBG_ALWAYS,"Process packet");
-
-        for (int pindex = 0; pindex < rayPacket.size(); pindex++) {
-          if (mRays.wasHit(pindex)) {
-            //                                GVT_DEBUG(DBG_ALWAYS,"Ray has hit " << pindex);
-            if (rayPacket[pindex].type == gvt::render::actor::Ray::SHADOW) {
-              //                                    GVT_DEBUG(DBG_ALWAYS,"Process ray in shadow");
-              continue;
-            }
-
-            float t = mRays.getMinT(pindex);
-            rayPacket[pindex].t = t;
-
-            // glm::vec3 normal =
-            // dom->toWorld(gvt::render::adapter::manta::data::transform<Manta::Vector,
-            // glm::vec3>(mRays.getNormal(pindex)));
-            glm::vec3 normal =
-                glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec3>(mRays.getNormal(pindex))));
-
-            if (rayPacket[pindex].type == gvt::render::actor::Ray::SECONDARY) {
-              t = (t > 1) ? 1.f / t : t;
-              rayPacket[pindex].w = rayPacket[pindex].w * t;
-            }
-
-            // std::vector<gvt::render::data::scene::Light*> lights = dom->getLights();
-            // for (int lindex = 0; lindex < lights.size(); lindex++)
-            for (gvt::render::data::scene::Light *light : lights) {
-              gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.type = gvt::render::actor::Ray::SHADOW;
-              ray.origin = ray.origin + ray.direction * ray.t;
-              ray.setDirection(light->position - ray.origin);
-              gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
-              ray.color = c;
-              // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
-              localQueue.push_back(ray);
-            }
-
-            int ndepth = rayPacket[pindex].depth - 1;
-
-            float p = 1.f - (float(rand()) / RAND_MAX);
-
-            if (ndepth > 0 && rayPacket[pindex].w > p) {
-              gvt::render::actor::Ray ray(rayPacket[pindex]);
-              ray.type = gvt::render::actor::Ray::SECONDARY;
-              ray.origin = ray.origin + ray.direction * ray.t;
-              ray.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-              ray.w = ray.w * (ray.direction * normal);
-              ray.depth = ndepth;
-              localQueue.push_back(ray);
-            }
-            // counter++;
-            continue;
-          }
-          // counter++;
-          // GVT_DEBUG(DBG_ALWAYS,"Add to local dispatch");
-          localDispatch.push_back(rayPacket[pindex]);
-        }
-      }
-    }
-
-    GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size());
-
-    std::unique_lock<std::mutex> moved(adapter->_outqueue);
-    moved_rays.insert(moved_rays.begin(), localDispatch.begin(), localDispatch.end());
-    moved.unlock();
-  }
-};
-
-// TODO: Warning! the following trace structure is still buggy.
-// Random stripes on the final image are seen.
 struct mantaParallelTrace {
   /**
-   * Pointer to MantaMeshAdapter to get Embree scene information
+   * Pointer to MantaMeshAdapter
    */
   gvt::render::adapter::manta::data::MantaMeshAdapter *adapter;
 
@@ -340,12 +196,6 @@ struct mantaParallelTrace {
    * Number of rays to work on at once [load balancing].
    */
   const size_t workSize;
-
-  /**
-   * Index into the shared `rayList`.  Atomically incremented to 'grab'
-   * the next set of rays.
-   */
-  std::atomic<size_t> &sharedIdx;
 
   /**
    * DB reference to the current instance
@@ -392,58 +242,45 @@ struct mantaParallelTrace {
   /**
    * Size of Manta packet
    */
-  const size_t packetSize; // TODO: later make this configurable
+  const size_t packetSize;
+
+  const size_t begin, end;
+
+  gvt::render::data::primitives::Mesh *mesh;
 
   /**
-   * Construct a mantaParallelTrace struct with information needed for the thread
+   * Construct a mantaParallelTrace struct with information needed for the
+   * thread
    * to do its tracing
    */
   mantaParallelTrace(gvt::render::adapter::manta::data::MantaMeshAdapter *adapter,
                      gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                     std::atomic<size_t> &sharedIdx, const size_t workSize, gvt::core::DBNodeH instNode, glm::mat4 *m,
-                     glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
-                     std::atomic<size_t> &counter)
-      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), sharedIdx(sharedIdx), workSize(workSize), m(m),
-        minv(minv), normi(normi), lights(lights), counter(counter),
-        packetSize(64) // TODO: packetSize(adapter->getPacketSize())
-  {}
+                     const size_t workSize, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                     std::vector<gvt::render::data::scene::Light *> &lights, gvt::render::data::primitives::Mesh *mesh,
+                     std::atomic<size_t> &counter, const size_t begin, const size_t end)
+      : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
+        lights(lights), mesh(mesh), counter(counter), begin(begin), end(end), packetSize(Manta::RayPacket::MaxSize) {}
 
   /**
-   * Convert a set of rays from a vector into a RTCRay4 ray packet.
+   * Convert a set of rays from a vector into a Manta ray packet.
    *
-   * \param ray4          reference of RTCRay4 struct to write to
-   * \param valid         aligned array of 4 ints to mark valid rays
-   * \param resetValid    if true, reset the valid bits, if false, re-use old valid to know which to convert
-   * \param packetSize    number of rays to convert
-   * \param rays          vector of rays to read from
    * \param startIdx      starting point to read from in `rays`
+   * \param rays          vector of rays to read from
+   * \param mRays         reference of Manta ray packet to write to
    */
-  // void prepRTCRay4(RTCRay4 &ray4, int valid[4], const bool resetValid, const int localPacketSize,
-  // gvt::render::actor::RayVector& rays, const size_t startIdx) {
-  void prepRayPacket(Manta::RayPacket &mRays, int *valid, const bool resetValid, const int localPacketSize,
-                     gvt::render::actor::RayVector &rays, const size_t startIdx) {
-    // reset valid to match the number of active rays in the packet
-    if (resetValid) {
-      for (int i = 0; i < localPacketSize; i++) {
-        valid[i] = -1;
-      }
-      for (int i = localPacketSize; i < packetSize; i++) {
-        valid[i] = 0;
-      }
+  void prepRayPacket(std::size_t startIdx, const gvt::render::actor::RayVector &rays, Manta::RayPacket *mRays) {
+    // convert packetSize rays into manta's RayPacket class
+    for (int i = mRays->begin(); i < mRays->end(); ++i) {
+      const Ray &r = rays[startIdx + i];
+      const auto origin = (*minv) * glm::vec4(r.origin, 1.f); // transform ray to local space
+      const auto direction = (*minv) * glm::vec4(r.direction, 0.f);
+
+      mRays->setRay(i, Manta::Vector(origin[0], origin[1], origin[2]),
+                    Manta::Vector(direction[0], direction[1], direction[2]));
     }
 
-    // convert packetSize rays into manta's RayPacket class
-    for (int i = 0; i < packetSize; ++i) {
-      if (valid[i]) {
-        Ray ray(rays[startIdx + i]);
-        ray.origin = (*minv) * ray.origin; // transform ray to local space
-        ray.direction = (*minv) * ray.direction;
-        mRays.setRay(i, transform<Ray, Manta::Ray>(ray));
-      } else {
-        mRays.maskRay(i);
-      }
-    }
-    mRays.resetHits();
+    // reset ray packet (Manta sets hitMatl[i] to 0 and minT[i] to MAXT)
+    mRays->resetHits();
   }
 
   /**
@@ -455,20 +292,81 @@ struct mantaParallelTrace {
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
   void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
-                          gvt::render::data::primitives::Mesh *mesh) {
+                          gvt::render::data::primitives::Material *material, unsigned int *randSeed) {
+
     for (gvt::render::data::scene::Light *light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-      const glm::vec3 origin = r.origin + r.direction * r.t;
-      glm::vec3 dir = light->position - origin;
-      const float t_max = glm::length(dir);
-      shadowRays.push_back(Ray(origin, glm::normalize(dir), r.w, Ray::SHADOW, r.depth));
+      // Try to ensure that the shadow ray is on the correct side of the
+      // triangle.
+      // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
+      // Using about 8 * ULP(t).
+
+      gvt::render::data::Color c;
+      glm::vec3 lightPos;
+      if (light->LightT == gvt::render::data::scene::Light::Area) {
+        lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
+      } else {
+        lightPos = light->position;
+      }
+
+      if (!gvt::render::data::primitives::Shade(material, r, normal, light, lightPos, c)) continue;
+
+      const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON;
+      const float t_shadow = multiplier * r.t;
+
+      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 dir = lightPos - origin;
+      const float t_max = dir.length();
+
+      // note: ray copy constructor is too heavy, so going to build it manually
+      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+
       Ray &shadow_ray = shadowRays.back();
       shadow_ray.t = r.t;
       shadow_ray.id = r.id;
       shadow_ray.t_max = t_max;
-      gvt::render::data::Color c = mesh->mat->shade(r, normal, light, light->position);
-      shadow_ray.color = c; // GVT_COLOR_ACCUM(1.0f, c[0], c[1], c[2], 1.0f);
+
+      // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
+      // normal, lights[lindex]);
+      shadow_ray.color = glm::vec3(c[0], c[1], c[2]);
     }
+  }
+
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, gvt::core::math::RandEngine &randEngine) {
+    float Xi1 = 0;
+    float Xi2 = 0;
+    //	    if(randSeed == nullptr)
+    //	    {
+    //	      Xi1 = (float)rand() / (float)RAND_MAX;
+    //	      Xi2 = (float)rand() / (float)RAND_MAX;
+    //	    }
+    //	    else
+    //	    {
+    Xi1 = randEngine.fastrand(0, 1);
+    Xi2 = randEngine.fastrand(0, 1);
+    //}
+
+    float theta = std::acos(std::sqrt(1.0 - Xi1));
+    float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
+
+    float xs = sinf(theta) * cosf(phi);
+    float ys = cosf(theta);
+    float zs = sinf(theta) * sinf(phi);
+
+    glm::vec3 y(n);
+    glm::vec3 h = y;
+    if (fabs(h.x) <= fabs(h.y) && fabs(h.x) <= fabs(h.z))
+      h[0] = 1.0;
+    else if (fabs(h.y) <= fabs(h.x) && fabs(h.y) <= fabs(h.z))
+      h[1] = 1.0;
+    else
+      h[2] = 1.0;
+
+    glm::vec3 x = glm::cross(h, y);
+    glm::vec3 z = glm::cross(x, y);
+
+    glm::vec3 direction = x * xs + y * ys + z * zs;
+    return glm::normalize(direction);
   }
 
   /**
@@ -476,25 +374,27 @@ struct mantaParallelTrace {
    * to the dispatch queue.
    */
   void traceShadowRays() {
-
-    int valid[64] = { 0 };
+    // int valid[Manta::RayPacket::MaxSize] = { 0 };
     Manta::RayPacketData rpData;
-    Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, packetSize, 0,
-                           Manta::RayPacket::NormalizedDirections);
+    Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0 /*rayBegin*/, Manta::RayPacket::MaxSize /*rayEnd*/,
+                           0 /*depth*/, Manta::RayPacket::NormalizedDirections);
 
-    Manta::RenderContext &renderContext = *adapter->getRenderContext();
+    const Manta::RenderContext &renderContext = *(adapter->getRenderContext());
 
-    for (size_t idx = 0; idx < shadowRays.size(); idx += packetSize) {
-      const size_t localPacketSize = (idx + packetSize > shadowRays.size()) ? (shadowRays.size() - idx) : packetSize;
+    for (size_t idx = 0; idx < shadowRays.size(); idx += Manta::RayPacket::MaxSize) {
+      const size_t localPacketSize =
+          (idx + Manta::RayPacket::MaxSize > shadowRays.size()) ? (shadowRays.size() - idx) : Manta::RayPacket::MaxSize;
 
-      // create a shadow packet and trace with rtcOccluded
-      prepRayPacket(mRays, valid, true, localPacketSize, shadowRays, idx);
-      adapter->getAccelStruct()->intersect(renderContext, mRays);
+      Manta::RayPacket rayPacket(mRays, 0, localPacketSize);
 
-      for (size_t pi = 0; pi < localPacketSize; pi++) {
-        if (valid[pi] && !mRays.wasHit(pi)) {
-          // if(!mRays.wasHit(pi)) {
-          // ray is valid, but did not hit anything, so add to dispatch queue
+      // populate rayPacket
+      prepRayPacket(idx, shadowRays, &rayPacket);
+
+      // do intersection test
+      adapter->getAccelStruct()->intersect(renderContext, rayPacket);
+
+      for (size_t pi = 0; pi < rayPacket.end(); ++pi) {
+        if (!rayPacket.wasHit(pi)) {
           localDispatch.push_back(shadowRays[idx + pi]);
         }
       }
@@ -542,8 +442,6 @@ struct mantaParallelTrace {
    * If `sharedIdx` grows to be larger than the incoming ray size, then the thread is complete.
    */
   void operator()() {
-// const size_t maxPacketSize = 64;
-//
 #ifdef GVT_USE_DEBUG
     boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: thread trace time: %w\n");
 #endif
@@ -551,141 +449,122 @@ struct mantaParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: getting mesh [hack for now]");
     // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals and shading calculations
-    auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
+    // auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
-    Manta::RenderContext &renderContext = *adapter->getRenderContext();
+    const Manta::RenderContext &renderContext = *(adapter->getRenderContext());
 
     // gvt::render::actor::RayVector rayPacket;
     // gvt::render::actor::RayVector localQueue;
     // gvt::render::actor::RayVector localDispatch;
 
-    // localQueue.reserve(workSize * 2);
-    localDispatch.reserve(rayList.size() * 2);
+    localDispatch.reserve((end - begin) * 2);
 
-    // there is an upper bound on the nubmer of shadow rays generated per embree packet
-    // its embree_packetSize * lights.size()
-    // TODO: what about Manta?
-    shadowRays.reserve(packetSize * lights.size());
+    shadowRays.reserve(lights.size());
 
     GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: starting while loop");
 
-    while (sharedIdx < rayList.size()) {
-#ifdef GVT_USE_DEBUG
-// boost::timer::auto_cpu_timer t_outer_loop("EmbreeMeshAdapter: workSize rays traced: %w\n");
-#endif
-      // atomically get the next chunk range
-      size_t workStart = sharedIdx.fetch_add(workSize);
+    gvt::core::math::RandEngine randEngine;
+    randEngine.SetSeed(begin);
 
-      // have to double check that we got the last valid chunk range
-      if (workStart > rayList.size()) {
-        break;
-      }
+    Manta::RayPacketData rpData;
+    Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0 /*rayBegin*/, Manta::RayPacket::MaxSize /*rayEnd*/,
+                           0 /*depth*/, Manta::RayPacket::NormalizedDirections /*flags*/);
 
-      // calculate the end work range
-      size_t workEnd = workStart + workSize;
-      if (workEnd > rayList.size()) {
-        workEnd = rayList.size();
-      }
+    for (std::size_t localIdx = begin; localIdx < end; localIdx += Manta::RayPacket::MaxSize) {
 
-      Manta::RayPacketData rpData;
-      Manta::RayPacket mRays(rpData, Manta::RayPacket::UnknownShape, 0, packetSize, 0,
-                             Manta::RayPacket::NormalizedDirections);
-      int valid[64] = { 0 };
+      const std::size_t localPacketSize =
+          (localIdx + Manta::RayPacket::MaxSize > end) ? (end - localIdx) : Manta::RayPacket::MaxSize;
 
-      GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: working on rays [" << workStart << ", " << workEnd << "]");
+      // create a subset of ray packet
+      Manta::RayPacket rayPacket(mRays, 0, localPacketSize);
 
-      for (size_t localIdx = workStart; localIdx < workEnd; localIdx += packetSize) {
-        // this is the local packet size. this might be less than the main packetSize due to uneven amount of rays
-        const size_t localPacketSize = (localIdx + packetSize > workEnd) ? (workEnd - localIdx) : packetSize;
+      // trace a packet of rays, then keep tracing the generated secondary
+      // rays to completion
+      // tracks to see if there are any valid rays left in the packet, if so,
+      // keep tracing
+      // NOTE: perf issue: this will cause smaller and smaller packets to be
+      // traced at a time - need to track to see effects
+      bool validRayLeft = true;
 
-        // trace a packet of rays, then keep tracing the generated secondary rays to completion
-        // tracks to see if there are any valid rays left in the packet, if so, keep tracing
-        // NOTE: perf issue: this will cause smaller and smaller packets to be traced at a time - need to track to see
-        // effects
-        bool validRayLeft = true;
+      while (validRayLeft) {
+        validRayLeft = false;
 
-        // the first time we enter the loop, we want to reset the valid boolean list that was
-        // modified with the previous packet
-        bool resetValid = true;
-        while (validRayLeft) {
-          validRayLeft = false;
+        // copy rays to rayPacket
+        prepRayPacket(localIdx, rayList, &rayPacket);
 
-          prepRayPacket(mRays, valid, resetValid, localPacketSize, rayList, localIdx);
-          // rtcIntersect4(valid, scene, ray4);
-          resetValid = false;
+        // intersect ray packet with bvh and compute normals
+        adapter->getAccelStruct()->intersect(renderContext, rayPacket);
+        rayPacket.computeFFNormals<false>(renderContext);
 
-          adapter->getAccelStruct()->intersect(renderContext, mRays);
-          mRays.computeNormals<false>(renderContext);
+        // trace rays
+        for (size_t pi = 0; pi < localPacketSize; ++pi) {
+          if (!rayPacket.rayIsMasked(pi)) {
+            gvt::render::actor::Ray &r = rayList[localIdx + pi];
 
-          for (size_t pi = 0; pi < localPacketSize; ++pi) {
-            auto &r = rayList[localIdx + pi];
+            if (rayPacket.wasHit(pi)) {
 
-            if (valid[pi] && mRays.wasHit(pi)) {
               // shadow ray hit something, so it should be dropped
               if (r.type == gvt::render::actor::Ray::SHADOW) {
                 continue;
               }
 
-              float t = mRays.getMinT(pi);
+              float t = rayPacket.getMinT(pi);
               r.t = t;
 
-              // FIXME: manta does not take vertex normal information(true?), the examples have the application
-              // calculate the normal using
-              // math similar to the bottom.  this means we have to keep around a 'faces_to_normals' list along with a
-              // 'normals' list
-              // for the manta adapter
-              //
-              // for some reason the manta normals aren't working, so just going to manually calculate the triangle
-              // normal
-              glm::vec3 normal =
-                  glm::normalize((*normi) * (glm::vec3)(transform<Manta::Vector, glm::vec3>(mRays.getNormal(pi))));
+              Manta::Vector mantaNormal = rayPacket.getFFNormal(pi);
+              glm::vec3 normal = glm::normalize((*normi) * glm::vec3(mantaNormal[0], mantaNormal[1], mantaNormal[2]));
 
+              // TODO: support faces_to_materials
+              // Material *mat;
+              // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]]) {
+              //   mat = mesh->faces_to_materials[ray4.primID[pi]];
+              // } else {
+              //   mat = mesh->getMaterial();
+              // }
+              Material *mat = mesh->getMaterial();
+
+              // reduce contribution of the color that the shadow rays get
               if (r.type == gvt::render::actor::Ray::SECONDARY) {
                 t = (t > 1) ? 1.f / t : t;
                 r.w = r.w * t;
               }
 
-              // generateShadowRays(r, normal, mesh);
-              // std::vector<gvt::render::data::scene::Light*> lights = dom->getLights();
-              // for (int lindex = 0; lindex < lights.size(); lindex++)
-              for (gvt::render::data::scene::Light *light : lights) {
-                gvt::render::actor::Ray ray(r);
-                ray.type = gvt::render::actor::Ray::SHADOW;
-                ray.origin = ray.origin + ray.direction * ray.t;
-                ray.setDirection(light->position - ray.origin);
-                gvt::render::data::Color c = mesh->mat->shade(ray, normal, light, light->position);
-                ray.color = c; // GVT_COLOR_ACCUM(1.f, c[0], c[1], c[2], 1.f);
-                // ray.color = GVT_COLOR_ACCUM(1.f, 1.0, c[1], c[2], 1.f);
-                // localQueue.push_back(ray);
-                shadowRays.push_back(ray);
-              }
+              generateShadowRays(r, normal, mat, randEngine.ReturnSeed());
 
               int ndepth = r.depth - 1;
-              float p = 1.f - (float(rand()) / RAND_MAX);
+
+              float p = 1.f - randEngine.fastrand(0, 1); //(float(rand()) / RAND_MAX);
 
               // replace current ray with generated secondary ray
               if (ndepth > 0 && r.w > p) {
                 r.type = gvt::render::actor::Ray::SECONDARY;
-                r.origin = r.origin + r.direction * r.t;
-                r.setDirection(mesh->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
-                r.w = r.w * (r.direction * normal);
+                const float multiplier =
+                    1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
+                const float t_secondary = multiplier * r.t;
+                r.origin = r.origin + r.direction * t_secondary;
+
+                // TODO: remove this dependency on mesh, store material object in the database
+                // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
+
+                r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
+
+                r.w = r.w * glm::dot(r.direction, normal);
                 r.depth = ndepth;
                 validRayLeft = true; // we still have a valid ray in the packet to trace
-                                     // localQueue.push_back(r);
               } else {
                 // secondary ray is terminated, so disable its valid bit
-                valid[pi] = 0;
+                rayPacket.maskRay(pi);
               }
+
             } else {
               // ray is valid, but did not hit anything, so add to dispatch queue and disable it
               localDispatch.push_back(r);
-              valid[pi] = 0;
+              rayPacket.maskRay(pi);
             }
           }
-
-          // trace shadow rays generated by the packet
-          traceShadowRays();
         }
+        // trace shadow rays generated by the packet
+        traceShadowRays();
       }
     }
 
@@ -722,44 +601,33 @@ struct mantaParallelTrace {
   }
 };
 
-// void MantaMeshAdapter::trace(gvt::render::actor::RayVector& rayList,
-// gvt::render::actor::RayVector& moved_rays)
 void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                              glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                             std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
+                             std::vector<gvt::render::data::scene::Light *> &lights, size_t _begin, size_t _end) {
 #ifdef GVT_USE_DEBUG
   boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: trace time: %w\n");
 #endif
-  // GVT_DEBUG(DBG_ALWAYS, "trace<MantaMeshAdapter>: " << rayList.size());
-  // GVT_DEBUG(DBG_ALWAYS, "tracing geometry of domain " << domainID);
-  // size_t workload = std::max((size_t) 1, (size_t) (rayList.size() /
-  // (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
 
-  std::atomic<size_t> sharedIdx(0); // shared index into rayList
-  const size_t numThreads = gvt::core::schedule::asyncExec::instance()->numThreads;
-  const size_t workSize = std::max((size_t)8, (size_t)(rayList.size() / (numThreads * 8))); // size of 'chunk'
-                                                                                            // of rays to work
-                                                                                            // on
-  const size_t workload =
-      std::max((size_t)1, (size_t)(rayList.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 4)));
+  std::size_t begin = _begin;
+  std::size_t end = _end;
 
-  for (size_t rc = 0; rc < numThreads; ++rc) {
-    // gvt::core::schedule::asyncExec::instance()->run_task(
-    //         mantaParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights,
-    //         counter)
-    //         );
-    gvt::core::schedule::asyncExec::instance()->run_task(
-        parallelTrace(this, rayList, moved_rays, workload, counter_b, m, minv, normi, lights, mesh));
+  if (_end == 0) {
+    begin = 0;
+    end = rayList.size();
   }
 
-  gvt::core::schedule::asyncExec::instance()->sync();
-  //            mantaParallelTrace(this, rayList, moved_rays, rayList.size(),counter)();
+  const size_t numThreads = std::thread::hardware_concurrency();
+  const size_t workSize = std::max((size_t)4, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
+                                                                                           // of rays to work
+                                                                                           // on
 
-  // serial call example
-  // mantaParallelTrace(this, rayList, moved_rays, sharedIdx, workSize, instNode, m, minv, normi, lights, counter)();
+  static tbb::auto_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
+                    [&](tbb::blocked_range<size_t> chunk) {
+                      mantaParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi, lights,
+                                         mesh, counter, chunk.begin(), chunk.end())();
+                    },
+                    ap);
 
-  // GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: Processed rays: " << counter);
   GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: Forwarding rays: " << moved_rays.size());
-
-  rayList.clear();
 }

@@ -90,7 +90,7 @@ struct CudaGvtContext {
 	Ray * dispatch;
 	Light* lights;
 	bool* valid;
-        int nLights;
+    int nLights;
 	int rayCount;
 	volatile int shadowRayCount;
 	volatile int dispatchCount;

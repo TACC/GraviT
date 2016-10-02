@@ -38,11 +38,11 @@
 #include <gvt/render/actor/Ray.h>
 // #include <gvt/render/adapter/embree/data/Transforms.h>
 #include <gvt/render/data/DerivedTypes.h>
+#include <gvt/render/data/primitives/EmbreeMaterial.h>
+#include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
-#include <gvt/render/data/primitives/Material.h>
-#include <gvt/render/data/primitives/EmbreeMaterial.h>
 
 #include <atomic>
 #include <future>
@@ -163,7 +163,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   }
   rtcUnmapBuffer(scene, geomId, RTC_INDEX_BUFFER);
 
-  //mesh->writeobj("mesh.obj");
+  // mesh->writeobj("mesh.obj");
 
   // TODO: note: embree doesn't save normals in its mesh structure, have to
   // calculate the normal based on uv value
@@ -308,20 +308,20 @@ struct embreeParallelTrace {
     }
   }
 
-  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, RandEngine& randEngine) {
+  glm::vec3 CosWeightedRandomHemisphereDirection2(glm::vec3 n, gvt::core::math::RandEngine &randEngine) {
 
-	   float Xi1 = 0;
-	    float Xi2 = 0;
-//	    if(randSeed == nullptr)
-//	    {
-//	      Xi1 = (float)rand() / (float)RAND_MAX;
-//	      Xi2 = (float)rand() / (float)RAND_MAX;
-//	    }
-//	    else
-//	    {
-	      Xi1 = randEngine.fastrand( 0, 1);
-	      Xi2 = randEngine.fastrand( 0, 1);
-	    //}
+    float Xi1 = 0;
+    float Xi2 = 0;
+    //	    if(randSeed == nullptr)
+    //	    {
+    //	      Xi1 = (float)rand() / (float)RAND_MAX;
+    //	      Xi2 = (float)rand() / (float)RAND_MAX;
+    //	    }
+    //	    else
+    //	    {
+    Xi1 = randEngine.fastrand(0, 1);
+    Xi2 = randEngine.fastrand(0, 1);
+    //}
 
     float theta = std::acos(std::sqrt(1.0 - Xi1));
     float phi = 2.0 * 3.1415926535897932384626433832795 * Xi2;
@@ -355,48 +355,46 @@ struct embreeParallelTrace {
    * \param mesh pointer to mesh struct [TEMPORARY]
    */
   void generateShadowRays(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
-          gvt::render::data::primitives::Material * material, unsigned int *randSeed,
-                                         gvt::render::actor::RayVector& shadowRays) {
+                          gvt::render::data::primitives::Material *material, unsigned int *randSeed,
+                          gvt::render::actor::RayVector &shadowRays) {
 
-	for (gvt::render::data::scene::Light *light : lights) {
-	GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
-	// Try to ensure that the shadow ray is on the correct side of the
-	// triangle.
-	// Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
-	// Using about 8 * ULP(t).
+    for (gvt::render::data::scene::Light *light : lights) {
+      GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
+      // Try to ensure that the shadow ray is on the correct side of the
+      // triangle.
+      // Technique adapted from "Robust BVH Ray Traversal" by Thiago Ize.
+      // Using about 8 * ULP(t).
 
-	gvt::render::data::Color c;
-	glm::vec3 lightPos;
-	if (light->LightT == gvt::render::data::scene::Light::Area) {
-	lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
-	} else {
-	lightPos = light->position;
-	}
+      gvt::render::data::Color c;
+      glm::vec3 lightPos;
+      if (light->LightT == gvt::render::data::scene::Light::Area) {
+        lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
+      } else {
+        lightPos = light->position;
+      }
 
-	 if (!gvt::render::data::primitives::Shade(
-	   material, r, normal, light, lightPos, c))
-	     continue;
+      if (!gvt::render::data::primitives::Shade(material, r, normal, light, lightPos, c)) continue;
 
-	const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON *16;
-	const float t_shadow = multiplier * r.t;
+      const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON * 16;
+      const float t_shadow = multiplier * r.t;
 
-	const glm::vec3 origin = r.origin + r.direction * t_shadow;
-	const glm::vec3 dir = lightPos - origin;
-	const float t_max = dir.length();
+      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 dir = lightPos - origin;
+      const float t_max = dir.length();
 
-	// note: ray copy constructor is too heavy, so going to build it manually
-	shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+      // note: ray copy constructor is too heavy, so going to build it manually
+      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
 
-	Ray &shadow_ray = shadowRays.back();
-	shadow_ray.t = r.t;
-	shadow_ray.id = r.id;
-	shadow_ray.t_max = t_max;
+      Ray &shadow_ray = shadowRays.back();
+      shadow_ray.t = r.t;
+      shadow_ray.id = r.id;
+      shadow_ray.t_max = t_max;
 
-	// gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
-	// normal, lights[lindex]);
-	shadow_ray.color = glm::vec3( c[0], c[1], c[2]);
-	}
-}
+      // gvt::render::data::Color c = adapter->getMesh()->mat->shade(shadow_ray,
+      // normal, lights[lindex]);
+      shadow_ray.color = glm::vec3(c[0], c[1], c[2]);
+    }
+  }
 
   /**
    * Test occlusion for stored shadow rays.  Add missed rays
@@ -495,7 +493,7 @@ struct embreeParallelTrace {
 
     GVT_DEBUG(DBG_ALWAYS, "EmbreeMeshAdapter: starting while loop");
 
-    RandEngine randEngine;
+    gvt::core::math::RandEngine randEngine;
     randEngine.SetSeed(begin);
     // std::random_device rd;
 
@@ -600,15 +598,15 @@ struct embreeParallelTrace {
                 const glm::vec3 &c = mesh->normals[normals.get<0>()];
                 manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-//				glm::vec3 dPdu, dPdv;
-//				int geomID = ray4.geomID[pi];
-//				{
-//					rtcInterpolate(scene, geomID,
-//							ray4.primID[pi], ray4.u[pi],
-//							ray4.v[pi], RTC_VERTEX_BUFFER0,
-//							nullptr, &dPdu.x, &dPdv.x, 3);
-//				}
-//				manualNormal = glm::cross(dPdv, dPdu);
+                //				glm::vec3 dPdu, dPdv;
+                //				int geomID = ray4.geomID[pi];
+                //				{
+                //					rtcInterpolate(scene, geomID,
+                //							ray4.primID[pi], ray4.u[pi],
+                //							ray4.v[pi], RTC_VERTEX_BUFFER0,
+                //							nullptr, &dPdu.x, &dPdv.x, 3);
+                //				}
+                //				manualNormal = glm::cross(dPdv, dPdu);
 
                 manualNormal = glm::normalize((*normi) * manualNormal);
 
@@ -619,18 +617,18 @@ struct embreeParallelTrace {
 #endif
               }
 
-              //backface check, requires flat normal
-              if (glm::dot(-r.direction, normalflat) <= 0.f ) {
-                 manualNormal = -manualNormal;
-                 }
+              // backface check, requires flat normal
+              if (glm::dot(-r.direction, normalflat) <= 0.f) {
+                manualNormal = -manualNormal;
+              }
 
-             const glm::vec3 &normal = manualNormal;
+              const glm::vec3 &normal = manualNormal;
 
               Material *mat;
               if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]])
-                  mat = mesh->faces_to_materials[ray4.primID[pi]];
+                mat = mesh->faces_to_materials[ray4.primID[pi]];
               else
-                  mat = mesh->getMaterial();
+                mat = mesh->getMaterial();
 
               // reduce contribution of the color that the shadow rays get
               if (r.type == gvt::render::actor::Ray::SECONDARY) {
@@ -638,7 +636,7 @@ struct embreeParallelTrace {
                 r.w = r.w * t;
               }
 
-              generateShadowRays(r, normal,mat, randEngine.ReturnSeed(), shadowRays);
+              generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
 
               int ndepth = r.depth - 1;
 
@@ -727,7 +725,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
 
   // float mm[] = { n[0], n[1], n[2], n[4], n[5], n[6], n[8], n[9], n[10], n[3], n[7], n[11] };
 
-  //std::cout << "Embree zmat" << *m << std::endl;
+  // std::cout << "Embree zmat" << *m << std::endl;
 
   rtcSetTransform(global_scene, instID, RTC_MATRIX_COLUMN_MAJOR, mm);
   rtcUpdate(global_scene, instID);

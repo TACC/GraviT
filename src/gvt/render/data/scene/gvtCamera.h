@@ -29,6 +29,7 @@
 // Dave Semeraro - May 2015
 //
 #include <gvt/core/Math.h>
+#include <gvt/core/math/RandEngine.h>
 #include <gvt/render/data/Primitives.h>
 #include <stdlib.h>
 
@@ -117,7 +118,7 @@ public:
   int depth;                //!< legacy variable from previous cameras. Initializes ray depth
   glm::vec3 u, v, w;        //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
-  RandEngine randEngine;
+  gvt::core::math::RandEngine randEngine;
   //
   void buildTransform(); //!< Build the transformation matrix and inverse
 };

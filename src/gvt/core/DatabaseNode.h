@@ -25,6 +25,8 @@
 #define GVT_CORE_DATABASE_NODE_H
 
 #include "gvt/core/Types.h"
+#include <gvt/core/Debug.h>
+#include <gvt/render/data/primitives/BBox.h>
 
 namespace gvt {
 namespace core {
@@ -51,6 +53,8 @@ public:
 
   void propagateUpdate();
   explicit operator bool() const;
+
+
 
   static DatabaseNode *errNode;
 };

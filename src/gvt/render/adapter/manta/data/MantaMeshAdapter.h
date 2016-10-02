@@ -30,10 +30,10 @@
 
 #include "gvt/render/Adapter.h"
 
-#include <gvt/render/adapter/manta/override/DynBVH.h>
-#include <gvt/render/data/Primitives.h>
-#include <gvt/render/data/domain/AbstractDomain.h>
-#include <gvt/render/data/domain/GeometryDomain.h>
+#include "gvt/render/adapter/manta/override/DynBVH.h"
+#include "gvt/render/data/Primitives.h"
+// #include "gvt/render/data/domain/AbstractDomain.h"
+// #include "gvt/render/data/domain/GeometryDomain.h"
 
 // begin Manta includes
 #include <Core/Exceptions/Exception.h>
@@ -44,12 +44,14 @@
 #include <Interface/MantaInterface.h>
 #include <Interface/Object.h>
 #include <Interface/Scene.h>
+#include <Interface/RandomNumberGenerator.h>
 #include <Model/Groups/DynBVH.h>
 #include <Model/Groups/Mesh.h>
 #include <Model/Lights/PointLight.h>
 #include <Model/Materials/Phong.h>
 #include <Model/Primitives/KenslerShirleyTriangle.h>
 #include <Model/Readers/PlyReader.h>
+
 // end Manta includes
 
 #include <string>
@@ -87,17 +89,17 @@ public:
   virtual bool load();
   virtual void free();
 
-  Manta::RenderContext *getRenderContext() { return rContext; }
+  Manta::RenderContext *getRenderContext() { return renderContext; }
 
   /**
    * Return the Manta DynBVH acceleration structure.
    */
-  Manta::DynBVH *getAccelStruct() { return as; }
+  Manta::DynBVH *getAccelStruct() { return bvh; }
 
   /**
    * Return pointer to the Manta mesh.
    */
-  Manta::Mesh *getMantaMesh() { return meshManta; }
+  Manta::Mesh *getMantaMesh() { return mantaMesh; }
 
   /**
    * Trace rays using the Manta adapter.
@@ -109,25 +111,47 @@ public:
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
                      glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
                      size_t begin = 0, size_t end = 0);
-  // void trace(gvt::render::actor::RayVector& rayList,
-  // gvt::render::actor::RayVector& moved_rays);
-  //
 
 protected:
   /**
+   * Pointer to the Manta interface.
+   */
+  Manta::MantaInterface *mantaInterface;
+
+  /**
+   * Pointer to the Manta preprocess context.
+   */
+  Manta::PreprocessContext *preprocessContext;
+
+  /**
    * Pointer to the Manta render context.
    */
-  Manta::RenderContext *rContext;
+  Manta::RenderContext *renderContext;
+
+  /**
+   * Pointer to the Manta scene.
+   */
+  Manta::Scene *scene;
 
   /**
    * Pointer to the Manta DynBVH acceleration structrue.
    */
-  Manta::DynBVH *as;
+  Manta::DynBVH *bvh;
+
+  /**
+   * Pointer to the Manta material.
+   */
+  Manta::Material *material;
 
   /**
    * Pointer to the Manta mesh.
    */
-  Manta::Mesh *meshManta;
+  Manta::Mesh *mantaMesh;
+
+  /**
+   * Pointer to the random number generator
+   */
+  Manta::RandomNumberGenerator *randGen;
 };
 }
 }

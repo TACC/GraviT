@@ -143,6 +143,9 @@ set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders
 #   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
 # endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
+FIND_PACKAGE(IceT REQUIRED)
+include_directories(${ICET_INCLUDE_DIRS})
+
 
 # modules
 include(CMake/gravit.cmake)
@@ -241,29 +244,31 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/Primitives.h
   src/gvt/render/data/primitives/BBox.h
   src/gvt/render/data/primitives/Material.h
-	src/gvt/render/data/primitives/EmbreeMaterial.h
-	src/gvt/render/data/primitives/Mesh.h
-	src/gvt/render/data/scene/gvtCamera.h
-	src/gvt/render/data/scene/CameraConfig.h
-	src/gvt/render/data/scene/ColorAccumulator.h
-	src/gvt/render/data/scene/Image.h
-	src/gvt/render/data/scene/Light.h
-	src/gvt/render/data/accel/AbstractAccel.h
-	src/gvt/render/data/accel/BVH.h
-	src/gvt/render/schedule/DomainScheduler.h
-	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
-	src/gvt/render/schedule/hybrid/GreedySchedule.h
-	src/gvt/render/schedule/hybrid/HybridScheduleBase.h
-	src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
-	src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
-	src/gvt/render/schedule/hybrid/LoadManySchedule.h
-	src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
-	src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
-	src/gvt/render/schedule/hybrid/SpreadSchedule.h
-	src/gvt/render/schedule/HybridScheduler.h
-	src/gvt/render/schedule/ImageScheduler.h
-	src/gvt/render/Schedulers.h
-	src/gvt/render/Types.h
+  src/gvt/render/data/primitives/Shade.h
+  src/gvt/render/data/primitives/EmbreeMaterial.h
+  src/gvt/render/data/primitives/Mesh.h
+  src/gvt/render/data/scene/gvtCamera.h
+  src/gvt/render/data/scene/CameraConfig.h
+  src/gvt/render/data/scene/ColorAccumulator.h
+  src/gvt/render/data/scene/Image.h
+  src/gvt/render/data/scene/Light.h
+  src/gvt/render/data/accel/AbstractAccel.h
+  src/gvt/render/data/accel/BVH.h
+  src/gvt/render/schedule/DomainScheduler.h
+  src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
+  src/gvt/render/schedule/hybrid/GreedySchedule.h
+  src/gvt/render/schedule/hybrid/HybridScheduleBase.h
+  src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
+  src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
+  src/gvt/render/schedule/hybrid/LoadManySchedule.h
+  src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
+  src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
+  src/gvt/render/schedule/hybrid/SpreadSchedule.h
+  src/gvt/render/schedule/HybridScheduler.h
+  src/gvt/render/schedule/ImageScheduler.h
+  src/gvt/render/composite/composite.h
+  src/gvt/render/Schedulers.h
+  src/gvt/render/Types.h
 )
 
 
@@ -280,24 +285,17 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/data/scene/Image.cpp
   src/gvt/render/data/scene/Light.cpp
   src/gvt/render/data/accel/BVH.cpp
+  src/gvt/render/composite/composite.cpp
 )
-
 
 if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
-	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
-		src/gvt/render/adapter/manta/data/Transforms.h
-		src/gvt/render/adapter/manta/override/DynBVH.h
-		src/gvt/render/adapter/manta/Wrapper.h
-		)
-
-  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-    src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp
-  )
-
+  set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+      src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
+      src/gvt/render/adapter/manta/override/DynBVH.h
+      src/gvt/render/adapter/manta/Wrapper.h)
+  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp)
 endif(GVT_RENDER_ADAPTER_MANTA)
-
 
 if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
   add_definitions(-DGVT_RENDER_ADAPTER_OPTIX)
@@ -314,7 +312,7 @@ if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 		)
 
 	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
-	        src/gvt/render/adapter/optix/data/OptixMeshAdapter.cu
+	  src/gvt/render/adapter/optix/data/OptixMeshAdapter.cu
 		src/gvt/render/adapter/optix/data/Light.cu
 		src/gvt/render/adapter/optix/data/Material.cu
 		src/gvt/render/adapter/optix/data/Ray.cu
@@ -370,73 +368,66 @@ endif(GVT_CORE)
 
 
 if (GVT_RENDER)
-  # TODO: PlyReader in gvtRender requires Manta,
-  #       should only need Manta if including Manta adapter
-  # find_package(Manta REQUIRED)
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS})
-  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader)
+
+
+  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS}
+    ${ICET_MPI_LIBS})
   include_directories(${TINYOBJPATH})
 
-    find_package(Boost REQUIRED COMPONENTS thread timer system)
-    include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
+  find_package(Boost REQUIRED COMPONENTS thread timer system)
+  include_directories(${Boost_INCLUDE_DIRS})
+  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
 
   if(GVT_RENDER_ADAPTER_MANTA)
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS } ${MANTA_TARGET_LINK_LIBRARIES})
+    find_package(Manta REQUIRED)
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${MANTA_TARGET_LINK_LIBRARIES})
   endif(GVT_RENDER_ADAPTER_MANTA)
 
-    if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
-    	find_package(CUDA REQUIRED)
-    	find_package(OptiX REQUIRED)
+  if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
+    find_package(CUDA REQUIRED)
+    find_package(OptiX REQUIRED)
 
-	set(CUDA_SEPARABLE_COMPILATION ON)
-	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+    set(CUDA_SEPARABLE_COMPILATION ON)
+    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-    	include_directories(${CUDA_INCLUDE_DIRS})
-    	include_directories(${OptiX_INCLUDE})
-	set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
-    	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
-    	set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-    		--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
-                -gencode arch=compute_20,code=sm_20
-    		-gencode arch=compute_30,code=sm_30
-    		-gencode arch=compute_35,code=sm_35
-                --compiler-options '-fPIC'
-    		)
-    	#cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
-	CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
+    include_directories(${CUDA_INCLUDE_DIRS})
+    include_directories(${OptiX_INCLUDE})
+    set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
+    	--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
+        -gencode arch=compute_20,code=sm_20
+    	-gencode arch=compute_30,code=sm_30
+    	-gencode arch=compute_35,code=sm_35
+        --compiler-options '-fPIC')
+    #cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
+    CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
 
-    	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-    		${GVT_RENDER_CUDA_OBJS}
-    		)
+    set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} ${GVT_RENDER_CUDA_OBJS})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
 
-	set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
+  endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
-    endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
+  include_directories(${OptiX_INCLUDE})
+  include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
 
-	include_directories(${OptiX_INCLUDE})
-        include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
+  if (GVT_RENDER_ADAPTER_EMBREE)
+    find_package(Embree REQUIRED)
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
+  endif(GVT_RENDER_ADAPTER_EMBREE)
 
+  add_library(gvtRender STATIC
+              ${GVT_CORE_HDRS}
+              ${GVT_CORE_SRCS}
+              ${GVT_RENDER_HDRS}
+              ${GVT_RENDER_SRCS})
 
+  target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
 
-	if (GVT_RENDER_ADAPTER_EMBREE)
-		find_package(Embree REQUIRED)
-		set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
-	endif(GVT_RENDER_ADAPTER_EMBREE)
-
-	add_library(gvtRender STATIC
-		${GVT_CORE_HDRS}
-		${GVT_CORE_SRCS}
-		${GVT_RENDER_HDRS}
-		${GVT_RENDER_SRCS}
-		)
-
-	target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
-
-	install(TARGETS gvtRender
-		LIBRARY DESTINATION lib
-		ARCHIVE DESTINATION lib
-		)
+  install(TARGETS gvtRender
+          LIBRARY DESTINATION lib
+          ARCHIVE DESTINATION lib)
 endif(GVT_RENDER)
 
 
