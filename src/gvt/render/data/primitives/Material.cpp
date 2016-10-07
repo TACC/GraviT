@@ -273,7 +273,7 @@ bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Materia
     break;
   }
 
-  color *= Li;
+  //color *= Li;
 
   color = glm::clamp(color, glm::vec3(0), glm::vec3(1));
 

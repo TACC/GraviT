@@ -191,41 +191,8 @@ public:
     // if this is on the number of domains, then it will be equivalent to the
     // number
     // of instances in the database
-    instancenodes = rootnode["Instances"].getChildren();
 
-    int numInst = instancenodes.size();
-    GVT_DEBUG(DBG_ALWAYS, "abstract trace: num instances: " << numInst);
-    queue_mutex = new tbb::mutex[numInst];
-    colorBuf_mutex = new tbb::mutex[width];
-    acceleration = new gvt::render::data::accel::BVH(instancenodes);
-
-    for (int i = 0; i < instancenodes.size(); i++) {
-      meshRef[i] =
-          (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
-      instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
-      instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
-      instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
-    }
-
-    auto lightNodes = rootnode["Lights"].getChildren();
-
-    lights.reserve(2);
-    for (auto lightNode : lightNodes) {
-      auto color = lightNode["color"].value().tovec3();
-
-      if (lightNode.name() == std::string("PointLight")) {
-        auto pos = lightNode["position"].value().tovec3();
-        lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-      } else if (lightNode.name() == std::string("AmbientLight")) {
-        lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-      } else if (lightNode.name() == std::string("AreaLight")) {
-        auto pos = lightNode["position"].value().tovec3();
-        auto normal = lightNode["normal"].value().tovec3();
-        auto width = lightNode["width"].value().toFloat();
-        auto height = lightNode["height"].value().toFloat();
-        lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
-      }
-    }
+    Initialize();
 
     GVT_DEBUG(DBG_ALWAYS, "abstract trace: constructor end");
   }
@@ -242,19 +209,37 @@ public:
     //std::cout << "Resized buffer" << std::endl;
   }
 
-  void resetInstances() {
-    instancenodes = rootnode["Instances"].getChildren();
-    int numInst = instancenodes.size();
+  virtual void resetInstances() {
+
 
     if (acceleration) delete acceleration;
-    acceleration = new gvt::render::data::accel::BVH(instancenodes);
 
     if (queue_mutex) delete[] queue_mutex;
-    queue_mutex = new tbb::mutex[numInst];
     meshRef.clear();
     instM.clear();
     instMinv.clear();
     instMinvN.clear();
+    lights.clear();
+
+    for (auto &l : lights) {
+        delete l;
+    }
+
+    Initialize();
+
+  }
+
+  void Initialize(){
+
+    instancenodes = rootnode["Instances"].getChildren();
+
+    int numInst = instancenodes.size();
+
+    queue_mutex = new tbb::mutex[numInst];
+    colorBuf_mutex = new tbb::mutex[width];
+
+    acceleration = new gvt::render::data::accel::BVH(instancenodes);
+
     for (int i = 0; i < instancenodes.size(); i++) {
       meshRef[i] =
           (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
@@ -263,11 +248,6 @@ public:
       instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
     }
 
-    for (auto &l : lights) {
-    	delete l;
-    }
-
-    lights.clear();
      auto lightNodes = rootnode["Lights"].getChildren();
 
      lights.reserve(2);
@@ -287,7 +267,9 @@ public:
          lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
        }
      }
+
   }
+
 
   void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
 

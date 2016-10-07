@@ -121,19 +121,32 @@ public:
     }
 #endif
 
+    Initialize();
+
+}
+
+  void resetInstances() {
+     AbstractTrace::resetInstances();
+     adapterCache.clear();
+     mpiInstanceMap.clear();
+     Initialize();
+
+  }
+
+  virtual void Initialize(){
+
   gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
   std::map<int, std::set<std::string> > meshAvailbyMPI; // where meshes are by mpi node
-  std::map<int, std::set<std::string> >::iterator lastAssigned; //instance-node round-robin assigment
+  std::map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
 
-  for (size_t i = 0; i < mpi.world_size; i++)
-	  meshAvailbyMPI[i].clear();
+  for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
 
-  //build location map, where meshes are by mpi node
+  // build location map, where meshes are by mpi node
   for (size_t i = 0; i < dataNodes.size(); i++) {
-      std::vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
-      for (auto loc : locations) {
-    	  meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
-      }
+    std::vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
+    for (auto loc : locations) {
+      meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
+    }
   }
 
   lastAssigned = meshAvailbyMPI.begin();
@@ -141,67 +154,62 @@ public:
   // create a map of instances to mpi rank
   for (size_t i = 0; i < instancenodes.size(); i++) {
 
-//      size_t dataIdx = -1;
-//           for (size_t d = 0; d < dataNodes.size(); d++) {
-//             if (dataNodes[d].UUID() == meshNode.UUID()) {
-//               dataIdx = d;
-//               break;
-//             }
-//           }
+    //      size_t dataIdx = -1;
+    //           for (size_t d = 0; d < dataNodes.size(); d++) {
+    //             if (dataNodes[d].UUID() == meshNode.UUID()) {
+    //               dataIdx = d;
+    //               break;
+    //             }
+    //           }
 
-//           // NOTE: mpi-data(domain) assignment strategy
-//           size_t mpiNode = dataIdx % mpi.world_size;
+    //           // NOTE: mpi-data(domain) assignment strategy
+    //           size_t mpiNode = dataIdx % mpi.world_size;
 
-//           GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx
-//                                     << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
+    //           GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " <<
+    //           dataIdx
+    //                                     << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
 
-//           GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
-//           mpiInstanceMap[i] = mpiNode;
-
-
+    //           GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
+    //           mpiInstanceMap[i] = mpiNode;
 
     mpiInstanceMap[i] = -1;
     if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
 
-    	gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
+      gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
 
-
-    	//Instance to mpi-node Round robin assignment considering mesh availability
-    	auto startedAt = lastAssigned;
-    	 do {
-    		if (lastAssigned->second.size() > 0){// if mpi-node has no meshes, don't bother
-				if (lastAssigned->second.find(meshNode.UUID().toString())!= lastAssigned->second.end()) {
-					mpiInstanceMap[i] = lastAssigned->first;
-							lastAssigned++;
-					if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-					break;
-						} else {
-							//branch out from lastAssigned and search for a mpi-node with the mesh
-							//keep lastAssigned to continue with round robin
-							auto branchOutSearch = lastAssigned;
-							do {
-								if (branchOutSearch->second.find(
-										meshNode.UUID().toString())
-										!= branchOutSearch->second.end()) {
-									mpiInstanceMap[i] = branchOutSearch->first;
-									break;
-								}
-								branchOutSearch++;
-								if (branchOutSearch == meshAvailbyMPI.end())
-									branchOutSearch = meshAvailbyMPI.begin();
-							} while (branchOutSearch != lastAssigned);
-							break; //If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
-					}
-    		}
-			lastAssigned++;
-			if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-		} while (lastAssigned != startedAt);
+      // Instance to mpi-node Round robin assignment considering mesh availability
+      auto startedAt = lastAssigned;
+      do {
+        if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
+          if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
+            mpiInstanceMap[i] = lastAssigned->first;
+            lastAssigned++;
+            if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+            break;
+          } else {
+            // branch out from lastAssigned and search for a mpi-node with the mesh
+            // keep lastAssigned to continue with round robin
+            auto branchOutSearch = lastAssigned;
+            do {
+              if (branchOutSearch->second.find(meshNode.UUID().toString()) != branchOutSearch->second.end()) {
+                mpiInstanceMap[i] = branchOutSearch->first;
+                break;
+              }
+              branchOutSearch++;
+              if (branchOutSearch == meshAvailbyMPI.end()) branchOutSearch = meshAvailbyMPI.begin();
+            } while (branchOutSearch != lastAssigned);
+            break; // If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
+          }
+        }
+        lastAssigned++;
+        if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+      } while (lastAssigned != startedAt);
     }
 
-//    if (mpi.rank==0)
-//          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
-//          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
-//                                                 std::endl;
+    //    if (mpi.rank==0)
+    //          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
+    //          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
+    //                                                 std::endl;
   }
 }
 
