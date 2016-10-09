@@ -36,6 +36,7 @@ protected:
   static bool init;
   OSPVolume theOSPVolume;
   OSPData theOSPData;
+  OSPModel theOSPModel;
   size_t begin, end;
 private:
   OSPRenderer theOSPRenderer;

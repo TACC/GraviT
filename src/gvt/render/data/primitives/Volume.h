@@ -41,7 +41,7 @@ public:
   ~Volume();
   Box3D boundingBox;
   Box3D *getBoundingBox();
-  enum DataType // a short list of possible types
+  enum VoxelType // a short list of possible types
   {
     DOUBLE,
     FLOAT, 
@@ -52,6 +52,7 @@ public:
   //unsigned char *get_samples() ;
   short *GetSamples() {return shortsamples;};
   //int *GetSamples() {return intsamples;}
+  VoxelType GetVoxelType() { return voxtype;}
   void SetSamples(short * samples) {shortsamples = samples;};
   void SetCounts(int countx, int county, int countz) {counts = {countx,county,countz};return;};
   void GetCounts(glm::vec3 &counts);
@@ -74,7 +75,7 @@ protected:
   float *isovalues;
   int n_isovalues;
 private:
-  DataType type;
+  VoxelType voxtype;
   glm::vec3 deltas;
   unsigned char *samples;
   float *floatsamples;

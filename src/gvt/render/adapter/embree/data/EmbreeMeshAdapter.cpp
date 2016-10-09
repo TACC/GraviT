@@ -745,7 +745,6 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
                     [&](tbb::blocked_range<size_t> chunk) {
-                      // for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
                       embreeParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi,
                                           lights, mesh, counter, chunk.begin(), chunk.end())();
                     },

@@ -12,6 +12,10 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Data *data):Adapter(
 OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data):Adapter(data) {
   theOSPRenderer = ospNewRenderer("ptracer");
 }
+/***
+ * following the function of the other adapters all this one does is map the data
+ * in the GVT volume to ospray datatypes. 
+ */
 OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapter(data) {
   int n_slices,n_isovalues;
   glm::vec4 *slices;
@@ -24,6 +28,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   // build the ospray volume from the gvt volume
   if(theOSPVolume) ospRelease(theOSPVolume);
   if(theOSPData) ospRelease(theOSPData);
+  if(theOSPModel) ospRelease(theOSPModel);
   theOSPVolume = ospNewVolume("shared_structured_volume");
   data->GetSlices(n_slices,slices);
   if(n_slices != 0) {
@@ -57,7 +62,15 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   spacing.y = volumespacing.y;
   spacing.z = volumespacing.z;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
-
+  gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
+  switch(vt){
+    case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
+                 break;
+    case gvt::render::data::primitives::Volume::UCHAR : ospSetString(theOSPVolume,"voxelType","uchar");
+                 break;
+    default : std::cerr << " error setting voxel type " << std::endl;
+              break;
+  }
 }
 
 /*** this routine maps ospexternal rays to gravit rays
