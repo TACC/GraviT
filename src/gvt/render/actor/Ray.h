@@ -91,8 +91,7 @@ public:
   inline Ray() /*: t_min(gvt::render::actor::Ray::RAY_EPSILON), t_max(FLT_MAX), t(FLT_MAX), id(-1), depth(8), w(0.f), type(PRIMARY) */ {
   }
   inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
-      : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
-        t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
+      : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)), t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
 
   inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
 
