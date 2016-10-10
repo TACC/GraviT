@@ -71,6 +71,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     default : std::cerr << " error setting voxel type " << std::endl;
               break;
   }
+  ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
 }
 
 /*** this routine maps ospexternal rays to gravit rays

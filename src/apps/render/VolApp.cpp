@@ -216,7 +216,8 @@ int main(int argc, char **argv) {
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
   cmd.addoption("volfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to Volume");
-  cmd.addoption("tffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to transfer function");
+  cmd.addoption("ctffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to color transfer function");
+  cmd.addoption("otffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to opacity transfer function");
   cmd.addoption("image", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -253,16 +254,21 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-  std::string filename, filepath, volumefile,tffile;
+  std::string filename, filepath, volumefile,otffile,ctffile;
   volumefile = cmd.get<std::string>("volfile");
-  tffile = cmd.get<std::string>("tffile");
+  ctffile = cmd.get<std::string>("ctffile");
+  otffile = cmd.get<std::string>("otffile");
   // volume data...
   if(!file_exists(volumefile.c_str())) {
     cout << "File \"" << volumefile << "\" does not exist. Exiting." << endl;
     return 0;
   }
-  if(!file_exists(tffile.c_str())) {
-    cout << "Transfer function file \"" << tffile << "\" missing. Exiting. " << endl;
+  if(!file_exists(ctffile.c_str())) {
+    cout << "Transfer function file \"" << ctffile << "\" missing. Exiting. " << endl;
+    return 0;
+  }
+  if(!file_exists(otffile.c_str())) {
+    cout << "Transfer function file \"" << otffile << "\" missing. Exiting. " << endl;
     return 0;
   }
   
@@ -294,7 +300,7 @@ int main(int argc, char **argv) {
       // read volume file.
       unsigned char* sampledata = volheader.readdata(domain);
       // read transfer function. for now colormap and opacitymap are same map
-      tf->load(tffile,tffile);
+      tf->load(ctffile,otffile);
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetSamples((short *)sampledata);

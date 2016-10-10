@@ -53,6 +53,7 @@ public:
   short *GetSamples() {return shortsamples;};
   //int *GetSamples() {return intsamples;}
   VoxelType GetVoxelType() { return voxtype;}
+  float GetSamplingRate() { return samplingrate;}
   void SetSamples(short * samples) {shortsamples = samples;};
   void SetCounts(int countx, int county, int countz) {counts = {countx,county,countz};return;};
   void GetCounts(glm::vec3 &counts);
@@ -76,6 +77,7 @@ protected:
   int n_isovalues;
 private:
   VoxelType voxtype;
+  float samplingrate;
   glm::vec3 deltas;
   unsigned char *samples;
   float *floatsamples;
