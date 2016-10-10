@@ -219,11 +219,13 @@ public:
     instM.clear();
     instMinv.clear();
     instMinvN.clear();
-    lights.clear();
 
     for (auto &l : lights) {
         delete l;
     }
+
+    lights.clear();
+
 
     Initialize();
 

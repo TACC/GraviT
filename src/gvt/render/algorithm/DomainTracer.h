@@ -127,6 +127,9 @@ public:
 
   void resetInstances() {
      AbstractTrace::resetInstances();
+     for (auto a : adapterCache) {
+         delete a.second;
+       }
      adapterCache.clear();
      mpiInstanceMap.clear();
      Initialize();
@@ -216,8 +219,8 @@ public:
   virtual ~Tracer() {}
 
   void shuffleDropRays(gvt::render::actor::RayVector &rays) {
-    const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
-    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
+    const size_t chunksize = /*MAX(2,*/ rays.size() /*/ (std::thread::hardware_concurrency() * 4))*/;
+     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
