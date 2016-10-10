@@ -84,6 +84,9 @@ std::vector<std::string> split(const std::string &s, char delim, std::vector<std
     }
     return elems;
 }
+// the bovheader struct reads a bov file header. Other fcns read the data
+// the data is mapped to a float for return 
+// to the caller. 
 struct bovheader { 
   std::ifstream myfile;
   std::string datafile;
@@ -161,10 +164,12 @@ struct bovheader {
     }
     numberofdomains = xpartitions * ypartitions * zpartitions;
   }
-  unsigned char *readdata(int dom) {
+  float *readdata(int dom) {
     int domi,domj,domk; // the domain index in global space
     int sample_bytes; // number of bytes in a sample.
-    unsigned char *samples;
+    //unsigned char *samples;
+    int *filedata;
+    float *samples;
     domi = dom%xpartitions;
     domj = dom/xpartitions;
     domk = dom/(xpartitions*ypartitions);
@@ -179,10 +184,13 @@ struct bovheader {
     origin[0] = (float)istart;
     origin[1] = (float)jstart;
     origin[2] = (float)kstart;
+    // read some data. Each domain can only read a single "i" vector at a time
+    // make enough space for a single i vector. this should depend on type but I am
+    // in  a hurry
+    int *ibuffer = new int[counts[0]];
     // allocate enough space for samples
-    sample_bytes = sizeof(int); // should depend on type but for now I am sloppy.
-    samples = (unsigned char*)malloc(sample_bytes*counts[0]*counts[1]*counts[2]);
-    char *ptr = (char *)samples;
+    samples = new float[counts[0]*counts[1]*counts[2]];
+    char *ptr = (char *)ibuffer;
     myfile.open(datafile.c_str(), ios::in | ios::binary);
     for(int k=kstart;k<kstart+counts[2];k++) 
       for(int j=jstart;j<jstart+counts[1];j++) {
@@ -190,11 +198,15 @@ struct bovheader {
         streampos src = (k*datasize[0]*datasize[1]+j*datasize[0]+istart)*sample_bytes;
         myfile.seekg(src,ios_base::beg);
         myfile.read(ptr,counts[0]*sample_bytes);
-        ptr += counts[0]*sample_bytes;
+        int offset = k*counts[0]*counts[1]+ j*counts[0];
+        for(int i=0;i<counts[0];i++) {
+          samples[offset+i] = (float)ibuffer[i];
+        }
       }
     glm::vec3 lower(origin[0],origin[1],origin[2]);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
+
     return samples;
   }
 };
@@ -298,12 +310,12 @@ int main(int argc, char **argv) {
       gvt::render::data::primitives::TransferFunction *tf = 
         new gvt::render::data::primitives::TransferFunction();
       // read volume file.
-      unsigned char* sampledata = volheader.readdata(domain);
-      // read transfer function. for now colormap and opacitymap are same map
+      float* sampledata = volheader.readdata(domain);
+      // read transfer function. 
       tf->load(ctffile,otffile);
       // push the sample data into the volume and fill the other
       // required values in the volume.
-      vol->SetSamples((short *)sampledata);
+      vol->SetSamples(sampledata);
       vol->SetTransferFunction(tf);
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);

@@ -41,8 +41,8 @@ public:
   ~TransferFunction();
   void load(std::string cname, std::string oname);
   OSPTransferFunction GetTheOSPTransferFunction() {return theOSPTransferFunction; }
-  bool DeviceCommit();
 protected:
+  bool DeviceCommit();
   glm::vec4 *colormap;
   glm::vec2 *opacitymap;
   int n_colors, n_opacities;

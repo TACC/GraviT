@@ -14,7 +14,8 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data):Adapter(
 }
 /***
  * following the function of the other adapters all this one does is map the data
- * in the GVT volume to ospray datatypes. 
+ * in the GVT volume to ospray datatypes.  In the end you should have an initialized
+ * ospray volume object.
  */
 OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapter(data) {
   int n_slices,n_isovalues;
@@ -72,6 +73,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
               break;
   }
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
+  ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
 }
 
 /*** this routine maps ospexternal rays to gravit rays

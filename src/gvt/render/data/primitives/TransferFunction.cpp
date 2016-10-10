@@ -99,4 +99,5 @@ void gvt::render::data::primitives::TransferFunction::load(std::string cname, st
   for (int i = 0; i < no; i++, o++)
     ifs >> o->x >> o->y;
   ifs.close();
+  DeviceCommit();
 }

@@ -50,11 +50,13 @@ public:
     INT
   };
   //unsigned char *get_samples() ;
-  short *GetSamples() {return shortsamples;};
+  //short *GetSamples() {return shortsamples;};
+  float* GetSamples() {return floatsamples;}
   //int *GetSamples() {return intsamples;}
   VoxelType GetVoxelType() { return voxtype;}
   float GetSamplingRate() { return samplingrate;}
-  void SetSamples(short * samples) {shortsamples = samples;};
+  //void SetSamples(short * samples) {shortsamples = samples;};
+  void SetSamples(float* samples) {floatsamples = samples;};
   void SetCounts(int countx, int county, int countz) {counts = {countx,county,countz};return;};
   void GetCounts(glm::vec3 &counts);
   void SetOrigin(float x, float y, float z) { origin = {x,y,z};};
@@ -62,6 +64,7 @@ public:
   void GetGlobalOrigin(glm::vec3 &origin);
   void SetTransferFunction(TransferFunction* tf) {transfunction = tf;};
   void GetTransferFunction(TransferFunction* tf) {tf = transfunction;};
+  TransferFunction *GetTransferFunction() { return transfunction;}
   void SetSlices(int n, glm::vec4 *s);
   void GetSlices(int &n, glm::vec4 *s) { n = n_slices; s = slices;}
   void SetIsovalues(int n, float* values);
