@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = gvt::render::adapter::Optix;
+  schedNode["adapter"] = gvt::render::adapter::Embree;
 
   // end db setup
 

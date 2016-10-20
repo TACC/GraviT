@@ -316,7 +316,7 @@ public:
 
    // std::cout << "Suffle rays" << rays.size() << std::endl;
 
-    const size_t chunksize = MAX(2, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+    const size_t chunksize = MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::auto_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),

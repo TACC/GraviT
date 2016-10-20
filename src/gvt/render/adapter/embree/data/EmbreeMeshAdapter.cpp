@@ -744,7 +744,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   this->end = _end;
 
   const size_t numThreads =  gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
-  const size_t workSize = std::max((size_t)4, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
+  const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
                                                                                            // of rays to work
                                                                    // on
 
