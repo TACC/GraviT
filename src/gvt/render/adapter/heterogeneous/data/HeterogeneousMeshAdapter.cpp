@@ -67,8 +67,8 @@ void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt
     tbb::task_group g;
 
 
-    size_t split = size * 0.25;
-
+    size_t split = size * 0.5;
+    std::cout << "Splitting workload..." << std::endl;
     g.run([&]() {
 //      while (current < size) {
 //        if (_lock_rays.try_lock()) {

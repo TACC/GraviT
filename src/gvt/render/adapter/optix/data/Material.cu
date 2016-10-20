@@ -10,7 +10,7 @@
 using namespace gvt::render::data::cuda_primitives;
 using namespace gvt::render::data::primitives;
 
-__device__ inline float4 toFloat4(glm::vec3 v){
+__device__ inline float4 toFloat4(const glm::vec3& v){
 	return make_float4(v.x, v.y,v.z, 0.f);
 }
 

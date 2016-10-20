@@ -65,6 +65,7 @@
 #include <tbb/partitioner.h>
 #include <tbb/tick_count.h>
 
+
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -120,7 +121,8 @@ struct GVT_COMM {
 
     for (int source = 0; source < world_size; ++source) {
       if (source == rank) continue;
-      const size_t chunksize = MAX(GVT_SIMD_WIDTH, partition_size / (std::thread::hardware_concurrency()));
+      const size_t chunksize = MAX(GVT_SIMD_WIDTH, partition_size / (
+    		  gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger()));
       static tbb::simple_partitioner ap;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
                         [&](tbb::blocked_range<size_t> chunk) {
@@ -314,13 +316,16 @@ public:
 
    // std::cout << "Suffle rays" << rays.size() << std::endl;
 
-    const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
+    const size_t chunksize = MAX(2, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
-    static tbb::simple_partitioner ap;
+    static tbb::auto_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+
+
                         std::vector<gvt::render::data::accel::BVH::hit> hits =
                             acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
+
                         std::map<int, gvt::render::actor::RayVector> local_queue;
                         for (size_t i = 0; i < hits.size(); i++) {
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
@@ -371,7 +376,7 @@ public:
       final = colorBuf;
 
     const size_t size = width * height;
-    const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
+    const size_t chunksize = MAX(2, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
                       [&](tbb::blocked_range<size_t> chunk) {

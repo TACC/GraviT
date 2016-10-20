@@ -1310,13 +1310,14 @@ int main(int argc, char *argv[]) {
 
   cmd.parse(argc, argv);
 
-   if (!cmd.isSet("threads")) {
-     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
-   } else {
-     tbb::task_scheduler_init init(cmd.get<int>("threads"));
-   }
+  tbb::task_scheduler_init* init;
+  if (!cmd.isSet("threads")) {
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+  } else {
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+  }
 
-  //tbb::task_scheduler_init init(1);
+  //tbb::task_scheduler_init init(2);
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1334,6 +1335,8 @@ int main(int argc, char *argv[]) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+  root+= cntxt->createNode("threads",(int)cmd.get<int>("threads"));
+
 
   if (master){
        cntxt->addToSync(cntxt->createNodeFromType("Data", "glTraceData", root.UUID()));
@@ -1358,7 +1361,6 @@ int main(int argc, char *argv[]) {
     schedNode["type"] = gvt::render::scheduler::Domain;
   else
    schedNode["type"] = gvt::render::scheduler::Image;
- schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;

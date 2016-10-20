@@ -153,11 +153,21 @@ int main(int argc, char **argv) {
 
   cmd.parse(argc, argv);
 
-  if (!cmd.isSet("threads")) {
+/*  if (!cmd.isSet("threads")) {
     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }*/
+  std::cout << "crating node..." << std::endl;
+
+
+  tbb::task_scheduler_init* init;
+  if (!cmd.isSet("threads")) {
+	  init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+  } else {
+	  init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
+
 
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
@@ -186,7 +196,16 @@ int main(int argc, char **argv) {
     std::cout << "Something went wrong initializing the context" << std::endl;
     exit(0);
   }
+
+
   gvt::core::DBNodeH root = cntxt->getRootNode();
+  root+= cntxt->createNode("threads",(int)cmd.get<int>("threads"));
+
+
+  //cntxt->database()->printTree(root, 0, 3, std::cout);
+
+
+
 
   // A single mpi node will create db nodes and then broadcast them
   if (MPI::COMM_WORLD.Get_rank()==0){
@@ -215,6 +234,10 @@ int main(int argc, char **argv) {
     cout << "Directory \"" << rootdir << "\" contains no .ply files. Exiting." << endl;
     return 0;
   }
+
+
+  std::cout << "Loading ply..." << std::endl;
+
   // read 'em 
   vector<string>::const_iterator file;
   //for (k = 0; k < 8; k++) {
@@ -263,6 +286,10 @@ int main(int argc, char **argv) {
       }
     }
     close_ply(in_ply);
+
+    std::cout << "Creating meshes ..." << std::endl;
+
+
     // smoosh data into the mesh object
     {
       Material* m = new Material();
@@ -389,7 +416,7 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = adapterType;
+  schedNode["adapter"] = gvt::render::adapter::Optix;
 
   // end db setup
 
@@ -415,8 +442,14 @@ int main(int argc, char **argv) {
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "output");
 
+  std::cout << "Generating rays ..." << std::endl;
+
+
   mycamera.AllocateCameraRays();
   mycamera.generateRays();
+
+  std::cout << "Rendering meshes ..." << std::endl;
+
 
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
