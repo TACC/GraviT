@@ -54,10 +54,10 @@ namespace cuda_primitives {
     __device__  bool Shade(
            gvt::render::data::primitives::Material* material,
                               const Ray &ray,
-                              const float4 &sufaceNormal,
+                              const cuda_vec &sufaceNormal,
                               const Light *lightSource,
-                              const float4 lightPostion,
-                                float4& color);
+                              const cuda_vec lightPostion,
+                                cuda_vec& color);
 
 }
 }

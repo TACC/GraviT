@@ -57,12 +57,15 @@ struct CudaGvtContext {
 
 	__inline__ CudaGvtContext* toGPU() {
 
-
-		gpuErrchk(cudaMemcpyAsync(devicePtr, this,
-				sizeof(gvt::render::data::cuda_primitives::CudaGvtContext),
-				cudaMemcpyHostToDevice, stream));
+		if (dirty)
+				{
+				gpuErrchk(cudaMemcpyAsync(devicePtr, this,
+						sizeof(gvt::render::data::cuda_primitives::CudaGvtContext),
+						cudaMemcpyHostToDevice, stream));
 
 		//cudaStreamSynchronize(stream);
+				dirty=false;
+				}
 
 		return (CudaGvtContext*)devicePtr;
 	}
@@ -81,7 +84,7 @@ struct CudaGvtContext {
 		return (CudaGvtContext*)devicePtr;
 	}
 
-
+	bool dirty;
 	//shared, allocated once per runtime
 	Ray * rays;
 	Ray * shadowRays;

@@ -106,9 +106,9 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
     if (ignoreValid || valid[i]) {
        Ray &r = rays[ i];
 
-      r.origin.w=1;
-      float4 origin = (*(cudaGvtCtx->minv)) * r.origin; // transform ray to local space
-      float4 direction = (*(cudaGvtCtx->minv)) * r.direction;
+      //r.origin.w=1;
+      cuda_vec origin = make_float3((*(cudaGvtCtx->minv)) * make_float4(r.origin)); // transform ray to local space
+      cuda_vec direction = make_float3((*(cudaGvtCtx->minv)) * make_float4(r.direction));
 
       OptixRay optix_ray;
       optix_ray.origin[0] = origin.x;
@@ -165,7 +165,7 @@ void cudaProcessShadows(CudaGvtContext* cudaGvtCtx) {
 		cudaGvtCtx->toHost();
 }
 
-__device__ float4 CosWeightedRandomHemisphereDirection2(float4 n) {
+__device__ cuda_vec CosWeightedRandomHemisphereDirection2(cuda_vec n) {
 
  float Xi1 = cudaRand();
  float Xi2 = cudaRand();
@@ -189,11 +189,11 @@ __device__ float4 CosWeightedRandomHemisphereDirection2(float4 n) {
  float3 x = cross(h,y);//(h ^ y);
  float3 z = cross(x, y);
 
- float4 direction = make_float4(x * xs + y * ys + z * zs);
+ cuda_vec direction = make_cuda_vec(x * xs + y * ys + z * zs);
  return normalize(direction);
 }
 
-__device__ void generateShadowRays(const Ray &r, const float4 &normal,
+__device__ void generateShadowRays(const Ray &r, const cuda_vec &normal,
                                    int primID, CudaGvtContext* cudaGvtCtx) {
 
   for (int l = 0; l < cudaGvtCtx->nLights; l++) {
@@ -207,14 +207,14 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     // Using about 8 * ULP(t).
 
 
-    float4 lightPos;
+    cuda_vec lightPos;
     if (light->type == AREA) {
     lightPos = ((AreaLight *)light)->GetPosition();
     } else {
     lightPos = light->light.position;
     }
 
-    float4 c;
+    cuda_vec c;
     if(!gvt::render::data::cuda_primitives::Shade(
           cudaGvtCtx->mesh.mat, r,normal, light,lightPos, c))
       continue;
@@ -222,9 +222,9 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     const float multiplier = 1.0f - 16.0f * FLT_EPSILON;
     const float t_shadow = multiplier * r.t;
 
-    float4 origin = r.origin + r.direction * t_shadow;
-    origin.w=1.0f;
-    const float4 dir =lightPos - origin;
+    cuda_vec origin = r.origin + r.direction * t_shadow;
+    //origin.w=1.0f;
+    const cuda_vec dir =lightPos - origin;
     const float t_max = length(dir);
 
     Ray shadow_ray;
@@ -243,7 +243,7 @@ __device__ void generateShadowRays(const Ray &r, const float4 &normal,
     shadow_ray.color.x = c.x;
     shadow_ray.color.y = c.y;
     shadow_ray.color.z = c.z;
-    shadow_ray.color.w = 1.0f;
+    //shadow_ray.color.w = 1.0f;
 
     int a = atomicAdd((int *)&(cudaGvtCtx->shadowRayCount), 1);
     cudaGvtCtx->shadowRays[a] = shadow_ray;
@@ -275,28 +275,28 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
 
         const int triangle_id = cudaGvtCtx->traceHits[tID].triangle_id;
 
-        float4 manualNormal;
-        float4 normalflat;
+        cuda_vec manualNormal;
+        cuda_vec normalflat;
 
          {
           int I = cudaGvtCtx->mesh.faces[triangle_id].x;
           int J = cudaGvtCtx->mesh.faces[triangle_id].y;
           int K = cudaGvtCtx->mesh.faces[triangle_id].z;
 
-          float4 a = cudaGvtCtx->mesh.vertices[I];
-          float4 b = cudaGvtCtx->mesh.vertices[J];
-          float4 c = cudaGvtCtx->mesh.vertices[K];
-          float4 u = b - a;
-          float4 v = c - a;
-          float4 normal;
+          cuda_vec a = cudaGvtCtx->mesh.vertices[I];
+          cuda_vec b = cudaGvtCtx->mesh.vertices[J];
+          cuda_vec c = cudaGvtCtx->mesh.vertices[K];
+          cuda_vec u = b - a;
+          cuda_vec v = c - a;
+          cuda_vec normal;
           normal.x = u.y * v.z - u.z * v.y;
           normal.y = u.z * v.x - u.x * v.z;
           normal.z = u.x * v.y - u.y * v.x;
-          normal.w = 0.0f;
+          //normal.w = 0.0f;
           normalflat = normalize(normal);
 
 
-          normalflat =normalize(make_float4(
+          normalflat =normalize(make_cuda_vec(
                        (*(cudaGvtCtx->normi)) * make_float3(normalflat.x,
                     		   normalflat.y,normalflat.z)));
 
@@ -313,12 +313,12 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
                                                    // to store
           // `faces_to_normals`
           // list
-          const float4 &a =   cudaGvtCtx->mesh.normals[normals.x];
-          const float4 &b =   cudaGvtCtx->mesh.normals[normals.y];
-          const float4 &c =   cudaGvtCtx->mesh.normals[normals.z];
+          const cuda_vec &a =   cudaGvtCtx->mesh.normals[normals.x];
+          const cuda_vec &b =   cudaGvtCtx->mesh.normals[normals.y];
+          const cuda_vec &c =   cudaGvtCtx->mesh.normals[normals.z];
           manualNormal = a * u + b * v + c * (1.0f - u - v);
 
-          manualNormal =make_float4(
+          manualNormal =make_cuda_vec(
               (*(cudaGvtCtx->normi)) * make_float3(manualNormal.x,
             		  manualNormal.y,manualNormal.z));
 
@@ -336,7 +336,7 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
            manualNormal = -manualNormal;
            }
 
-        const float4 &normal = manualNormal;
+        const cuda_vec &normal = manualNormal;
 
 
         // reduce contribution of the color that the shadow rays get
@@ -360,9 +360,9 @@ __global__ void kernel(gvt::render::data::cuda_primitives::CudaGvtContext* cudaG
 
           const float t_secondary = multiplier * r.t;
           r.origin = r.origin + r.direction * t_secondary;
-          r.origin.w=1.0f;
+          //r.origin.w=1.0f;
 
-         float4 dir = normalize(CosWeightedRandomHemisphereDirection2(normal));
+         cuda_vec dir = normalize(CosWeightedRandomHemisphereDirection2(normal));
 
           r.setDirection(dir);
 
