@@ -39,9 +39,9 @@ namespace cuda_primitives {
 /** surface material properties used to shade intersected geometry
 */
 
-__device__ void Ray::setDirection(float4 dir) {
+__device__ void Ray::setDirection(cuda_vec dir) {
 		//direction = dir;
-	  dir.w = 0;
+//	  dir.w = 0;
 	  direction = normalize(dir);
 	  //for (int i = 0; i < 3; i++) {
 //	    if (direction.x != 0)

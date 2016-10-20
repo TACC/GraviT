@@ -125,13 +125,13 @@ public:
 */
 public:
    data::primitives::Material* mat;
-  float4* vertices;
-  //float4* mapuv;
-  float4* normals;
+  cuda_vec* vertices;
+  //cuda_vec* mapuv;
+  cuda_vec* normals;
   int3* faces;
   int3* faces_to_normals;
-  float4* face_normals;
-  //float4* faces_to_materials;
+  cuda_vec* face_normals;
+  //cuda_vec* faces_to_materials;
   //gvt::render::data::primitives::Box3D boundingBox;
   //bool haveNormals;
 };

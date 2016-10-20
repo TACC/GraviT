@@ -45,6 +45,11 @@ namespace cuda_primitives {
 /** surface material properties used to shade intersected geometry
 */
 
+#define cuda_vec float3
+typedef cuda_vec Color;
+
+#define make_cuda_vec make_float3
+
 struct OptixRay {
   float origin[3];
   float t_min;
@@ -86,19 +91,16 @@ public:
 
 		struct {
 
-
-			float4 origin;
-			float4 direction;
-			//float4 inverseDirection;
-			float4 color;
-			//int id;    ///<! index into framebuffer
-			int depth; ///<! sample rate
-			float w;   ///<! weight of image contribution
-			float t;
-			float t_min;
-			float t_max;
-			int type;
-			int id;
+		  	  	  	  cuda_vec origin;
+				      float t_min;
+				      cuda_vec direction;
+				      float t_max;
+				      cuda_vec color;
+				      float t;
+				      int id;    ///<! index into framebuffer
+				      int depth; ///<! sample rate
+				      float w;   ///<! weight of image contribution
+				      int type;
 
 		};
 
@@ -111,7 +113,7 @@ public:
 					direction.x   ,direction.y , direction.z);
 		  }
 
-		__device__ void setDirection(float4 dir);
+		__device__ void setDirection(cuda_vec dir);
 
 	   };
 

@@ -48,13 +48,13 @@ typedef enum {BASE_LIGHT, AMBIENT, POINT, AREA} LIGH_TYPE;
 class BaseLight {
 public:
 /*
-	BaseLight(const float4 position = make_float4(0.f));
+	BaseLight(const cuda_vec position = make_cuda_vec(0.f));
   virtual ~BaseLight();
 */
-           __device__ float4 contribution(const float4 &hit,const float4 &samplePos) const;
+           __device__ cuda_vec contribution(const cuda_vec &hit,const cuda_vec &samplePos) const;
 
 
-  float4 position;
+  cuda_vec position;
 
 /*  virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
@@ -64,41 +64,41 @@ public:
 /// general lighting factor added to each successful ray intersection
 class AmbientLight : public BaseLight {
 public:
-/*  AmbientLight(const float4 color = make_float4(1.f, 1.f, 1.f, 0.f));
+/*  AmbientLight(const cuda_vec color = make_cuda_vec(1.f, 1.f, 1.f, 0.f));
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 */
-           __device__ float4 contribution(const float4 &hit,const float4 &samplePos) const;
+           __device__ cuda_vec contribution(const cuda_vec &hit,const cuda_vec &samplePos) const;
 
-  float4 color;
+  cuda_vec color;
 };
 /// point light source
 class PointLight : public BaseLight {
 public:
-/*  PointLight(const float4 position = make_float4(0.f),
-             const float4 color = make_float4(1.f, 1.f, 1.f, 0.f));
+/*  PointLight(const cuda_vec position = make_cuda_vec(0.f),
+             const cuda_vec color = make_cuda_vec(1.f, 1.f, 1.f, 0.f));
 
   virtual ~PointLight();
 */
-           __device__  float4 contribution(const float4 &hit,const float4 &samplePos) const;
+           __device__  cuda_vec contribution(const cuda_vec &hit,const cuda_vec &samplePos) const;
 
-  float4 color;
+  cuda_vec color;
 };
 
 class AreaLight : public BaseLight {
 public:
 
 
-  __device__ float4 contribution(const float4 &hitpoint, const float4 &samplePos) const;
+  __device__ cuda_vec contribution(const cuda_vec &hitpoint, const cuda_vec &samplePos) const;
 
-  __device__ float4  GetPosition();
+  __device__ cuda_vec  GetPosition();
 
-  float4 color;
-  float4 LightNormal;
+  cuda_vec color;
+  cuda_vec LightNormal;
   float LightWidth;
   float LightHeight;
 
-  float4 u, v, w;
+  cuda_vec u, v, w;
 
 };
 
@@ -113,8 +113,8 @@ typedef struct {
 
 	};
 
-           __device__ float4 contribution(const float4 &hit,const float4 &samplePos) const {
-		float4 r;
+           __device__ cuda_vec contribution(const cuda_vec &hit,const cuda_vec &samplePos) const {
+		cuda_vec r;
 		switch (type) {
 		case BASE_LIGHT:
                         r = light.contribution(hit,samplePos);
