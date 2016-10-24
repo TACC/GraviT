@@ -153,7 +153,7 @@ cudaCreateNormals(std::vector<glm::vec3>& gvt_normals) {
 	for (int i = 0; i < gvt_normals.size(); i++) {
 
 		cuda_vec v = make_cuda_vec(gvt_normals[i].x, gvt_normals[i].y,
-				gvt_normals[i].z, 0.f);
+				gvt_normals[i].z);
 		normals.push_back(v);
 	}
 
@@ -205,7 +205,7 @@ cudaCreateVertices(std::vector<glm::vec3>& gvt_verts) {
 	for (int i = 0; i < gvt_verts.size(); i++) {
 
 		cuda_vec v = make_cuda_vec(gvt_verts[i].x, gvt_verts[i].y,
-				gvt_verts[i].z, 0.f);
+				gvt_verts[i].z);
 		verts.push_back(v);
 	}
 
@@ -262,7 +262,7 @@ void cudaSetRays(gvt::render::actor::RayVector::iterator gvtRayVector,
 							* localRayCount, cudaMemcpyHostToDevice, stream));
 
 
-}
+
 }
 
 void cudaGetRays(size_t& localDispatchSize,
@@ -955,18 +955,20 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 	tbb::task_group _tasks;
 	bool parallel = true;
 
+	if (localWork < 4096) parallel =false;  /* hand tunned value*/
+
 	_tasks.run(
 			[&]() {
 				gvt::render::actor::RayVector::iterator localRayList = rayList.begin()+ _begin;
 				size_t begin=0;
-				size_t end=(parallel && localWork >= 2* packetSize) ? (localWork/2) : localWork;
+				size_t end=(parallel ) ? (localWork/2) : localWork;
 
 				OptixParallelTrace(this, localRayList, moved_rays,  m,
 						minv, normi, counter, begin, end, disp_Buff[0], cudaRaysBuff[0])();
 
 			});
 
-	if (parallel && localWork >= 2 * packetSize) {
+	if (parallel ) {
 
 		_tasks.run(
 				[&]() {
