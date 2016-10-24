@@ -955,7 +955,14 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 	tbb::task_group _tasks;
 	bool parallel = true;
 
-	if (localWork < 4096) parallel =false;  /* hand tunned value*/
+	if (localWork < packetSize/4) { /* hand tunned value*/
+		parallel =false;
+
+	}
+
+//	std::cout << "local work " << localWork << std::endl;
+//    std::cout << "packetsize " << packetSize << std::endl;
+//    std::cout << "parallel  " << parallel<< std::endl;
 
 	_tasks.run(
 			[&]() {
