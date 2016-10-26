@@ -109,7 +109,7 @@ public:
   // all the engine hooks belong in the adapter. The adapter is created in the
   // tracer. I have to pass argc and argv to the tracer so it can init ospray. 
   // Blech. Here is initialization via a static method.. ugly. 
-  Tracer(int *argc, char **argv,gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : Tracer(rays, image) {
+  Tracer(int *argc, char **argv, gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : Tracer(rays, image) {
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(argc, argv);
   //gvt::render::adapter::ospray::data::OSPRayAdapter::init = true;
   }

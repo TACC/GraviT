@@ -14,8 +14,11 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data):Adapter(
 }
 /***
  * following the function of the other adapters all this one does is map the data
- * in the GVT volume to ospray datatypes.  In the end you should have an initialized
- * ospray volume object.
+ * in the GVT volume to ospray datatypes. If we are doing this right then this is
+ * the first place in an application where ospray calls are made. So this is a 
+ * reasonable place to init ospray. In the end you should have an initialized
+ * ospray volume object. The adapter needs to maintain a pointer to an ospray model 
+ * object.
  */
 OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapter(data) {
   int n_slices,n_isovalues;
@@ -66,6 +69,8 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   switch(vt){
     case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
+          int numberofsamples = counts.x*counts.y*counts.z;
+          OSPData voldata = ospNewData(numberofsamples,OSP_FLOAT,(void*)data->GetSamples(),OSP_DATA_SHARED_BUFFER);
                  break;
     case gvt::render::data::primitives::Volume::UCHAR : ospSetString(theOSPVolume,"voxelType","uchar");
                  break;
@@ -73,7 +78,16 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
               break;
   }
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
+  data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
+  ospCommit(theOSPVolume);
+  // make a model and stuff the volume in it.
+  theOSPModel = ospNewModel();
+  ospAddVolume(theOSPModel,theOSPVolume);
+  ospCommit(theOSPModel);
+  // the model should be added to the renderer
+  ospSetObject(theOSPRenderer,"model",theOSPModel);
+  ospCommit(theOSPRenderer);
 }
 
 /*** this routine maps ospexternal rays to gravit rays
@@ -172,6 +186,32 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
 }
 
 void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights, size_t begin ,size_t end) { 
+  // lights
+  float* lghts = new float[3*lights.size()];
+  gvt::render::data::scene::Light lgt;
+  for(gvt::render::data::scene::Light *lgt : lights) {
+    glm::vec3 pos = lgt->position;
+    lghts[0] = pos[0];
+    lghts[1] = pos[1];
+    lghts[2] = pos[2];
+    lghts +=3;
+  }
+  OSPData lightData = ospNewData(lights.size(),OSP_FLOAT3,lghts);
+  ospSetData(theOSPRenderer,"lights",lightData);
+  float ka,kd,arad;
+  int nar;
+  bool dos;
+  ka = 0.6;
+  kd = 0.4;
+  dos = false;
+  arad = 0.0;
+  nar = 0;
+  ospSet1i(theOSPRenderer,"do_shadows",0);
+  ospSet1i(theOSPRenderer,"n_ao_rays",nar);
+  ospSet1f(theOSPRenderer,"ao_radius",arad);
+  ospSet1f(theOSPRenderer,"Ka",ka);
+  ospSet1f(theOSPRenderer,"Kd",kd);
+  //ospCommit(theOSPRenderer);
   std::cout << " tracin" << std::endl; 
   // convert GVT RayVector into the OSPExternalRays used by ospray. 
   OSPExternalRays rl = GVT2OSPRays(rayList);

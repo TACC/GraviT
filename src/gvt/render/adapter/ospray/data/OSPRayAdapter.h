@@ -21,6 +21,7 @@ public:
   OSPRayAdapter(gvt::render::data::primitives::Mesh*);
   OSPRayAdapter(gvt::render::data::primitives::Volume*);
   OSPVolume GetTheOSPVolume() {return theOSPVolume;}
+  OSPModel GetTheOSPModel() {return theOSPModel;}
   ~OSPRayAdapter();
   static void initospray(int *argc,char **argv) ;
   OSPExternalRays GVT2OSPRays(gvt::render::actor::RayVector &rayList);
@@ -34,12 +35,12 @@ protected:
    * Variable: adapter has been initialized if true. 
    */
   static bool init;
-  OSPVolume theOSPVolume;
   OSPData theOSPData;
-  OSPModel theOSPModel;
   size_t begin, end;
-private:
+public:
   OSPRenderer theOSPRenderer;
+  OSPVolume theOSPVolume;
+  OSPModel theOSPModel;
 };
 }
 }

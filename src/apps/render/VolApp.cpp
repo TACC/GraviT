@@ -133,7 +133,10 @@ struct bovheader {
         if(elems[0] == "DATA_FILE:") {
           datafile = elems[1];
         } else if(elems[0] == "DATA_SIZE:") {
-           for(int i = 1; i<elems.size(); i++) datasize[i-1] = std::stoi(elems[i]);
+           for(int i = 1; i<elems.size(); i++) {
+             datasize[i-1] = std::stoi(elems[i]);
+             //std::cout << i << " " << datasize[i-1] << std::endl;
+           }
         } else if(elems[0] == "DATA_FORMAT:") {
          if(elems[1] == "INT") { 
            dfmt = INT;
@@ -157,6 +160,7 @@ struct bovheader {
       xpartitions = std::max(datasize[0]/bricklets[0],1);
       ypartitions = std::max(datasize[1]/bricklets[1],1);
       zpartitions = std::max(datasize[2]/bricklets[2],1);
+      std::cout << xpartitions << " " << ypartitions << " " << zpartitions << std::endl;
     } else {
       xpartitions = 1;
       ypartitions = 1;
@@ -167,30 +171,34 @@ struct bovheader {
   float *readdata(int dom) {
     int domi,domj,domk; // the domain index in global space
     int sample_bytes; // number of bytes in a sample.
+    int mydom;
+    mydom = dom;
     //unsigned char *samples;
     int *filedata;
     float *samples;
-    domi = dom%xpartitions;
-    domj = dom/xpartitions;
-    domk = dom/(xpartitions*ypartitions);
+    domi = mydom%xpartitions;
+    domj = (mydom/xpartitions)%ypartitions;
+    domk = mydom/(xpartitions*ypartitions);
     int istart,jstart,kstart;
-    istart = (domi == 0) ? 0 : domi*bricklets[0] -1;
-    jstart = (domj == 0) ? 0 : domj*bricklets[1] -1;
-    kstart = (domk == 0) ? 0 : domk*bricklets[2] -1;
+    istart = (domi == 0) ? 0 : (domi*bricklets[0] -1);
+    jstart = (domj == 0) ? 0 : (domj*bricklets[1] -1);
+    kstart = (domk == 0) ? 0 : (domk*bricklets[2] -1);
     //int count[3]; // points in each direction of this domain. 
-    counts[0] = (domi == 0) ? bricklets[0] : bricklets[0] + 1;
-    counts[1] = (domj == 0) ? bricklets[1] : bricklets[1] + 1;
-    counts[2] = (domk == 0) ? bricklets[2] : bricklets[2] + 1;
+    counts[0] = (domi == 0) ? bricklets[0] : (bricklets[0] + 1);
+    counts[1] = (domj == 0) ? bricklets[1] : (bricklets[1] + 1);
+    counts[2] = (domk == 0) ? bricklets[2] : (bricklets[2] + 1);
     origin[0] = (float)istart;
     origin[1] = (float)jstart;
     origin[2] = (float)kstart;
     // read some data. Each domain can only read a single "i" vector at a time
-    // make enough space for a single i vector. this should depend on type but I am
-    // in  a hurry
+    // make enough space for a single i vector. this should depend on type 
     int *ibuffer = new int[counts[0]];
     // allocate enough space for samples
     samples = new float[counts[0]*counts[1]*counts[2]];
+    sample_bytes = sizeof(int);
     char *ptr = (char *)ibuffer;
+    std::cout << mydom << " " << domi << " " << domj << " " << domk << std::endl;
+    std::cout << mydom << " " << istart << " " << jstart << " " << kstart << std::endl;
     myfile.open(datafile.c_str(), ios::in | ios::binary);
     for(int k=kstart;k<kstart+counts[2];k++) 
       for(int j=jstart;j<jstart+counts[1];j++) {
@@ -198,7 +206,7 @@ struct bovheader {
         streampos src = (k*datasize[0]*datasize[1]+j*datasize[0]+istart)*sample_bytes;
         myfile.seekg(src,ios_base::beg);
         myfile.read(ptr,counts[0]*sample_bytes);
-        int offset = k*counts[0]*counts[1]+ j*counts[0];
+        int offset = counts[0]*((k-kstart)*counts[1] + (j-jstart));
         for(int i=0;i<counts[0];i++) {
           samples[offset+i] = (float)ibuffer[i];
         }
@@ -301,16 +309,16 @@ int main(int argc, char **argv) {
   worldsize = MPI::COMM_WORLD.Get_size();
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
-      std::cout << "rank " << rank << " reading domain " << domain <<std::cout;
+      std::cout << "rank " << rank << " reading domain " << domain <<std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
       gvt::render::data::primitives::Volume *vol = 
         new gvt::render::data::primitives::Volume();
-      gvt::render::data::primitives::TransferFunction *tf = 
-        new gvt::render::data::primitives::TransferFunction();
       // read volume file.
       float* sampledata = volheader.readdata(domain);
+      gvt::render::data::primitives::TransferFunction *tf = 
+        new gvt::render::data::primitives::TransferFunction();
       // read transfer function. 
       tf->load(ctffile,otffile);
       // push the sample data into the volume and fill the other
@@ -445,7 +453,7 @@ int main(int argc, char **argv) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
-  //  gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(&argc,argv,mycamera.rays, myimage);
+    //gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(&argc,argv,mycamera.rays, myimage);
 #endif
     gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
