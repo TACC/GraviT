@@ -26,6 +26,7 @@
 #include <gvt/core/utils/timer.h>
 
 #include <gvt/render/data/scene/gvtCamera.h>
+#include <gvt/core/context/CoreContext.h>
 
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
@@ -220,8 +221,8 @@ void gvtPerspectiveCamera::generateRays() {
   // for (j = 0; j < buffer_height; j++)
   //   for (i = 0; i < buffer_width; i++) {
 
-  const size_t chunksize = buffer_height / (std::thread::hardware_concurrency() * 4);
-  static tbb::simple_partitioner ap;
+  const size_t chunksize = buffer_height / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4);
+  static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),
                     [&](tbb::blocked_range<size_t> &chunk) {
                       gvt::core::math::RandEngine randEngine;

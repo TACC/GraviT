@@ -87,11 +87,21 @@ int main(int argc, char **argv) {
 
   cmd.parse(argc, argv);
 
-  if (!cmd.isSet("threads")) {
+/*  if (!cmd.isSet("threads")) {
     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
+  }*/
+  std::cout << "crating node..." << std::endl;
+
+
+  tbb::task_scheduler_init* init;
+  if (!cmd.isSet("threads")) {
+	  init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+  } else {
+	  init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
+
 
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
@@ -103,7 +113,12 @@ int main(int argc, char **argv) {
     std::cout << "Something went wrong initializing the context" << std::endl;
     exit(0);
   }
+
+
   gvt::core::DBNodeH root = cntxt->getRootNode();
+   root+= cntxt->createNode(
+ 		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
+
 
   // A single mpi node will create db nodes and then broadcast them
   if (MPI::COMM_WORLD.Get_rank() == 0) {
@@ -197,7 +212,7 @@ int main(int argc, char **argv) {
   GVT_ERR_MESSAGE( "ERROR: missing valid adapter");
 #endif
 
-  schedNode["adapter"] = adapterType;
+  schedNode["adapter"] = gvt::render::adapter::Embree;
 
   // end db setup
 

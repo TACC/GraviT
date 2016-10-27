@@ -517,8 +517,6 @@ OptixMeshAdapter::OptixMeshAdapter(gvt::render::data::primitives::Mesh *m) : Ada
 			packetSize = prop.multiProcessorCount
 					* prop.maxThreadsPerMultiProcessor * 8 /* hand tunned value*/;
 
-			std::cout << packetSize << std::endl;
-
 		}
 		if (!activeDevices.size()) {
 			activeDevices.push_back(0);

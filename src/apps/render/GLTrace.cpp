@@ -1091,18 +1091,16 @@ int main(int argc, char *argv[]) {
   cmd.addconflict("simple", "scene");
   cmd.addconflict("image", "domain");
 
-  // cmd.addrequire("simple", "eye");
-  // cmd.addrequire("simple", "look");
-
   cmd.parse(argc, argv);
 
+  tbb::task_scheduler_init* init;
   if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
   } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
-  // tbb::task_scheduler_init init(1);
+  //tbb::task_scheduler_init init(2);
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1119,6 +1117,9 @@ int main(int argc, char *argv[]) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+  root+= cntxt->createNode(
+		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
+
 
   if (master) {
     cntxt->addToSync(cntxt->createNodeFromType("Data", "glTraceData", root.UUID()));

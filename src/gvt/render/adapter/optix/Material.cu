@@ -7,7 +7,7 @@
 using namespace gvt::render::data::cuda_primitives;
 using namespace gvt::render::data::primitives;
 
-__device__ inline cuda_vec tocuda_vec(glm::vec3 v){
+__device__ inline cuda_vec tocuda_vec(const glm::vec3& v){
 	return make_cuda_vec(v.x, v.y,v.z);
 }
 

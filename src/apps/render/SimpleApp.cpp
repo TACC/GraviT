@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
 
-	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+	gvt::core::DBNodeH loc = cntxt->createNode("rank", 0);
 	coneMeshNode["Locations"] += loc;
 
 	cntxt->addToSync(coneMeshNode);
@@ -278,8 +278,8 @@ int main(int argc, char **argv) {
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
     cubeMeshNode["ptr"] = (unsigned long long)mesh;
 
-	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
-	cubeMeshNode["Locations"] += loc;
+/*	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+	cubeMeshNode["Locations"] += loc;*/
 
     cntxt->addToSync(cubeMeshNode);
 

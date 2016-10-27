@@ -63,6 +63,12 @@
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
 #define GVT_EMBREE_INTERSECTION rtcIntersect16
 #define GVT_EMBREE_OCCULUSION rtcOccluded16
+#elif defined(GVT_AVX512_TARGET)
+#define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
+#define GVT_EMBREE_PACKET_SIZE 16
+#define GVT_EMBREE_PACKET_TYPE RTCRay16
+#define GVT_EMBREE_INTERSECTION rtcIntersect16
+#define GVT_EMBREE_OCCULUSION rtcOccluded16
 #else
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT4
 #define GVT_EMBREE_PACKET_SIZE 4
@@ -123,7 +129,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   GVT_ASSERT(mesh, "EmbreeMeshAdapter: mesh pointer in the database is null");
   mesh->generateNormals();
 
-  device = rtcNewDevice(NULL);
+  device = rtcNewDevice();
   error_handler(rtcDeviceGetError(device));
   /* set error handler */
   rtcDeviceSetErrorFunction(device, error_handler);
@@ -598,10 +604,10 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   this->begin = _begin;
   this->end = _end;
 
-  const size_t numThreads = std::thread::hardware_concurrency();
-  const size_t workSize = std::max((size_t)4, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
+  const size_t numThreads =  gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
+  const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
                                                                                            // of rays to work
-                                                                                           // on
+                                                                   // on
 
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
