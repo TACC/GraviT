@@ -105,9 +105,9 @@ __global__ void cudaKernelPrepOptixRays(OptixRay* optixrays, bool* valid,
 
 		//r.origin.w=1;
 		cuda_vec origin = make_float3(
-				(*(cudaGvtCtx->minv)) * make_float4(r.origin)); // transform ray to local space
+				(*(cudaGvtCtx->minv)) * make_float4(r.origin, 1.0f)); // transform ray to local space
 		cuda_vec direction = make_float3(
-				(*(cudaGvtCtx->minv)) * make_float4(r.direction));
+				(*(cudaGvtCtx->minv)) * make_float4(r.direction, 0.0f));
 
 		OptixRay optix_ray;
 		optix_ray.origin[0] = origin.x;

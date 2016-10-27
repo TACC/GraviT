@@ -79,8 +79,6 @@ void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
 
-  std::cout << "Ray :" << sizeof(gvt::render::actor::Ray) << std::endl;
-
   ParseCommandLine cmd("gvtSimple");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -94,12 +92,22 @@ int main(int argc, char **argv) {
   cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
   cmd.addconflict("image", "domain");
 
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+
+
+  cmd.addconflict("embree", "manta");
+  cmd.addconflict("embree", "optix");
+  cmd.addconflict("manta", "optix");
+
   cmd.parse(argc, argv);
 
+  tbb::task_scheduler_init* init;
   if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
   } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
   MPI_Init(&argc, &argv);
@@ -114,6 +122,8 @@ int main(int argc, char **argv) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+    root+= cntxt->createNode(
+  		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   // mix of cones and cubes
 
@@ -179,13 +189,12 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
     // add cone mesh to the database
-    gvt::core::Variant meshvariant(mesh);
-//    std::cout << "meshvariant " << meshvariant << std::endl;
+
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
 
-	gvt::core::DBNodeH loc = cntxt->createNode("rank", 0);
+	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
 	coneMeshNode["Locations"] += loc;
 
 	cntxt->addToSync(coneMeshNode);
@@ -278,8 +287,8 @@ int main(int argc, char **argv) {
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
     cubeMeshNode["ptr"] = (unsigned long long)mesh;
 
-/*	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
-	cubeMeshNode["Locations"] += loc;*/
+	gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+	cubeMeshNode["Locations"] += loc;
 
     cntxt->addToSync(cubeMeshNode);
 
@@ -346,10 +355,6 @@ int main(int argc, char **argv) {
   lightNode["height"] = 2.f;
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 #endif
-  // second light just for fun
-  // gvt::core::DBNodeH lN2 = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  // lN2["position"] = glm::vec3(2.0, 2.0, 2.0, 0.0);
-  // lN2["color"] = glm::vec3(0.0, 0.0, 0.0, 0.0);
 
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
@@ -401,17 +406,44 @@ int main(int argc, char **argv) {
   else
     schedNode["type"] = gvt::render::scheduler::Image;
 
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-  int adapterType = gvt::render::adapter::Embree;
-#elif GVT_RENDER_ADAPTER_MANTA
-  int adapterType = gvt::render::adapter::Manta;
-#elif GVT_RENDER_ADAPTER_OPTIX
-  int adapterType = gvt::render::adapter::Optix;
-#else
-  GVT_ERR_MESSAGE("ERROR: missing valid adapter");
-#endif
+  string adapter("embree");
 
-  schedNode["adapter"] = adapterType;
+  if (cmd.isSet("manta")) {
+    adapter = "manta";
+  } else if (cmd.isSet("optix")) {
+    adapter = "optix";
+  }
+
+
+  // adapter
+   if (adapter.compare("embree") == 0) {
+     std::cout << " embree adapter " << std::endl;
+ #ifdef GVT_RENDER_ADAPTER_EMBREE
+     schedNode["adapter"] = gvt::render::adapter::Embree;
+ #else
+     std::cout << "Embree adapter missing. recompile" << std::endl;
+     exit(1);
+ #endif
+   } else if (adapter.compare("manta") == 0) {
+     std::cout << " manta adapter " << std::endl;
+ #ifdef GVT_RENDER_ADAPTER_MANTA
+     schedNode["adapter"] = gvt::render::adapter::Manta;
+ #else
+     std::cout << "Manta adapter missing. recompile" << std::endl;
+     exit(1);
+ #endif
+   } else if (adapter.compare("optix") == 0) {
+     std::cout << " optix adapter " << std::endl;
+ #ifdef GVT_RENDER_ADAPTER_OPTIX
+     schedNode["adapter"] = gvt::render::adapter::Optix;
+ #else
+     std::cout << "Optix adapter missing. recompile" << std::endl;
+     exit(1);
+ #endif
+   } else {
+     std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
+     exit(1);
+   }
 
   // end db setup
 

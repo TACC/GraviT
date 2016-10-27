@@ -21,19 +21,14 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-//
-// MantaMeshAdapter.h
-//
 
 #ifndef GVT_RENDER_ADAPTER_MANTA_DATA_MANTA_MESH_ADAPTER_H
 #define GVT_RENDER_ADAPTER_MANTA_DATA_MANTA_MESH_ADAPTER_H
 
 #include "gvt/render/Adapter.h"
 
-#include "gvt/render/adapter/manta/override/DynBVH.h"
+#include "gvt/render/adapter/manta/DynBVH.h"
 #include "gvt/render/data/Primitives.h"
-// #include "gvt/render/data/domain/AbstractDomain.h"
-// #include "gvt/render/data/domain/GeometryDomain.h"
 
 // begin Manta includes
 #include <Core/Exceptions/Exception.h>

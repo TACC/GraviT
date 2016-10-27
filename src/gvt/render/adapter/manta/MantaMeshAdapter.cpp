@@ -21,13 +21,11 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-//
-// MantaMeshAdapter.cpp
-//
 
-#include <gvt/render/adapter/manta/data/MantaMeshAdapter.h>
 
-#include <gvt/core/CoreContext.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
+
+#include <gvt/core/context/CoreContext.h>
 
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
@@ -36,7 +34,6 @@
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 #include <gvt/render/data/primitives/Material.h>
-// #include <gvt/render/data/primitives/EmbreeMaterial.h>
 #include <gvt/render/data/primitives/Shade.h>
 
 // Manta includes
@@ -45,15 +42,6 @@
 #include <Model/Materials/Lambertian.h>
 #include <Interface/Context.h>
 
-// #include <Engine/Shadows/HardShadows.h>
-// #include <Engine/Shadows/NoShadows.h>
-// #include <Interface/Primitive.h>
-// #include <Model/AmbientLights/AmbientOcclusionBackground.h>
-// #include <Model/AmbientLights/ArcAmbient.h>
-// #include <Model/AmbientLights/ConstantAmbient.h>
-// #include <Model/AmbientLights/EyeAmbient.h>
-// #include <Model/Primitives/Cube.h>
-// end Manta includes
 
 #include <atomic>
 #include <thread>
@@ -72,8 +60,6 @@
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::manta::data;
-// using namespace gvt::render::adapter::manta::data::domain;
-// using namespace gvt::render::data::domain;
 using namespace gvt::render::data::primitives;
 
 static std::atomic<size_t> counter(0);
@@ -442,20 +428,8 @@ struct mantaParallelTrace {
    * If `sharedIdx` grows to be larger than the incoming ray size, then the thread is complete.
    */
   void operator()() {
-#ifdef GVT_USE_DEBUG
-    boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: thread trace time: %w\n");
-#endif
-    GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: started thread");
-
-    GVT_DEBUG(DBG_ALWAYS, "MantaMeshAdapter: getting mesh [hack for now]");
-    // TODO: don't use gvt mesh. need to figure out way to do per-vertex-normals and shading calculations
-    // auto mesh = (Mesh *)instNode["meshRef"].deRef()["ptr"].value().toULongLong();
 
     const Manta::RenderContext &renderContext = *(adapter->getRenderContext());
-
-    // gvt::render::actor::RayVector rayPacket;
-    // gvt::render::actor::RayVector localQueue;
-    // gvt::render::actor::RayVector localDispatch;
 
     localDispatch.reserve((end - begin) * 2);
 
@@ -514,13 +488,6 @@ struct mantaParallelTrace {
               Manta::Vector mantaNormal = rayPacket.getFFNormal(pi);
               glm::vec3 normal = glm::normalize((*normi) * glm::vec3(mantaNormal[0], mantaNormal[1], mantaNormal[2]));
 
-              // TODO: support faces_to_materials
-              // Material *mat;
-              // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]]) {
-              //   mat = mesh->faces_to_materials[ray4.primID[pi]];
-              // } else {
-              //   mat = mesh->getMaterial();
-              // }
               Material *mat = mesh->getMaterial();
 
               // reduce contribution of the color that the shadow rays get
@@ -543,8 +510,6 @@ struct mantaParallelTrace {
                 const float t_secondary = multiplier * r.t;
                 r.origin = r.origin + r.direction * t_secondary;
 
-                // TODO: remove this dependency on mesh, store material object in the database
-                // r.setDirection(adapter->getMesh()->getMaterial()->CosWeightedRandomHemisphereDirection2(normal));
 
                 r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
@@ -568,31 +533,6 @@ struct mantaParallelTrace {
       }
     }
 
-#ifdef GVT_USE_DEBUG
-    size_t shadow_count = 0;
-    size_t primary_count = 0;
-    size_t secondary_count = 0;
-    size_t other_count = 0;
-    for (auto &r : localDispatch) {
-      switch (r.type) {
-      case gvt::render::actor::Ray::SHADOW:
-        shadow_count++;
-        break;
-      case gvt::render::actor::Ray::PRIMARY:
-        primary_count++;
-        break;
-      case gvt::render::actor::Ray::SECONDARY:
-        secondary_count++;
-        break;
-      default:
-        other_count++;
-        break;
-      }
-    }
-    GVT_DEBUG(DBG_ALWAYS, "Local dispatch : " << localDispatch.size() << ", types: primary: " << primary_count
-                                              << ", shadow: " << shadow_count << ", secondary: " << secondary_count
-                                              << ", other: " << other_count);
-#endif
 
     // copy localDispatch rays to outgoing rays queue
     std::unique_lock<std::mutex> moved(adapter->_outqueue);
@@ -604,9 +544,6 @@ struct mantaParallelTrace {
 void MantaMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                              glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
                              std::vector<gvt::render::data::scene::Light *> &lights, size_t _begin, size_t _end) {
-#ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t_functor("MantaMeshAdapter: trace time: %w\n");
-#endif
 
   std::size_t begin = _begin;
   std::size_t end = _end;

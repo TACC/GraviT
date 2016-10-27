@@ -199,7 +199,7 @@ public:
             break;
 #endif
           default:
-              GVT_ERR_MESSAGE("domain scheduler: unknown adapter type: " << adapterType);
+              GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
 
           }
 

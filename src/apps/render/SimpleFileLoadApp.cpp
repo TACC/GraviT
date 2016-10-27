@@ -77,12 +77,24 @@ int main(int argc, char **argv) {
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
   cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
+
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+
+
+  cmd.addconflict("embree", "manta");
+  cmd.addconflict("embree", "optix");
+  cmd.addconflict("manta", "optix");
+
   cmd.addconflict("image", "domain");
   cmd.parse(argc, argv);
+
+  tbb::task_scheduler_init* init;
   if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
   } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
   MPI_Init(&argc, &argv);
@@ -97,6 +109,8 @@ int main(int argc, char **argv) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+    root+= cntxt->createNode(
+  		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   if (rank == 0) {
 	 gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));

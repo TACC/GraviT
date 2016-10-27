@@ -25,10 +25,8 @@
  * A simple GraviT application to do some testing.
  * This is supposed to be as close to the osptest application as I can get it.
  *
- * run like this:
- * bin/gvttest -i $WORK/DAVEDATA/EnzoPlyData -o gvtspoot.ppm -cp 512,512,4096 -cd 0,0,-1 -fp 512,512,0 -fov 25.0 -ld
- * 0,0,-1  -geom 1920x1080 -lp 512,512,2048 -sched image -adapt embree
 */
+
 #include <algorithm>
 #include <gvt/core/Math.h>
 #include <gvt/render/RenderContext.h>
@@ -112,11 +110,12 @@ int main(int argc, char **argv) {
   cmd.addoption("image", ParseCommandLine::NONE, "Use domain schedule", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use image schedule", 0);
   cmd.addoption("hybrid", ParseCommandLine::NONE, "Use hybrid schedule", 0);
+  cmd.addoption("infile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Input File path");
+  cmd.addoption("outfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Output File path");
+
   cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
-  cmd.addoption("infile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Input File path");
-  cmd.addoption("outfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Output File path");
 
   cmd.addconflict("image", "domain");
   cmd.addconflict("embree", "manta");
@@ -155,15 +154,15 @@ int main(int argc, char **argv) {
   string scheduletype("image");
   string adapter("embree");
 
-  tbb::task_scheduler_init init(tbb::task_scheduler_init::deferred);
+  //tbb::task_scheduler_init init(tbb::task_scheduler_init::deferred);
   // parse the command line
   cmd.parse(argc, argv);
+
+  tbb::task_scheduler_init* init;
   if (!cmd.isSet("threads")) {
-    init.initialize(std::thread::hardware_concurrency());
-    // tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
   } else {
-    init.initialize(cmd.get<int>("threads"));
-    // tbb::task_scheduler_init init(cmd.get<int>("threads"));
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
 #if 1
@@ -181,6 +180,8 @@ int main(int argc, char **argv) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+   root+= cntxt->createNode(
+ 		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   if (MPI::COMM_WORLD.Get_rank() == 0) {
     cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));

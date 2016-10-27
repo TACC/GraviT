@@ -78,11 +78,14 @@ public:
 		PRIMARY, SHADOW, SECONDARY
 	} RayType;
 
+
 	struct {
 
 		cuda_vec origin;
-		float t_min;cuda_vec direction;
-		float t_max;cuda_vec color;
+		float t_min;
+		cuda_vec direction;
+		float t_max;
+		cuda_vec color;
 		float t;
 		int id;    ///<! index into framebuffer
 		int depth; ///<! sample rate

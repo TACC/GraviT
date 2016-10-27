@@ -323,18 +323,18 @@ public:
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
 
-
-
-   // std::cout << "Suffle rays" << rays.size() << std::endl;
-
     const size_t chunksize = MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::auto_partitioner ap;
+
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+
                         gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
                             acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
+
                         gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+
                         for (size_t i = 0; i < hits.size(); i++) {
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
@@ -345,6 +345,7 @@ public:
                             colorBuf[r.id] += glm::vec4(r.color, r.w);
                           }
                         }
+
                         for (auto &q : local_queue) {
 
                           queue_mutex[q.first].lock();
@@ -356,7 +357,6 @@ public:
                       },
                       ap);
 
-    //std::cout << "Finished shuffle" << std::endl;
     rays.clear();
   }
 

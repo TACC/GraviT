@@ -198,19 +198,6 @@ void cudaSetRays(gvt::render::actor::RayVector::iterator gvtRayVector,
 		cudaStream_t& stream,
 		gvt::render::data::cuda_primitives::Ray* cudaRays) {
 
-//	const int offset_rays =
-//			localRayCount > std::thread::hardware_concurrency() ?
-//					localRayCount / std::thread::hardware_concurrency() : 100;
-
-
-//	static tbb::auto_partitioner ap;
-//	tbb::parallel_for(tbb::blocked_range<int>(0, localRayCount, 128),
-//			[&](tbb::blocked_range<int> chunk) {
-//				for (int jj = chunk.begin(); jj < chunk.end(); jj++) {
-//						gvtRayToCudaRay(gvtRayVector[jj], cudaRays[jj]);
-//
-//				}}, ap);
-
 	//Copying to pinned
 	memcpy(cudaRays, &gvtRayVector[0], sizeof(gvt::render::data::cuda_primitives::Ray)*localRayCount);
 
@@ -880,8 +867,6 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 	*normi_pinned = *normi;
 	normi = normi_pinned;
 
-	// pull out instance transform data
-	GVT_DEBUG(DBG_ALWAYS, "OptixMeshAdapter: getting instance transform data");
 
 	gpuErrchk(cudaDeviceSynchronize());
 
@@ -892,6 +877,7 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 		parallel =false;
 
 	}
+
 
 	_tasks.run(
 			[&]() {

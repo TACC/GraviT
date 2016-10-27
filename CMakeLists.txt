@@ -276,10 +276,10 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
   set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-      src/gvt/render/adapter/manta/data/MantaMeshAdapter.h
-      src/gvt/render/adapter/manta/override/DynBVH.h
-      src/gvt/render/adapter/manta/Wrapper.h)
-  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} src/gvt/render/adapter/manta/data/MantaMeshAdapter.cpp)
+      src/gvt/render/adapter/manta/MantaMeshAdapter.h
+      src/gvt/render/adapter/manta/DynBVH.h
+ )
+  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} src/gvt/render/adapter/manta/MantaMeshAdapter.cpp)
 endif(GVT_RENDER_ADAPTER_MANTA)
 
 if (GVT_RENDER_ADAPTER_OPTIX_PRIME)

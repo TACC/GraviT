@@ -1086,10 +1086,17 @@ int main(int argc, char *argv[]) {
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+
   cmd.addconflict("file", "simple");
   cmd.addconflict("file", "scene");
   cmd.addconflict("simple", "scene");
   cmd.addconflict("image", "domain");
+  cmd.addconflict("embree", "manta");
+  cmd.addconflict("embree", "optix");
+  cmd.addconflict("manta", "optix");
 
   cmd.parse(argc, argv);
 
@@ -1145,17 +1152,43 @@ int main(int argc, char *argv[]) {
   else
     schedNode["type"] = gvt::render::scheduler::Image;
 
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-  int adapterType = gvt::render::adapter::Embree;
-#elif GVT_RENDER_ADAPTER_MANTA
-  int adapterType = gvt::render::adapter::Manta;
-#elif GVT_RENDER_ADAPTER_OPTIX
-  int adapterType = gvt::render::adapter::Optix;
-#else
-  GVT_ERR_MESSAGE("ERROR: missing valid adapter");
-#endif
+  string adapter("embree");
 
-  schedNode["adapter"] = adapterType;
+  if (cmd.isSet("manta")) {
+    adapter = "manta";
+  } else if (cmd.isSet("optix")) {
+    adapter = "optix";
+  }
+
+  // adapter
+  if (adapter.compare("embree") == 0) {
+    std::cout << "Using embree adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+    schedNode["adapter"] = gvt::render::adapter::Embree;
+#else
+    std::cout << "Embree adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("manta") == 0) {
+    std::cout << "Using manta adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_MANTA
+    schedNode["adapter"] = gvt::render::adapter::Manta;
+#else
+    std::cout << "Manta adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("optix") == 0) {
+    std::cout << "Using optix adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+    schedNode["adapter"] = gvt::render::adapter::Optix;
+#else
+    std::cout << "Optix adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else {
+    std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
+    exit(1);
+  }
 
   camNode = root["Camera"];
 
