@@ -377,9 +377,9 @@ if (GVT_RENDER)
         -gencode arch=compute_20,code=sm_20
     	-gencode arch=compute_30,code=sm_30
     	-gencode arch=compute_35,code=sm_35
-        --compiler-options '-fPIC')
+        --compiler-options -fPIC )
     #cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
-    CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS "${CUDA_NVCC_FLAGS}")
+    CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS ${CUDA_NVCC_FLAGS})
 
     set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} ${GVT_RENDER_CUDA_OBJS})
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
