@@ -48,67 +48,45 @@ HeterogeneousMeshAdapter::~HeterogeneousMeshAdapter() {
   delete _optix;
 }
 
-void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                                     glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                                     std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
-#ifdef GVT_USE_DEBUG
-  //boost::timer::auto_cpu_timer t_functor("HeterogeneousMeshAdapter: trace time: %w\n");
-#endif
+void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
+		gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
+		glm::mat4 *minv, glm::mat3 *normi,
+		std::vector<gvt::render::data::scene::Light *> &lights, size_t begin,
+		size_t end) {
 
-  gvt::render::actor::RayVector mOptix;
-  std::mutex _lock_rays;
+	gvt::render::actor::RayVector mOptix;
+	std::mutex _lock_rays;
 
-  {
-    const size_t size = rayList.size();
-    //const size_t work = 4096;
-    //size_t current = 0;
+	const size_t size = rayList.size();
+	bool useGPU = true;
 
-    //std::atomic<size_t> cput(0), gput(0);
-    tbb::task_group g;
+	if (size < _optix->packetSize / 2) /* hand tunned value*/
+		useGPU = false;
+
+	size_t split = end;
+	if (useGPU)
+		split = size * 0.60;
 
 
-    size_t split = size * 0.25;
+	tbb::task_group g;
 
-    g.run([&]() {
-//      while (current < size) {
-//        if (_lock_rays.try_lock()) {
-//          size_t start = current;
-//          current += work;
-//          size_t end = current;
-//          _lock_rays.unlock();
-//
-//          if (start >= size) continue;
-//          if (end >= size) end = size;
-//
-//          gput++;
-          _optix->trace(rayList, mOptix, m, minv, normi, lights, 0, split);
- //       }
- //     }
-    });
+	g.run([&]() {
+		_embree->trace(rayList, moved_rays, m, minv, normi, lights, 0, split);
 
-    g.run([&]() {
-//      while (current < size) {
-//        if (_lock_rays.try_lock()) {
-//          size_t start = current;
-//          current += work;
-//          size_t end = current;
-//          _lock_rays.unlock();
-//
-//          if (start >= size) continue;
-//          if (end >= size) end = size;
-//
-//          cput++;
-            _embree->trace(rayList, moved_rays, m, minv, normi, lights, split, end);
+	});
 
-//        }
- //     }
-    });
+	if (useGPU)
+		g.run([&]() {
+			_optix->trace(rayList, mOptix, m, minv, normi, lights, split, end);
 
-    g.wait();
-    moved_rays.reserve(moved_rays.size() + mOptix.size());
-    moved_rays.insert(moved_rays.end(), std::make_move_iterator(mOptix.begin()), std::make_move_iterator(mOptix.end()));
+		});
 
-  }
+	g.wait();
+	if (useGPU) {
+		moved_rays.reserve(moved_rays.size() + mOptix.size());
+		moved_rays.insert(moved_rays.end(),
+				std::make_move_iterator(mOptix.begin()),
+				std::make_move_iterator(mOptix.end()));
+	}
 
-  // rayList.clear();
 }

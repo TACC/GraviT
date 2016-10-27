@@ -31,12 +31,6 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_MESH_CUH
 #define GVT_RENDER_DATA_PRIMITIVES_MESH_CUH
 
-//#include <gvt/render/data/primitives/BBox.h>
-//#include <gvt/render/data/primitives/Material.h>
-//#include <gvt/render/data/scene/Light.h>
-
-//#include <gvt/render/data/primitives/Mesh.h>
-
 #include <vector_functions.h>
 #include "Material.cuh"
 
@@ -94,7 +88,6 @@ public:
 
 	 __device__  ~AbstractMesh() {}
 
- // virtual gvt::render::data::primitives::Box3D *getBoundingBox() { return NULL; }
 };
 
 /// geometric mesh
@@ -104,8 +97,7 @@ public:
 
 class Mesh : public AbstractMesh {
 public:
-  //typedef boost::tuple<int, int, int> Face;
-  //typedef boost::tuple<int, int, int> FaceToNormals;
+
    __device__ Mesh(){
 
   }
@@ -113,27 +105,15 @@ public:
    __device__ virtual ~Mesh(){
 
   }
-  //  virtual gvt::render::data::primitives::Box3D *getBoundingBox() { return &boundingBox; }
 
-  /*virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
-  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const gvt::core::math::Vector4f &normal,
-                                         const gvt::render::data::scene::Light *lsource);
-
-  virtual gvt::render::data::Color shadeFace(const int face_id, const gvt::render::actor::Ray &r,
-                                             const gvt::core::math::Vector4f &normal,
-                                             const gvt::render::data::scene::Light *lsource);
-*/
 public:
    data::primitives::Material* mat;
-  float4* vertices;
-  //float4* mapuv;
-  float4* normals;
+  cuda_vec* vertices;
+  cuda_vec* normals;
   int3* faces;
   int3* faces_to_normals;
-  float4* face_normals;
-  //float4* faces_to_materials;
-  //gvt::render::data::primitives::Box3D boundingBox;
-  //bool haveNormals;
+  cuda_vec* face_normals;
+
 };
 }
 }

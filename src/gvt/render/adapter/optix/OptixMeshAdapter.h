@@ -132,6 +132,9 @@ public:
 
   gvt::render::data::cuda_primitives::Mesh cudaMesh;
 
+  unsigned long long packetSize;
+
+
 protected:
   /**
    * Handle to Optix context.
@@ -148,7 +151,6 @@ protected:
   /**
    * Currently selected packet size flag.
    */
-  unsigned long long packetSize;
 
   size_t begin, end;
 

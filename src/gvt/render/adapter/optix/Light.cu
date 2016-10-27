@@ -35,30 +35,19 @@ using namespace gvt::render::data::cuda_primitives;
 
 __device__ float cudaRand( );
 
-//BaseLight::BaseLight(const float4 position) : position(position) {}
+__device__ cuda_vec BaseLight::contribution(const cuda_vec &hit,const cuda_vec &samplePos) const { return make_cuda_vec(0.f); }
 
-//BaseLight::~BaseLight() {}
-
-__device__ float4 BaseLight::contribution(const float4 &hit,const float4 &samplePos) const { return make_float4(0.f); }
-
-//PointLight::PointLight(const float4 position, const float4 color) : BaseLight(position), color(color) {}
-
-//PointLight::~PointLight() {}
-
-__device__ float4 PointLight::contribution(const float4 &hit,const float4 &samplePos) const {
+__device__ cuda_vec PointLight::contribution(const cuda_vec &hit,const cuda_vec &samplePos) const {
   float distance = 1.f / length((samplePos -hit));
   distance = (distance > 1.f) ? 1.f : distance;
   return color * (distance);
 }
 
-//AmbientLight::AmbientLight(const float4 color) : BaseLight(), color(color) {}
 
-//AmbientLight::~AmbientLight() {}
-
-__device__ float4 AmbientLight::contribution(const float4 &hit,const float4 &samplePos) const { return color; }
+__device__ cuda_vec AmbientLight::contribution(const cuda_vec &hit,const cuda_vec &samplePos) const { return color; }
 
 
-__device__ float4 AreaLight::GetPosition() {
+__device__ cuda_vec AreaLight::GetPosition() {
   // generate points on plane then transform
   float xLocation = (cudaRand() - 0.5) * LightWidth;
   //float yLocation = 0;
@@ -69,10 +58,10 @@ __device__ float4 AreaLight::GetPosition() {
   float yCoord = xLocation * u.y + zLocation * w.y;
   float zCoord = xLocation * u.z + zLocation * w.z;
 
-  return make_float4(position.x + xCoord, position.y + yCoord, position.z + zCoord,0.f);
+  return make_cuda_vec(position.x + xCoord, position.y + yCoord, position.z + zCoord);
 }
 
-__device__ float4 AreaLight::contribution(const float4 &hit,const float4 &samplePos) const {
+__device__ cuda_vec AreaLight::contribution(const cuda_vec &hit,const cuda_vec &samplePos) const {
   float distance = 1.f / length(samplePos - hit);
   distance = (distance > 1.f) ? 1.f : distance;
   return color * (distance);
