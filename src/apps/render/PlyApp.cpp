@@ -25,13 +25,11 @@
  * A simple GraviT application that loads some geometry and renders it.
  *
  * This application renders a simple scene of cones and cubes using the GraviT interface.
- * This will run in both single-process and MPI modes. You can alter the work scheduler
- * used by changing line 242.
+ * This will run in both single-process and MPI modes.
  *
 */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -43,20 +41,17 @@
 #include <thread>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-#ifdef GVT_USE_MPE
-#include "mpe.h"
-#endif
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
@@ -77,7 +72,6 @@
 using namespace std;
 using namespace gvt::render;
 
-using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
@@ -91,13 +85,13 @@ bool isdir(const char *path) {
 // determine if a file exists
 bool file_exists(const char *path) {
   struct stat buf;
-  return(stat(path, &buf) == 0);
+  return (stat(path, &buf) == 0);
 }
-std::vector<std::string> findply(const std::string dirname) {
+gvt::core::Vector<std::string> findply(const std::string dirname) {
   glob_t result;
   std::string exp = dirname + "/*.ply";
   glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-  std::vector<std::string> ret;
+  gvt::core::Vector<std::string> ret;
   for (int i = 0; i < result.gl_pathc; i++) {
     ret.push_back(std::string(result.gl_pathv[i]));
   }
@@ -189,9 +183,9 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH root = cntxt->getRootNode();
 
   // A single mpi node will create db nodes and then broadcast them
-  if (MPI::COMM_WORLD.Get_rank()==0){
-	  cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
-  	  cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
   }
 
   cntxt->syncContext();
@@ -199,44 +193,45 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-
   // Enzo isosurface...
-  if(!file_exists(rootdir.c_str())) {
+  if (!file_exists(rootdir.c_str())) {
     cout << "File \"" << rootdir << "\" does not exist. Exiting." << endl;
     return 0;
   }
-  
-  if(!isdir(rootdir.c_str())) {
+
+  if (!isdir(rootdir.c_str())) {
     cout << "File \"" << rootdir << "\" is not a directory. Exiting." << endl;
     return 0;
   }
   vector<string> files = findply(rootdir);
-  if(files.empty()) {
+  if (files.empty()) {
     cout << "Directory \"" << rootdir << "\" contains no .ply files. Exiting." << endl;
     return 0;
   }
-  // read 'em 
+  // read 'em
   vector<string>::const_iterator file;
-  //for (k = 0; k < 8; k++) {
-  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
-//if defined, ply blocks load are divided across available mpi ranks
-//Each block will be loaded by a single mpi rank and a mpi rank can read multiple blocks
+  // for (k = 0; k < 8; k++) {
+  for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+// if defined, ply blocks load are divided across available mpi ranks
+// Each block will be loaded by a single mpi rank and a mpi rank can read multiple blocks
 #ifdef DOMAIN_PER_NODE
-  	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
+    if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) &&
+          (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE)))
+      continue;
 #endif
 
-//if all ranks read all ply blocks, one has to create the db node which is then broadcasted.
-//if not, since each block will be loaded by only one mpi, this mpi rank will create the db node
+// if all ranks read all ply blocks, one has to create the db node which is then broadcasted.
+// if not, since each block will be loaded by only one mpi, this mpi rank will create the db node
 #ifndef DOMAIN_PER_NODE
-    if (MPI::COMM_WORLD.Get_rank()==0)
+    if (MPI::COMM_WORLD.Get_rank() == 0)
 #endif
-    gvt::core::DBNodeH PlyMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID()));
+      gvt::core::DBNodeH PlyMeshNode = cntxt->addToSync(cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID()));
 
 #ifndef DOMAIN_PER_NODE
     cntxt->syncContext();
     gvt::core::DBNodeH PlyMeshNode = dataNodes.getChildren()[k];
 #endif
-    filepath =  *file;
+    filepath = *file;
     myfile = fopen(filepath.c_str(), "r");
     in_ply = read_ply(myfile);
     for (i = 0; i < in_ply->num_elem_types; i++) {
@@ -265,7 +260,7 @@ int main(int argc, char **argv) {
     close_ply(in_ply);
     // smoosh data into the mesh object
     {
-      Material* m = new Material();
+      Material *m = new Material();
       Mesh *mesh = new Mesh(m);
       vert = vlist[0];
       xmin = vert->x;
@@ -305,40 +300,38 @@ int main(int argc, char **argv) {
 
       cntxt->addToSync(PlyMeshNode);
     }
-
   }
-   cntxt->syncContext();
+  cntxt->syncContext();
 
-   // context has the location information of the domain, so for simplicity only one mpi will create the instances
-   if (MPI::COMM_WORLD.Get_rank()==0) {
-		  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
+  // context has the location information of the domain, so for simplicity only one mpi will create the instances
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
 
-		// add instance
-		gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-		gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
-		Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-		instnode["id"] = k;
-		instnode["meshRef"] = meshNode.UUID();
-		auto m = new glm::mat4(1.f);
-		auto minv = new glm::mat4(1.f);
-		auto normi = new glm::mat3(1.f);
-		instnode["mat"] = (unsigned long long)m;
-		*minv = glm::inverse(*m);
-		instnode["matInv"] = (unsigned long long)minv;
-		*normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-		instnode["normi"] = (unsigned long long)normi;
-		auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-		auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-		Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-		instnode["bbox"] = (unsigned long long)ibox;
-		instnode["centroid"] = ibox->centroid();
+      // add instance
+      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+      gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+      instnode["id"] = k;
+      instnode["meshRef"] = meshNode.UUID();
+      auto m = new glm::mat4(1.f);
+      auto minv = new glm::mat4(1.f);
+      auto normi = new glm::mat3(1.f);
+      instnode["mat"] = (unsigned long long)m;
+      *minv = glm::inverse(*m);
+      instnode["matInv"] = (unsigned long long)minv;
+      *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+      instnode["normi"] = (unsigned long long)normi;
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+      Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+      instnode["bbox"] = (unsigned long long)ibox;
+      instnode["centroid"] = ibox->centroid();
 
-		cntxt->addToSync(instnode);
-		  }
-	}
+      cntxt->addToSync(instnode);
+    }
+  }
 
-
-   cntxt->syncContext();
+  cntxt->syncContext();
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
@@ -359,16 +352,16 @@ int main(int argc, char **argv) {
   filmNode["height"] = 1080;
 
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
@@ -386,7 +379,7 @@ int main(int argc, char **argv) {
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
 #elif
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+  GVT_ERR_MESSAGE( "ERROR: missing valid adapter");
 #endif
 
   schedNode["adapter"] = adapterType;
@@ -409,9 +402,7 @@ int main(int argc, char **argv) {
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
-#ifdef GVT_USE_MPE
-  MPE_Log_event(readend, 0, NULL);
-#endif
+
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "output");
 
@@ -433,9 +424,7 @@ int main(int argc, char **argv) {
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderstart, 0, NULL);
-#endif
+
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
@@ -446,10 +435,6 @@ int main(int argc, char **argv) {
       tracer();
     }
     break;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderend, 0, NULL);
-#endif
-    break;
   }
   default: {
     std::cout << "unknown schedule type provided: " << schedType << std::endl;
@@ -458,67 +443,5 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-#ifdef GVT_USE_MPE
-  MPE_Log_sync_clocks();
-// MPE_Finish_log("gvtSimplelog");
-#endif
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
-
-// // bvh intersection list test
-// void test_bvh(gvtPerspectiveCamera &mycamera) {
-//   gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-//
-//   cout << "\n-- bvh test --" << endl;
-//
-//   auto ilist = root["Instances"].getChildren();
-//   auto bvh = new gvt::render::data::accel::BVH(ilist);
-//
-//   // list of rays to test
-//   std::vector<gvt::render::actor::Ray> rays;
-//   rays.push_back(mycamera.rays[100 * 512 + 100]);
-//   rays.push_back(mycamera.rays[182 * 512 + 182]);
-//   rays.push_back(mycamera.rays[256 * 512 + 256]);
-//   auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
-//   rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
-//   rays.push_back(mycamera.rays[300 * 512 + 300]);
-//   rays.push_back(mycamera.rays[400 * 512 + 400]);
-//   rays.push_back(mycamera.rays[470 * 512 + 470]);
-//   rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
-//   rays.push_back(mycamera.rays[144231]);
-//
-//   // test rays and print out which instances were hit
-//   for (size_t z = 0; z < rays.size(); z++) {
-//     gvt::render::actor::Ray &r = rays[z];
-//     cout << "bvh: r[" << z << "]: " << r << endl;
-//
-//     gvt::render::actor::isecDomList &isect = r.domains;
-//     bvh->intersect(r, isect);
-//     std::sort(isect.begin(), isect.end());
-//     cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-//     for (auto i : isect) {
-//       cout << i.domain << " ";
-//     }
-//     cout << endl;
-//   }
-//
-// #if 0
-//     cout << "- check all rays" << endl;
-//     for(int z=0; z<mycamera.rays.size(); z++) {
-//         gvt::render::actor::Ray &r = mycamera.rays[z];
-//
-//         gvt::render::actor::isecDomList& isect = r.domains;
-//         bvh->intersect(r, isect);
-//         std::sort(isect);
-//
-//         if(isect.size() > 1) {
-//             cout << "bvh: r[" << z << "]: " << r << endl;
-//             cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-//             for(auto i : isect) { cout << i.domain << " "; }
-//             cout << endl;
-//         }
-//     }
-// #endif
-//
-//   cout << "--------------\n\n" << endl;
-// }

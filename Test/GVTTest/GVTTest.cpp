@@ -218,20 +218,20 @@ int main(int argc, char **argv) {
   if (cmd.isSet("warm")) 
     warmupframes = cmd.get<int>("warm");
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     width = wsize[0];
     height = wsize[1];
   }
   if (cmd.isSet("eye")){
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     cam_pos = {eye[0],eye[1],eye[2]};
   }
   if (cmd.isSet("look")){
-    std::vector<float> look = cmd.getValue<float>("look");
+    gvt::core::Vector<float> look = cmd.getValue<float>("look");
     cam_focus = {look[0],look[1],look[2]};
   }
   if (cmd.isSet("up")) {
-    std::vector<float> up = cmd.getValue<float>("look");
+    gvt::core::Vector<float> up = cmd.getValue<float>("look");
     cam_up = {up[0],up[1],up[2]};
   }
   if (cmd.isSet("fov")) 
@@ -247,11 +247,11 @@ int main(int argc, char **argv) {
     adapter = "optix";
   }
   if (cmd.isSet("l_pos")) {
-    std::vector<float> lpos = cmd.getValue<float>("l_pos");
+    gvt::core::Vector<float> lpos = cmd.getValue<float>("l_pos");
     light_pos = {lpos[0],lpos[1],lpos[2]};
   }
   if (cmd.isSet("l_color")) {
-    std::vector<float> lcolor = cmd.getValue<float>("l_color");
+    gvt::core::Vector<float> lcolor = cmd.getValue<float>("l_color");
     light_color = {lcolor[0],lcolor[1],lcolor[2]};
   }
 

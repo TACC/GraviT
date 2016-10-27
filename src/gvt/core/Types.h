@@ -25,22 +25,18 @@
 #define GVT_CORE_TYPES_H
 
 #include <gvt/core/Math.h>
-#include <gvt/core/String.h>
-#include <gvt/core/Uuid.h>
-#include <gvt/core/Variant.h>
+#include <gvt/core/context/Uuid.h>
+#include <gvt/core/context/Variant.h>
 
 #include <map>
 #include <vector>
-
-// #include <boost/container/allocator.hpp>
-// #include <boost/container/map.hpp>
-// #include <boost/container/vector.hpp>
 #include <string>
 
 namespace gvt {
 namespace core {
-template <class T> using Vector = std::vector<T>;
-template <class K, class V> using Map = std::map<K, V>;
+  typedef std::string String;
+  template <class T> using Vector = std::vector<T>;
+  template <class K, class V> using Map = std::map<K, V>;
 }
 }
 

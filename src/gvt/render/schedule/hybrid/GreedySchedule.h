@@ -62,7 +62,7 @@ struct GreedySchedule : public HybridScheduleBase {
   virtual void operator()() {
     for (int i = 0; i < size; ++i) newMap[i] = -1;
 
-    std::map<int, int> data2proc;
+    gvt::core::Map<int, int> data2proc;
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
         // greedily grab next unclaimed domain
@@ -75,8 +75,8 @@ struct GreedySchedule : public HybridScheduleBase {
       }
     }
 
-    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "new map size is " << size << std::endl;
-                   for (int i = 0; i < size; ++i) std::cerr << "    " << i << " -> " << newMap[i] << std::endl;);
+    
+
   }
 };
 }

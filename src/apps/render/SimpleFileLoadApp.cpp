@@ -27,7 +27,6 @@
 //
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -38,15 +37,15 @@
 #include <thread>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>
@@ -64,7 +63,6 @@
 using namespace std;
 using namespace gvt::render;
 
-using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
@@ -215,22 +213,22 @@ int main(int argc, char **argv) {
   filmNode["outputPath"] = (std::string)"bunny";
 
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
   if (cmd.isSet("output"))
   {
-    std::vector<std::string> output = cmd.getValue<std::string>("output");
+    gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     filmNode["outputPath"] = output[0];
   }
 
@@ -249,7 +247,7 @@ int main(int argc, char **argv) {
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
 #else
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+  GVT_ERR_MESSAGE("ERROR: missing valid adapter");
 #endif
 
   schedNode["adapter"] = adapterType;

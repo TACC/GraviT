@@ -52,54 +52,17 @@ public:
   BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet);
   ~BVH();
 
-  virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect);
-  inline int intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
-    const glm::vec3 &origin = ray.origin;
-    const glm::vec3 inv = 1.f / ray.direction;
-    Node *stack[instanceSet.size() * 2];
-    Node **stackptr = stack;
-    *(stackptr++) = nullptr;
-    Node *cur = root;
-    float best = t;
-    int rid = -1;
-
-    while (cur) {
-      float tlocal = std::numeric_limits<float>::max();
-
-      if (!(cur->bbox.intersectDistance(origin, inv, tlocal))) {
-        cur = *(--stackptr);
-        continue;
-      }
-      if (cur->numInstances > 0) { // leaf node
-        int start = cur->instanceSetIdx;
-        int end = start + cur->numInstances;
-        for (int i = start; i < end; ++i) {
-          if (from == instanceSetID[i]) continue;
-          primitives::Box3D *ibbox = instanceSetBB[i];
-          float tlocal;
-          if (ibbox->intersectDistance(origin, inv, tlocal) && (tlocal < best)) {
-            t = best = tlocal;
-            rid = instanceSetID[i];
-          }
-        }
-        cur = *(--stackptr);
-      } else {
-        *(stackptr++) = cur->rightChild;
-        cur = cur->leftChild;
-      }
-    }
-    return rid;
-  }
-
   struct hit {
     int next = -1;
     float t = FLT_MAX;
   };
 
   template <size_t simd_width>
-  std::vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
-                             const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
-    std::vector<hit> ret((ray_end - ray_begin));
+  gvt::core::Vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
+                                   const gvt::render::actor::RayVector::iterator &ray_end,
+                                   const int from) {
+
+    gvt::core::Vector<hit> ret((ray_end - ray_begin));
     size_t offset = 0;
 #ifndef GVT_BRUTEFORCE
     Node *stack[instanceSet.size() * 2];
@@ -194,15 +157,11 @@ private:
 
   float findSplitPoint(int splitAxis, int start, int end);
 
-  /// traverse ray through BVH. Called by intersect().
-  void trace(const glm::vec3 &origin, const glm::vec3 &inv, const Node *node, /*ClosestHit &hit,*/
-             gvt::render::actor::isecDomList &isect, int level);
-
-  std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
-  std::vector<int> instanceSetID;
+  gvt::core::Vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
+  gvt::core::Vector<int> instanceSetID;
 
 private:
-  std::vector<Node *> nodes;
+  gvt::core::Vector<Node *> nodes;
   Node *root;
   static std::mutex c_out;
 };

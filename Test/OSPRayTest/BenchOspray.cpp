@@ -312,7 +312,7 @@ int main(int argc, const char **argv) {
   ospSetData(renderer, "lights", lightArray);
   ospCommit(renderer);
   osp::vec2i framebufferdimensions = { width, height };
-  OSPFrameBuffer framebuffer = ospNewFrameBuffer(framebufferdimensions, OSP_RGBA_I8, OSP_FB_COLOR | OSP_FB_ACCUM);
+  OSPFrameBuffer framebuffer = ospNewFrameBuffer(framebufferdimensions, OSP_FB_RGBA8, OSP_FB_COLOR | OSP_FB_ACCUM);
   ospFrameBufferClear(framebuffer, OSP_FB_COLOR | OSP_FB_ACCUM);
   timeCurrent(&endTime);
   modeltime += timeDifferenceMS(&startTime, &endTime);

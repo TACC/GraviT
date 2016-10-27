@@ -25,15 +25,12 @@
  * A simple GraviT application that loads some geometry and renders it.
  *
  * This application renders a simple scene of cones and cubes using the GraviT interface.
- * This will run in both single-process and MPI modes. You can alter the work scheduler
-
- * used by changing line 242.
+ * This will run in both single-process and MPI modes.
  *
 */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/Variant.h>
-#include <gvt/core/mpi/Wrapper.h>
+#include <gvt/core/context/Variant.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -45,20 +42,17 @@
 #include <thread>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-#ifdef GVT_USE_MPE
-#include "mpe.h"
-#endif
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
@@ -77,7 +71,6 @@
 using namespace std;
 using namespace gvt::render;
 
-using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
@@ -113,19 +106,7 @@ int main(int argc, char **argv) {
   MPI_Pcontrol(0);
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#ifdef GVT_USE_MPE
-  // MPE_Init_log();
-  int readstart, readend;
-  int renderstart, renderend;
-  MPE_Log_get_state_eventIDs(&readstart, &readend);
-  MPE_Log_get_state_eventIDs(&renderstart, &renderend);
-  if (rank == 0) {
-    MPE_Describe_state(readstart, readend, "Initialize context state", "red");
-    MPE_Describe_state(renderstart, renderend, "Render", "yellow");
-  }
-  MPI_Pcontrol(1);
-  MPE_Log_event(readstart, 0, NULL);
-#endif
+
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
     std::cout << "Something went wrong initializing the context" << std::endl;
@@ -385,31 +366,31 @@ int main(int argc, char **argv) {
   filmNode["outputPath"] = (std::string)"simple";
 
   if (cmd.isSet("lpos")) {
-    std::vector<float> pos = cmd.getValue<float>("lpos");
+    gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
     lightNode["position"] = glm::vec3(pos[0], pos[1], pos[2]);
   }
   if (cmd.isSet("lcolor")) {
-    std::vector<float> color = cmd.getValue<float>("lcolor");
+    gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
     lightNode["color"] = glm::vec3(color[0], color[1], color[2]);
   }
 
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
   if (cmd.isSet("output"))
   {
-    std::vector<std::string> output = cmd.getValue<std::string>("output");
+    gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     filmNode["outputPath"] = output[0];
   }
 
@@ -427,7 +408,7 @@ int main(int argc, char **argv) {
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
 #else
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+  GVT_ERR_MESSAGE("ERROR: missing valid adapter");
 #endif
 
   schedNode["adapter"] = adapterType;
@@ -456,9 +437,6 @@ int main(int argc, char **argv) {
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
-#ifdef GVT_USE_MPE
-  MPE_Log_event(readend, 0, NULL);
-#endif
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), filmNode["outputPath"].value().toString());
 
@@ -481,9 +459,7 @@ int main(int argc, char **argv) {
   }
   case gvt::render::scheduler::Domain: {
     //std::cout << "starting domain scheduler" << std::endl;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderstart, 0, NULL);
-#endif
+
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
@@ -493,10 +469,6 @@ int main(int argc, char **argv) {
       tracer();
     }
     break;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderend, 0, NULL);
-#endif
-    break;
   }
   default: {
     std::cout << "unknown schedule type provided: " << schedType << std::endl;
@@ -505,67 +477,5 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-#ifdef GVT_USE_MPE
-  MPE_Log_sync_clocks();
-// MPE_Finish_log("gvtSimplelog");
-#endif
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
-//
-// // bvh intersection list test
-// void test_bvh(gvtPerspectiveCamera &mycamera) {
-//   gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-//
-//   cout << "\n-- bvh test --" << endl;
-//
-//   auto ilist = root["Instances"].getChildren();
-//   auto bvh = new gvt::render::data::accel::BVH(ilist);
-//
-//   // list of rays to test
-//   std::vector<gvt::render::actor::Ray> rays;
-//   rays.push_back(mycamera.rays[100 * 512 + 100]);
-//   rays.push_back(mycamera.rays[182 * 512 + 182]);
-//   rays.push_back(mycamera.rays[256 * 512 + 256]);
-//   auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
-//   rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
-//   rays.push_back(mycamera.rays[300 * 512 + 300]);
-//   rays.push_back(mycamera.rays[400 * 512 + 400]);
-//   rays.push_back(mycamera.rays[470 * 512 + 470]);
-//   rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
-//   rays.push_back(mycamera.rays[144231]);
-//
-//   // test rays and print out which instances were hit
-//   for (size_t z = 0; z < rays.size(); z++) {
-//     gvt::render::actor::Ray &r = rays[z];
-//     cout << "bvh: r[" << z << "]: " << r << endl;
-//
-//     gvt::render::actor::isecDomList &isect = r.domains;
-//     bvh->intersect(r, isect);
-//     std::sort(isect.begin(), isect.end());
-//     cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-//     for (auto i : isect) {
-//       cout << i.domain << " ";
-//     }
-//     cout << endl;
-//   }
-//
-// #if 0
-//     cout << "- check all rays" << endl;
-//     for(int z=0; z<mycamera.rays.size(); z++) {
-//         gvt::render::actor::Ray &r = mycamera.rays[z];
-//
-//         gvt::render::actor::isecDomList& isect = r.domains;
-//         bvh->intersect(r, isect);
-//         std::sort(isect);
-//
-//         if(isect.size() > 1) {
-//             cout << "bvh: r[" << z << "]: " << r << endl;
-//             cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-//             for(auto i : isect) { cout << i.domain << " "; }
-//             cout << endl;
-//         }
-//     }
-// #endif
-//
-//   cout << "--------------\n\n" << endl;
-// }

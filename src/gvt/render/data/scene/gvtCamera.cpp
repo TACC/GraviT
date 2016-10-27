@@ -178,9 +178,6 @@ void gvtCameraBase::setJitterWindowSize(int windowSize) { jitterWindowSize = win
 
 // gvt::render::actor::RayVector gvtCameraBase::AllocateCameraRays() {
 void gvtCameraBase::AllocateCameraRays() {
-#ifdef GVT_USE_DEBUG
-  boost::timer::auto_cpu_timer t("gvtCameraBase::AllocateCameraRays: time: %w\n");
-#endif
   size_t nrays = filmsize[0] * filmsize[1] * samples * samples;
   rays.clear();
   rays.resize(nrays);
@@ -196,9 +193,6 @@ gvtPerspectiveCamera::gvtPerspectiveCamera(const gvtPerspectiveCamera &cam) : gv
 gvtPerspectiveCamera::~gvtPerspectiveCamera() {}
 // gvt::render::actor::RayVector gvtPerspectiveCamera::generateRays() {
 void gvtPerspectiveCamera::generateRays() {
-#ifdef GVT_USE_DEBUG
-  //boost::timer::auto_cpu_timer t("gvtPerspectiveCamera::generateRays: time: %w\n");
-#endif
   gvt::core::time::timer t(true, "generate camera rays");
   // Generate rays direction in camera space and transform to world space.
   int buffer_width = filmsize[0];

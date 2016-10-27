@@ -35,8 +35,6 @@
  * GLTrace - GraviT rendering with render window display.
  * Modeled after MPITrace example program. Added glut window calls.
  *
- *  vglrun -n 4 -o 0 ./GLtrace ../data/bunny.conf
- *
  * left arrow key shifts camera left right arrow shifts camera right.
  * hit 'q' or esc to exit.
  *
@@ -55,12 +53,13 @@
 
 #include "ConfigFileLoader.h"
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
+
+#include <gvt/core/Debug.h>
 
 #include "ParseCommandLine.h"
 
@@ -76,7 +75,6 @@ using namespace std;
 using namespace gvtapps::render;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
-using namespace gvt::core::mpi;
 
 using namespace gvt::render;
 using namespace gvt::render::data::primitives;
@@ -165,11 +163,11 @@ bool file_exists(const char *path) {
   return(stat(path, &buf) == 0);
 }
 
-std::vector<std::string> findply(const std::string dirname) {
+gvt::core::Vector<std::string> findply(const std::string dirname) {
   glob_t result;
   std::string exp = dirname + "/*.ply";
   glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-  std::vector<std::string> ret;
+  gvt::core::Vector<std::string> ret;
   for (int i = 0; i < result.gl_pathc; i++) {
     ret.push_back(std::string(result.gl_pathv[i]));
   }
@@ -714,7 +712,7 @@ void RenderBVH() {
 
   int schedType = rootNode["Schedule"]["type"].value().toInteger();
 
-  std::map<int, int> mpiInstanceMap;
+  gvt::core::Map<int, int> mpiInstanceMap;
   if (schedType == gvt::render::scheduler::Domain)
     mpiInstanceMap = ((gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> *)tracer)->mpiInstanceMap;
 
@@ -1336,12 +1334,18 @@ int main(int argc, char *argv[]) {
   gvt::core::DBNodeH root = cntxt->getRootNode();
 
   if (master){
-       cntxt->addToSync(cntxt->createNodeFromType("Data", "glTraceData", root.UUID()));
-       cntxt->addToSync(cntxt->createNodeFromType("Instances", "glTraceInstances", root.UUID()));
-       cntxt->addToSync(cntxt->createNodeFromType("Lights", "glTraceLights", root.UUID()));
-       cntxt->addToSync(cntxt->createNodeFromType("Camera", "glTraceCamera", root.UUID()));
-       cntxt->addToSync(cntxt->createNodeFromType("Film", "glTraceFilm", root.UUID()));
-       cntxt->addToSync(cntxt->createNodeFromType("Schedule", "glTraceSchedule", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType(
+                          "Data", "glTraceData", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType(
+                          "Instances", "glTraceInstances", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType(
+                          "Lights", "glTraceLights", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType(
+                          "Camera", "glTraceCamera", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType(
+                          "Film", "glTraceFilm", root.UUID()));
+       cntxt->addToSync(cntxt->createNodeFromType(
+                          "Schedule", "glTraceSchedule", root.UUID()));
   }
 
   cntxt->syncContext();
@@ -1358,7 +1362,6 @@ int main(int argc, char *argv[]) {
     schedNode["type"] = gvt::render::scheduler::Domain;
   else
    schedNode["type"] = gvt::render::scheduler::Image;
- schedNode["type"] = gvt::render::scheduler::Domain;
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
@@ -1367,26 +1370,27 @@ int main(int argc, char *argv[]) {
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
 #else
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+  GVT_ERR_MESSAGE("ERROR: missing valid adapter");
 #endif
+
 
   schedNode["adapter"] = adapterType;
 
   camNode = root["Camera"];
 
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     root["Film"]["width"] = wsize[0];
     root["Film"]["height"] = wsize[1];
   }
 
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
-}
+ }
 
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 

@@ -189,4 +189,9 @@ template <typename T> inline std::string to_string(T value) {
 
 #endif // defined GVT_USE_DEBUG
 
+#define GVT_ERR_MESSAGE(message)                                                                                 \
+      std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE << DBG_COLOR_RED << ":"                  \
+                << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl;                                         \
+
+
 #endif // GVT_CORE_DEBUG_H
