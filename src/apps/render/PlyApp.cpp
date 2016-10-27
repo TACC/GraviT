@@ -58,75 +58,15 @@
 #include <gvt/render/data/scene/gvtCamera.h>
 
 #include <boost/range/algorithm.hpp>
-
-#include <iostream>
-#include <math.h>
-#include <ply.h>
-#include <glob.h>
-#include <sys/stat.h>
-#include <cstdint>
-#include <stdio.h>
-
+#include <gvt/render/data/reader/PlyReader.h>
 #include "ParseCommandLine.h"
 
 using namespace std;
 using namespace gvt::render;
-
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
-// determine if file is a directory
-bool isdir(const char *path) {
-  struct stat buf;
-  stat(path, &buf);
-  return S_ISDIR(buf.st_mode);
-}
-// determine if a file exists
-bool file_exists(const char *path) {
-  struct stat buf;
-  return (stat(path, &buf) == 0);
-}
-gvt::core::Vector<std::string> findply(const std::string dirname) {
-  glob_t result;
-  std::string exp = dirname + "/*.ply";
-  glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-  gvt::core::Vector<std::string> ret;
-  for (int i = 0; i < result.gl_pathc; i++) {
-    ret.push_back(std::string(result.gl_pathv[i]));
-  }
-  globfree(&result);
-  return ret;
-}
-void test_bvh(gvtPerspectiveCamera &camera);
-typedef struct Vertex {
-  float x, y, z;
-  float nx, ny, nz;
-  void *other_props; /* other properties */
-} Vertex;
-
-typedef struct Face {
-  unsigned char nverts; /* number of vertex indices in list */
-  int *verts;           /* vertex index list */
-  void *other_props;    /* other properties */
-} Face;
-
-PlyProperty vert_props[] = {
-  /* list of property information for a vertex */
-  { "x", Float32, Float32, offsetof(Vertex, x), 0, 0, 0, 0 },
-  { "y", Float32, Float32, offsetof(Vertex, y), 0, 0, 0, 0 },
-  { "z", Float32, Float32, offsetof(Vertex, z), 0, 0, 0, 0 },
-  { "nx", Float32, Float32, offsetof(Vertex, nx), 0, 0, 0, 0 },
-  { "ny", Float32, Float32, offsetof(Vertex, ny), 0, 0, 0, 0 },
-  { "nz", Float32, Float32, offsetof(Vertex, nz), 0, 0, 0, 0 },
-};
-
-PlyProperty face_props[] = {
-  /* list of property information for a face */
-  { "vertex_indices", Int32, Int32, offsetof(Face, verts), 1, Uint8, Uint8, offsetof(Face, nverts) },
-};
-static Vertex **vlist;
-static Face **flist;
 
 // Used for testing purposes where it specifies the number of ply blocks read by each mpi
 //#define DOMAIN_PER_NODE 2
@@ -153,23 +93,6 @@ int main(int argc, char **argv) {
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
 
-  // mess I use to open and read the ply file with the c utils I found.
-  PlyFile *in_ply;
-  Vertex *vert;
-  Face *face;
-  int elem_count, nfaces, nverts;
-  int i, j, k;
-  float xmin, ymin, zmin, xmax, ymax, zmax;
-  char *elem_name;
-  ;
-  FILE *myfile;
-  char txt[16];
-  std::string temp;
-  std::string filename, filepath, rootdir;
-  rootdir = cmd.get<std::string>("file");
-  // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
-  // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
-  // myfile = fopen(filename.c_str(),"r");
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
   int rank = -1;
@@ -193,119 +116,11 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-  // Enzo isosurface...
-  if (!file_exists(rootdir.c_str())) {
-    cout << "File \"" << rootdir << "\" does not exist. Exiting." << endl;
-    return 0;
-  }
-
-  if (!isdir(rootdir.c_str())) {
-    cout << "File \"" << rootdir << "\" is not a directory. Exiting." << endl;
-    return 0;
-  }
-  vector<string> files = findply(rootdir);
-  if (files.empty()) {
-    cout << "Directory \"" << rootdir << "\" contains no .ply files. Exiting." << endl;
-    return 0;
-  }
-  // read 'em
-  vector<string>::const_iterator file;
-  // for (k = 0; k < 8; k++) {
-  for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
-// if defined, ply blocks load are divided across available mpi ranks
-// Each block will be loaded by a single mpi rank and a mpi rank can read multiple blocks
-#ifdef DOMAIN_PER_NODE
-    if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) &&
-          (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE)))
-      continue;
-#endif
-
-// if all ranks read all ply blocks, one has to create the db node which is then broadcasted.
-// if not, since each block will be loaded by only one mpi, this mpi rank will create the db node
-#ifndef DOMAIN_PER_NODE
-    if (MPI::COMM_WORLD.Get_rank() == 0)
-#endif
-      gvt::core::DBNodeH PlyMeshNode = cntxt->addToSync(cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID()));
-
-#ifndef DOMAIN_PER_NODE
-    cntxt->syncContext();
-    gvt::core::DBNodeH PlyMeshNode = dataNodes.getChildren()[k];
-#endif
-    filepath = *file;
-    myfile = fopen(filepath.c_str(), "r");
-    in_ply = read_ply(myfile);
-    for (i = 0; i < in_ply->num_elem_types; i++) {
-      elem_name = setup_element_read_ply(in_ply, i, &elem_count);
-      temp = elem_name;
-      if (temp == "vertex") {
-        vlist = (Vertex **)malloc(sizeof(Vertex *) * elem_count);
-        nverts = elem_count;
-        setup_property_ply(in_ply, &vert_props[0]);
-        setup_property_ply(in_ply, &vert_props[1]);
-        setup_property_ply(in_ply, &vert_props[2]);
-        for (j = 0; j < elem_count; j++) {
-          vlist[j] = (Vertex *)malloc(sizeof(Vertex));
-          get_element_ply(in_ply, (void *)vlist[j]);
-        }
-      } else if (temp == "face") {
-        flist = (Face **)malloc(sizeof(Face *) * elem_count);
-        nfaces = elem_count;
-        setup_property_ply(in_ply, &face_props[0]);
-        for (j = 0; j < elem_count; j++) {
-          flist[j] = (Face *)malloc(sizeof(Face));
-          get_element_ply(in_ply, (void *)flist[j]);
-        }
-      }
-    }
-    close_ply(in_ply);
-    // smoosh data into the mesh object
-    {
-      Material *m = new Material();
-      Mesh *mesh = new Mesh(m);
-      vert = vlist[0];
-      xmin = vert->x;
-      ymin = vert->y;
-      zmin = vert->z;
-      xmax = vert->x;
-      ymax = vert->y;
-      zmax = vert->z;
-
-      for (i = 0; i < nverts; i++) {
-        vert = vlist[i];
-        xmin = MIN(vert->x, xmin);
-        ymin = MIN(vert->y, ymin);
-        zmin = MIN(vert->z, zmin);
-        xmax = MAX(vert->x, xmax);
-        ymax = MAX(vert->y, ymax);
-        zmax = MAX(vert->z, zmax);
-        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
-      }
-      glm::vec3 lower(xmin, ymin, zmin);
-      glm::vec3 upper(xmax, ymax, zmax);
-      Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-      // add faces to mesh
-      for (i = 0; i < nfaces; i++) {
-        face = flist[i];
-        mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
-      }
-      mesh->generateNormals();
-      // add Ply mesh to the database
-      // PlyMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
-      PlyMeshNode["file"] = string(filepath);
-      PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
-      PlyMeshNode["ptr"] = (unsigned long long)mesh;
-
-      gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-      PlyMeshNode["Locations"] += loc;
-
-      cntxt->addToSync(PlyMeshNode);
-    }
-  }
-  cntxt->syncContext();
+  gvt::render::data::domain::reader::PlyReader plyReader(cmd.get<std::string>("file"));
 
   // context has the location information of the domain, so for simplicity only one mpi will create the instances
   if (MPI::COMM_WORLD.Get_rank() == 0) {
-    for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+    for (int k = 0; k < plyReader.getMeshes().size(); k++) {
 
       // add instance
       gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
