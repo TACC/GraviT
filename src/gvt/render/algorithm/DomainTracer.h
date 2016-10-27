@@ -50,7 +50,7 @@
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-#include <gvt/render/adapter/heterogeneous/Wrapper.h>
+#include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
 
 #include <boost/foreach.hpp>
