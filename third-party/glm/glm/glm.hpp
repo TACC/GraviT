@@ -53,7 +53,6 @@
 
 #pragma once
 
-#define GLM_FORCE_AVX2
 #include <cmath>
 #include <climits>
 #include <cfloat>
