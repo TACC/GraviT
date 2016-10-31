@@ -25,13 +25,10 @@
  * A simple GraviT application to do some testing.
  * This is supposed to be as close to the osptest application as I can get it.
  *
- * run like this:
- * bin/gvttest -i $WORK/DAVEDATA/EnzoPlyData -o gvtspoot.ppm -cp 512,512,4096 -cd 0,0,-1 -fp 512,512,0 -fov 25.0 -ld
- * 0,0,-1  -geom 1920x1080 -lp 512,512,2048 -sched image -adapt embree
 */
+
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -44,20 +41,17 @@
 //#define DOMAIN_PER_NODE 1
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-#ifdef GVT_USE_MPE
-#include "mpe.h"
-#endif
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
@@ -74,12 +68,9 @@
 
 using namespace std;
 using namespace gvt::render;
-using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
-static Vertex **vlist;
-static Face **flist;
 
 #define MIN(a, b) ((a < b) ? (a) : (b))
 #define MAX(a, b) ((a > b) ? (a) : (b))
@@ -107,9 +98,9 @@ int main(int argc, char **argv) {
 
   ParseCommandLine cmd("gvttest");
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
-  cmd.addoption("wsize", ParseCommandLine::INT, "Windowsize",2);
-  cmd.addoption("bench", ParseCommandLine::INT, "benchmark frames",1);
-  cmd.addoption("warm", ParseCommandLine::INT, "warm up frames",1);
+  cmd.addoption("wsize", ParseCommandLine::INT, "Windowsize", 2);
+  cmd.addoption("bench", ParseCommandLine::INT, "benchmark frames", 1);
+  cmd.addoption("warm", ParseCommandLine::INT, "warm up frames", 1);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
   cmd.addoption("up", ParseCommandLine::FLOAT, "Camera up vector", 3);
@@ -119,16 +110,17 @@ int main(int argc, char **argv) {
   cmd.addoption("image", ParseCommandLine::NONE, "Use domain schedule", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use image schedule", 0);
   cmd.addoption("hybrid", ParseCommandLine::NONE, "Use hybrid schedule", 0);
-  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
-  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
-  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
   cmd.addoption("infile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Input File path");
   cmd.addoption("outfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "Output File path");
 
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+
   cmd.addconflict("image", "domain");
-  cmd.addconflict("embree","manta");
-  cmd.addconflict("embree","optix");
-  cmd.addconflict("manta","optix");
+  cmd.addconflict("embree", "manta");
+  cmd.addconflict("embree", "optix");
+  cmd.addconflict("manta", "optix");
 
   // default values
   int width = 1920;
@@ -162,17 +154,16 @@ int main(int argc, char **argv) {
   string scheduletype("image");
   string adapter("embree");
 
-  tbb::task_scheduler_init init(tbb::task_scheduler_init::deferred);
+  //tbb::task_scheduler_init init(tbb::task_scheduler_init::deferred);
   // parse the command line
   cmd.parse(argc, argv);
-  if (!cmd.isSet("threads")) {
-    init.initialize(std::thread::hardware_concurrency());
-    //tbb::task_scheduler_init init(std::thread::hardware_concurrency());
-  } else {
-    init.initialize(cmd.get<int>("threads"));
-    //tbb::task_scheduler_init init(cmd.get<int>("threads"));
-  }
 
+  tbb::task_scheduler_init* init;
+  if (!cmd.isSet("threads")) {
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+  } else {
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+  }
 
 #if 1
   MPI_Init(&argc, &argv);
@@ -180,7 +171,6 @@ int main(int argc, char **argv) {
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
-
 
   // initialize gravit context database structure
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
@@ -190,14 +180,16 @@ int main(int argc, char **argv) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+   root+= cntxt->createNode(
+ 		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
-  if (MPI::COMM_WORLD.Get_rank()==0){
-	  cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
-	  cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
-	  cntxt->addToSync(cntxt->createNodeFromType("Lights", "Lights", root.UUID()));
-	  cntxt->addToSync(cntxt->createNodeFromType("Camera", "conecam", root.UUID()));
-	  cntxt->addToSync(cntxt->createNodeFromType("Film", "conefilm", root.UUID()));
-	  cntxt->addToSync(cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID()));
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Lights", "Lights", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Camera", "conecam", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Film", "conefilm", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID()));
   }
 
   cntxt->syncContext();
@@ -213,29 +205,26 @@ int main(int argc, char **argv) {
   filepath = cmd.get<std::string>("infile");
   outputfile = cmd.get<std::string>("outfile");
 
-  if (cmd.isSet("bench")) 
-    benchmarkframes = cmd.get<int>("bench");
-  if (cmd.isSet("warm")) 
-    warmupframes = cmd.get<int>("warm");
+  if (cmd.isSet("bench")) benchmarkframes = cmd.get<int>("bench");
+  if (cmd.isSet("warm")) warmupframes = cmd.get<int>("warm");
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     width = wsize[0];
     height = wsize[1];
   }
-  if (cmd.isSet("eye")){
-    std::vector<float> eye = cmd.getValue<float>("eye");
-    cam_pos = {eye[0],eye[1],eye[2]};
+  if (cmd.isSet("eye")) {
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
+    cam_pos = { eye[0], eye[1], eye[2] };
   }
-  if (cmd.isSet("look")){
-    std::vector<float> look = cmd.getValue<float>("look");
-    cam_focus = {look[0],look[1],look[2]};
+  if (cmd.isSet("look")) {
+    gvt::core::Vector<float> look = cmd.getValue<float>("look");
+    cam_focus = { look[0], look[1], look[2] };
   }
   if (cmd.isSet("up")) {
-    std::vector<float> up = cmd.getValue<float>("look");
-    cam_up = {up[0],up[1],up[2]};
+    gvt::core::Vector<float> up = cmd.getValue<float>("look");
+    cam_up = { up[0], up[1], up[2] };
   }
-  if (cmd.isSet("fov")) 
-    cam_fovy = (float)(cmd.get<float>("fov") * M_PI / 180.0);
+  if (cmd.isSet("fov")) cam_fovy = (float)(cmd.get<float>("fov") * M_PI / 180.0);
   if (cmd.isSet("domain")) {
     scheduletype = "domain";
   } else if (cmd.isSet("hybrid")) {
@@ -247,12 +236,12 @@ int main(int argc, char **argv) {
     adapter = "optix";
   }
   if (cmd.isSet("l_pos")) {
-    std::vector<float> lpos = cmd.getValue<float>("l_pos");
-    light_pos = {lpos[0],lpos[1],lpos[2]};
+    gvt::core::Vector<float> lpos = cmd.getValue<float>("l_pos");
+    light_pos = { lpos[0], lpos[1], lpos[2] };
   }
   if (cmd.isSet("l_color")) {
-    std::vector<float> lcolor = cmd.getValue<float>("l_color");
-    light_color = {lcolor[0],lcolor[1],lcolor[2]};
+    gvt::core::Vector<float> lcolor = cmd.getValue<float>("l_color");
+    light_color = { lcolor[0], lcolor[1], lcolor[2] };
   }
 
   if (!file_exists(filepath.c_str())) {
@@ -261,98 +250,99 @@ int main(int argc, char **argv) {
   } else if (isdir(filepath.c_str())) {
     vector<string> files = findply(filepath);
     if (!files.empty()) // directory contains .ply files
-      {
-        vector<string>::const_iterator file;
-        int k;
-        char txt[16];
-        for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+    {
+      vector<string>::const_iterator file;
+      int k;
+      char txt[16];
+      for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
 
 #ifdef DOMAIN_PER_NODE
-        	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
+        if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) &&
+              (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE)))
+          continue;
 #endif
-          timeCurrent(&startTime);
-          ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
+        timeCurrent(&startTime);
+        ReadPlyData(*file, vertexarray, colorarray, indexarray, nverts, nfaces);
+        timeCurrent(&endTime);
+        iotime += timeDifferenceMS(&startTime, &endTime);
+        timeCurrent(&startTime);
+        sprintf(txt, "%d", k);
+// filename = "block";
+// filename += txt;
+
+#ifndef DOMAIN_PER_NODE
+        if (MPI::COMM_WORLD.Get_rank() == 0)
+#endif
+          gvt::core::DBNodeH EnzoMeshNode =
+              cntxt->addToSync(cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID()));
+
+#ifndef DOMAIN_PER_NODE
+        cntxt->syncContext();
+        gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
+#endif
+        Material *m = new Material();
+        Mesh *mesh = new Mesh(m);
+
+        for (int i = 0; i < nverts; i++) {
+          mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
+        }
+        for (int i = 0; i < nfaces; i++) // Add faces to mesh
+        {
+          mesh->addFace(indexarray[3 * i] + 1, indexarray[3 * i + 1] + 1, indexarray[3 * i + 2] + 1);
+        }
+        mesh->generateNormals();
+        glm::vec3 lower;
+        glm::vec3 upper;
+        findbounds(vertexarray, nverts, &lower, &upper);
+        Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+        // EnzoMeshNode["file"] = string(filename);
+        EnzoMeshNode["file"] = string(*file);
+        EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
+        EnzoMeshNode["ptr"] = (unsigned long long)mesh;
+
+        gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
+        EnzoMeshNode["Locations"] += loc;
+
+        cntxt->addToSync(EnzoMeshNode);
+      }
+
+      cntxt->syncContext();
+
+      for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
+        if (MPI::COMM_WORLD.Get_rank() == 0) {
+
+          // add instance
+          gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+          gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+          Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+          instnode["id"] = k;
+          instnode["meshRef"] = meshNode.UUID();
+          auto m = new glm::mat4(1.f);
+          auto minv = new glm::mat4(1.f);
+          auto normi = new glm::mat3(1.f);
+          instnode["mat"] = (unsigned long long)m;
+          *minv = glm::inverse(*m);
+          instnode["matInv"] = (unsigned long long)minv;
+          *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+          instnode["normi"] = (unsigned long long)normi;
+          auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+          auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+          Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+          instnode["bbox"] = (unsigned long long)ibox;
+          instnode["centroid"] = ibox->centroid();
           timeCurrent(&endTime);
-          iotime += timeDifferenceMS(&startTime, &endTime);
-          timeCurrent(&startTime);
-          sprintf(txt, "%d", k);
-          //filename = "block";
-          //filename += txt;
+          modeltime += timeDifferenceMS(&startTime, &endTime);
+          numtriangles += nfaces;
 
-#ifndef DOMAIN_PER_NODE
-          if (MPI::COMM_WORLD.Get_rank()==0)
-#endif
-        	  gvt::core::DBNodeH EnzoMeshNode = cntxt->addToSync(cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID()));
+          cntxt->addToSync(instnode);
+        }
+      }
 
-#ifndef DOMAIN_PER_NODE
-          cntxt->syncContext();
-          gvt::core::DBNodeH EnzoMeshNode = dataNodes.getChildren()[k];
-#endif
-          Material* m = new Material();
-          Mesh *mesh = new Mesh(m);
-
-          for (int i = 0; i < nverts; i++) {
-            mesh->addVertex(glm::vec3(vertexarray[3 * i], vertexarray[3 * i + 1], vertexarray[3 * i + 2]));
-          }
-          for (int i = 0; i < nfaces; i++) // Add faces to mesh
-          {
-            mesh->addFace(indexarray[3 * i] + 1, indexarray[3 * i + 1] + 1, indexarray[3 * i + 2] + 1);
-          }
-          mesh->generateNormals();
-          glm::vec3 lower;
-          glm::vec3 upper;
-          findbounds(vertexarray, nverts, &lower, &upper);
-          Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-          //EnzoMeshNode["file"] = string(filename);
-          EnzoMeshNode["file"] = string(*file);
-          EnzoMeshNode["bbox"] = (unsigned long long)meshbbox;
-          EnzoMeshNode["ptr"] = (unsigned long long)mesh;
-
-		  gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-		  EnzoMeshNode["Locations"] += loc;
-
-		  cntxt->addToSync(EnzoMeshNode);
-
-       }
-
-       cntxt->syncContext();
-
-       for (file = files.begin(), k = 0; file != files.end(); file++, k++) {
-         	if (MPI::COMM_WORLD.Get_rank()==0) {
-
-			  // add instance
-			  gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-			  gvt::core::DBNodeH meshNode =  dataNodes.getChildren()[k];
-			  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-			  instnode["id"] = k;
-			  instnode["meshRef"] = meshNode.UUID();
-			  auto m = new glm::mat4(1.f);
-			  auto minv = new glm::mat4(1.f);
-			  auto normi = new glm::mat3(1.f);
-			  instnode["mat"] = (unsigned long long)m;
-			  *minv = glm::inverse(*m);
-			  instnode["matInv"] = (unsigned long long)minv;
-			  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-			  instnode["normi"] = (unsigned long long)normi;
-			  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-			  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-			  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-			  instnode["bbox"] = (unsigned long long)ibox;
-			  instnode["centroid"] = ibox->centroid();
-			  timeCurrent(&endTime);
-			  modeltime += timeDifferenceMS(&startTime, &endTime);
-			  numtriangles += nfaces;
-
-			  cntxt->addToSync(instnode);
-
-         	}
-       }
-
-       cntxt->syncContext();
-      } else // directory has no .ply files
-      {
-        filepath = "";
-      } 
+      cntxt->syncContext();
+    } else // directory has no .ply files
+    {
+      filepath = "";
+    }
   } else // filepath is not a directory but a .ply file
   {
     timeCurrent(&startTime);
@@ -400,7 +390,6 @@ int main(int argc, char **argv) {
     modeltime += timeDifferenceMS(&startTime, &endTime);
     numtriangles += nfaces;
   }
-
 
   timeCurrent(&startTime);
   // add lights, camera, and film to the database
@@ -562,7 +551,7 @@ int main(int argc, char **argv) {
   std::cout << scheduletype << "," << width << "," << height << "," << warmupframes << ",";
   std::cout << benchmarkframes << "," << iotime << "," << modeltime << ",";
   std::cout << warmupframetime << "," << millisecondsperframe << "," << framespersecond << std::endl;
-//#ifdef GVT_USE_MPI
+  //#ifdef GVT_USE_MPI
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-//#endif
+  //#endif
 }

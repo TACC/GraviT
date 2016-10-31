@@ -4,12 +4,6 @@
 #include <mpi.h>
 
 #include <IceT.h>
-#include <IceTDevCommunication.h>
-#include <IceTDevContext.h>
-#include <IceTDevDiagnostics.h>
-#include <IceTDevImage.h>
-#include <IceTDevPorting.h>
-#include <IceTDevState.h>
 #include <IceTMPI.h>
 
 #include <tbb/blocked_range.h>
@@ -24,11 +18,16 @@ namespace composite {
 
 #define MAX(a, b) ((a > b) ? a : b)
 static glm::vec4 *local_buffer;
-const IceTDouble identity[] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
+const IceTDouble identity[] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                                0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 const IceTFloat black[] = { 0.0, 0.0, 0.0, 1.0 };
 
-static void draw(const IceTDouble *projection_matrix, const IceTDouble *modelview_matrix,
-                 const IceTFloat *background_color, const IceTInt *readback_viewport, IceTImage result) {
+static void draw(const IceTDouble *projection_matrix,
+                 const IceTDouble *modelview_matrix,
+                 const IceTFloat *background_color,
+                 const IceTInt *readback_viewport,
+                 IceTImage result) {
+
   IceTFloat *color_buffer;
   IceTSizeType num_pixels;
   IceTSizeType i;
@@ -82,7 +81,9 @@ bool composite::initIceT() {
   return true;
 }
 
-glm::vec4 *composite::execute(glm::vec4 *buffer_in, const size_t width, const size_t height) {
+glm::vec4 *composite::execute(glm::vec4 *buffer_in,
+                              const size_t width,
+                              const size_t height) {
   IceTFloat *color_buffer;
   IceTSizeType num_pixels;
   IceTSizeType i;

@@ -34,26 +34,25 @@
 #include <mpi.h>
 
 #include <gvt/core/Types.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/core/utils/timer.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-#include <gvt/render/adapter/heterogeneous/Wrapper.h>
+#include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
 
 #include <boost/timer/timer.hpp>
@@ -81,7 +80,7 @@ public:
   size_t rays_start, rays_end;
 
   // caches meshes that are converted into the adapter's format
-  std::map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
+  gvt::core::Map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
 
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
     int ray_portion = rays.size() / mpi.world_size;
@@ -96,13 +95,13 @@ public:
     auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
 
     if (mpi) {
-      GVT_DEBUG(DBG_ALWAYS, "image scheduler: filter locally mpi: [" << rays_start << ", " << rays_end << "]");
+
       gvt::render::actor::RayVector lrays;
       lrays.assign(rays.begin() + rays_start, rays.begin() + rays_end);
       rays.clear();
       shuffleRays(lrays, -1);
     } else {
-      GVT_DEBUG(DBG_ALWAYS, "image scheduler: filter locally non mpi: " << rays.size());
+
       shuffleRays(rays, -1);
     }
   }
@@ -119,7 +118,7 @@ public:
     gvt::core::time::timer t_adapter(false, "image tracer: adapter :");
     gvt::core::time::timer t_filter(false, "image tracer: filter :");
 
-    GVT_DEBUG(DBG_ALWAYS, "image scheduler: starting, num rays: " << rays.size());
+
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
@@ -134,15 +133,11 @@ public:
 
     gvt::render::actor::RayVector moved_rays;
     int instTarget = -1, instTargetCount = 0;
-    for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) {
+    for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) {
       if (q->second.size() > (size_t)instTargetCount) {
         instTargetCount = q->second.size();
         instTarget = q->first;
       }
-    }
-
-    if (instTargetCount == 0) {
-      //std::cout << "No work to start with" << std::endl;
     }
 
     // process domains until all rays are terminated
@@ -152,8 +147,8 @@ public:
       instTargetCount = 0;
 
       t_sort.resume();
-      GVT_DEBUG(DBG_ALWAYS, "image scheduler: selecting next instance, num queues: " << this->queue.size());
-      for (std::map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
+
+      for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
            ++q) {
         if (q->second.size() > (size_t)instTargetCount) {
           instTargetCount = q->second.size();
@@ -162,9 +157,7 @@ public:
       }
       t_sort.stop();
 
-      //std::cout << "Instance[" << instTarget << "] " << instTargetCount << std::endl;
 
-      GVT_DEBUG(DBG_ALWAYS, "image scheduler: next instance: " << instTarget << ", rays: " << instTargetCount);
 
       if (instTarget >= 0) {
         t_adapter.resume();
@@ -182,7 +175,7 @@ public:
           adapter = 0;
         }
         if (!adapter) {
-          GVT_DEBUG(DBG_ALWAYS, "image scheduler: creating new adapter");
+
           switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
           case gvt::render::adapter::Embree:
@@ -206,7 +199,8 @@ public:
             break;
 #endif
           default:
-            GVT_DEBUG(DBG_SEVERE, "image scheduler: unknown adapter type: " << adapterType);
+              GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
+
           }
 
           adapterCache[mesh] = adapter;
@@ -215,13 +209,10 @@ public:
         GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
         // end getAdapterFromCache concept
 
-        GVT_DEBUG(DBG_ALWAYS, "image scheduler: calling process queue");
+
         {
           t_trace.resume();
           moved_rays.reserve(this->queue[instTarget].size() * 10);
-#ifdef GVT_USE_DEBUG
-          boost::timer::auto_cpu_timer t("Tracing rays in adapter: %w\n");
-#endif
           adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
                          instMinvN[instTarget], lights);
 
@@ -230,7 +221,7 @@ public:
           t_trace.stop();
         }
 
-        GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
+
         t_shuffle.resume();
         shuffleRays(moved_rays, instTarget);
         moved_rays.clear();
@@ -239,26 +230,17 @@ public:
         //std::cout << "No more work" << std::endl;
       }
     } while (instTarget != -1);
-    GVT_DEBUG(DBG_ALWAYS, "image scheduler: gathering buffers");
+
     t_gather.resume();
     this->gatherFramebuffers(this->rays.size());
 
     t_gather.stop();
     t_frame.stop();
-    GVT_DEBUG(DBG_ALWAYS, "image scheduler: adapter cache size: " << adapterCache.size());
-    // std::cout << "Timers ---------------------------------------------------------------" << std::endl;
-    // std::cout << "image scheduler: filter time: " << t_filter.format() << std::endl;
-    // std::cout << "image scheduler: select time: " << t_sort.format() << std::endl;
-    // std::cout << "image scheduler: adapter time: " << t_adapter.format() << std::endl;
-    // std::cout << "image scheduler: trace time: " << t_trace.format() << std::endl;
-    // std::cout << "image scheduler: shuffle time: " << t_shuffle.format() << std::endl;
-    // std::cout << "image scheduler: gather time: " << t_gather.format() << std::endl;
-    // std::cout << "image scheduler: frame time: " << t_frame.format() << std::endl;
+
 
     t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter;
     t_diff = t_frame - t_all;
-    // std::cout << "image scheduler: added time: " << a.format() << " { unaccounted time: " << (t_frame - a).format()
-    //           << " }" << std::endl;
+
   }
 };
 }

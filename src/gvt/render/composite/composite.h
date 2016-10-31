@@ -10,7 +10,6 @@ namespace composite {
 
 struct composite {
 
-  // glm::vec4 *buffer;
   IceTInt num_proc;
 
   composite() {}

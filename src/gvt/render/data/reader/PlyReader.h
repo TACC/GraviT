@@ -21,41 +21,80 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-/*
- * File:   readply.h
- * Author: jbarbosa
- *
- * Created on April 22, 2014, 10:24 AM
- */
+
 
 #ifndef GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H
 #define GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H
 
-// #include <gvt/core/Math.h>
-// #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/Primitives.h>
 
-// namespace gvt {
-// namespace render {
-// namespace data {
-// namespace domain {
-// namespace reader {
-// /// read ply formatted geometry data
-// /** read ply format files and return a Mesh object
-// */
-// class PlyReader {
-// public:
-//   PlyReader(const std::string filename = "");
-//   virtual ~PlyReader();
-//
-//   gvt::render::data::primitives::Mesh *getMesh() { return plyMesh; }
-//
-// private:
-//   gvt::render::data::primitives::Mesh *plyMesh;
-//   bool computeNormals;
-// };
-// }
-// }
-// }
-// }
-// }
+#include <ply.h>
+#include <glob.h>
+#include <sys/stat.h>
+
+ namespace gvt {
+ namespace render {
+ namespace data {
+ namespace domain {
+ namespace reader {
+ /// read ply formatted geometry data
+ /** read ply format files and return a Mesh object
+ */
+ class PlyReader {
+ public:
+   PlyReader(const std::string filename);
+   virtual ~PlyReader();
+
+   typedef struct Vertex {
+     float x, y, z;
+     float nx, ny, nz;
+     void *other_props; /* other properties */
+   } Vertex;
+
+   typedef struct Face {
+     unsigned char nverts; /* number of vertex indices in list */
+     int *verts;           /* vertex index list */
+     void *other_props;    /* other properties */
+   } Face;
+
+   bool file_exists(const char *path) {
+     struct stat buf;
+     return (stat(path, &buf) == 0);
+   }
+
+   bool isdir(const char *path) {
+     struct stat buf;
+     stat(path, &buf);
+     return S_ISDIR(buf.st_mode);
+   }
+
+   gvt::core::Vector<std::string> findply(const std::string dirname) {
+     glob_t result;
+     std::string exp = dirname + "/*.ply";
+     glob(exp.c_str(), GLOB_TILDE, NULL, &result);
+     gvt::core::Vector<std::string> ret;
+     for (int i = 0; i < result.gl_pathc; i++) {
+       ret.push_back(std::string(result.gl_pathv[i]));
+     }
+     globfree(&result);
+     return ret;
+   }
+
+   gvt::core::Vector<gvt::render::data::primitives::Mesh*>& getMeshes(){
+     return meshes;
+   }
+
+ private:
+    Vertex **vlist;
+    Face **flist;
+
+   gvt::core::Vector<gvt::render::data::primitives::Mesh*> meshes;
+
+
+ };
+ }
+ }
+ }
+ }
+ }
 #endif /* GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H */
