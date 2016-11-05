@@ -30,9 +30,9 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
 
   theOSPRenderer = ospNewRenderer("ptracer");
   // build the ospray volume from the gvt volume
-  if(theOSPVolume) ospRelease(theOSPVolume);
-  if(theOSPData) ospRelease(theOSPData);
-  if(theOSPModel) ospRelease(theOSPModel);
+  //if(theOSPVolume) ospRelease(theOSPVolume);
+  //if(theOSPData) ospRelease(theOSPData);
+  //if(theOSPModel) ospRelease(theOSPModel);
   theOSPVolume = ospNewVolume("shared_structured_volume");
   data->GetSlices(n_slices,slices);
   if(n_slices != 0) {
@@ -49,27 +49,34 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     ospSetData(theOSPVolume,"isovalues",isoData);
   }
   data->GetGlobalOrigin(globalorigin);
+  std::cout << " Globalorigin " << globalorigin.x << " " << globalorigin.y << " " << globalorigin.z << std::endl;
   osp::vec3f origin;
   origin.x = globalorigin.x;
   origin.y = globalorigin.y;
   origin.z = globalorigin.z;
+  std::cout << " origin " << origin.x << " " << origin.y << " " << origin.z << std::endl;
   ospSetVec3f(theOSPVolume,"gridOrigin",origin);
   data->GetCounts(volumedimensions);
+  std::cout << " volumedims " << volumedimensions.x << " " << volumedimensions.y << " " << volumedimensions.z << std::endl;
   osp::vec3f counts;
   counts.x = volumedimensions.x;
   counts.y = volumedimensions.y;
   counts.z = volumedimensions.z;
+  std::cout << " counts " << counts.x << " " << counts.y << " " << counts.z << std::endl;
   ospSetVec3f(theOSPVolume,"dimensions",counts);
   data->GetDeltas(volumespacing);
+  std::cout << " spacing" << volumespacing.x << " " << volumespacing.y << " " << volumespacing.z << std::endl;
   osp::vec3f spacing;
   spacing.x = volumespacing.x;
   spacing.y = volumespacing.y;
   spacing.z = volumespacing.z;
+  std::cout << " spacing " << spacing.x << " " << spacing.y << " " << spacing.z << std::endl;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   switch(vt){
     case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
           int numberofsamples = counts.x*counts.y*counts.z;
+          std::cout << "numberof samples " << numberofsamples << std::endl;
           OSPData voldata = ospNewData(numberofsamples,OSP_FLOAT,(void*)data->GetSamples(),OSP_DATA_SHARED_BUFFER);
                  break;
     case gvt::render::data::primitives::Volume::UCHAR : ospSetString(theOSPVolume,"voxelType","uchar");

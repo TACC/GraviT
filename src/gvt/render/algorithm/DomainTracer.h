@@ -110,6 +110,7 @@ public:
   // tracer. I have to pass argc and argv to the tracer so it can init ospray. 
   // Blech. Here is initialization via a static method.. ugly. 
   Tracer(int *argc, char **argv, gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : Tracer(rays, image) {
+    std::cout << " Initializing OSPRay " << std::endl;
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(argc, argv);
   //gvt::render::adapter::ospray::data::OSPRayAdapter::init = true;
   }
@@ -133,7 +134,7 @@ public:
       MPE_Describe_state(marchinstart, marchinend, "March Ray in", "LimeGreen");
     }
 #endif
-
+    std::cout<< " Tracer( &Rays, &image) " << std::endl;
     gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
     std::map<int, std::set<std::string> > meshAvailbyMPI; // where meshes are by mpi node
     std::map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
@@ -335,7 +336,11 @@ public:
 #endif
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
             case gvt::render::adapter::Ospray:
-              adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(mesh);
+              gvt::render::data::primitives::Volume *vol = dynamic_cast<gvt::render::data::primitives::Volume*> (mesh);
+              if(vol) 
+                adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(vol);
+              else
+                adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(mesh);
               break;
 #endif
 

@@ -54,13 +54,20 @@ public:
   float* GetSamples() {return floatsamples;}
   //int *GetSamples() {return intsamples;}
   VoxelType GetVoxelType() { return voxtype;}
+  void SetVoxelType(VoxelType vtype) { voxtype = vtype; }
   float GetSamplingRate() { return samplingrate;}
   //void SetSamples(short * samples) {shortsamples = samples;};
   void SetSamples(float* samples) {floatsamples = samples;};
   void SetCounts(int countx, int county, int countz) {counts = {countx,county,countz};return;};
   void GetCounts(glm::vec3 &counts);
   void SetOrigin(float x, float y, float z) { origin = {x,y,z};};
-  void GetDeltas(glm::vec3 &spacing);
+  void GetDeltas(glm::vec3 &del);
+  void SetDeltas(float delx, float dely, float delz);
+  //void SetDeltas(glm::vec3 &spaces) {
+   // spacing.x = spaces.x; 
+    //spacing.y=spaces.y;
+   // spacing.z=spaces.z;
+   // std::cout << " spc " << spacing.x << " " << spacing.y << " " << spacing.z << std::endl;} 
   void GetGlobalOrigin(glm::vec3 &origin);
   void SetTransferFunction(TransferFunction* tf) {transfunction = tf;};
   void GetTransferFunction(TransferFunction* tf) {tf = transfunction;};

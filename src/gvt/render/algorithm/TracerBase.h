@@ -127,6 +127,7 @@ public:
     // if this is on the number of domains, then it will be equivalent to the
     // number
     // of instances in the database
+    std::cout << " AbstractTrace(&rays,&image) " << std::endl;
     instancenodes = rootnode["Instances"].getChildren();
 
     int numInst = instancenodes.size();

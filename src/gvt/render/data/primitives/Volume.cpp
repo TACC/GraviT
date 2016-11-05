@@ -35,8 +35,9 @@ gvt::render::data::primitives::Volume::Volume() {
   origin = {0.0,0.0,0.0};
   spacing = {1.0,1.0,1.0};
   }
-
-void gvt::render::data::primitives::Volume::GetDeltas(glm::vec3 &del) { del = deltas; }
+void gvt::render::data::primitives::Volume::SetDeltas(float delx, float dely, float delz) { spacing = {delx,dely,delz};}
+//void gvt::render::data::primitives::Volume::SetDeltas(glm::vec3 &del) { spacing = del;}
+void gvt::render::data::primitives::Volume::GetDeltas(glm::vec3 &del) { del = spacing; }
 void gvt::render::data::primitives::Volume::GetCounts(glm::vec3 &cnts) { cnts = counts; }
 void gvt::render::data::primitives::Volume::GetGlobalOrigin(glm::vec3 &orig) { orig = origin; }
 gvt::render::data::primitives::Volume::~Volume() {}

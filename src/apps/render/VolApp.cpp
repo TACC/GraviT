@@ -214,6 +214,7 @@ struct bovheader {
     glm::vec3 lower(origin[0],origin[1],origin[2]);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
+    dfmt = FLOAT;
 
     return samples;
   }
@@ -323,10 +324,14 @@ int main(int argc, char **argv) {
       tf->load(ctffile,otffile);
       // push the sample data into the volume and fill the other
       // required values in the volume.
+      vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
       vol->SetSamples(sampledata);
       vol->SetTransferFunction(tf);
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
+      glm::vec3 dels = {1.0,1.0,1.0};
+      std::cout << "deltas " << dels.x << " " << dels.y << " " << dels.z << std::endl;
+      vol->SetDeltas(dels.x,dels.y,dels.z);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
       // stuff it in the db
       VolumeNode["file"] = volumefile.c_str();
