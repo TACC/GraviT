@@ -30,46 +30,18 @@
 
 #ifndef GVT_RENDER_ACTOR_RAY_H
 #define GVT_RENDER_ACTOR_RAY_H
+
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/Types.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 
-#include <boost/aligned_storage.hpp>
-#include <boost/container/set.hpp>
-#include <boost/container/vector.hpp>
-#include <boost/pool/pool.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/smart_ptr.hpp>
-#include <limits>
-
 #include <iomanip>
-#include <vector>
 
 namespace gvt {
 namespace render {
 namespace actor {
-/// container for intersection point information
-typedef struct intersection {
-  int domain; /// domain in which the intersection occurred
-  float d;    /// distance to the intersection point
 
-  intersection(int dom) : domain(dom), d(FLT_MAX) {}
-  intersection(int dom, float dist) : domain(dom), d(dist) {}
-
-  /// return the id of the intersected domain
-  operator int() { return domain; }
-  /// return the distance to the intersection point
-  operator float() { return d; }
-  friend inline bool operator==(const intersection &lhs, const intersection &rhs) {
-    return (lhs.d == rhs.d) && (lhs.d == rhs.d);
-  }
-  friend inline bool operator<(const intersection &lhs, const intersection &rhs) {
-    return (lhs.d < rhs.d) || ((lhs.d == rhs.d) && (lhs.domain < rhs.domain));
-  }
-
-} isecDom;
-
-typedef std::vector<isecDom> isecDomList;
 
 class Ray {
 public:
@@ -87,9 +59,9 @@ public:
   };
 
   const static float RAY_EPSILON;
+
   // clang-format on
-  inline Ray() /*: t_min(gvt::render::actor::Ray::RAY_EPSILON), t_max(FLT_MAX), t(FLT_MAX), id(-1), depth(8), w(0.f), type(PRIMARY) */ {
-  }
+  inline Ray() { }
   inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
       : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
         t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
@@ -109,13 +81,13 @@ public:
     std::memmove(data, r.data, packedSize());
     return *this;
   }
-  ~Ray(){};
+  ~Ray(){}
 
   /// returns size in bytes for the ray information to be sent via MPI
   size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
-  int pack(unsigned char *buffer) {
+  size_t pack(unsigned char *buffer) {
     unsigned char *buf = buffer;
     std::memcpy(buf, data, packedSize());
     return packedSize();
@@ -145,11 +117,9 @@ public:
     unsigned char data[64] GVT_ALIGN(16);
   };
 
-protected:
 };
 
-// NOTE: removing boost pool allocator greatly improves timings
-typedef std::vector<Ray> RayVector;
+typedef gvt::core::Vector<Ray> RayVector;
 }
 }
 }

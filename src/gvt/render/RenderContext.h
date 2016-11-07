@@ -24,7 +24,7 @@
 #ifndef GVT_RENDER_CONTEXT_H
 #define GVT_RENDER_CONTEXT_H
 
-#include <gvt/core/CoreContext.h>
+#include <gvt/core/context/CoreContext.h>
 
 namespace gvt {
 namespace render {

@@ -32,6 +32,7 @@
 #define GVT_RENDER_SCHEDULE_HYBRID_ADAPTIVE_SEND_H
 
 #include <gvt/core/Debug.h>
+#include <gvt/core/Types.h>
 #include <gvt/render/schedule/hybrid/HybridScheduleBase.h>
 
 namespace gvt {
@@ -57,56 +58,53 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
   virtual ~AdaptiveSendSchedule() {}
 
   virtual void operator()() {
-    GVT_DEBUG(DBG_LOW, "in AdaptiveSend scheduler");
+    
     for (int i = 0; i < size; ++i) newMap[i] = -1;
 
-    std::map<int, std::vector<int> > cur_data2procs;
-    std::map<int, std::vector<int> > send_data;
-    std::map<int, int> data2size;
-    std::map<int, int> procs_count;
+    gvt::core::Map<int, gvt::core::Vector<int> > cur_data2procs;
+    gvt::core::Map<int, gvt::core::Vector<int> > send_data;
+    gvt::core::Map<int, int> data2size;
+    gvt::core::Map<int, int> procs_count;
     for (int s = 0; s < size; ++s) {
       if (map_recv_bufs[s]) {
         // add currently loaded data
         // track number of procs that have data loaded
         cur_data2procs[map_recv_bufs[s][0]].push_back(s);
         procs_count[map_recv_bufs[s][0]] += 1;
-        GVT_DEBUG(DBG_LOW, "    noting currently " << s << " -> " << map_recv_bufs[s][0]);
+        
 
         // add data with queued rays
         // track number of rays needed (assumes map inits to zero)
         for (int d = 1; d < map_size_buf[s]; d += 2) {
           data2size[map_recv_bufs[s][d]] += map_recv_bufs[s][d + 1];
-          GVT_DEBUG(DBG_LOW, "        " << s << " has " << map_recv_bufs[s][d + 1] << " rays for data "
-                                        << map_recv_bufs[s][d]);
-        }
+                  }
       }
     }
 
     // put data into priority buckets
     // based on number of rays waiting for data
-    std::map<int, std::vector<int> > priority;
-    std::map<int, std::vector<int> > zero_priority;
+    gvt::core::Map<int, gvt::core::Vector<int> > priority;
+    gvt::core::Map<int, gvt::core::Vector<int> > zero_priority;
     // int add_a_proc = atts.GetNewProcThreshold();
     int add_a_proc = 5000; // XXX TODO: hacked!
     int avail = 0;
-    for (std::map<int, int>::iterator it = data2size.begin(); it != data2size.end(); ++it) {
+    for (gvt::core::Map<int, int>::iterator it = data2size.begin(); it != data2size.end(); ++it) {
       int idx = it->second / add_a_proc;
-      GVT_DEBUG(DBG_LOW, "    data " << it->first << " has priority " << idx << " (" << it->second << " rays)");
+      
       if (idx > 0) {
         priority[idx].push_back(it->first);
       } else {
-        std::map<int, int>::iterator pdit = procs_count.find(it->first);
+        gvt::core::Map<int, int>::iterator pdit = procs_count.find(it->first);
         if (pdit != procs_count.end()) {
           for (int i = 0; i < pdit->second; ++i) {
-            GVT_DEBUG(DBG_LOW, "            adding " << cur_data2procs[pdit->first][i] << " to zero-priority pool at "
-                                                     << i);
+            
+
             zero_priority[i].push_back(cur_data2procs[pdit->first][i]); // push proc id onto stack, let
                                                                         // map sort into use-first
                                                                         // order
           }
           avail += pdit->second;
-          GVT_DEBUG(DBG_LOW, "        adding " << pdit->second << " zero-priority procs to available pool, is now "
-                                               << avail);
+          
         }
       }
     }
@@ -114,43 +112,42 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
     // track procs that have data with no pending rays
     // give them artificially high sort order so they'll be used first
     if (!priority.empty()) {
-      for (std::map<int, std::vector<int> >::iterator it = cur_data2procs.begin(); it != cur_data2procs.end(); ++it) {
+      for (gvt::core::Map<int, gvt::core::Vector<int> >::iterator it = cur_data2procs.begin(); it != cur_data2procs.end(); ++it) {
         if (data2size.find(it->first) == data2size.end()) {
           int pc = procs_count[it->first];
           for (int i = 0; i < pc; ++i) {
-            GVT_DEBUG(DBG_LOW, "            adding " << it->second[i] << " to zero-priority pool at "
-                                                     << ((pc << 6) + i));
+            
             zero_priority[(pc << 6) + i].push_back(it->second[i]);
           }
           avail += pc;
-          GVT_DEBUG(DBG_LOW, "        adding " << pc << " rayless procs to available pool, is now " << avail);
+          
         }
       }
     }
 
-    GVT_DEBUG(DBG_LOW, "    prioritization done.");
-    GVT_DEBUG(DBG_LOW, "        " << priority.size() << " priority levels");
-    GVT_DEBUG(DBG_LOW, "        " << zero_priority.size() << " zero-priority levels");
-    GVT_DEBUG(DBG_LOW, "        " << avail << " processors available");
+    
+    
+    
+    
 
     // while procs are available
     // get highest priority and allocate procs
-    // std::vector<int> excess;  // reclaim excess procs? or reclaim them when become zero priority?
-    GVT_DEBUG(DBG_LOW, "    scheduling");
-    for (std::map<int, std::vector<int> >::reverse_iterator rit = priority.rbegin();
+    // gvt::core::Vector<int> excess;  // reclaim excess procs? or reclaim them when become zero priority?
+    
+    for (gvt::core::Map<int, gvt::core::Vector<int> >::reverse_iterator rit = priority.rbegin();
          (rit != priority.rend()) & (avail > 0); ++rit) {
-      for (std::vector<int>::iterator it = rit->second.begin(); (it != rit->second.end()) & (avail > 0); ++it) {
+      for (gvt::core::Vector<int>::iterator it = rit->second.begin(); (it != rit->second.end()) & (avail > 0); ++it) {
         int need = rit->first - procs_count[*it];
-        GVT_DEBUG(DBG_LOW, "    data " << *it << " needs " << need << " procs of " << avail << " available");
+        
         if (procs_count[*it] > 0) {
-          GVT_DEBUG(DBG_LOW, "        already has " << procs_count[*it] << " allocated");
+          
           // add already-allocated procs
           int used;
           for (used = 0; (used < procs_count[*it]) & (need > 0); ++used) {
             int p = cur_data2procs[*it][used];
             newMap[p] = *it;
             --need;
-            GVT_DEBUG(DBG_LOW, "        adding " << p << " -> " << *it << " to map");
+            
           }
 
           // put remaining processor into empty queue,
@@ -162,13 +159,13 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
               cur_data2procs[*it].pop_back();
               ++avail;
             }
-            GVT_DEBUG(DBG_LOW, "        returned " << (rem >> 10) << " procs to avail pool, is now " << avail);
+            
           } else {
             need = (need > avail) ? avail : (need > 0) ? need : 0;
             avail -= need;
-            GVT_DEBUG(DBG_LOW, "        taking " << need << " additional procs");
+            
             // data already loaded, put rest in send queue
-            std::map<int, std::vector<int> >::reverse_iterator zpi = zero_priority.rbegin();
+            gvt::core::Map<int, gvt::core::Vector<int> >::reverse_iterator zpi = zero_priority.rbegin();
             for (int i = 0; i < need; ++i) {
               int victim = zpi->second.back();
               newMap[victim] = *it;
@@ -177,12 +174,12 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
               if (zpi->second.empty()) {
                 ++zpi;
               }
-              GVT_DEBUG(DBG_LOW, "        adding " << victim << " -> " << *it << " to map");
+              
             }
             if (zpi != zero_priority.rbegin()) {
               --zpi;
               int target = zpi->first;
-              GVT_DEBUG(DBG_LOW, "        erasing zero_priority nodes from " << target << " to end");
+              
               zero_priority.erase(zero_priority.find(target), zero_priority.end());
             }
           }
@@ -192,8 +189,8 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
           need = (need > avail) ? avail : (need > 0) ? need : 0;
           avail -= need;
 
-          GVT_DEBUG(DBG_LOW, "        not loaded anywhere, taking " << need << " procs");
-          std::map<int, std::vector<int> >::reverse_iterator zpi = zero_priority.rbegin();
+          
+          gvt::core::Map<int, gvt::core::Vector<int> >::reverse_iterator zpi = zero_priority.rbegin();
           int victim = zpi->second.back();
           newMap[victim] = *it;
           cur_data2procs[*it].push_back(victim); // this proc will load the data, then send to the rest
@@ -201,7 +198,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
           if (zpi->second.empty()) {
             ++zpi;
           }
-          GVT_DEBUG(DBG_LOW, "        adding " << victim << " -> " << *it << " to map");
+          
 
           // put rest in send queue
           // start from 1, to account for first just added
@@ -213,43 +210,43 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
             if (zpi->second.empty()) {
               ++zpi;
             }
-            GVT_DEBUG(DBG_LOW, "        adding " << victim << " -> " << *it << " to map");
+            
           }
           if (zpi != zero_priority.rbegin()) {
             --zpi;
             int target = zpi->first;
-            GVT_DEBUG(DBG_LOW, "        erasing zero_priority nodes from " << target << " to end");
+            
             zero_priority.erase(zero_priority.find(target), zero_priority.end());
           }
         }
       }
     }
 
-    GVT_DEBUG(DBG_LOW, "    priority allocation done, " << avail << " procs still available");
+    
 
     // allocate zero-priority if that's all that's present
     // use adaptive allocation scheme
     if (priority.empty()) {
-      GVT_DEBUG(DBG_LOW, "    doing zero-priority allocation");
+      
 
-      std::map<int, int> size2data;
+      gvt::core::Map<int, int> size2data;
       // convert data2size into size2data,
       // use data id to pseudo-uniqueify, since only need ordering
-      for (std::map<int, int>::iterator it = data2size.begin(); it != data2size.end(); ++it) {
+      for (gvt::core::Map<int, int>::iterator it = data2size.begin(); it != data2size.end(); ++it) {
         size2data[(it->second << 7) + it->first] = it->first;
       }
 
       // iterate over queued data, find which are already loaded somewhere
       // if there are multiple procs with one data, just keep one
-      std::vector<int> homeless;
-      for (std::map<int, int>::iterator d2sit = size2data.begin(); d2sit != size2data.end(); ++d2sit) {
-        std::map<int, std::vector<int> >::iterator d2pit = cur_data2procs.find(d2sit->second);
+      gvt::core::Vector<int> homeless;
+      for (gvt::core::Map<int, int>::iterator d2sit = size2data.begin(); d2sit != size2data.end(); ++d2sit) {
+        gvt::core::Map<int, gvt::core::Vector<int> >::iterator d2pit = cur_data2procs.find(d2sit->second);
         if (d2pit != cur_data2procs.end()) {
           newMap[d2pit->second[0]] = d2pit->first;
-          GVT_DEBUG(DBG_LOW, "    adding " << d2pit->second[0] << " -> " << d2pit->first << " to map");
+          
         } else {
           homeless.push_back(d2sit->second);
-          GVT_DEBUG(DBG_LOW, "    noting " << d2sit->second << " is homeless");
+          
         }
       }
 
@@ -262,7 +259,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
             newMap[i] = homeless.back();
             cur_data2procs[newMap[i]].push_back(i);
             homeless.pop_back();
-            GVT_DEBUG(DBG_LOW, "    adding " << i << " -> " << newMap[i] << " to map");
+            
           }
         }
       }
@@ -270,26 +267,20 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
 
     // build data send buffer
     // index is proc to receive, value is proc to send
-    GVT_DEBUG(DBG_LOW, "building data set buffer");
-    for (std::map<int, std::vector<int> >::iterator it = send_data.begin(); it != send_data.end(); ++it) {
+    
+    for (gvt::core::Map<int, gvt::core::Vector<int> >::iterator it = send_data.begin(); it != send_data.end(); ++it) {
       int to_recv = it->second.size();
       int to_send = cur_data2procs[it->first].size();
-      GVT_DEBUG(DBG_LOW, "    data " << it->first << " needed on " << to_recv << " procs, already on " << to_send
-                                     << " procs");
+      
       for (int r = 0, s = 0; r < to_recv; ++r, ++s) {
         s = r % to_send; // XXX TODO pnav: 's' is likely an error here, but confirm and fix
-        GVT_DEBUG(DBG_LOW, "    for data " << it->first << ": " << it->second[r] << " <- "
-                                           << cur_data2procs[it->first][s]);
+        
         data_send_buf[it->second[r]] = cur_data2procs[it->first][s];
       }
     }
 
-    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "new map size is " << size << std::endl;
-                   for (int i = 0; i < size; ++i) std::cerr << "    " << i << " -> " << newMap[i] << std::endl;);
-    GVT_DEBUG_CODE(DBG_LOW, std::cerr << "data_send buffer is" << std::endl;
-                   for (int i = 0; i < size; ++i) if (data_send_buf[i] < 0) std::cerr << "    " << i << " keeps"
-                                                                                      << std::endl;
-                   else std::cerr << "    " << i << " <-- " << data_send_buf[i] << std::endl;);
+    
+
   }
 };
 }

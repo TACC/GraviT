@@ -27,7 +27,6 @@
 //
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -38,15 +37,15 @@
 #include <thread>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>
@@ -64,7 +63,6 @@
 using namespace std;
 using namespace gvt::render;
 
-using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
@@ -79,12 +77,24 @@ int main(int argc, char **argv) {
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
   cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
+
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+
+
+  cmd.addconflict("embree", "manta");
+  cmd.addconflict("embree", "optix");
+  cmd.addconflict("manta", "optix");
+
   cmd.addconflict("image", "domain");
   cmd.parse(argc, argv);
+
+  tbb::task_scheduler_init* init;
   if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
   } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
   MPI_Init(&argc, &argv);
@@ -99,6 +109,8 @@ int main(int argc, char **argv) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
+    root+= cntxt->createNode(
+  		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   if (rank == 0) {
 	 gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
@@ -215,22 +227,22 @@ int main(int argc, char **argv) {
   filmNode["outputPath"] = (std::string)"bunny";
 
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
   if (cmd.isSet("output"))
   {
-    std::vector<std::string> output = cmd.getValue<std::string>("output");
+    gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     filmNode["outputPath"] = output[0];
   }
 
@@ -249,7 +261,7 @@ int main(int argc, char **argv) {
 #elif GVT_RENDER_ADAPTER_OPTIX
   int adapterType = gvt::render::adapter::Optix;
 #else
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+  GVT_ERR_MESSAGE("ERROR: missing valid adapter");
 #endif
 
   schedNode["adapter"] = adapterType;
