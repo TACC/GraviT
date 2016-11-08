@@ -67,6 +67,18 @@ using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
+#include <tbb/task_scheduler_observer.h>
+class concurrency_tracker: public tbb::task_scheduler_observer {
+    tbb::atomic<int> num_threads;
+public:
+    concurrency_tracker() : num_threads() { observe(true); }
+    /*override*/ void on_scheduler_entry( bool ) { ++num_threads; }
+    /*override*/ void on_scheduler_exit( bool ) { --num_threads; }
+
+    int get_concurrency() { return num_threads; }
+};
+
+
 
 // Used for testing purposes where it specifies the number of ply blocks read by each mpi
 //#define DOMAIN_PER_NODE 2
@@ -96,9 +108,15 @@ int main(int argc, char **argv) {
   tbb::task_scheduler_init* init;
   if (!cmd.isSet("threads")) {
 	  init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+	  std::cout << "Initialized GraviT with " << std::thread::hardware_concurrency() <<
+	  " threads..."<< std::endl;
   } else {
 	  init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+	  std::cout << "Initialized GraviT with " << cmd.get<int>("threads") <<
+		  " threads..."<< std::endl;
   }
+
+  concurrency_tracker tracker;
 
 
   MPI_Init(&argc, &argv);
@@ -297,5 +315,8 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
+
+  std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
+
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
