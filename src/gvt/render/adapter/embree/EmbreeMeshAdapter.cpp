@@ -129,7 +129,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   GVT_ASSERT(mesh, "EmbreeMeshAdapter: mesh pointer in the database is null");
   mesh->generateNormals();
 
-  device = rtcNewDevice();
+  device = rtcNewDevice("threads=1");
   error_handler(rtcDeviceGetError(device));
   /* set error handler */
   rtcDeviceSetErrorFunction(device, error_handler);

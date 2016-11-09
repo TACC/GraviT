@@ -116,7 +116,8 @@ int main(int argc, char **argv) {
 		  " threads..."<< std::endl;
   }
 
-  concurrency_tracker tracker;
+//  concurrency_tracker tracker;
+//  tracker.observe(true);
 
 
   MPI_Init(&argc, &argv);
@@ -316,7 +317,7 @@ int main(int argc, char **argv) {
 
   myimage.Write();
 
-  std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
+  //std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
 
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
