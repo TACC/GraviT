@@ -27,7 +27,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   glm::vec3 volumedimensions;
   glm::vec3 volumespacing;
   float *isovalues;
-
+  std::cout << "starting new osprayadapter " << std::endl;
   theOSPRenderer = ospNewRenderer("ptracer");
   // build the ospray volume from the gvt volume
   //if(theOSPVolume) ospRelease(theOSPVolume);
@@ -58,12 +58,12 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   ospSetVec3f(theOSPVolume,"gridOrigin",origin);
   data->GetCounts(volumedimensions);
   std::cout << " volumedims " << volumedimensions.x << " " << volumedimensions.y << " " << volumedimensions.z << std::endl;
-  osp::vec3f counts;
+  osp::vec3i counts;
   counts.x = volumedimensions.x;
   counts.y = volumedimensions.y;
   counts.z = volumedimensions.z;
   std::cout << " counts " << counts.x << " " << counts.y << " " << counts.z << std::endl;
-  ospSetVec3f(theOSPVolume,"dimensions",counts);
+  ospSetVec3i(theOSPVolume,"dimensions",counts);
   data->GetDeltas(volumespacing);
   std::cout << " spacing" << volumespacing.x << " " << volumespacing.y << " " << volumespacing.z << std::endl;
   osp::vec3f spacing;
@@ -78,6 +78,8 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
           int numberofsamples = counts.x*counts.y*counts.z;
           std::cout << "numberof samples " << numberofsamples << std::endl;
           OSPData voldata = ospNewData(numberofsamples,OSP_FLOAT,(void*)data->GetSamples(),OSP_DATA_SHARED_BUFFER);
+          ospCommit(voldata);
+          ospSetObject(theOSPVolume,"voxelData",voldata);
                  break;
     case gvt::render::data::primitives::Volume::UCHAR : ospSetString(theOSPVolume,"voxelType","uchar");
                  break;
@@ -218,7 +220,7 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
   ospSet1f(theOSPRenderer,"ao_radius",arad);
   ospSet1f(theOSPRenderer,"Ka",ka);
   ospSet1f(theOSPRenderer,"Kd",kd);
-  //ospCommit(theOSPRenderer);
+  ospCommit(theOSPRenderer);
   std::cout << " tracin" << std::endl; 
   // convert GVT RayVector into the OSPExternalRays used by ospray. 
   OSPExternalRays rl = GVT2OSPRays(rayList);
