@@ -41,6 +41,7 @@
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
+#include <gvt/render/actor/ORays.h>
 
 #include <boost/foreach.hpp>
 #include <boost/range/algorithm.hpp>
@@ -250,10 +251,11 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     // std::cout << "Suffle rays" << rays.size() << std::endl;
-
+    glm::vec3 constcolor ={1.0,1.0,1.0};
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
+    std::cout << " rays.size " << rays.size() <<  std::endl;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits = acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
       std::map<int, gvt::render::actor::RayVector> local_queue;
@@ -262,9 +264,19 @@ public:
        if (hits[i].next != -1) {
          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
          local_queue[hits[i].next].push_back(r);
+          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
+          colorBuf[r.id] += constcolor;
        } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
          colorBuf[r.id] += r.color;
+       } else if ( r.type == RAY_PRIMARY ) {
+         if (((int)r.t_min & RAY_OPAQUE) | ((int)r.t_min & RAY_BOUNDARY)) {
+          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
+          colorBuf[r.id] += r.color;
+         }
+       } else {
+          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
+          colorBuf[r.id] += constcolor;
        }
       }
       for (auto &q : local_queue) {

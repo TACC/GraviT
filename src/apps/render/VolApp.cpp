@@ -480,7 +480,7 @@ int main(int argc, char **argv) {
 #elif
     gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(mycamera.rays, myimage);
 #endif
-    for (int z = 0; z < 10; z++) {
+    for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();

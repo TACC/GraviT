@@ -376,6 +376,7 @@ public:
 
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
           t_shuffle.resume();
+          //std::cout << " dtr moved_rays size " << moved_rays[0].origin.x << std::cout;
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
           t_shuffle.stop();
