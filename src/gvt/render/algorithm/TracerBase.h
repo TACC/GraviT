@@ -251,7 +251,7 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
     // std::cout << "Suffle rays" << rays.size() << std::endl;
-    glm::vec3 constcolor ={1.0,1.0,1.0};
+    glm::vec3 constcolor ={0.0,0.0,0.0};
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
@@ -274,10 +274,10 @@ public:
           tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
           colorBuf[r.id] += r.color;
          }
-       } else {
+       }/* else {
           tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
           colorBuf[r.id] += constcolor;
-       }
+       }*/
       }
       for (auto &q : local_queue) {
         queue_mutex[q.first].lock();

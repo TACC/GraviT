@@ -379,16 +379,16 @@ int main(int argc, char **argv) {
   lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec3(128.0, 128.0, 4096.0);
-  camNode["focus"] = glm::vec3(128.0, 128.0, 0.0);
-  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
-  camNode["fov"] = (float)(25.0 * M_PI / 180.0);
+  camNode["eyePoint"] = glm::vec3(640.0, 640.0, 640.0);
+  camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
+  camNode["upVector"] = glm::vec3(-0.42,-0.40, 0.82);
+  camNode["fov"] = (float)(30.0 * M_PI / 180.0);
   camNode["rayMaxDepth"] = (int)1;
   camNode["raySamples"] = (int)1;
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
-  filmNode["width"] = 1900;
-  filmNode["height"] = 1080;
+  filmNode["width"] = 512;
+  filmNode["height"] = 512;
 
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
@@ -483,6 +483,8 @@ int main(int argc, char **argv) {
     for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
+      if(MPI::COMM_WORLD.Get_rank()==0) 
+        mycamera.dumpraystostdout();
       myimage.clear();
       tracer();
     }

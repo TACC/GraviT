@@ -90,6 +90,7 @@ public:
   void setMaxDepth(int depth);
 
   void setJitterWindowSize(int windowSize);
+  void dumpraystostdout();
 
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;

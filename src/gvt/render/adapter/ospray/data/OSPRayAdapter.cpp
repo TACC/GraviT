@@ -124,7 +124,8 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
       ray.w = out->xr.o[i];
       ray.t = out->xr.t[i];
       ray.t_max = out->xr.tMax[i];
-      ray.id = out->xr.x[i];
+      ray.id = out->xr.y[i]*512 + out->xr.x[i];
+      //ray.id = out->xr.x[i];
       ray.depth = out->xr.y[i];
       ray.type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
         out->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
@@ -180,7 +181,8 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
     ray.w = rl->xr.o[i];
     ray.t = rl->xr.t[i];
     ray.t_max = rl->xr.tMax[i];
-    ray.id = rl->xr.x[i];
+    //ray.id = rl->xr.x[i];
+    ray.id = rl->xr.y[i]*512 + rl->xr.x[i];
     ray.depth = rl->xr.y[i];
     ray.type = rl->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
       rl->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
@@ -241,22 +243,30 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
       rayList[i].type == RAY_SHADOW ? EXTERNAL_RAY_SHADOW :
       rayList[i].type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
     out->xr.term[i] = 0;
-    out->xr.x[i] = rayList[i].id; // volume renderer uses id to store px
-    out->xr.y[i] = rayList[i].depth; // volume renderer uses depth to store py
+    // x and y are calculated from ray id and image dimensions. 
+    out->xr.x[i] = rayList[i].id % 512; // volume renderer uses id to store px
+    out->xr.y[i] = rayList[i].id / 512; // volume renderer uses depth to store py
+    //out->xr.y[i] = rayList[i].depth; // volume renderer uses depth to store py
   }
   return out;
 }
 
 void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights, size_t begin ,size_t end) { 
   // lights
+  // todo sort point and area lights. For now assume point light. 
+  // gravit stores light position and color. ospray uses direction instead. 
+  // need to  derive direction from position. Assume all point lights 
+  // have direction pointing to origin. Also scale to unit vector.
   float* lghts = new float[3*lights.size()];
+  float* lghtptr = lghts;
   gvt::render::data::scene::Light lgt;
   for(gvt::render::data::scene::Light *lgt : lights) {
     glm::vec3 pos = lgt->position;
-    lghts[0] = pos[0];
-    lghts[1] = pos[1];
-    lghts[2] = pos[2];
-    lghts +=3;
+    float d = 1/sqrt(pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]);
+    lghtptr[0] = -pos[0]*d;
+    lghtptr[1] = -pos[1]*d;
+    lghtptr[2] = -pos[2]*d;
+    lghtptr +=3;
   }
   OSPData lightData = ospNewData(lights.size(),OSP_FLOAT3,lghts);
   ospSetData(theOSPRenderer,"lights",lightData);

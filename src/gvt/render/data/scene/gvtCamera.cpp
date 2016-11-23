@@ -186,6 +186,15 @@ void gvtCameraBase::AllocateCameraRays() {
   rays.resize(nrays);
   // return rays;
 }
+void gvtCameraBase::dumpraystostdout() {
+  int numrays = rays.size();
+  for(int i = 0;i<numrays ; i++) {
+    std::cout << i % filmsize[0] << " " << i / filmsize[0] << " " ;
+    std::cout << rays[i].origin[0] << " " << rays[i].origin[1] << " " << rays[i].origin[2] << " " ;
+    std::cout <<  rays[i].direction[0] << " " << rays[i].direction[1] << " " << rays[i].direction[2] << " ";
+    std::cout << rays[i].t_max << " " << rays[i].id << std::endl;
+  }
+};
 gvtCameraBase::~gvtCameraBase() {}
 
 // Perspective camera methods
