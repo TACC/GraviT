@@ -30,6 +30,7 @@ gvt::render::data::primitives::TransferFunction::TransferFunction(){
   colormap = NULL;
   n_opacities = 0;
   opacitymap = NULL;
+  valueRange = {0.0,1.0};
   theOSPTransferFunction = NULL;
 }
 gvt::render::data::primitives::TransferFunction::~TransferFunction() {
@@ -83,6 +84,7 @@ bool gvt::render::data::primitives::TransferFunction::set() {
   ospSetData(theOSPTransferFunction, "colors", oColors);
   OSPData oAlphas = ospNewData(256,OSP_FLOAT,opacity);
   ospSetData(theOSPTransferFunction, "opacities",oAlphas);
+  ospSet2f(theOSPTransferFunction,"valueRange",valueRange.x, valueRange.y);
   ospCommit(theOSPTransferFunction);
   return false;
 }
@@ -97,11 +99,15 @@ void gvt::render::data::primitives::TransferFunction::load(std::string cname, st
     throw(std::string("error opening colormap file: ") + cname);
   int nc;
   ifs >> nc;
+  n_colors = nc;
+  std::cout << " nc is " << nc << std::endl;
   //glm::vec4 *cmap = new glm::vec4[nc];
   colormap = new glm::vec4[nc];
   glm::vec4 *c = colormap;
-  for (int i = 0; i < nc; i++, c++)
+  for (int i = 0; i < nc; i++, c++) {
     ifs >> c->x >> c->y >> c->z >> c->w;
+    std::cout << colormap[i].x << " " << colormap[i].y << " " << colormap[i].z << " " << colormap[i].w << std::endl;
+  }
   ifs.close();
 
   ifs.open(oname.c_str(), std::ios::in);
@@ -109,6 +115,7 @@ void gvt::render::data::primitives::TransferFunction::load(std::string cname, st
     throw(std::string("error opening opacity file: ") + oname);
   int no;
   ifs >> no;
+  n_opacities = no;
   //glm::vec2 *omap = new glm::vec2[no];
   opacitymap = new glm::vec2[no];
   glm::vec2 *o = opacitymap;
@@ -136,6 +143,6 @@ void gvt::render::data::primitives::TransferFunction::load(std::string cname, st
      i0++, i1++;
     float d = (x-opacitymap[i0].x) / (opacitymap[i1].x - opacitymap[i0].x);
     opacity[i] = opacitymap[i0].y + d * (opacitymap[i1].y - opacitymap[i0].y);
+    //std::cout << color[i].x << " " << color[i].y << " " << color[i].z << " " << opacity[i] << std::endl;
   }
-  //DeviceCommit();
 }

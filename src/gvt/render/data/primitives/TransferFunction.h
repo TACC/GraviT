@@ -43,12 +43,14 @@ public:
   float* getOpacity() { return opacity;}
   glm::vec3* getColors() {return color;}
   OSPTransferFunction GetTheOSPTransferFunction() {return theOSPTransferFunction; }
+  void setValueRange(glm::vec2 range) {valueRange = range;}
   bool set();
 protected:
   bool DeviceCommit();
   glm::vec4 *colormap;
   glm::vec2 *opacitymap;
   glm::vec3 color[256];
+  glm::vec2 valueRange;
   float opacity[256];
   int n_colors, n_opacities;
   OSPTransferFunction theOSPTransferFunction;

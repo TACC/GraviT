@@ -64,6 +64,7 @@
 #include <sys/stat.h>
 #include <cstdint>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "ParseCommandLine.h"
 
@@ -91,6 +92,7 @@ struct bovheader {
   std::ifstream myfile;
   std::string datafile;
   std::string headerfile;
+  std::string headerdir;
   // the number of points in each coordinate direction
   // in the global mesh
   int datasize[3];
@@ -124,6 +126,7 @@ struct bovheader {
       bricklets[i] = 1;
     }
     myfile.open(headerfile.c_str());
+    headerdir=headerfile.substr(0,headerfile.find_last_of("/\\"));
     std::string line;
     while(myfile.good()) {
       std::vector<std::string> elems;
@@ -131,7 +134,12 @@ struct bovheader {
       if(!line.empty()) {
         split(line,' ',elems);
         if(elems[0] == "DATA_FILE:") {
-          datafile = elems[1];
+          // build a full path name for the file
+          // assume the file name in the header is
+          // relative to the location of the header itself
+          // concatinate the directory of the header file
+          // to the data_file name.
+          datafile = headerdir + "/" + elems[1];
         } else if(elems[0] == "DATA_SIZE:") {
            for(int i = 1; i<elems.size(); i++) {
              datasize[i-1] = std::stoi(elems[i]);
@@ -200,20 +208,30 @@ struct bovheader {
     std::cout << mydom << " " << domi << " " << domj << " " << domk << std::endl;
     std::cout << mydom << " " << istart << " " << jstart << " " << kstart << std::endl;
     myfile.open(datafile.c_str(), ios::in | ios::binary);
+    if(!(myfile.good())) { 
+      std::cout << " bad file open " << datafile.c_str() << std::endl;
+      exit(1);
+    }  
+    int dataindex;
     for(int k=kstart;k<kstart+counts[2];k++) 
       for(int j=jstart;j<jstart+counts[1];j++) {
         // read a row of data at a time
+        dataindex = k*datasize[0]*datasize[1] + j*datasize[0] + istart;
         streampos src = (k*datasize[0]*datasize[1]+j*datasize[0]+istart)*sample_bytes;
         myfile.seekg(src,ios_base::beg);
         myfile.read(ptr,counts[0]*sample_bytes);
         int offset = counts[0]*((k-kstart)*counts[1] + (j-jstart));
         for(int i=0;i<counts[0];i++) {
           samples[offset+i] = (float)ibuffer[i];
+          //std::cout << i<<" " << j << " " << k << " " << dataindex << " " << samples[offset+i]/2.0 << std::endl;
         }
       }
+    myfile.close();
     glm::vec3 lower(origin[0],origin[1],origin[2]);
-    glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]);
+    glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
+    std::cout << "lower coords " << lower[0] << " " << lower[1] << " " << lower[2] << std::endl;
+    std::cout << "upper coords " << upper[0] << " " << upper[1] << " " << upper[2] << std::endl;
     dfmt = FLOAT;
 
     return samples;
@@ -322,6 +340,7 @@ int main(int argc, char **argv) {
         new gvt::render::data::primitives::TransferFunction();
       // read transfer function. 
       tf->load(ctffile,otffile);
+      tf->setValueRange(glm::vec2(0.0,65536.0));
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
@@ -375,20 +394,24 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database all nodes do this.
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(128.0, 128.0, 2048.0);
+  lightNode["position"] = glm::vec3(0.0, 0.0, 1.0);
   lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec3(640.0, 640.0, 640.0);
-  camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
-  camNode["upVector"] = glm::vec3(-0.42,-0.40, 0.82);
+  //camNode["eyePoint"] = glm::vec3(640.0, 640.0, 640.0);
+  //camNode["eyePoint"] = glm::vec3(127.5,127.5,700.83650);
+  camNode["eyePoint"] = glm::vec3(127.5,127.5,1024);
+  //camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
+  camNode["focus"] = glm::vec3(127.5, 127.5, 0.0);
+  camNode["upVector"] = glm::vec3(0.0,1.0, 0.0);
+  //camNode["upVector"] = glm::vec3(-0.42,-0.40, 0.82);
   camNode["fov"] = (float)(30.0 * M_PI / 180.0);
   camNode["rayMaxDepth"] = (int)1;
   camNode["raySamples"] = (int)1;
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
-  filmNode["width"] = 512;
-  filmNode["height"] = 512;
+  filmNode["width"] = 100;
+  filmNode["height"] = 100;
 
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
@@ -427,6 +450,8 @@ int main(int argc, char **argv) {
   schedNode["adapter"] = adapterType;
 
   // end db setup
+  //
+  cntxt->database()->printTree(root.UUID(),1,0,std::cout);
 
   // use db to create structs needed by system
 
@@ -484,7 +509,7 @@ int main(int argc, char **argv) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       if(MPI::COMM_WORLD.Get_rank()==0) 
-        mycamera.dumpraystostdout();
+     //   mycamera.dumpraystostdout();
       myimage.clear();
       tracer();
     }

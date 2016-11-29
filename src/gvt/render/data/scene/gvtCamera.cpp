@@ -192,7 +192,7 @@ void gvtCameraBase::dumpraystostdout() {
     std::cout << i % filmsize[0] << " " << i / filmsize[0] << " " ;
     std::cout << rays[i].origin[0] << " " << rays[i].origin[1] << " " << rays[i].origin[2] << " " ;
     std::cout <<  rays[i].direction[0] << " " << rays[i].direction[1] << " " << rays[i].direction[2] << " ";
-    std::cout << rays[i].t_max << " " << rays[i].id << std::endl;
+    std::cout << rays[i].t_max << " " << rays[i].id << " " << rays[i].type << std::endl;
   }
 };
 gvtCameraBase::~gvtCameraBase() {}

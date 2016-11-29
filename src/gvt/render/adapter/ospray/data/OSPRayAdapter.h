@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "gvt/render/Adapter.h"
+#include <gvt/render/RenderContext.h>
 #include "ospray/ospray.h"
 #include "ospray/ExternalAPI.h"
 
@@ -37,6 +38,7 @@ protected:
   static bool init;
   OSPData theOSPData;
   size_t begin, end;
+  int width, height;
 public:
   OSPRenderer theOSPRenderer;
   OSPVolume theOSPVolume;

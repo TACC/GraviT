@@ -28,6 +28,10 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   glm::vec3 volumespacing;
   float *isovalues;
   std::cout << "starting new osprayadapter " << std::endl;
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  width = root["Film"]["width"].value().toInteger();
+  height = root["Film"]["height"].value().toInteger();
   theOSPRenderer = ospNewRenderer("ptracer");
   // build the ospray volume from the gvt volume
   //if(theOSPVolume) ospRelease(theOSPVolume);
@@ -86,6 +90,8 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     default : std::cerr << " error setting voxel type " << std::endl;
               break;
   }
+  data->SetSamplingRate(10.0);
+  std::cout << "setting samplingRate " << data->GetSamplingRate()<< std::endl;
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
   data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
@@ -124,7 +130,7 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
       ray.w = out->xr.o[i];
       ray.t = out->xr.t[i];
       ray.t_max = out->xr.tMax[i];
-      ray.id = out->xr.y[i]*512 + out->xr.x[i];
+      ray.id = out->xr.y[i]*width + out->xr.x[i];
       //ray.id = out->xr.x[i];
       ray.depth = out->xr.y[i];
       ray.type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
@@ -177,13 +183,15 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
     ray.color.r = rl->xr.r[i];
     ray.color.g = rl->xr.g[i];
     ray.color.b = rl->xr.b[i];
-    if((rl->xr.r[i] != 0 ) || (rl->xr.g[i] != 0) || (rl->xr.b[i]!= 0)) std::cout << " I " << i << std::endl;
+    if((rl->xr.r[i] != 0 ) || (rl->xr.g[i] != 0) || (rl->xr.b[i]!= 0)) 
+      std::cout << rl->xr.r[i] << " " << rl->xr.g[i] << " " << rl->xr.b[i]  << std::endl;
     ray.w = rl->xr.o[i];
     ray.t = rl->xr.t[i];
     ray.t_max = rl->xr.tMax[i];
     //ray.id = rl->xr.x[i];
-    ray.id = rl->xr.y[i]*512 + rl->xr.x[i];
+    ray.id = rl->xr.y[i]*width + rl->xr.x[i];
     ray.depth = rl->xr.y[i];
+    ray.depth = 1.0;
     ray.type = rl->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
       rl->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
       rl->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
@@ -191,7 +199,13 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
       (rl->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
       (rl->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
       (rl->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
-    memcpy((void*)&(ray.t_min), (void*) &spoot, sizeof(spoot));
+    //int tt = rl->xr.term[i];
+    //if(tt & EXTERNAL_RAY_SURFACE) std::cout << "EXTERNAL_RAY_SURFACE" << std::endl;
+    //if(tt & EXTERNAL_RAY_OPAQUE) std::cout << "EXTERNAL_RAY_OPAQUE" << std::endl;
+    //if(tt & EXTERNAL_RAY_BOUNDARY) std::cout << "EXTERNAL_RAY_BOUNDARY" << std::endl;
+    //if(tt & EXTERNAL_RAY_TIMEOUT) std::cout << "EXTERNAL_RAY_TIMEOUT" << std::endl;
+    //memcpy((void*)&(ray.t_min), (void*) &spoot, sizeof(spoot));
+  //std::cout << "osp2mvr " << i <<  " origin " << moved_rays[i].origin.x << " " << moved_rays[i].origin.y<< " " <<  moved_rays[i].origin.z << std::endl;
     /*
     moved_rays[i].origin.x = rl->xr.ox[i];
     moved_rays[i].origin.y = rl->xr.oy[i];
@@ -221,7 +235,6 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
     memcpy((void*)&(moved_rays[i].t_min), (void*) &spoot, sizeof(spoot));
     */
   }
-  std::cout << "osp2mvr " << moved_rays.size() <<  " origin " << moved_rays[0].origin.x << std::endl;
 }
 OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayList) { 
   OSPExternalRays out = ospNewExternalRays() ;
@@ -236,17 +249,25 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
     out->xr.r[i] = rayList[i].color.r;
     out->xr.g[i] = rayList[i].color.g;
     out->xr.b[i] = rayList[i].color.b;
-    out->xr.o[i] = rayList[i].w; // volume renderer uses w to carry opacity in and out.
-    out->xr.t[i] = rayList[i].t;
+    out->xr.o[i] = 0.0; // volume renderer uses w to carry opacity in and out.
+    //out->xr.o[i] = rayList[i].w; // volume renderer uses w to carry opacity in and out.
+    //out->xr.t[i] = rayList[i].t;
+    out->xr.t[i] = 0;
     out->xr.tMax[i] = rayList[i].t_max;
-    out->xr.type[i] == rayList[i].type == RAY_PRIMARY ? EXTERNAL_RAY_PRIMARY :
-      rayList[i].type == RAY_SHADOW ? EXTERNAL_RAY_SHADOW :
-      rayList[i].type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
+    out->xr.type[i] = RAY_PRIMARY ;
+    //out->xr.type[i] = rayList[i].type == RAY_PRIMARY ? EXTERNAL_RAY_PRIMARY :
+     // rayList[i].type == RAY_SHADOW ? EXTERNAL_RAY_SHADOW :
+      //rayList[i].type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
     out->xr.term[i] = 0;
     // x and y are calculated from ray id and image dimensions. 
-    out->xr.x[i] = rayList[i].id % 512; // volume renderer uses id to store px
-    out->xr.y[i] = rayList[i].id / 512; // volume renderer uses depth to store py
+    out->xr.x[i] = rayList[i].id % width; // volume renderer uses id to store px
+    out->xr.y[i] = rayList[i].id / width; // volume renderer uses depth to store py
     //out->xr.y[i] = rayList[i].depth; // volume renderer uses depth to store py
+    //std::cout << out->xr.ox[i] << " " << out->xr.oy[i] << " " << out->xr.oz[i] << " " ;
+    //std::cout << out->xr.dx[i] << " " << out->xr.dy[i] << " " << out->xr.dz[i] << " " ;
+    //std::cout << out->xr.r[i] << " " << out->xr.g[i] << " " << out->xr.b[i] << " " ;
+    //std::cout << out->xr.o[i] << " " << out->xr.t[i] << " " << out->xr.tMax[i] << " " ;
+    //std::cout << out->xr.x[i] << " " << out->xr.y[i] << " " << out->xr.type[i] << std::endl;
   }
   return out;
 }
