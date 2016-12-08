@@ -265,11 +265,21 @@ void gvtPerspectiveCamera::generateRays() {
                               ray.id = idx;
                               ray.t_min = gvt::render::actor::Ray::RAY_EPSILON;
                               ray.t = ray.t_max = FLT_MAX;
+#ifdef GVT_BUILD_VOLUME
+                              ray.w = 0.0; // volume rendering opacity variable
+                              ray.t = 0.0;
+#else
+                              ray.t = ray.t_max = FLT_MAX;
                               ray.w = contri;
+#endif
                               ray.origin = eye_point;
                               ray.type = Ray::PRIMARY;
                               ray.direction = glm::normalize(camera_space_ray_direction);
+#ifdef GVT_BUILD_VOLUME
+                              ray.depth = 0;
+#else
                               ray.depth = depth;
+#endif
                             }
                           }
                           idx++;

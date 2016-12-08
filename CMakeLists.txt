@@ -359,6 +359,7 @@ if (GVT_RENDER_ADAPTER_OSPRAY)
 #    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.cpp
     )
   if(GVT_VOLUME)
+    add_definitions(-DGVT_BUILD_VOLUME)
     set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 #      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.h
       src/gvt/render/data/primitives/Volume.h

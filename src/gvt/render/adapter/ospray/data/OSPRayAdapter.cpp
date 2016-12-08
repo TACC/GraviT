@@ -27,7 +27,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   glm::vec3 volumedimensions;
   glm::vec3 volumespacing;
   float *isovalues;
-  std::cout << "starting new osprayadapter " << std::endl;
+  //std::cout << "starting new osprayadapter " << std::endl;
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = cntxt->getRootNode();
   width = root["Film"]["width"].value().toInteger();
@@ -53,34 +53,27 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     ospSetData(theOSPVolume,"isovalues",isoData);
   }
   data->GetGlobalOrigin(globalorigin);
-  //std::cout << " Globalorigin " << globalorigin.x << " " << globalorigin.y << " " << globalorigin.z << std::endl;
   osp::vec3f origin;
   origin.x = globalorigin.x;
   origin.y = globalorigin.y;
   origin.z = globalorigin.z;
-  //std::cout << " origin " << origin.x << " " << origin.y << " " << origin.z << std::endl;
   ospSetVec3f(theOSPVolume,"gridOrigin",origin);
   data->GetCounts(volumedimensions);
-  //std::cout << " volumedims " << volumedimensions.x << " " << volumedimensions.y << " " << volumedimensions.z << std::endl;
   osp::vec3i counts;
   counts.x = volumedimensions.x;
   counts.y = volumedimensions.y;
   counts.z = volumedimensions.z;
-  //std::cout << " counts " << counts.x << " " << counts.y << " " << counts.z << std::endl;
   ospSetVec3i(theOSPVolume,"dimensions",counts);
   data->GetDeltas(volumespacing);
-  //std::cout << " spacing" << volumespacing.x << " " << volumespacing.y << " " << volumespacing.z << std::endl;
   osp::vec3f spacing;
   spacing.x = volumespacing.x;
   spacing.y = volumespacing.y;
   spacing.z = volumespacing.z;
-  //std::cout << " spacing " << spacing.x << " " << spacing.y << " " << spacing.z << std::endl;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   switch(vt){
     case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
           int numberofsamples = counts.x*counts.y*counts.z;
-          //std::cout << "numberof samples " << numberofsamples << std::endl;
           OSPData voldata = ospNewData(numberofsamples,OSP_FLOAT,(void*)data->GetSamples(),OSP_DATA_SHARED_BUFFER);
           ospCommit(voldata);
           ospSetObject(theOSPVolume,"voxelData",voldata);
@@ -91,7 +84,6 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
               break;
   }
   data->SetSamplingRate(10.0);
-  std::cout << "setting samplingRate " << data->GetSamplingRate()<< std::endl;
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
   data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
@@ -127,10 +119,11 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
       ray.color.r = out->xr.r[i];
       ray.color.g = out->xr.g[i];
       ray.color.b = out->xr.b[i];
-      ray.w = out->xr.o[i];
+      ray.w = out->xr.o[i]; // store ospray opacity in the w component of the gvt ray
       ray.t = out->xr.t[i];
       ray.t_max = out->xr.tMax[i];
       ray.id = out->xr.y[i]*width + out->xr.x[i];
+    //  ray.depth = 10;
       //ray.id = out->xr.x[i];
       ray.depth = out->xr.y[i];
       ray.type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
@@ -249,10 +242,10 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
     out->xr.r[i] = rayList[i].color.r;
     out->xr.g[i] = rayList[i].color.g;
     out->xr.b[i] = rayList[i].color.b;
-    out->xr.o[i] = 0.0; // volume renderer uses w to carry opacity in and out.
-    //out->xr.o[i] = rayList[i].w; // volume renderer uses w to carry opacity in and out.
-    //out->xr.t[i] = rayList[i].t;
-    out->xr.t[i] = 0;
+    //out->xr.o[i] = 0.0; // volume renderer uses w to carry opacity in and out.
+    out->xr.o[i] = rayList[i].w; // volume renderer uses w to carry opacity in and out.
+    out->xr.t[i] = rayList[i].t;
+    //out->xr.t[i] = 0.0;
     out->xr.tMax[i] = rayList[i].t_max;
     out->xr.type[i] = RAY_PRIMARY ;
     //out->xr.type[i] = rayList[i].type == RAY_PRIMARY ? EXTERNAL_RAY_PRIMARY :

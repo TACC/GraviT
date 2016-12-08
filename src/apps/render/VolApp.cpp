@@ -451,7 +451,7 @@ int main(int argc, char **argv) {
 
   // end db setup
   //
-  cntxt->database()->printTree(root.UUID(),1,0,std::cout);
+  //cntxt->database()->printTree(root.UUID(),1,0,std::cout);
 
   // use db to create structs needed by system
 
