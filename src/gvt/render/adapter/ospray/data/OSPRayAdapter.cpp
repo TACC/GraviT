@@ -124,48 +124,19 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
       ray.t_max = out->xr.tMax[i];
       ray.id = out->xr.y[i]*width + out->xr.x[i];
     //  ray.depth = 10;
-      //ray.id = out->xr.x[i];
-      ray.depth = out->xr.y[i];
       ray.type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
         out->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
         out->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
-      int spoot = (out->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
+      //int spoot = (out->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
+      ray.depth = (out->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
         (out->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
         (out->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
         (out->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
-      memcpy((void*)&(ray.t_min), (void*) &spoot, sizeof(spoot));
-      /*
-      moved_rays[i].origin.x = out->xr.ox[i];
-      moved_rays[i].origin.y = out->xr.oy[i];
-      moved_rays[i].origin.z = out->xr.oz[i];
-      moved_rays[i].direction.x = out->xr.dx[i];
-      moved_rays[i].direction.y = out->xr.dy[i];
-      moved_rays[i].direction.z = out->xr.dz[i];
-      moved_rays[i].color.r = out->xr.r[i];
-      moved_rays[i].color.g = out->xr.g[i];
-      moved_rays[i].color.b = out->xr.b[i];
-      moved_rays[i].w = out->xr.o[i];
-      moved_rays[i].t = out->xr.t[i];
-      moved_rays[i].t_max = out->xr.tMax[i];
-      moved_rays[i].id = out->xr.x[i];
-      moved_rays[i].depth = out->xr.y[i];
-      moved_rays[i].type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
-        out->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
-        out->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
-      // note to future dave. Here we build a bit pattern that indicates the
-      // termination type of the ray. We then store it in the t_min member of 
-      // the ith moved ray. This implies special handling of the moved_rays 
-      // in shuffle rays for volume rendering. 
-      int spoot = (out->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
-        (out->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
-        (out->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
-        (out->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
-      memcpy((void*)&(moved_rays[i].t_min), (void*) &spoot, sizeof(spoot)); */
     }
   } else { raycount = 0; }
   // now do the rl rays which may be terminated as indicated in their term variable.  
   moved_rays.resize(raycount + rl->GetCount());
-  for(int i=raycount; i <raycount + rl->GetCount();i++){
+  for(int i=raycount, ii=0; i <raycount + rl->GetCount();i++,ii++){
     gvt::render::actor::Ray &ray = moved_rays[i];
     ray.origin.x = rl->xr.ox[i];
     ray.origin.y = rl->xr.oy[i];
@@ -183,50 +154,17 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
     ray.t_max = rl->xr.tMax[i];
     //ray.id = rl->xr.x[i];
     ray.id = rl->xr.y[i]*width + rl->xr.x[i];
-    ray.depth = rl->xr.y[i];
-    ray.depth = 1.0;
+    //ray.depth = rl->xr.y[i];
+    //ray.depth = 1.0;
     ray.type = rl->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
       rl->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
       rl->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
-    int spoot = (rl->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
+    //int spoot = (rl->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
+    ray.depth = (rl->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
       (rl->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
       (rl->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
       (rl->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
-    //int tt = rl->xr.term[i];
-    //if(tt & EXTERNAL_RAY_SURFACE) std::cout << "EXTERNAL_RAY_SURFACE" << std::endl;
-    //if(tt & EXTERNAL_RAY_OPAQUE) std::cout << "EXTERNAL_RAY_OPAQUE" << std::endl;
-    //if(tt & EXTERNAL_RAY_BOUNDARY) std::cout << "EXTERNAL_RAY_BOUNDARY" << std::endl;
-    //if(tt & EXTERNAL_RAY_TIMEOUT) std::cout << "EXTERNAL_RAY_TIMEOUT" << std::endl;
     //memcpy((void*)&(ray.t_min), (void*) &spoot, sizeof(spoot));
-  //std::cout << "osp2mvr " << i <<  " origin " << moved_rays[i].origin.x << " " << moved_rays[i].origin.y<< " " <<  moved_rays[i].origin.z << std::endl;
-    /*
-    moved_rays[i].origin.x = rl->xr.ox[i];
-    moved_rays[i].origin.y = rl->xr.oy[i];
-    moved_rays[i].origin.z = rl->xr.oz[i];
-    moved_rays[i].direction.x = rl->xr.dx[i];
-    moved_rays[i].direction.y = rl->xr.dy[i];
-    moved_rays[i].direction.z = rl->xr.dz[i];
-    moved_rays[i].color.r = rl->xr.r[i];
-    moved_rays[i].color.g = rl->xr.g[i];
-    moved_rays[i].color.b = rl->xr.b[i];
-    moved_rays[i].w = rl->xr.o[i];
-    moved_rays[i].t = rl->xr.t[i];
-    moved_rays[i].t_max = rl->xr.tMax[i];
-    moved_rays[i].id = rl->xr.x[i];
-    moved_rays[i].depth = rl->xr.y[i];
-    moved_rays[i].type = rl->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
-      rl->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
-      rl->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
-    // note to future dave. Here we build a bit pattern that indicates the
-    // termination type of the ray. We then store it in the t_min member of 
-    // the ith moved ray. This implies special handling of the moved_rays 
-    // in shuffle rays for volume rendering. 
-    int spoot = (rl->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
-      (rl->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
-      (rl->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
-      (rl->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
-    memcpy((void*)&(moved_rays[i].t_min), (void*) &spoot, sizeof(spoot));
-    */
   }
 }
 OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayList) { 
