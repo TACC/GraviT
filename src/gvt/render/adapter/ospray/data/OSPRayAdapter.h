@@ -5,7 +5,8 @@
 #include "gvt/render/Adapter.h"
 #include <gvt/render/RenderContext.h>
 #include "ospray/ospray.h"
-#include "ospray/ExternalAPI.h"
+//#include "ospray/ExternalAPI.h"
+#include "ospray/OSPExternalRays.h"
 
 namespace gvt {
 namespace render {

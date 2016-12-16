@@ -87,6 +87,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
   data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
+  ospSet1i(theOSPVolume,"volume rendering",1);
   ospCommit(theOSPVolume);
   // make a model and stuff the volume in it.
   theOSPModel = ospNewModel();
@@ -138,32 +139,32 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
   moved_rays.resize(raycount + rl->GetCount());
   for(int i=raycount, ii=0; i <raycount + rl->GetCount();i++,ii++){
     gvt::render::actor::Ray &ray = moved_rays[i];
-    ray.origin.x = rl->xr.ox[i];
-    ray.origin.y = rl->xr.oy[i];
-    ray.origin.z = rl->xr.oz[i];
-    ray.direction.x = rl->xr.dx[i];
-    ray.direction.y = rl->xr.dy[i];
-    ray.direction.z = rl->xr.dz[i];
-    ray.color.r = rl->xr.r[i];
-    ray.color.g = rl->xr.g[i];
-    ray.color.b = rl->xr.b[i];
-    if((rl->xr.r[i] != 0 ) || (rl->xr.g[i] != 0) || (rl->xr.b[i]!= 0)) 
-      std::cout << rl->xr.r[i] << " " << rl->xr.g[i] << " " << rl->xr.b[i]  << std::endl;
-    ray.w = rl->xr.o[i];
-    ray.t = rl->xr.t[i];
-    ray.t_max = rl->xr.tMax[i];
+    ray.origin.x = rl->xr.ox[ii];
+    ray.origin.y = rl->xr.oy[ii];
+    ray.origin.z = rl->xr.oz[ii];
+    ray.direction.x = rl->xr.dx[ii];
+    ray.direction.y = rl->xr.dy[ii];
+    ray.direction.z = rl->xr.dz[ii];
+    ray.color.r = rl->xr.r[ii];
+    ray.color.g = rl->xr.g[ii];
+    ray.color.b = rl->xr.b[ii];
+    if((rl->xr.r[ii] != 0 ) || (rl->xr.g[ii] != 0) || (rl->xr.b[ii]!= 0)) 
+      std::cout << rl->xr.r[ii] << " " << rl->xr.g[ii] << " " << rl->xr.b[ii]  << std::endl;
+    ray.w = rl->xr.o[ii];
+    ray.t = rl->xr.t[ii];
+    ray.t_max = rl->xr.tMax[ii];
     //ray.id = rl->xr.x[i];
-    ray.id = rl->xr.y[i]*width + rl->xr.x[i];
+    ray.id = rl->xr.y[ii]*width + rl->xr.x[ii];
     //ray.depth = rl->xr.y[i];
     //ray.depth = 1.0;
-    ray.type = rl->xr.type[i] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
-      rl->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
-      rl->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
+    ray.type = rl->xr.type[ii] == EXTERNAL_RAY_PRIMARY ? RAY_PRIMARY :
+      rl->xr.type[ii] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW :
+      rl->xr.type[ii] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
     //int spoot = (rl->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
-    ray.depth = (rl->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
-      (rl->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
-      (rl->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
-      (rl->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
+    ray.depth = (rl->xr.term[ii] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0 ) |
+      (rl->xr.term[ii] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
+      (rl->xr.term[ii] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
+      (rl->xr.term[ii] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
     //memcpy((void*)&(ray.t_min), (void*) &spoot, sizeof(spoot));
   }
 }
