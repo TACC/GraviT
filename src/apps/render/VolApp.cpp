@@ -46,9 +46,6 @@
 #include <gvt/render/adapter/ospray/Wrapper.h>
 #endif
 
-#ifdef GVT_USE_MPE
-#include "mpe.h"
-#endif
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
@@ -69,11 +66,6 @@
 #include "ParseCommandLine.h"
 
 using namespace std;
-//using namespace gvt::render;
-//using namespace gvt::core::mpi;
-//using namespace gvt::render::data::scene;
-//using namespace gvt::render::schedule;
-//using namespace gvt::render::data::primitives;
 
 std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss(s);
@@ -156,7 +148,7 @@ struct bovheader {
         } else if(elems[0] == "DATA_ENDIAN:") {
            dendian = (elems[1] == "BIG") ? BIG : LITTLE;
         } else if(elems[0] == "DIVIDE_BRICK:") {
-         dividebrick = (elems[1] == "true")  ? true : false;
+           dividebrick = (elems[1] == "true")  ? true : false;
         } else if(elems[0] == "DATA_BRICKLETS:"){
            for(int i = 1; i<elems.size(); i++) bricklets[i-1] = std::stoi(elems[i]);
        }
@@ -168,7 +160,6 @@ struct bovheader {
       xpartitions = std::max(datasize[0]/bricklets[0],1);
       ypartitions = std::max(datasize[1]/bricklets[1],1);
       zpartitions = std::max(datasize[2]/bricklets[2],1);
-      std::cout << xpartitions << " " << ypartitions << " " << zpartitions << std::endl;
     } else {
       xpartitions = 1;
       ypartitions = 1;
@@ -205,8 +196,6 @@ struct bovheader {
     samples = new float[counts[0]*counts[1]*counts[2]];
     sample_bytes = sizeof(int);
     char *ptr = (char *)ibuffer;
-    std::cout << mydom << " " << domi << " " << domj << " " << domk << std::endl;
-    std::cout << mydom << " " << istart << " " << jstart << " " << kstart << std::endl;
     myfile.open(datafile.c_str(), ios::in | ios::binary);
     if(!(myfile.good())) { 
       std::cout << " bad file open " << datafile.c_str() << std::endl;
@@ -223,15 +212,12 @@ struct bovheader {
         int offset = counts[0]*((k-kstart)*counts[1] + (j-jstart));
         for(int i=0;i<counts[0];i++) {
           samples[offset+i] = (float)ibuffer[i];
-          //std::cout << i<<" " << j << " " << k << " " << dataindex << " " << samples[offset+i]/2.0 << std::endl;
         }
       }
     myfile.close();
     glm::vec3 lower(origin[0],origin[1],origin[2]);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
-    std::cout << "lower coords " << lower[0] << " " << lower[1] << " " << lower[2] << std::endl;
-    std::cout << "upper coords " << upper[0] << " " << upper[1] << " " << upper[2] << std::endl;
     dfmt = FLOAT;
 
     return samples;
@@ -328,7 +314,6 @@ int main(int argc, char **argv) {
   worldsize = MPI::COMM_WORLD.Get_size();
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
-      std::cout << "rank " << rank << " reading domain " << domain <<std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
@@ -349,7 +334,6 @@ int main(int argc, char **argv) {
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
       glm::vec3 dels = {1.0,1.0,1.0};
-      std::cout << "deltas " << dels.x << " " << dels.y << " " << dels.z << std::endl;
       vol->SetDeltas(dels.x,dels.y,dels.z);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
       // stuff it in the db
@@ -398,13 +382,9 @@ int main(int argc, char **argv) {
   lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  //camNode["eyePoint"] = glm::vec3(640.0, 640.0, 640.0);
-  //camNode["eyePoint"] = glm::vec3(127.5,127.5,700.83650);
   camNode["eyePoint"] = glm::vec3(127.5,127.5,1024);
-  //camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
   camNode["focus"] = glm::vec3(127.5, 127.5, 0.0);
   camNode["upVector"] = glm::vec3(0.0,1.0, 0.0);
-  //camNode["upVector"] = glm::vec3(-0.42,-0.40, 0.82);
   camNode["fov"] = (float)(30.0 * M_PI / 180.0);
   camNode["rayMaxDepth"] = (int)1;
   camNode["raySamples"] = (int)1;
@@ -446,13 +426,10 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
 
-  //schedNode["adapter"] = gvt::render::adapter::Embree;
   schedNode["adapter"] = adapterType;
 
   // end db setup
   //
-  //cntxt->database()->printTree(root.UUID(),1,0,std::cout);
-
   // use db to create structs needed by system
 
   // setup gvtCamera from database entries
@@ -469,9 +446,6 @@ int main(int argc, char **argv) {
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
-#ifdef GVT_USE_MPE
-  MPE_Log_event(readend, 0, NULL);
-#endif
   // setup image from database sizes
   gvt::render::data::scene::Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "enzo");
 
@@ -481,8 +455,8 @@ int main(int argc, char **argv) {
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
-    std::cout << "starting image scheduler" << std::endl;
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
+    // todo fix image scheduler to use ospray
     //gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(&argc,argv,mycamera.rays, myimage);
 #endif
     gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(mycamera.rays, myimage);
@@ -495,11 +469,6 @@ int main(int argc, char **argv) {
     break;
   }
   case gvt::render::scheduler::Domain: {
-    std::cout << "starting domain scheduler" << std::endl;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderstart, 0, NULL);
-#endif
-    // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
     gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(&argc,argv,mycamera.rays, myimage);
 #elif
@@ -508,16 +477,11 @@ int main(int argc, char **argv) {
     for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
-      if(MPI::COMM_WORLD.Get_rank()==0) 
-     //   mycamera.dumpraystostdout();
       myimage.clear();
       tracer();
     }
     break;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderend, 0, NULL);
-#endif
-    break;
+    //break;
   }
   default: {
     std::cout << "unknown schedule type provided: " << schedType << std::endl;
@@ -526,10 +490,6 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-#ifdef GVT_USE_MPE
-  MPE_Log_sync_clocks();
-// MPE_Finish_log("gvtSimplelog");
-#endif
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
 

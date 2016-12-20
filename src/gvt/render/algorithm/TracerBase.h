@@ -114,7 +114,7 @@ public:
 
   float sample_ratio = 1.f;
 
-  tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
+  tbb::mutex *queue_mutex; // array of mutexes - one per instance
   std::map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
   tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
   glm::vec3 *colorBuf;
@@ -128,7 +128,6 @@ public:
     // if this is on the number of domains, then it will be equivalent to the
     // number
     // of instances in the database
-    std::cout << " AbstractTrace(&rays,&image) " << std::endl;
     instancenodes = rootnode["Instances"].getChildren();
 
     int numInst = instancenodes.size();
@@ -255,7 +254,6 @@ public:
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
-    std::cout << " rays.size " << rays.size() <<  std::endl;
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits = acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
       std::map<int, gvt::render::actor::RayVector> local_queue;
@@ -298,10 +296,9 @@ public:
     const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
-                      [&](tbb::blocked_range<size_t> chunk) {
-                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
-                      },
-                      ap);
+       [&](tbb::blocked_range<size_t> chunk) {
+       for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
+                   }, ap);
   }
 
   inline void gatherFramebuffers(int rays_traced) {

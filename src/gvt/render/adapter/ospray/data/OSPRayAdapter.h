@@ -5,7 +5,6 @@
 #include "gvt/render/Adapter.h"
 #include <gvt/render/RenderContext.h>
 #include "ospray/ospray.h"
-//#include "ospray/ExternalAPI.h"
 #include "ospray/OSPExternalRays.h"
 
 namespace gvt {
@@ -37,7 +36,6 @@ protected:
    * Variable: adapter has been initialized if true. 
    */
   static bool init;
-  OSPData theOSPData;
   size_t begin, end;
   int width, height;
 public:
