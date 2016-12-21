@@ -249,8 +249,6 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
-    // std::cout << "Suffle rays" << rays.size() << std::endl;
-    glm::vec3 constcolor ={0.0,0.0,0.0};
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
@@ -259,23 +257,65 @@ public:
       std::map<int, gvt::render::actor::RayVector> local_queue;
       for (size_t i = 0; i < hits.size(); i++) {
        gvt::render::actor::Ray &r = *(raysit.begin() + i);
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+       if(r.depth & RAY_BOUNDARY){
+        if(hits[i].next != -1) {
+          r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
+          local_queue[hits[i].next].push_back(r);
+          } else {
+            r.depth &= RAY_BOUNDARY;
+            r.depth |= RAY_EXTERNAL_BOUNDARY;
+          }
+       }
+       // check types
+       if(r.type == RAY_PRIMARY) {
+        if((r.depth & RAY_OPAQUE) || (r.depth & RAY_EXTERNAL_BOUNDARY)) {
+         tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+         colorBuf[r.id] += r.color;
+        } else if(r.depth & ~RAY_BOUNDARY) {
+            r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
+            local_queue[hits[i].next].push_back(r);
+        }
+       } else if(r.type == RAY_SHADOW) {
+          if(r.depth & RAY_EXTERNAL_BOUNDARY) { 
+            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+            colorBuf[r.id] += r.color;
+          }else if(r.depth & RAY_BOUNDARY) {
+            r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
+            local_queue[hits[i].next].push_back(r);
+          }
+       } else if(r.type == RAY_AO) {
+          if(r.depth &(RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
+            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+            colorBuf[r.id] += r.color;
+          } else if (r.depth & RAY_BOUNDARY) {
+              r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
+              local_queue[hits[i].next].push_back(r);
+          }
+       }
+
+          
+       //if (hits[i].next != -1) {
+       //  r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+       //  local_queue[hits[i].next].push_back(r);
+       //} else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color)>0){
+       //  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+       //  colorBuf[r.id] += r.color;
+       //} else if ( r.type == RAY_PRIMARY ) {
+       //  if ((r.depth & RAY_OPAQUE) | (r.depth & RAY_BOUNDARY)) {
+       //   tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
+       //   colorBuf[r.id] += r.color;
+       //  }
+       //}
+#else
        if (hits[i].next != -1) {
          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
          local_queue[hits[i].next].push_back(r);
-          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
-          colorBuf[r.id] += constcolor;
-       } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
+       } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color)>0){
          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
          colorBuf[r.id] += r.color;
-       } else if ( r.type == RAY_PRIMARY ) {
-         if (((int)r.t_min & RAY_OPAQUE) | ((int)r.t_min & RAY_BOUNDARY)) {
-          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
-          colorBuf[r.id] += r.color;
-         }
-       }/* else {
-          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id%width]);
-          colorBuf[r.id] += constcolor;
-       }*/
+       } 
+#endif
       }
       for (auto &q : local_queue) {
         queue_mutex[q.first].lock();

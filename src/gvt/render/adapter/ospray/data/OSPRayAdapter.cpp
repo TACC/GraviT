@@ -200,13 +200,19 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
   }
   OSPData lightData = ospNewData(lights.size(),OSP_FLOAT3,lghts);
   ospSetData(theOSPRenderer,"lights",lightData);
+  // some light and effect control variables. These should be stashed in the
+  // context rather than hardcoded here. 
   float ka,kd,arad;
   int nar;
   bool dos;
-  ka = 0.6;
-  kd = 0.4;
+  // these are only used in the case of isosurface or slice planes I think.
+  ka = 0.4;
+  kd = 0.6;
+  // do shadows boolean. Not used since I need an integer.
   dos = false;
+  // ambient occlusion radius 
   arad = 0.0;
+  // number of ambient occlusion rays. 
   nar = 0;
   ospSet1i(theOSPRenderer,"do_shadows",0);
   ospSet1i(theOSPRenderer,"n_ao_rays",nar);

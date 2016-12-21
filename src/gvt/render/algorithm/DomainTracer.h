@@ -359,10 +359,6 @@ public:
         int not_done = 0;
 
         for (auto &q : queue) not_done += q.second.size();
-        // if (!q.second.empty()) {
-        //   not_done = 1;
-        //   break;
-        // }
 
         int *empties = (mpi.rank == 0) ? new int[mpi.world_size] : NULL;
         MPI_Gather(&not_done, 1, MPI_INT, empties, 1, MPI_INT, 0, MPI_COMM_WORLD);
