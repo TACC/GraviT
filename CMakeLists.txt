@@ -245,31 +245,31 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/Primitives.h
   src/gvt/render/data/primitives/BBox.h
   src/gvt/render/data/primitives/Material.h
-	src/gvt/render/data/primitives/EmbreeMaterial.h
-	src/gvt/render/data/primitives/Mesh.h
-        src/gvt/render/data/primitives/Volume.h
-        src/gvt/render/data/primitives/TransferFunction.h
-	src/gvt/render/data/scene/gvtCamera.h
-	src/gvt/render/data/scene/CameraConfig.h
-	src/gvt/render/data/scene/ColorAccumulator.h
-	src/gvt/render/data/scene/Image.h
-	src/gvt/render/data/scene/Light.h
-	src/gvt/render/data/accel/AbstractAccel.h
-	src/gvt/render/data/accel/BVH.h
-	src/gvt/render/schedule/DomainScheduler.h
-	src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
-	src/gvt/render/schedule/hybrid/GreedySchedule.h
-	src/gvt/render/schedule/hybrid/HybridScheduleBase.h
-	src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
-	src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
-	src/gvt/render/schedule/hybrid/LoadManySchedule.h
-	src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
-	src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
-	src/gvt/render/schedule/hybrid/SpreadSchedule.h
-	src/gvt/render/schedule/HybridScheduler.h
-	src/gvt/render/schedule/ImageScheduler.h
-	src/gvt/render/Schedulers.h
-	src/gvt/render/Types.h
+  src/gvt/render/data/primitives/EmbreeMaterial.h
+  src/gvt/render/data/primitives/Mesh.h
+#src/gvt/render/data/primitives/Volume.h
+#src/gvt/render/data/primitives/TransferFunction.h
+  src/gvt/render/data/scene/gvtCamera.h
+  src/gvt/render/data/scene/CameraConfig.h
+  src/gvt/render/data/scene/ColorAccumulator.h
+  src/gvt/render/data/scene/Image.h
+  src/gvt/render/data/scene/Light.h
+  src/gvt/render/data/accel/AbstractAccel.h
+  src/gvt/render/data/accel/BVH.h
+  src/gvt/render/schedule/DomainScheduler.h
+  src/gvt/render/schedule/hybrid/AdaptiveSendSchedule.h
+  src/gvt/render/schedule/hybrid/GreedySchedule.h
+  src/gvt/render/schedule/hybrid/HybridScheduleBase.h
+  src/gvt/render/schedule/hybrid/LoadAnotherSchedule.h
+  src/gvt/render/schedule/hybrid/LoadAnyOnceSchedule.h
+  src/gvt/render/schedule/hybrid/LoadManySchedule.h
+  src/gvt/render/schedule/hybrid/LoadOnceSchedule.h
+  src/gvt/render/schedule/hybrid/RayWeightedSpreadSchedule.h
+  src/gvt/render/schedule/hybrid/SpreadSchedule.h
+  src/gvt/render/schedule/HybridScheduler.h
+  src/gvt/render/schedule/ImageScheduler.h
+  src/gvt/render/Schedulers.h
+  src/gvt/render/Types.h
 )
 
 
@@ -283,8 +283,8 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/data/primitives/BBox.cpp
   src/gvt/render/data/primitives/Material.cpp
   src/gvt/render/data/primitives/Mesh.cpp
-  src/gvt/render/data/primitives/Volume.cpp
-  src/gvt/render/data/primitives/TransferFunction.cpp
+  # src/gvt/render/data/primitives/Volume.cpp
+  #src/gvt/render/data/primitives/TransferFunction.cpp
   src/gvt/render/data/scene/gvtCamera.cpp
   src/gvt/render/data/scene/ColorAccumulator.cpp
   src/gvt/render/data/scene/Image.cpp
@@ -351,22 +351,20 @@ if (GVT_RENDER_ADAPTER_OSPRAY)
   add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
   set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
     src/gvt/render/adapter/ospray/data/OSPRayAdapter.h
-#    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.h
     src/gvt/render/adapter/ospray/Wrapper.h
     )
   set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
     src/gvt/render/adapter/ospray/data/OSPRayAdapter.cpp 
-#    src/gvt/render/adapter/ospray/data/OSPRayMeshAdapter.cpp
     )
   if(GVT_VOLUME)
     add_definitions(-DGVT_BUILD_VOLUME)
     set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-#      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.h
       src/gvt/render/data/primitives/Volume.h
+      src/gvt/render/data/primitives/TransferFunction.h
       )
     set (GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-#      src/gvt/render/adapter/ospray/data/OSPRayVolAdapter.cpp
       src/gvt/render/data/primitives/Volume.cpp
+      src/gvt/render/data/primitives/TransferFunction.cpp
       )
   endif(GVT_VOLUME)
 endif(GVT_RENDER_ADAPTER_OSPRAY)

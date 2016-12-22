@@ -33,7 +33,7 @@
 
 #include <gvt/render/data/primitives/BBox.h>
 #include <gvt/render/data/primitives/Material.h>
-#include <gvt/render/data/primitives/TransferFunction.h>
+//#include <gvt/render/data/primitives/TransferFunction.h>
 #include <gvt/render/data/scene/Light.h>
 
 #include <vector>

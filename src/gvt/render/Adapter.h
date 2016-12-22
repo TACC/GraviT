@@ -29,7 +29,9 @@
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
+#ifdef GVT_BUILD_VOLUME
 #include <gvt/render/data/primitives/Volume.h>
+#endif
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>
 #include <mutex>
@@ -45,7 +47,9 @@ protected:
    * Data node (ex: Mesh, Volume)
    */
   gvt::render::data::primitives::Mesh *mesh;
+#ifdef GVT_BUILD_VOLUME
   gvt::render::data::primitives::Volume *volume;
+#endif
   gvt::render::data::primitives::Data *data;
 
 public:
@@ -54,7 +58,9 @@ public:
    */
   Adapter(gvt::render::data::primitives::Data *data ) : data(data) {}; 
   Adapter(gvt::render::data::primitives::Mesh *mesh ) : mesh(mesh) {}
+#ifdef GVT_BUILD_VOLUME
   Adapter(gvt::render::data::primitives::Volume *volume) : volume(volume) {}
+#endif
 
   /**
    * Destroy the adapter
