@@ -28,6 +28,13 @@
  * file and performs volume rendering using the OSPRay adapter. As of this writing the 
  * only adapter capable of volume rendering is the OSPRay adapter. 
  *
+ * the command line to run this application from a subdirectory of the GraviT
+ * root directory is 
+ *
+ * ibrun bin/gvtVol -volfile ../data/vol/int8.bov -domain -ctffile ../data/colormaps/Grayscale.cmap -otffile ../data/colormaps/Grayscale.omap -wsize 512,512
+ *
+ *
+ *
 */
 #include <algorithm>
 #include <gvt/core/Math.h>
