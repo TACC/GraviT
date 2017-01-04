@@ -137,7 +137,7 @@ EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) 
   int numVerts = mesh->vertices.size();
   int numTris = mesh->faces.size();
 
-  scene = rtcDeviceNewScene(device, RTC_SCENE_STATIC, GVT_EMBREE_ALGORITHM);
+  scene = rtcDeviceNewScene(device, RTC_SCENE_DYNAMIC, GVT_EMBREE_ALGORITHM);
   geomId = rtcNewTriangleMesh(scene, RTC_GEOMETRY_STATIC, numTris, numVerts);
 
   embVertex *vertices = (embVertex *)rtcMapBuffer(scene, geomId, RTC_VERTEX_BUFFER);

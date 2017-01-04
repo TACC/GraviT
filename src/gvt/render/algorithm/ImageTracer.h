@@ -89,6 +89,14 @@ public:
                                                 : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
   }
 
+   void resetInstances() {
+      AbstractTrace::resetInstances();
+      for (auto a : adapterCache) {
+          delete a.second;
+        }
+      adapterCache.clear();
+   }
+
   // organize the rays into queues
   // if using mpi, only keep the rays for the current rank
   inline void FilterRaysLocally() {
