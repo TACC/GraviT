@@ -88,6 +88,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   spacing.y = volumespacing.y;
   spacing.z = volumespacing.z;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
+  std::cout << "gorigin " << globalorigin << " voldims " << volumedimensions << " volspac " << volumespacing << std::endl;
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   switch(vt){
     case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
@@ -191,7 +192,8 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
     out->xr.g[i] = rayList[i].color.g;
     out->xr.b[i] = rayList[i].color.b;
     out->xr.o[i] = rayList[i].w; // volume renderer uses w to carry opacity in and out.
-    out->xr.t[i] = rayList[i].t;
+    //out->xr.t[i] = rayList[i].t;
+    out->xr.t[i] = 0.0;
     out->xr.tMax[i] = rayList[i].t_max;
     out->xr.type[i] = rayList[i].type == RAY_PRIMARY ? EXTERNAL_RAY_PRIMARY :
       rayList[i].type == RAY_SHADOW ? EXTERNAL_RAY_SHADOW :

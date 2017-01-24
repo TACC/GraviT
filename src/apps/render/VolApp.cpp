@@ -119,6 +119,7 @@ struct bovheader {
   int counts[3];
   float origin[3];
   gvt::render::data::primitives::Box3D *volbox;
+  // read the header file to determine the metadata
   bovheader(std::string headername): headerfile(headername) {
     for(int i=0;i<3;i++) {
       datasize[i] = 0;
@@ -142,7 +143,6 @@ struct bovheader {
         } else if(elems[0] == "DATA_SIZE:") {
            for(int i = 1; i<elems.size(); i++) {
              datasize[i-1] = std::stoi(elems[i]);
-             //std::cout << i << " " << datasize[i-1] << std::endl;
            }
         } else if(elems[0] == "DATA_FORMAT:") {
          if(elems[1] == "INT") { 
@@ -174,12 +174,12 @@ struct bovheader {
     }
     numberofdomains = xpartitions * ypartitions * zpartitions;
   }
+  // read the scalar field itself
   float *readdata(int dom) {
     int domi,domj,domk; // the domain index in global space
     int sample_bytes; // number of bytes in a sample.
     int mydom;
     mydom = dom;
-    //unsigned char *samples;
     int *filedata;
     float *samples;
     domi = mydom%xpartitions;
@@ -189,25 +189,46 @@ struct bovheader {
     istart = (domi == 0) ? 0 : (domi*bricklets[0] -1);
     jstart = (domj == 0) ? 0 : (domj*bricklets[1] -1);
     kstart = (domk == 0) ? 0 : (domk*bricklets[2] -1);
-    //int count[3]; // points in each direction of this domain. 
     counts[0] = (domi == 0) ? bricklets[0] : (bricklets[0] + 1);
     counts[1] = (domj == 0) ? bricklets[1] : (bricklets[1] + 1);
     counts[2] = (domk == 0) ? bricklets[2] : (bricklets[2] + 1);
     origin[0] = (float)istart;
     origin[1] = (float)jstart;
     origin[2] = (float)kstart;
-    // read some data. Each domain can only read a single "i" vector at a time
-    // make enough space for a single i vector. this should depend on type 
-    int *ibuffer = new int[counts[0]];
-    // allocate enough space for samples
-    samples = new float[counts[0]*counts[1]*counts[2]];
-    sample_bytes = sizeof(int);
-    char *ptr = (char *)ibuffer;
     myfile.open(datafile.c_str(), ios::in | ios::binary);
     if(!(myfile.good())) { 
       std::cout << " bad file open " << datafile.c_str() << std::endl;
       exit(1);
     }  
+    // read some data. Each domain can only read a single "i" vector at a time
+    // make enough space for a single i vector. this should depend on type 
+    // allocate enough space for samples
+    samples = new float[counts[0]*counts[1]*counts[2]];
+    switch (dfmt) {
+      case INT : {
+        sample_bytes = sizeof(int);
+        int *ibuffer = new int[counts[0]];
+        char *ptr = (char *)ibuffer;
+        int dataindex;
+        for(int k=kstart;k<kstart+counts[2];k++) 
+          for(int j=jstart;j<jstart+counts[1];j++) {
+            // read a row of data at a time
+            dataindex = k*datasize[0]*datasize[1] + j*datasize[0] + istart;
+            streampos src = (k*datasize[0]*datasize[1]+j*datasize[0]+istart)*sample_bytes;
+            myfile.seekg(src,ios_base::beg);
+            myfile.read(ptr,counts[0]*sample_bytes);
+            int offset = counts[0]*((k-kstart)*counts[1] + (j-jstart));
+            for(int i=0;i<counts[0];i++) {
+             samples[offset+i] = (float)ibuffer[i];
+            }
+          }
+        break;
+      }
+      case FLOAT : {
+        sample_bytes = sizeof(float);
+        int *ibuffer = new int[counts[0]];
+        float *fbuffer = new float[counts[0]];
+        char *ptr = (char *)fbuffer;
     int dataindex;
     for(int k=kstart;k<kstart+counts[2];k++) 
       for(int j=jstart;j<jstart+counts[1];j++) {
@@ -218,15 +239,22 @@ struct bovheader {
         myfile.read(ptr,counts[0]*sample_bytes);
         int offset = counts[0]*((k-kstart)*counts[1] + (j-jstart));
         for(int i=0;i<counts[0];i++) {
-          samples[offset+i] = (float)ibuffer[i];
+          samples[offset+i] = fbuffer[i];
         }
       }
+          break;
+        }
+      default: {
+                 std::cout << " messed up type " << dfmt << std::endl;
+                 break;
+               }
+    }
     myfile.close();
     glm::vec3 lower(origin[0],origin[1],origin[2]);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
     dfmt = FLOAT;
-
+    //std::cout << " origin " << origin[0] << " " << origin[1] << " " << origin[2]  << " counts " << counts[0] << " " << counts[1] << " " << counts[2] << std::endl;
     return samples;
   }
 };
@@ -262,6 +290,7 @@ int main(int argc, char **argv) {
   if (!cmd.isSet("threads")) {
     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
+    std::cout << " setting " << cmd.get<int>("threads") << " threads " << std::endl;
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
 
@@ -332,7 +361,10 @@ int main(int argc, char **argv) {
         new gvt::render::data::primitives::TransferFunction();
       // read transfer function. 
       tf->load(ctffile,otffile);
-      tf->setValueRange(glm::vec2(0.0,65536.0));
+      // this value range is for small enzo data
+      //tf->setValueRange(glm::vec2(0.0,65536.0));
+      //this value range is for large enzo data
+      tf->setValueRange(glm::vec2(0.0,1801.0));
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
