@@ -27,7 +27,7 @@
 
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#define TBB_PREVIEW_SERIAL_SUBSET 1
+//#define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/partitioner.h>
@@ -236,8 +236,7 @@ void gvtPerspectiveCamera::generateRays() {
 
   const size_t chunksize = buffer_height / (std::thread::hardware_concurrency() * 4);
   static tbb::simple_partitioner ap;
-  //tbb::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),
-  tbb::serial::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),
       [&](tbb::blocked_range<size_t> &chunk) {
       RandEngine randEngine;
       randEngine.SetSeed(chunk.begin());

@@ -88,7 +88,6 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   spacing.y = volumespacing.y;
   spacing.z = volumespacing.z;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
-  std::cout << "gorigin " << globalorigin << " voldims " << volumedimensions << " volspac " << volumespacing << std::endl;
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   switch(vt){
     case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");

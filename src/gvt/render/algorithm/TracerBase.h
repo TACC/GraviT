@@ -57,7 +57,7 @@
 #include <deque>
 #include <map>
 
-#define TBB_PREVIEW_SERIAL_SUBSET 1
+//#define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>
@@ -177,7 +177,6 @@ public:
     }
     colorBuf_mutex = new tbb::mutex[width];
     colorBuf = new glm::vec3[width * height];
-    // std::cout << "Resized buffer" << std::endl;
   }
 
   void resetInstances() {
@@ -250,25 +249,20 @@ public:
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: start");
     GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] Shuffle: rays: " << rays.size());
 
-    //const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
-    const size_t chunksize = rays.size();
-    std::cout << " raysize " << rays.size() << " chunk size " << chunksize << " domainid " << domID << std::endl;
+    const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
-    tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits = acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
       std::map<int, gvt::render::actor::RayVector> local_queue;
-      std::cout << " hits size " << hits.size() << " domid " << domID << std::endl;
       for (size_t i = 0; i < hits.size(); i++) {
        gvt::render::actor::Ray &r = *(raysit.begin() + i);
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
        if(r.depth & RAY_BOUNDARY){
         if(hits[i].next != -1) {
-        //std::cout << " i " << i << " hits.t " << hits[i].t << " ray t " << r.t << std::endl;
           r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
           local_queue[hits[i].next].push_back(r);
           } else {
-          //std::cout << " ray " << i << " hit external boundary " << std::endl;
             r.depth &= ~RAY_BOUNDARY;
             r.depth |= RAY_EXTERNAL_BOUNDARY;
           }
@@ -283,7 +277,6 @@ public:
             local_queue[hits[i].next].push_back(r);
         }
        } else if(r.type == RAY_SHADOW) {
-        // std::cout << " RAY_SHADOW " << std::endl;
           if(r.depth & RAY_EXTERNAL_BOUNDARY) { 
             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
             colorBuf[r.id] += r.color;
@@ -292,7 +285,6 @@ public:
             local_queue[hits[i].next].push_back(r);
           }
        } else if(r.type == RAY_AO) {
-         //std::cout << " RAY_AO " << std::endl;
           if(r.depth &(RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
             colorBuf[r.id] += r.color;
@@ -319,7 +311,6 @@ public:
       }
       }, ap);
 
-    // std::cout << "Finished shuffle" << std::endl;
     rays.clear();
   }
 
@@ -329,8 +320,7 @@ public:
     const size_t size = width * height;
     const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
     static tbb::simple_partitioner ap;
-    //tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
-    tbb::serial::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
        [&](tbb::blocked_range<size_t> chunk) {
        for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, colorBuf[i]);
                    }, ap);
@@ -355,8 +345,7 @@ public:
     if (mpi.root()) {
       const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
       static tbb::simple_partitioner ap;
-      //tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize), [&](tbb::blocked_range<size_t> chunk) {
-      tbb::serial::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize), [&](tbb::blocked_range<size_t> chunk) {
+      tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize), [&](tbb::blocked_range<size_t> chunk) {
 
         for (int j = chunk.begin() * 3; j < chunk.end() * 3; j += 3) {
           for (size_t i = 1; i < mpi.world_size; ++i) {
