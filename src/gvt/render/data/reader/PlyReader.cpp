@@ -22,8 +22,8 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-#include <gvt/render/data/reader/PlyReader.h>
 #include <gvt/render/RenderContext.h>
+#include <gvt/render/data/reader/PlyReader.h>
 
 #include <fstream>
 #include <iostream>
@@ -51,7 +51,7 @@ PlyProperty face_props[] = {
 };
 
 PlyReader::PlyReader(std::string rootdir) {
-
+  gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
   Vertex *vert;
@@ -142,52 +142,53 @@ PlyReader::PlyReader(std::string rootdir) {
     close_ply(in_ply);
     // smoosh data into the mesh object
 
-      Material *m = new Material();
-      Mesh *mesh = new Mesh(m);
-      vert = vlist[0];
-      xmin = vert->x;
-      ymin = vert->y;
-      zmin = vert->z;
-      xmax = vert->x;
-      ymax = vert->y;
-      zmax = vert->z;
+    Material *m = new Material();
+    Mesh *mesh = new Mesh(m);
+    vert = vlist[0];
+    xmin = vert->x;
+    ymin = vert->y;
+    zmin = vert->z;
+    xmax = vert->x;
+    ymax = vert->y;
+    zmax = vert->z;
 
-      for (i = 0; i < nverts; i++) {
-        vert = vlist[i];
-        xmin = MIN(vert->x, xmin);
-        ymin = MIN(vert->y, ymin);
-        zmin = MIN(vert->z, zmin);
-        xmax = MAX(vert->x, xmax);
-        ymax = MAX(vert->y, ymax);
-        zmax = MAX(vert->z, zmax);
-        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
-      }
-      glm::vec3 lower(xmin, ymin, zmin);
-      glm::vec3 upper(xmax, ymax, zmax);
-      Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-      // add faces to mesh
-      for (i = 0; i < nfaces; i++) {
-        face = flist[i];
-        mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
-      }
-      mesh->generateNormals();
+    for (i = 0; i < nverts; i++) {
+      vert = vlist[i];
+      xmin = MIN(vert->x, xmin);
+      ymin = MIN(vert->y, ymin);
+      zmin = MIN(vert->z, zmin);
+      xmax = MAX(vert->x, xmax);
+      ymax = MAX(vert->y, ymax);
+      zmax = MAX(vert->z, zmax);
+      mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
+    }
+    glm::vec3 lower(xmin, ymin, zmin);
+    glm::vec3 upper(xmax, ymax, zmax);
+    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
+    // add faces to mesh
+    for (i = 0; i < nfaces; i++) {
+      face = flist[i];
+      mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
+    }
+    mesh->generateNormals();
 
-      PlyMeshNode["file"] = string(filepath);
-      PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
-      PlyMeshNode["ptr"] = (unsigned long long)mesh;
+    PlyMeshNode["file"] = string(filepath);
+    PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
+    PlyMeshNode["ptr"] = (unsigned long long)mesh;
 
-      gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-      PlyMeshNode["Locations"] += loc;
+#ifndef NS
+    gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
+#else
+    gvt::core::DBNodeH loc = cntxt->createNode("rank", (int)(k % comm.lastid()));
+#endif
+    PlyMeshNode["Locations"] += loc;
 
-      cntxt->addToSync(PlyMeshNode);
+    cntxt->addToSync(PlyMeshNode);
 
-      meshes.push_back(mesh);
-
+    meshes.push_back(mesh);
   }
 
   cntxt->syncContext();
-
-
 }
 
 PlyReader::~PlyReader() {}

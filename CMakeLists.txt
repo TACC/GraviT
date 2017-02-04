@@ -64,6 +64,7 @@ if (GVT_RENDER)
   option(GVT_SIMPLE_NS_APP			"Build the simple application" ON)
   option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
   option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
+  option(GVT_PLY_NS_APP "Build the ply reader application (load ply file)" ON)
   option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
   add_definitions(-DGVT_RENDER)
 endif(GVT_RENDER)
@@ -285,6 +286,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/composite/ImageComposite.h
   src/gvt/render/tracer/RayTracer.h
   src/gvt/render/tracer/Image/ImageTracer.h
+  src/gvt/render/tracer/Domain/DomainTracer.cpp
+  src/gvt/render/tracer/Domain/Messages/SendRayList.h
 )
 
 
@@ -307,7 +310,8 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/composite/ImageComposite.cpp
   src/gvt/render/tracer/RayTracer.cpp
   src/gvt/render/tracer/Image/ImageTracer.cpp
-
+  src/gvt/render/tracer/Domain/DomainTracer.cpp
+  src/gvt/render/tracer/Domain/Messages/SendRayList.cpp
 )
 
 if (GVT_RENDER_ADAPTER_MANTA)
@@ -537,6 +541,18 @@ if (GVT_PLY_APP)
   add_executable(gvtPly ${GVTPLY_RENDER_SRCS})
   target_link_libraries(gvtPly gvtCore gvtRender ${GVTPLY_RENDER_LIBS} )
 endif(GVT_PLY_APP)
+
+if (GVT_PLY_NS_APP)
+  find_package(MPI REQUIRED)
+  include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+  set(GVTPLY_NS_RENDER_LIBS ${GVTPLY_NS_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${GVT_CORE_LIBS})
+  set(GVTPLY_NS_RENDER_SRCS ${GVTPLY_NS_RENDER_SRCS}
+    src/apps/ns/PlyApp.cpp
+  ${PLYPATH}/ply.c)
+  add_executable(gvtPlyNS ${GVTPLY_NS_RENDER_SRCS})
+  target_compile_definitions(gvtPlyNS PRIVATE NS=1)
+  target_link_libraries(gvtPlyNS gvtCore gvtRender ${GVTPLY_NS_RENDER_LIBS} )
+endif(GVT_PLY_NS_APP)
 
 if (GVT_SIMPLE_FILE_LOAD_APP)
   find_package(MPI REQUIRED)

@@ -61,6 +61,7 @@
 #include <boost/range/algorithm.hpp>
 
 #include <gvt/core/comm/communicator/scomm.h>
+#include <gvt/render/tracer/Domain/DomainTracer.h>
 #include <gvt/render/tracer/Image/ImageTracer.h>
 #include <gvt/render/tracer/RayTracer.h>
 
@@ -442,7 +443,7 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  gvt::render::ImageTracer rt;
+  gvt::render::DomainTracer rt;
 
   for (int i = 0; i < 10; i++) {
     gvt::core::time::timer t_frame(true, "Frame time :");
