@@ -63,7 +63,6 @@
 #include <tbb/partitioner.h>
 #include <tbb/tick_count.h>
 
-
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -93,7 +92,7 @@ struct GVT_COMM {
     size_t prev_neighbor = rank;
 
     B *acc = &buf[rank * partition_size];
-    B *gather = new B[partition_size * world_size];
+    B gather[] = new B[partition_size * world_size];
     gvt::core::Vector<MPI::Request> Irecv_requests_status;
 
     for (int round = 0; round < world_size; round++) {
@@ -119,12 +118,15 @@ struct GVT_COMM {
 
     for (int source = 0; source < world_size; ++source) {
       if (source == rank) continue;
-      const size_t chunksize = MAX(GVT_SIMD_WIDTH, partition_size / (
-    		  gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger()));
+      const size_t chunksize =
+          MAX(GVT_SIMD_WIDTH,
+              partition_size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger()));
       static tbb::simple_partitioner ap;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
                         [&](tbb::blocked_range<size_t> chunk) {
+#ifndef __clang__
 #pragma simd
+#endif
                           for (int i = chunk.begin(); i < chunk.end(); ++i) {
                             acc[i] += gather[source * partition_size + i];
                           }
@@ -137,12 +139,11 @@ struct GVT_COMM {
                            0);
 
     if (newbuf) std::memcpy(buf, newbuf, sizeof(B) * size);
-    delete gather;
+    delete[] gather;
     delete newbuf;
     return newbuf;
   }
 };
-
 
 /// base tracer class for GraviT ray tracing framework
 /**
@@ -173,9 +174,9 @@ public:
 
   float sample_ratio;
 
-  tbb::mutex *queue_mutex;                            // array of mutexes - one per instance
+  tbb::mutex *queue_mutex;                                  // array of mutexes - one per instance
   gvt::core::Map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
-  tbb::mutex *colorBuf_mutex;                         ///< buffer for color accumulation
+  tbb::mutex *colorBuf_mutex;                               ///< buffer for color accumulation
   glm::vec4 *colorBuf;
 
   gvt::render::composite::composite img;
@@ -183,7 +184,6 @@ public:
 
   AbstractTrace(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image)
       : rays(rays), image(image) {
-
 
     rootnode = cntxt.getRootNode();
 
@@ -202,8 +202,6 @@ public:
     // of instances in the database
 
     Initialize();
-
-
   }
 
   void resetBufferSize(const size_t &w, const size_t &h) {
@@ -215,11 +213,10 @@ public:
     }
     colorBuf_mutex = new tbb::mutex[width];
     colorBuf = new glm::vec4[width * height];
-    //std::cout << "Resized buffer" << std::endl;
+    // std::cout << "Resized buffer" << std::endl;
   }
 
   virtual void resetInstances() {
-
 
     if (acceleration) delete acceleration;
 
@@ -230,17 +227,15 @@ public:
     instMinvN.clear();
 
     for (auto &l : lights) {
-        delete l;
+      delete l;
     }
 
     lights.clear();
 
-
     Initialize();
-
   }
 
-  void Initialize(){
+  void Initialize() {
 
     instancenodes = rootnode["Instances"].getChildren();
 
@@ -259,31 +254,28 @@ public:
       instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
     }
 
-     auto lightNodes = rootnode["Lights"].getChildren();
+    auto lightNodes = rootnode["Lights"].getChildren();
 
-     lights.reserve(2);
-     for (auto lightNode : lightNodes) {
-       auto color = lightNode["color"].value().tovec3();
+    lights.reserve(2);
+    for (auto lightNode : lightNodes) {
+      auto color = lightNode["color"].value().tovec3();
 
-       if (lightNode.name() == std::string("PointLight")) {
-         auto pos = lightNode["position"].value().tovec3();
-         lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-       } else if (lightNode.name() == std::string("AmbientLight")) {
-         lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-       } else if (lightNode.name() == std::string("AreaLight")) {
-         auto pos = lightNode["position"].value().tovec3();
-         auto normal = lightNode["normal"].value().tovec3();
-         auto width = lightNode["width"].value().toFloat();
-         auto height = lightNode["height"].value().toFloat();
-         lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
-       }
-     }
-
+      if (lightNode.name() == std::string("PointLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
+      } else if (lightNode.name() == std::string("AmbientLight")) {
+        lights.push_back(new gvt::render::data::scene::AmbientLight(color));
+      } else if (lightNode.name() == std::string("AreaLight")) {
+        auto pos = lightNode["position"].value().tovec3();
+        auto normal = lightNode["normal"].value().tovec3();
+        auto width = lightNode["width"].value().toFloat();
+        auto height = lightNode["height"].value().toFloat();
+        lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+      }
+    }
   }
 
-  void clearBuffer() {
-    std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height);
-  }
+  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
 
   // clang-format off
   virtual ~AbstractTrace() {};
@@ -292,10 +284,7 @@ public:
   };
   // clang-format on
 
-  inline void FilterRaysLocally(void) {
-
-    shuffleRays(rays, -1);
-  }
+  inline void FilterRaysLocally(void) { shuffleRays(rays, -1); }
 
   /**
    * Given a queue of rays, intersects them against the accel structure
@@ -303,8 +292,8 @@ public:
    */
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
-
-    const size_t chunksize = MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+    const size_t chunksize =
+        MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::auto_partitioner ap;
 
@@ -353,7 +342,8 @@ public:
       final = colorBuf;
 
     const size_t size = width * height;
-    const size_t chunksize = MAX(2, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+    const size_t chunksize =
+        MAX(2, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
                       [&](tbb::blocked_range<size_t> chunk) {

@@ -99,51 +99,75 @@ template <size_t simd_width> struct RayPacketIntersection {
 
     const float blx = bb.bounds_min[0], bly = bb.bounds_min[1], blz = bb.bounds_min[2];
     const float bux = bb.bounds_max[0], buy = bb.bounds_max[1], buz = bb.bounds_max[2];
-
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) lx[i] = (blx - ox[i]) * dx[i];
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) ly[i] = (bly - oy[i]) * dy[i];
+#ifndef __clang__
 #pragma simd
+#endif
+
     for (size_t i = 0; i < simd_width; ++i) lz[i] = (blz - oz[i]) * dz[i];
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) ux[i] = (bux - ox[i]) * dx[i];
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) uy[i] = (buy - oy[i]) * dy[i];
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) uz[i] = (buz - oz[i]) * dz[i];
 
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) {
       minx[i] = fastmin(lx[i], ux[i]);
       maxx[i] = fastmax(lx[i], ux[i]);
     }
 
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) {
       miny[i] = fastmin(ly[i], uy[i]);
       maxy[i] = fastmax(ly[i], uy[i]);
     }
 
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) {
       minz[i] = fastmin(lz[i], uz[i]);
       maxz[i] = fastmax(lz[i], uz[i]);
     }
 
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) {
       tnear[i] = fastmax(fastmax(minx[i], miny[i]), minz[i]);
       tfar[i] = fastmin(fastmin(maxx[i], maxy[i]), maxz[i]);
     }
 
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) {
       hit[i] = (tfar[i] > tnear[i] && (!update || tnear[i] > gvt::render::actor::Ray::RAY_EPSILON) && t[i] > tnear[i])
                    ? 1
                    : -1;
     }
+#ifndef __clang__
 #pragma simd
+#endif
     for (size_t i = 0; i < simd_width; ++i) {
       if (hit[i] == 1 && update) t[i] = tnear[i];
     }

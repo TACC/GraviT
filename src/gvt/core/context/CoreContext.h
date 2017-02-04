@@ -29,8 +29,11 @@
 #include "DatabaseNode.h"
 #include "gvt/core/Types.h"
 #include <gvt/core/context/Database.h>
-#include <mpi.h>
 
+#include <gvt/core/tracer/tracer.h>
+#include <memory>
+
+#include <mpi.h>
 
 #ifndef MAX
 #define MAX(a, b) ((a > b) ? (a) : (b))
@@ -52,10 +55,7 @@ manage the internal state.
 
 class CoreContext {
 public:
-
-	typedef struct {
-		unsigned char data[CONTEXT_LEAF_MARSH_SIZE];
-	} MarshedDatabaseNode;
+  typedef struct { unsigned char data[CONTEXT_LEAF_MARSH_SIZE]; } MarshedDatabaseNode;
 
   virtual ~CoreContext();
 
@@ -106,30 +106,34 @@ public:
    * Each node or leaf is packed in CONTEXT_LEAF_MARSH_SIZE max byte size in database->marshLeaf routine
    * i.e.<parentUUID><UUID><nodeName><int variant type><value> = CONTEXT_LEAF_MARSH_SIZE max bytes
    */
-  void marsh( gvt::core::Vector<MarshedDatabaseNode>& buffer, DatabaseNode& node);
+  void marsh(gvt::core::Vector<MarshedDatabaseNode> &buffer, DatabaseNode &node);
 
   // check marsh for buffer structure
-  DatabaseNode* unmarsh(gvt::core::Vector<MarshedDatabaseNode>& messagesBuffer, int nNodes);
+  DatabaseNode *unmarsh(gvt::core::Vector<MarshedDatabaseNode> &messagesBuffer, int nNodes);
 
-  DBNodeH addToSync(DBNodeH node){
-	  __nodesToSync.push_back(node);
-	  return node;
+  DBNodeH addToSync(DBNodeH node) {
+    __nodesToSync.push_back(node);
+    return node;
   }
 
- // send and reveives all the tree-nodes marked for syncronization
- // requires all nodes
- // one to all communication model
- void syncContext();
+  // send and reveives all the tree-nodes marked for syncronization
+  // requires all nodes
+  // one to all communication model
+  void syncContext();
 
+  inline std::shared_ptr<gvt::core::Tracer> tracer() { return _tracer; }
+  inline void settracer(std::shared_ptr<gvt::core::Tracer> t) { _tracer = t; }
 
 protected:
   CoreContext();
   static CoreContext *__singleton;
   Database *__database = nullptr;
   DBNodeH __rootNode;
-
   gvt::core::Vector<DBNodeH> __nodesToSync;
 
+  // New scheduler
+
+  std::shared_ptr<gvt::core::Tracer> _tracer;
 };
 }
 }

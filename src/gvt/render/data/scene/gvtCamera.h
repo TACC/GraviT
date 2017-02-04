@@ -118,6 +118,12 @@ public:
     return up_vector;
   }
 
+  /** Fill the ray data structure */
+  virtual void generateRays() = 0;
+
+  /** Set the field of view angle in degrees*/
+  virtual void setFOV(const float fov) = 0;
+
   // clang-format on
 public:
   int samples;

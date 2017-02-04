@@ -34,7 +34,7 @@ option(GVT_TESTING "Create testing and benchmark programs" OFF)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   SET(HOST_NAME $ENV{HOSTNAME})
   message (STATUS "HOSTNAME is ${HOST_NAME}")
-  
+
   if(HOST_NAME MATCHES "(.)*maverick(.)*")
     set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
     set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
@@ -61,6 +61,7 @@ if (GVT_RENDER)
   option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
   option(GVT_GLRENDER_APP			"Build the interactive X application" ON)
   option(GVT_SIMPLE_APP			"Build the simple application" ON)
+  option(GVT_SIMPLE_NS_APP			"Build the simple application" ON)
   option(GVT_SIMPLE_FILE_LOAD_APP		"Build the simple application (load obj file)" ON)
   option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
   option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
@@ -207,6 +208,17 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
   src/gvt/core/Types.h
   src/gvt/core/context/Uuid.h
   src/gvt/core/context/Variant.h
+
+  src/gvt/core/comm/comm.h
+	src/gvt/core/comm/communicator.h
+	src/gvt/core/comm/communicator/acomm.h
+	src/gvt/core/comm/communicator/scomm.h
+	src/gvt/core/comm/message.h
+	src/gvt/core/comm/vote/vote.h
+	src/gvt/core/comm/vote/votebooth.h
+	src/gvt/core/composite/Composite.h
+
+  src/gvt/core/tracer/tracer.h
 )
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
@@ -215,6 +227,15 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
   src/gvt/core/context/DatabaseNode.cpp
   src/gvt/core/context/Uuid.cpp
   src/gvt/core/context/Variant.cpp
+
+  src/gvt/core/comm/communicator.cpp
+  src/gvt/core/comm/communicator/acomm.cpp
+  src/gvt/core/comm/communicator/scomm.cpp
+  src/gvt/core/comm/message.cpp
+  src/gvt/core/comm/vote/vote.cpp
+  src/gvt/core/comm/vote/votebooth.cpp
+
+  src/gvt/core/tracer/tracer.cpp
 )
 
 
@@ -258,6 +279,12 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/composite/composite.h
   src/gvt/render/Schedulers.h
   src/gvt/render/Types.h
+
+
+  src/gvt/render/composite/IceTComposite.h
+  src/gvt/render/composite/ImageComposite.h
+  src/gvt/render/tracer/RayTracer.h
+  src/gvt/render/tracer/Image/ImageTracer.h
 )
 
 
@@ -275,6 +302,12 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/data/scene/Light.cpp
   src/gvt/render/data/accel/BVH.cpp
   src/gvt/render/composite/composite.cpp
+
+  src/gvt/render/composite/IceTComposite.cpp
+  src/gvt/render/composite/ImageComposite.cpp
+  src/gvt/render/tracer/RayTracer.cpp
+  src/gvt/render/tracer/Image/ImageTracer.cpp
+
 )
 
 if (GVT_RENDER_ADAPTER_MANTA)
@@ -420,10 +453,10 @@ endif(GVT_RENDER)
 
 ## CTEST
 if (GVT_CTEST)
-    
+
   enable_testing()
   ## Check if run in mpi
-  
+
   SET(runConfig "" )
   if (GVT_USE_MPI)
     set (no_mpi_proc 2)
@@ -471,6 +504,16 @@ if (GVT_SIMPLE_APP)
   add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
   target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} ${GVT_CORE_LIBS})
 endif(GVT_SIMPLE_APP)
+
+if (GVT_SIMPLE_NS_APP)
+  find_package(MPI REQUIRED)
+  include_directories(${MPI_INCLUDE_PATH})
+  set(GVTSIMPLE_NS_RENDER_LIBS ${GVTSIMPLE_NS_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+  set(GVTSIMPLE_NS_RENDER_SRCS ${GVTSIMPLE_NS_RENDER_SRCS} src/apps/ns/SimpleApp.cpp)
+  add_executable(gvtSimpleNS ${GVTSIMPLE_NS_RENDER_SRCS})
+  target_link_libraries(gvtSimpleNS gvtCore gvtRender ${GVTSIMPLE_NS_RENDER_LIBS} ${GVT_CORE_LIBS})
+endif(GVT_SIMPLE_NS_APP)
+
 
 if(GVT_TESTING)
   find_package(OSPRay)
@@ -540,7 +583,3 @@ if (GVT_GLRENDER_APP)
     RUNTIME DESTINATION bin
   )
 endif(GVT_GLRENDER_APP)
-
-
-
-
