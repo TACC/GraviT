@@ -47,18 +47,18 @@ public:
   DomainTracer();
   ~DomainTracer();
 
-  virtual void operator()();
-  virtual void processRaysAndDrop(gvt::render::actor::RayVector &rays);
-  virtual void processRays(gvt::render::actor::RayVector &rays, const int src = -1, const int dst = -1);
+  void operator()();
+  void processRaysAndDrop(gvt::render::actor::RayVector &rays);
+  void processRays(gvt::render::actor::RayVector &rays, const int src = -1, const int dst = -1);
 
-  virtual bool MessageManager(std::shared_ptr<gvt::comm::Message> msg);
-  virtual bool isDone();
-  virtual bool hasWork();
+  bool MessageManager(std::shared_ptr<gvt::comm::Message> msg);
+  bool isDone();
+  bool hasWork();
 
-  virtual void resetBVH();
+  void resetBVH();
 
-  virtual bool isInNode(const int &i) { return instances_in_node.find(i) != instances_in_node.end(); }
-  virtual int pickNode(const int &i) { return *remote[i].begin(); }
+  bool isInNode(const int &i) { return instances_in_node.find(i) != instances_in_node.end(); }
+  int pickNode(const int &i) { return *remote[i].begin(); }
 
   static bool areWeDone();
   static void Done(bool);

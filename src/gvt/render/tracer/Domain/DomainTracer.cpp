@@ -27,6 +27,7 @@
 #include "DomainTracer.h"
 #include "Messages/SendRayList.h"
 #include <gvt/core/comm/communicator.h>
+#include <gvt/core/utils/timer.h>
 
 namespace gvt {
 namespace render {
@@ -103,41 +104,64 @@ void DomainTracer::resetBVH() {
 void DomainTracer::operator()() {
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   _GlobalFrameFinished = false;
+
+  gvt::core::time::timer t_frame(true,"domain tracer: frame :");
+  gvt::core::time::timer t_all(false,"domain tracer: all timers :");
+  gvt::core::time::timer t_gather(false,"domain tracer: gather :");
+  gvt::core::time::timer t_send(false,"domain tracer: send :");
+  gvt::core::time::timer t_shuffle(false,"domain tracer: shuffle :");
+  gvt::core::time::timer t_tracer(false,"domain tracer: adapter+tracer :");
+  gvt::core::time::timer t_select(false,"domain tracer: select :");
+  gvt::core::time::timer t_filter(false,"domain tracer: filter :");
+  gvt::core::time::timer t_camera(false,"domain tracer: gen rays :");
+
+
   img->reset();
+  t_camera.resume();
   cam->AllocateCameraRays();
   cam->generateRays();
+  t_camera.stop();
+  t_filter.resume();
   processRaysAndDrop(cam->rays);
+  t_filter.stop();
   gvt::render::actor::RayVector returned_rays;
   do {
     int target = -1;
     int amount = 0;
+    t_select.resume();
     for (auto &q : queue) {
       if (isInNode(q.first) && q.second.size() > amount) {
         amount = q.second.size();
         target = q.first;
       }
     }
+    t_select.stop();
 
     if (target != -1) {
+      t_tracer.resume();
       queue_mutex[target].lock();
-      returned_rays.reserve(queue[target].size() * 10);
-      calladapter(target, queue[target], returned_rays);
-      queue[target].clear();
+      //returned_rays.reserve(queue[target].size() * 10);
+      RayTracer::calladapter(target, queue[target], returned_rays);
+      //queue[target].clear();
       queue_mutex[target].unlock();
+      t_tracer.stop();
+      t_shuffle.resume();
       processRays(returned_rays, target);
+      t_shuffle.stop();
     }
 
     if (target == -1) {
+      t_send.resume();
       for (auto q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
         queue_mutex[q.first].lock();
         int sendto = pickNode(q.first);
-        // if (sendto != comm.id() && sendto > 0) {
         std::shared_ptr<gvt::comm::Message> msg = std::make_shared<gvt::comm::SendRayList>(comm.id(), sendto, q.second);
         comm.send(msg, sendto);
-        //}
+        q.second.clear();
         queue_mutex[q.first].unlock();
       }
+      t_send.stop();
     }
 
     if (isDone()) {
@@ -145,8 +169,10 @@ void DomainTracer::operator()() {
     }
 
   } while (hasWork());
-
+  t_gather.resume();
   img->composite();
+  t_gather.stop();
+  t_all = t_gather + t_send+ t_shuffle + t_tracer + t_filter + t_select;
 }
 
 void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {

@@ -24,7 +24,7 @@
 
 #include <cassert>
 #include <gvt/render/tracer/RayTracer.h>
-
+#if 0
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
@@ -39,6 +39,7 @@
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
+#endif
 #endif
 
 #include <boost/timer/timer.hpp>
@@ -74,7 +75,7 @@ void RayTracer::processRays(gvt::render::actor::RayVector &rays, const int src, 
     img->localAdd(r.id, r.color * r.w, 1.0, r.t);
   }
 }
-
+#if 1
 void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector &toprocess,
                             gvt::render::actor::RayVector &moved_rays) {
   std::shared_ptr<gvt::render::Adapter> adapter;
@@ -123,7 +124,7 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
     toprocess.clear();
   }
 }
-
+#endif 
 float *RayTracer::getImageBuffer() { return img->composite(); };
 void RayTracer::resetCamera() {
   assert(cntxt != nullptr);

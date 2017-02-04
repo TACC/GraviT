@@ -282,6 +282,7 @@ int main(int argc, char **argv) {
 
   cntxt->settracer(rt);
 
+  std::cout << "Calling tracer" << std::endl;
   for (int i = 0; i < 10; i++) {
     gvt::core::time::timer t_frame(true, "Frame time :");
     (*rt)();
