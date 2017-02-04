@@ -51,8 +51,8 @@ struct communicator {
   virtual void broadcast(std::shared_ptr<comm::Message> msg);
   virtual void run() = 0;
   virtual void terminate();
-  virtual inline void aquireComm();
-  virtual inline void releaseComm();
+  virtual void aquireComm();
+  virtual void releaseComm();
 
   virtual void setVote(std::shared_ptr<comm::vote::vote> vote) { voting = vote; }
 

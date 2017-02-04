@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 
@@ -39,9 +40,7 @@ struct Message {
   void tag(const std::size_t tag);
   std::size_t size();
   void size(const std::size_t size);
-  template <typename T> std::size_t sizehas() {
-    return getHeader().USER_MSG_SIZE / sizeof(T);
-  };
+  template <typename T> std::size_t sizehas() { return getHeader().USER_MSG_SIZE / sizeof(T); };
 
   std::size_t system_tag();
   void system_tag(std::size_t);
