@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-  gvt::render::data::domain::reader::PlyReader plyReader(cmd.get<std::string>("file"));
+  gvt::render::data::domain::reader::PlyReader plyReader(cmd.get<std::string>("file"), true);
 
   // context has the location information of the domain, so for simplicity only one mpi will create the instances
   if (MPI::COMM_WORLD.Get_rank() == 0) {

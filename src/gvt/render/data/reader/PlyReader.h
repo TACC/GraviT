@@ -22,79 +22,74 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-
 #ifndef GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H
 #define GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H
 
 #include <gvt/render/data/Primitives.h>
 
-#include <ply.h>
 #include <glob.h>
+#include <ply.h>
 #include <sys/stat.h>
 
- namespace gvt {
- namespace render {
- namespace data {
- namespace domain {
- namespace reader {
- /// read ply formatted geometry data
- /** read ply format files and return a Mesh object
- */
- class PlyReader {
- public:
-   PlyReader(const std::string filename);
-   virtual ~PlyReader();
+namespace gvt {
+namespace render {
+namespace data {
+namespace domain {
+namespace reader {
+/// read ply formatted geometry data
+/** read ply format files and return a Mesh object
+*/
+class PlyReader {
+public:
+  PlyReader(const std::string filename, bool dist = false);
+  virtual ~PlyReader();
 
-   typedef struct Vertex {
-     float x, y, z;
-     float nx, ny, nz;
-     void *other_props; /* other properties */
-   } Vertex;
+  typedef struct Vertex {
+    float x, y, z;
+    float nx, ny, nz;
+    void *other_props; /* other properties */
+  } Vertex;
 
-   typedef struct Face {
-     unsigned char nverts; /* number of vertex indices in list */
-     int *verts;           /* vertex index list */
-     void *other_props;    /* other properties */
-   } Face;
+  typedef struct Face {
+    unsigned char nverts; /* number of vertex indices in list */
+    int *verts;           /* vertex index list */
+    void *other_props;    /* other properties */
+  } Face;
 
-   bool file_exists(const char *path) {
-     struct stat buf;
-     return (stat(path, &buf) == 0);
-   }
+  bool file_exists(const char *path) {
+    struct stat buf;
+    return (stat(path, &buf) == 0);
+  }
 
-   bool isdir(const char *path) {
-     struct stat buf;
-     stat(path, &buf);
-     return S_ISDIR(buf.st_mode);
-   }
+  bool isdir(const char *path) {
+    struct stat buf;
+    stat(path, &buf);
+    return S_ISDIR(buf.st_mode);
+  }
 
-   gvt::core::Vector<std::string> findply(const std::string dirname) {
-     glob_t result;
-     std::string exp = dirname + "/*.ply";
-     glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-     gvt::core::Vector<std::string> ret;
-     for (int i = 0; i < result.gl_pathc; i++) {
-       ret.push_back(std::string(result.gl_pathv[i]));
-     }
-     globfree(&result);
-     return ret;
-   }
+  gvt::core::Vector<std::string> findply(const std::string dirname) {
+    glob_t result;
+    std::string exp = dirname + "/*.ply";
+    glob(exp.c_str(), GLOB_TILDE, NULL, &result);
+    gvt::core::Vector<std::string> ret;
+    for (int i = 0; i < result.gl_pathc; i++) {
+      ret.push_back(std::string(result.gl_pathv[i]));
+    }
+    globfree(&result);
+    return ret;
+  }
 
-   gvt::core::Vector<gvt::render::data::primitives::Mesh*>& getMeshes(){
-     return meshes;
-   }
+  gvt::core::Vector<gvt::render::data::primitives::Mesh *> &getMeshes() { return meshes; }
 
- private:
-    Vertex **vlist;
-    Face **flist;
+private:
+  Vertex **vlist;
+  Face **flist;
 
-   gvt::core::Vector<gvt::render::data::primitives::Mesh*> meshes;
-
-
- };
- }
- }
- }
- }
- }
+  gvt::core::Vector<gvt::render::data::primitives::Mesh *> meshes;
+};
+}
+}
+}
+}
+}
 #endif /* GVT_RENDER_DATA_DOMAIN_READER_PLY_READER_H */

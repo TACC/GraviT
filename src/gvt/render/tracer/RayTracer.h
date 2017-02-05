@@ -77,10 +77,10 @@ public:
   RayTracer();
   ~RayTracer();
   virtual void operator()();
-  inline void calladapter(const int instTarget, gvt::render::actor::RayVector &toprocess,
-      gvt::render::actor::RayVector &moved_rays) 
+  void calladapter(const int instTarget, gvt::render::actor::RayVector &toprocess,
+                   gvt::render::actor::RayVector &moved_rays)
 #if 1
-    ;
+      ;
 #else
   {
 
@@ -98,39 +98,39 @@ public:
     if (!adapter) {
       switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-        case gvt::render::adapter::Embree:
-          adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeMeshAdapter>(mesh);
-          break;
+      case gvt::render::adapter::Embree:
+        adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeMeshAdapter>(mesh);
+        break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
-        case gvt::render::adapter::Manta:
-          adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
-          break;
+      case gvt::render::adapter::Manta:
+        adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
+        break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-        case gvt::render::adapter::Optix:
-          adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
-          break;
+      case gvt::render::adapter::Optix:
+        adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+        break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-        case gvt::render::adapter::Heterogeneous:
-          adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
-          break;
+      case gvt::render::adapter::Heterogeneous:
+        adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+        break;
 #endif
-        default:
-          GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
+      default:
+        GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
       }
       adapterCache[mesh] = adapter;
     }
     GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
     {
-      //moved_rays.reserve(toprocess.size() * 10);
+      // moved_rays.reserve(toprocess.size() * 10);
       adapter->trace(toprocess, moved_rays, instM[instTarget], instMinv[instTarget], instMinvN[instTarget], lights);
-      //toprocess.clear();
+      // toprocess.clear();
     }
   }
-#endif 
+#endif
   virtual void processRays(gvt::render::actor::RayVector &rays, const int src = -1, const int dst = -1);
 
   virtual bool MessageManager(std::shared_ptr<gvt::comm::Message> msg);

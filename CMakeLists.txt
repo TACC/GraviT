@@ -550,7 +550,7 @@ if (GVT_PLY_NS_APP)
     src/apps/ns/PlyApp.cpp
   ${PLYPATH}/ply.c)
   add_executable(gvtPlyNS ${GVTPLY_NS_RENDER_SRCS})
-  target_compile_definitions(gvtPlyNS PRIVATE NS=1)
+  set_target_properties (gvtPlyNS PROPERTIES COMPILE_DEFINITIONS "NS")
   target_link_libraries(gvtPlyNS gvtCore gvtRender ${GVTPLY_NS_RENDER_LIBS} )
 endif(GVT_PLY_NS_APP)
 

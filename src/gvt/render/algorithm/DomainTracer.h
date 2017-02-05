@@ -31,7 +31,6 @@
 #ifndef GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 #define GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 
-#include <gvt/render/Types.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -51,6 +50,8 @@
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
+
+#include <gvt/core/utils/global_counter.h>
 
 #include <boost/foreach.hpp>
 
@@ -89,88 +90,81 @@ public:
   gvt::core::Map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
   gvt::core::Map<int, int> mpiInstanceMap;
 
-
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
 
     Initialize();
-
-}
+  }
 
   void resetInstances() {
-     AbstractTrace::resetInstances();
-     for (auto a : adapterCache) {
-         delete a.second;
-       }
-     adapterCache.clear();
-     mpiInstanceMap.clear();
-     Initialize();
-
+    AbstractTrace::resetInstances();
+    for (auto a : adapterCache) {
+      delete a.second;
+    }
+    adapterCache.clear();
+    mpiInstanceMap.clear();
+    Initialize();
   }
 
-  virtual void Initialize(){
+  virtual void Initialize() {
 
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
-  gvt::core::Map<int, std::set<std::string> > meshAvailbyMPI; // where meshes are by mpi node
-  gvt::core::Map<int, std::set<std::string> >::iterator lastAssigned; //instance-node round-robin assigment
+    std::cout << "Entered here" << std::endl;
 
-  for (size_t i = 0; i < mpi.world_size; i++)
-	  meshAvailbyMPI[i].clear();
+    gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
+    gvt::core::Map<int, std::set<std::string> > meshAvailbyMPI;         // where meshes are by mpi node
+    gvt::core::Map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
 
-  for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
+    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
 
-  // build location map, where meshes are by mpi node
-  for (size_t i = 0; i < dataNodes.size(); i++) {
+    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
+
+    // build location map, where meshes are by mpi node
+    for (size_t i = 0; i < dataNodes.size(); i++) {
       gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
       for (auto loc : locations) {
-    	  meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
+        meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
       }
-  }
-
-  lastAssigned = meshAvailbyMPI.begin();
-
-  // create a map of instances to mpi rank
-  for (size_t i = 0; i < instancenodes.size(); i++) {
-
-    mpiInstanceMap[i] = -1;
-    if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
-
-      gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
-
-      // Instance to mpi-node Round robin assignment considering mesh availability
-      auto startedAt = lastAssigned;
-      do {
-        if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
-          if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
-            mpiInstanceMap[i] = lastAssigned->first;
-            lastAssigned++;
-            if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-            break;
-          } else {
-            // branch out from lastAssigned and search for a mpi-node with the mesh
-            // keep lastAssigned to continue with round robin
-            auto branchOutSearch = lastAssigned;
-            do {
-              if (branchOutSearch->second.find(meshNode.UUID().toString()) != branchOutSearch->second.end()) {
-                mpiInstanceMap[i] = branchOutSearch->first;
-                break;
-              }
-              branchOutSearch++;
-              if (branchOutSearch == meshAvailbyMPI.end()) branchOutSearch = meshAvailbyMPI.begin();
-            } while (branchOutSearch != lastAssigned);
-            break; // If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
-          }
-        }
-        lastAssigned++;
-        if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-      } while (lastAssigned != startedAt);
     }
 
-    //    if (mpi.rank==0)
-    //          std::cout << "[" << mpi.rank << "] domain scheduler: instId: " << i <<
-    //          ", target mpi node: " << mpiInstanceMap[i] << ", world size: " << mpi.world_size <<
-    //                                                 std::endl;
+    lastAssigned = meshAvailbyMPI.begin();
+
+    // create a map of instances to mpi rank
+    for (size_t i = 0; i < instancenodes.size(); i++) {
+
+      mpiInstanceMap[i] = -1;
+      if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
+
+        gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
+
+        // Instance to mpi-node Round robin assignment considering mesh availability
+        auto startedAt = lastAssigned;
+        do {
+          if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
+            if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
+              mpiInstanceMap[i] = lastAssigned->first;
+              lastAssigned++;
+              if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+              break;
+            } else {
+              // branch out from lastAssigned and search for a mpi-node with the mesh
+              // keep lastAssigned to continue with round robin
+              auto branchOutSearch = lastAssigned;
+              do {
+                if (branchOutSearch->second.find(meshNode.UUID().toString()) != branchOutSearch->second.end()) {
+                  mpiInstanceMap[i] = branchOutSearch->first;
+                  break;
+                }
+                branchOutSearch++;
+                if (branchOutSearch == meshAvailbyMPI.end()) branchOutSearch = meshAvailbyMPI.begin();
+              } while (branchOutSearch != lastAssigned);
+              break; // If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
+            }
+          }
+          lastAssigned++;
+          if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+        } while (lastAssigned != startedAt);
+      }
+    }
   }
-}
 
   virtual ~Tracer() {}
 
@@ -223,17 +217,20 @@ public:
     gvt::core::time::timer t_adapter(false, "domain tracer: adapter :");
     gvt::core::time::timer t_filter(false, "domain tracer: filter :");
 
+    gvt::util::global_counter gc_rays("Number of rays traced :");
+    gvt::util::global_counter gc_filter("Number of rays filtered :");
+    gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
+    gvt::util::global_counter gc_sent("Number of rays sent :");
+
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
     clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
-
     t_filter.resume();
+    gc_filter.add(rays.size());
     FilterRaysLocally();
     t_filter.stop();
-
-
 
     // process domains until all rays are terminated
     bool all_done = false;
@@ -308,8 +305,7 @@ public:
               break;
 #endif
             default:
-                GVT_ERR_MESSAGE("domain scheduler: unknown adapter type: " << adapterType);
-
+              GVT_ERR_MESSAGE("domain scheduler: unknown adapter type: " << adapterType);
             }
 
             adapterCache[mesh] = adapter;
@@ -320,6 +316,7 @@ public:
 
           {
             t_trace.resume();
+            gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
                            instMinvN[instTarget], lights);
@@ -330,6 +327,7 @@ public:
           }
 
           t_shuffle.resume();
+          gc_shuffle.add(moved_rays.size());
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
           t_shuffle.stop();
@@ -339,7 +337,7 @@ public:
       {
         t_send.resume();
         // done with current domain, send off rays to their proper processors.
-        SendRays();
+        SendRays(gc_sent);
         // are we done?
 
         // root proc takes empty flag from all procs
@@ -363,8 +361,7 @@ public:
       }
     } while (!all_done);
 
-
-// add colors to the framebuffer
+    // add colors to the framebuffer
 
     t_gather.resume();
     this->gatherFramebuffers(this->rays_end - this->rays_start);
@@ -372,9 +369,14 @@ public:
     t_frame.stop();
     t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter + t_send;
     t_diff = t_frame - t_all;
+
+    gc_filter.print();
+    gc_shuffle.print();
+    gc_rays.print();
+    gc_sent.print();
   }
 
-  inline bool SendRays() {
+  inline bool SendRays(gvt::util::global_counter &counter) {
     int *outbound = new int[2 * mpi.world_size];
     int *inbound = new int[2 * mpi.world_size];
     MPI_Request *reqs = new MPI_Request[2 * mpi.world_size];
@@ -395,18 +397,18 @@ public:
     for (auto &q : queue) {
       // n is the rank this vector of rays (q.second) belongs on.
       size_t n = mpiInstanceMap[q.first]; // bds
-      if (n != mpi.rank) { // bds if instance n is not this rank send rays to it.
+      if (n != mpi.rank) {                // bds if instance n is not this rank send rays to it.
         int n_ptr = 2 * n;
         int buf_size = 0;
 
         outbound[n_ptr] += q.second.size(); // outbound[n_ptr] has number of rays going
+
         for (size_t r = 0; r < q.second.size(); ++r) {
           buf_size += (q.second)[r].packedSize(); // rays can have diff packed sizes
         }
         outbound[n_ptr + 1] += buf_size;    // size of buffer needed to hold rays
         outbound[n_ptr + 1] += sizeof(int); // bds add space for the queue number
         outbound[n_ptr + 1] += sizeof(int); // bds add space for the number of rays in queue
-
       }
     }
 
@@ -420,7 +422,6 @@ public:
       MPI_Isend(&outbound[2 * n], 2, MPI_INT, n, tag, MPI_COMM_WORLD, &reqs[2 * n + 1]);
 
     MPI_Waitall(2 * mpi.world_size, reqs, stat);
-
 
     // set up send and recv buffers
     for (size_t i = 0, j = 0; i < mpi.world_size; ++i, j += 2) {
@@ -439,8 +440,8 @@ public:
     //  ************************ post non-blocking receive *********************
     tag = tag + 1;
     for (size_t n = 0; n < mpi.world_size; ++n) { // bds loop through all ranks
-      if (inbound[2 * n] > 0) {  
-       MPI_Irecv(recv_buf[n], inbound[2 * n + 1], MPI_UNSIGNED_CHAR, n, tag, MPI_COMM_WORLD, &reqs[2 * n]);
+      if (inbound[2 * n] > 0) {
+        MPI_Irecv(recv_buf[n], inbound[2 * n + 1], MPI_UNSIGNED_CHAR, n, tag, MPI_COMM_WORLD, &reqs[2 * n]);
       }
     }
     // ******************** pack the send buffers *********************************
@@ -453,7 +454,7 @@ public:
         send_buf_ptr[n] += sizeof(int);                              // bds advance pointer
         *((int *)(send_buf[n] + send_buf_ptr[n])) = q.second.size(); // bds load number of rays into send buffer
         send_buf_ptr[n] += sizeof(int);                              // bds advance pointer
-        for (size_t r = 0; r < q.second.size(); ++r) { // load the rays in this queue
+        for (size_t r = 0; r < q.second.size(); ++r) {               // load the rays in this queue
           gvt::render::actor::Ray ray = (q.second)[r];
           send_buf_ptr[n] += ray.pack(send_buf[n] + send_buf_ptr[n]);
         }
@@ -462,6 +463,7 @@ public:
       }
     }
     for (size_t n = 0; n < mpi.world_size; ++n) { // bds loop over all
+      counter.add(outbound[2 * n + 1]);
       if (outbound[2 * n] > 0) {
         MPI_Isend(send_buf[n], outbound[2 * n + 1], MPI_UNSIGNED_CHAR, n, tag, MPI_COMM_WORLD, &reqs[2 * n + 1]);
       }

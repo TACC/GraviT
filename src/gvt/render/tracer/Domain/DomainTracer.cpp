@@ -27,8 +27,8 @@
 #include "DomainTracer.h"
 #include "Messages/SendRayList.h"
 #include <gvt/core/comm/communicator.h>
-#include <gvt/core/utils/timer.h>
 #include <gvt/core/utils/global_counter.h>
+#include <gvt/core/utils/timer.h>
 
 namespace gvt {
 namespace render {
@@ -106,15 +106,15 @@ void DomainTracer::operator()() {
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   _GlobalFrameFinished = false;
 
-  gvt::core::time::timer t_frame(true,"domain tracer: frame :");
-  gvt::core::time::timer t_all(false,"domain tracer: all timers :");
-  gvt::core::time::timer t_gather(false,"domain tracer: gather :");
-  gvt::core::time::timer t_send(false,"domain tracer: send :");
-  gvt::core::time::timer t_shuffle(false,"domain tracer: shuffle :");
-  gvt::core::time::timer t_tracer(false,"domain tracer: adapter+tracer :");
-  gvt::core::time::timer t_select(false,"domain tracer: select :");
-  gvt::core::time::timer t_filter(false,"domain tracer: filter :");
-  gvt::core::time::timer t_camera(false,"domain tracer: gen rays :");
+  gvt::core::time::timer t_frame(true, "domain tracer: frame :");
+  gvt::core::time::timer t_all(false, "domain tracer: all timers :");
+  gvt::core::time::timer t_gather(false, "domain tracer: gather :");
+  gvt::core::time::timer t_send(false, "domain tracer: send :");
+  gvt::core::time::timer t_shuffle(false, "domain tracer: shuffle :");
+  gvt::core::time::timer t_tracer(false, "domain tracer: adapter+tracer :");
+  gvt::core::time::timer t_select(false, "domain tracer: select :");
+  gvt::core::time::timer t_filter(false, "domain tracer: filter :");
+  gvt::core::time::timer t_camera(false, "domain tracer: gen rays :");
 
   gvt::util::global_counter gc_rays("Number of rays traced :");
   gvt::util::global_counter gc_filter("Number of rays filtered :");
@@ -131,6 +131,7 @@ void DomainTracer::operator()() {
   processRaysAndDrop(cam->rays);
   t_filter.stop();
   gvt::render::actor::RayVector returned_rays;
+
   do {
     int target = -1;
     int amount = 0;
@@ -144,14 +145,16 @@ void DomainTracer::operator()() {
     t_select.stop();
 
     if (target != -1) {
+      gvt::render::actor::RayVector tmp;
+
       queue_mutex[target].lock();
       t_tracer.resume();
       gc_rays.add(queue[target].size());
-      returned_rays.reserve(queue[target].size() * 10);
-      RayTracer::calladapter(target, queue[target], returned_rays);
-      queue[target].clear();
-      t_tracer.stop();
+      std::swap(queue[target], tmp);
       queue_mutex[target].unlock();
+      RayTracer::calladapter(target, tmp, returned_rays);
+      t_tracer.stop();
+
       t_shuffle.resume();
       gc_shuffle.add(returned_rays.size());
       processRays(returned_rays, target);
@@ -181,7 +184,7 @@ void DomainTracer::operator()() {
   t_gather.resume();
   img->composite();
   t_gather.stop();
-  t_all = t_gather + t_send+ t_shuffle + t_tracer + t_filter + t_select;
+  t_all = t_gather + t_send + t_shuffle + t_tracer + t_filter + t_select;
   gc_filter.print();
   gc_shuffle.print();
   gc_rays.print();
@@ -209,7 +212,7 @@ void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
                       for (size_t i = 0; i < hits.size(); i++) {
                         gvt::render::actor::Ray &r = *(raysit.begin() + i);
                         if (hits[i].next != -1) {
-                          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+                          //.origin = r.origin + r.direction * (hits[i].t * 0.95f);
                           if (isInNode(hits[i].next)) local_queue[hits[i].next].push_back(r);
                         }
                       }

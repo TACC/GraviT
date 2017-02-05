@@ -50,7 +50,7 @@ PlyProperty face_props[] = {
     offsetof(PlyReader::Face, nverts) },
 };
 
-PlyReader::PlyReader(std::string rootdir) {
+PlyReader::PlyReader(std::string rootdir, bool dist) {
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
@@ -175,12 +175,12 @@ PlyReader::PlyReader(std::string rootdir) {
     PlyMeshNode["file"] = string(filepath);
     PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
     PlyMeshNode["ptr"] = (unsigned long long)mesh;
-
-#ifndef NS
-    gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-#else
-    gvt::core::DBNodeH loc = cntxt->createNode("rank", (int)(k % comm.lastid()));
-#endif
+    gvt::core::DBNodeH loc;
+    if (!dist)
+      loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
+    else {
+      loc = cntxt->createNode("rank", (int)(k % comm.lastid()));
+    }
     PlyMeshNode["Locations"] += loc;
 
     cntxt->addToSync(PlyMeshNode);
