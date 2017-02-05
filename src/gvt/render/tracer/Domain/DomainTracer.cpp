@@ -28,6 +28,7 @@
 #include "Messages/SendRayList.h"
 #include <gvt/core/comm/communicator.h>
 #include <gvt/core/utils/timer.h>
+#include <gvt/core/utils/global_counter.h>
 
 namespace gvt {
 namespace render {
@@ -115,6 +116,10 @@ void DomainTracer::operator()() {
   gvt::core::time::timer t_filter(false,"domain tracer: filter :");
   gvt::core::time::timer t_camera(false,"domain tracer: gen rays :");
 
+  gvt::util::global_counter gc_rays("Number of rays traced :");
+  gvt::util::global_counter gc_filter("Number of rays filtered :");
+  gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
+  gvt::util::global_counter gc_sent("Number of rays sent :");
 
   img->reset();
   t_camera.resume();
@@ -122,6 +127,7 @@ void DomainTracer::operator()() {
   cam->generateRays();
   t_camera.stop();
   t_filter.resume();
+  gc_filter.add(cam->rays.size());
   processRaysAndDrop(cam->rays);
   t_filter.stop();
   gvt::render::actor::RayVector returned_rays;
@@ -138,14 +144,16 @@ void DomainTracer::operator()() {
     t_select.stop();
 
     if (target != -1) {
-      t_tracer.resume();
       queue_mutex[target].lock();
-      //returned_rays.reserve(queue[target].size() * 10);
+      t_tracer.resume();
+      gc_rays.add(queue[target].size());
+      returned_rays.reserve(queue[target].size() * 10);
       RayTracer::calladapter(target, queue[target], returned_rays);
-      //queue[target].clear();
-      queue_mutex[target].unlock();
+      queue[target].clear();
       t_tracer.stop();
+      queue_mutex[target].unlock();
       t_shuffle.resume();
+      gc_shuffle.add(returned_rays.size());
       processRays(returned_rays, target);
       t_shuffle.stop();
     }
@@ -155,6 +163,7 @@ void DomainTracer::operator()() {
       for (auto q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
         queue_mutex[q.first].lock();
+        gc_sent.add(q.second.size());
         int sendto = pickNode(q.first);
         std::shared_ptr<gvt::comm::Message> msg = std::make_shared<gvt::comm::SendRayList>(comm.id(), sendto, q.second);
         comm.send(msg, sendto);
@@ -173,6 +182,10 @@ void DomainTracer::operator()() {
   img->composite();
   t_gather.stop();
   t_all = t_gather + t_send+ t_shuffle + t_tracer + t_filter + t_select;
+  gc_filter.print();
+  gc_shuffle.print();
+  gc_rays.print();
+  gc_sent.print();
 }
 
 void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
