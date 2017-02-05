@@ -121,7 +121,7 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
   {
     moved_rays.reserve(toprocess.size() * 10);
     adapter->trace(toprocess, moved_rays, instM[instTarget], instMinv[instTarget], instMinvN[instTarget], lights);
-    // toprocess.clear();
+    toprocess.clear();
   }
 }
 

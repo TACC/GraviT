@@ -71,7 +71,6 @@ DomainTracer::DomainTracer() : gvt::render::RayTracer() {
   gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
   // build location map, where meshes are by mpi node
   for (size_t i = 0; i < dataNodes.size(); i++) {
-
     gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
     for (auto loc : locations) {
       remote_location[dataNodes[i].UUID().toString()].insert(loc.value().toInteger());
@@ -82,8 +81,9 @@ DomainTracer::DomainTracer() : gvt::render::RayTracer() {
   for (int i = 0; i < instancenodes.size(); i++) {
     std::string UUID = instancenodes[i]["meshRef"].deRef().UUID().toString();
     if (remote_location[UUID].find(comm.id()) != remote_location[UUID].end()) {
-      instances_in_node.insert(i);
+      instances_in_node[i] = true;
     } else {
+      instances_in_node[i] = false;
       remote[i] = remote_location[UUID];
     }
   }
@@ -99,6 +99,7 @@ void DomainTracer::resetBVH() {
   if (queue_mutex != nullptr) delete[] queue_mutex;
   for (auto &m : meshRef) {
     queue[m.first] = gvt::render::actor::RayVector();
+    queue[m.first].reserve(8192);
   }
 }
 
@@ -151,6 +152,7 @@ void DomainTracer::operator()() {
       t_tracer.resume();
       gc_rays.add(queue[target].size());
       std::swap(queue[target], tmp);
+      queue[target].reserve(4096);
       queue_mutex[target].unlock();
       RayTracer::calladapter(target, tmp, returned_rays);
       t_tracer.stop();
@@ -184,6 +186,7 @@ void DomainTracer::operator()() {
   t_gather.resume();
   img->composite();
   t_gather.stop();
+  t_frame.stop();
   t_all = t_gather + t_send + t_shuffle + t_tracer + t_filter + t_select;
   gc_filter.print();
   gc_shuffle.print();
@@ -191,17 +194,13 @@ void DomainTracer::operator()() {
   gc_sent.print();
 }
 
-void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
+inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
 
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
-  // const unsigned ray_chunk = rays.size() / comm.lastid();
-  // const unsigned ray_start = ray_chunk * comm.id();
-  // const unsigned ray_end = ray_chunk * (comm.id() + 1);
-
   const int chunksize =
       MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
-  static tbb::simple_partitioner ap;
+  static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                     [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 
@@ -211,10 +210,7 @@ void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
                       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
                       for (size_t i = 0; i < hits.size(); i++) {
                         gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                        if (hits[i].next != -1) {
-                          //.origin = r.origin + r.direction * (hits[i].t * 0.95f);
-                          if (isInNode(hits[i].next)) local_queue[hits[i].next].push_back(r);
-                        }
+                        if (hits[i].next != -1) if(instances_in_node[hits[i].next]) local_queue[hits[i].next].push_back(r);
                       }
                       for (auto &q : local_queue) {
                         queue_mutex[q.first].lock();
@@ -229,12 +225,12 @@ void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
   rays.clear();
 }
 
-void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
+inline void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
 
   const int chunksize =
       MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
-  static tbb::simple_partitioner ap;
+  static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                     [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 

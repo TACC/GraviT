@@ -38,7 +38,7 @@ protected:
   gvt::core::Map<int, gvt::render::actor::RayVector> queue;
 
   gvt::core::Map<int, std::set<int> > remote;
-  std::set<int> instances_in_node;
+  gvt::core::Map<int,bool> instances_in_node;
 
   std::shared_ptr<comm::vote::vote> v;
   volatile bool _GlobalFrameFinished = false;
@@ -57,8 +57,8 @@ public:
 
   void resetBVH();
 
-  bool isInNode(const int &i) { return instances_in_node.find(i) != instances_in_node.end(); }
-  int pickNode(const int &i) { return *remote[i].begin(); }
+  inline bool isInNode(const int &i) { return instances_in_node[i]; }
+  inline int pickNode(const int &i) { return *remote[i].begin(); }
 
   static bool areWeDone();
   static void Done(bool);
