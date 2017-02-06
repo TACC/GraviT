@@ -199,8 +199,8 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
       rayList[i].type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
     out->xr.term[i] = rayList[i].depth;
     // x and y are calculated from ray id and image dimensions. 
-    out->xr.x[i] = rayList[i].id % width; // volume renderer uses id to store px
-    out->xr.y[i] = rayList[i].id / width; // volume renderer uses depth to store py
+    out->xr.x[i] = rayList[i].id % width; 
+    out->xr.y[i] = rayList[i].id / width; 
   }
   return out;
 }

@@ -251,6 +251,7 @@ struct bovheader {
     }
     myfile.close();
     glm::vec3 lower(origin[0],origin[1],origin[2]);
+    //glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
     dfmt = FLOAT;
@@ -365,6 +366,8 @@ int main(int argc, char **argv) {
       //tf->setValueRange(glm::vec2(0.0,65536.0));
       //this value range is for large enzo data
       tf->setValueRange(glm::vec2(0.0,1801.0));
+      // this value range is for asteroid data
+      //tf->setValueRange(glm::vec2(0.0,1.0));
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);

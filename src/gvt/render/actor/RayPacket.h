@@ -54,6 +54,8 @@ template <size_t simd_width> struct RayPacketIntersection {
   float dz[simd_width];
   float t[simd_width];
   int mask[simd_width];
+  bool gotcha = false;
+  int igotcha;
 
   //
   // float data[simd_width * 6];
@@ -63,6 +65,10 @@ template <size_t simd_width> struct RayPacketIntersection {
     RayVector::iterator rayit = ray_begin;
     for (i = 0; rayit != ray_end && i < simd_width; ++i, ++rayit) {
       Ray &ray = (*rayit);
+      if(ray.id == 51096) { 
+        gotcha = true;
+        igotcha = i;
+      }
       ox[i] = ray.origin[0];
       oy[i] = ray.origin[1];
       oz[i] = ray.origin[2];
@@ -77,7 +83,6 @@ template <size_t simd_width> struct RayPacketIntersection {
       mask[i] = -1;
     }
   }
-
   inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[], bool update = false) {
     float lx[simd_width];
     float ly[simd_width];
@@ -143,6 +148,7 @@ template <size_t simd_width> struct RayPacketIntersection {
                    ? 1
                    : -1;
     }
+ //   if(gotcha  ) std::cout << hit[igotcha] << " " << tnear[igotcha] << " " << tfar[igotcha] << " " << t[igotcha] << " " << minx[igotcha] << " " << miny[igotcha] << " " << minz[igotcha] << " " << maxx[igotcha]<< " " << maxy[igotcha] << " " << maxz[igotcha] << std::endl;
 #pragma simd
     for (size_t i = 0; i < simd_width; ++i) {
       if (hit[i] == 1 && update) t[i] = tnear[i];
@@ -151,6 +157,7 @@ template <size_t simd_width> struct RayPacketIntersection {
     for (size_t i = 0; i < simd_width; ++i)
       if (hit[i] == 1) return true;
 
+    gotcha = false;
     return false;
   }
 };
