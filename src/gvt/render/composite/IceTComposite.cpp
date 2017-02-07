@@ -50,48 +50,11 @@ namespace gvt {
 namespace render {
 namespace composite {
 
-// #define MAX(a, b) ((a > b) ? a : b)
-// static IceTFloat *local_buffer;
-// const IceTDouble identity[] = { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-//                                 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
 const IceTFloat black[] = { 1.0, 0.0, 0.0, 1.0 };
 
-// static void draw(const IceTDouble *projection_matrix, const IceTDouble
-// *modelview_matrix,
-//                  const IceTFloat *background_color, const IceTInt *readback_viewport,
-//                  IceTImage result) {
-//   IceTFloat *color_buffer;
-//   IceTSizeType num_pixels;
-//   IceTSizeType i;
-//
-//   /* Suppress compiler warnings. */
-//   (void)projection_matrix;
-//   (void)modelview_matrix;
-//   (void)background_color;
-//   (void)readback_viewport;
-//
-//   num_pixels = icetImageGetNumPixels(result);
-//
-//   color_buffer = icetImageGetColorf(result);
-//
-//   const size_t size = num_pixels;
-//   const size_t chunksize = MAX(2, size / (std::thread::hardware_concurrency() * 4));
-//   static tbb::simple_partitioner ap;
-//   tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
-//                     [&](tbb::blocked_range<size_t> chunk) {
-//                       for (size_t i = chunk.begin(); i < chunk.end(); i++) {
-//                         color_buffer[i * 4 + 0] = local_buffer[i][0];
-//                         color_buffer[i * 4 + 1] = local_buffer[i][1];
-//                         color_buffer[i * 4 + 2] = local_buffer[i][2];
-//                         color_buffer[i * 4 + 3] = local_buffer[i][3];
-//                       }
-//                     },
-//                     ap);
-// }
 
 IceTComposite::IceTComposite(std::size_t width, std::size_t height)
     : gvt::render::composite::ImageComposite(width, height) {
-  // if (MPI::COMM_WORLD.Get_size() < 2) return false;
 
   comm = icetCreateMPICommunicator(MPI::COMM_WORLD);
   icetCreateContext(comm);
@@ -104,7 +67,7 @@ IceTComposite::IceTComposite(std::size_t width, std::size_t height)
   icetCompositeMode(ICET_COMPOSITE_MODE_BLEND);
   // icetCompositeMode(ICET_COMPOSITE_MODE_Z_BUFFER);
   icetStrategy(ICET_STRATEGY_VTREE);
-  icetSingleImageStrategy(ICET_SINGLE_IMAGE_STRATEGY_BSWAP);
+  icetSingleImageStrategy(ICET_SINGLE_IMAGE_STRATEGY_AUTOMATIC);
 
   color_buffer = static_cast<IceTFloat *>(malloc(width * height * 4 * sizeof(IceTFloat)));
   depth_buffer = static_cast<IceTFloat *>(malloc(width * height * sizeof(IceTFloat)));

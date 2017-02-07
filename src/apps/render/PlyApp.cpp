@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)1;
+  camNode["rayMaxDepth"] = (int)8;
   camNode["raySamples"] = (int)1;
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
+    for (int z = 0; z < 100; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();

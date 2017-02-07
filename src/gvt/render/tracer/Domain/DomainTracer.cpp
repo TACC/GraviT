@@ -165,13 +165,14 @@ void DomainTracer::operator()() {
 
     if (target == -1) {
       t_send.resume();
-      for (auto q : queue) {
+      for (auto& q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
         queue_mutex[q.first].lock();
         gc_sent.add(q.second.size());
         int sendto = pickNode(q.first);
         std::shared_ptr<gvt::comm::Message> msg = std::make_shared<gvt::comm::SendRayList>(comm.id(), sendto, q.second);
         comm.send(msg, sendto);
+
         q.second.clear();
         queue_mutex[q.first].unlock();
       }

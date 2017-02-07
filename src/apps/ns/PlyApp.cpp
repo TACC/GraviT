@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
   camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)1;
+  camNode["rayMaxDepth"] = (int)8;
   camNode["raySamples"] = (int)1;
   // film
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
@@ -283,8 +283,7 @@ int main(int argc, char **argv) {
   cntxt->settracer(rt);
 
   std::cout << "Calling tracer" << std::endl;
-  for (int i = 0; i < 10; i++) {
-    gvt::core::time::timer t_frame(true, "Frame time :");
+  for (int i = 0; i < 100; i++) {
     (*rt)();
   }
 
