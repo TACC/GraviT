@@ -57,7 +57,12 @@
 #include <deque>
 #include <map>
 
-#define TBB_PREVIEW_SERIAL_SUBSET 1
+// uncomment this to restrict tbb to serial operation
+// must also add "serial" to tbb::parallel_for
+// like this tbb::serial::parallel_for. Do this to get reasonable 
+// prints out of parallel for loop. Of course it doesent run in parallel
+// any more. 
+//#define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>
@@ -252,7 +257,8 @@ public:
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
-    tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+    //tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits = acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
       std::map<int, gvt::render::actor::RayVector> local_queue;
       int target = 51096;

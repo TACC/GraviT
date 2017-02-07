@@ -174,7 +174,8 @@ public:
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
-    tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+    //tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits =
       acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
@@ -182,7 +183,6 @@ public:
       for (size_t i = 0; i < hits.size(); i++) {
         gvt::render::actor::Ray &r = *(raysit.begin() + i);
         if (hits[i].next != -1) {
-          //r.origin = r.origin + r.direction * (hits[i].t * 0.8f);
           r.origin = r.origin + r.direction * (hits[i].t * 1.0f);
           const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
           if (inRank) local_queue[hits[i].next].push_back(r);
