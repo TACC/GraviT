@@ -50,7 +50,7 @@ void ImageTracer::resetBVH() {
 
 void ImageTracer::operator()() {
 
-  img->reset();
+    img->reset();
 
     gvt::core::time::timer t_frame(true,"image tracer: frame: ");
     gvt::core::time::timer t_all(false,"image tracer: all timers: ");
@@ -67,33 +67,33 @@ void ImageTracer::operator()() {
     t_filter.resume();
     processRaysAndDrop(cam->rays);
     t_filter.stop();
-  gvt::render::actor::RayVector returned_rays;
-  do {
-    int target = -1;
-    int amount = 0;
-    t_select.resume();
-    for (auto &q : queue) {
-      if (q.second.size() > amount) {
-        amount = q.second.size();
-        target = q.first;
-      }
-    }
-    t_select.stop();
-    if (target != -1) {
-      t_tracer.resume();
-      returned_rays.reserve(queue[target].size() * 10);
-      RayTracer::calladapter(target, queue[target], returned_rays);
-      queue[target].clear();
-      t_tracer.stop();
-      t_shuffle.resume();
-      processRays(returned_rays, target);
-      t_shuffle.stop();
-    }
-  } while (hasWork());
-  t_gather.resume();
-  img->composite();
-  t_gather.stop();
-  t_all = t_gather + t_shuffle + t_tracer + t_select + t_filter;
+    gvt::render::actor::RayVector returned_rays;
+    do {
+        int target = -1;
+        int amount = 0;
+        t_select.resume();
+        for (auto &q : queue) {
+            if (q.second.size() > amount) {
+                amount = q.second.size();
+                target = q.first;
+            }
+        }
+        t_select.stop();
+        if (target != -1) {
+            t_tracer.resume();
+            returned_rays.reserve(queue[target].size() * 10);
+            RayTracer::calladapter(target, queue[target], returned_rays);
+            queue[target].clear();
+            t_tracer.stop();
+            t_shuffle.resume();
+            processRays(returned_rays, target);
+            t_shuffle.stop();
+        }
+    } while (hasWork());
+    t_gather.resume();
+    img->composite();
+    t_gather.stop();
+    t_all = t_gather + t_shuffle + t_tracer + t_select + t_filter;
 }
 
 void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {

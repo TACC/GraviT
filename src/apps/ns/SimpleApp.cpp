@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
 
-    gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+    gvt::core::DBNodeH loc = cntxt->createNode("rank", 00);
     coneMeshNode["Locations"] += loc;
 
     cntxt->addToSync(coneMeshNode);
@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
     cubeMeshNode["ptr"] = (unsigned long long)mesh;
 
-    gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+    gvt::core::DBNodeH loc = cntxt->createNode("rank", 1);
     cubeMeshNode["Locations"] += loc;
 
     cntxt->addToSync(cubeMeshNode);
@@ -443,16 +443,39 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  gvt::render::DomainTracer rt;
 
-  for (int i = 0; i < 10; i++) {
-    gvt::core::time::timer t_frame(true, "Frame time :");
-    rt();
+
+
+  std::shared_ptr<gvt::render::RayTracer> rt;
+  int schedType = root["Schedule"]["type"].value().toInteger();
+  switch (schedType) {
+  case gvt::render::scheduler::Image: {
+    rt = std::make_shared<gvt::render::ImageTracer>();
+    break;
+  }
+  case gvt::render::scheduler::Domain: {
+    rt = std::make_shared<gvt::render::DomainTracer>();
+    break;
+  }
+  default: {
+    std::cout << "unknown schedule type provided: " << schedType << std::endl;
+    std::exit(0);
+    break;
+  }
+  }
+
+  cntxt->settracer(rt);
+
+  std::cout << "Calling tracer" << std::endl;
+  for (int i = 0; i < 100; i++) {
+    (*rt)();
   }
 
   if (gvt::comm::communicator::instance().id() == 0)
-    rt.getComposite()->write(filmNode["outputPath"].value().toString());
+    (*rt).getComposite()->write(filmNode["outputPath"].value().toString());
   gvt::comm::communicator::instance().terminate();
+
+
 
   // end db setup
 
