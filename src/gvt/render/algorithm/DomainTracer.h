@@ -330,7 +330,7 @@ public:
           // end getAdapterFromCache concept
 
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: calling process queue");
-          {
+          
             t_trace.resume();
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 #ifdef GVT_USE_DEBUG
@@ -339,7 +339,7 @@ public:
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],instMinvN[instTarget], lights);
             this->queue[instTarget].clear();
             t_trace.stop();
-          }
+          
 
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
           t_shuffle.resume();

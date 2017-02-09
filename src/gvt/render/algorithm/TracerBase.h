@@ -89,7 +89,7 @@ struct GVT_COMM {
   bool root() { return rank == 0; }
 };
 
-struct processRay;
+//struct processRay;
 
 /// base tracer class for GraviT ray tracing framework
 /**
@@ -261,29 +261,20 @@ public:
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize), [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits = acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
       std::map<int, gvt::render::actor::RayVector> local_queue;
-      int target = 51096;
-      bool targetpixel = false;
       for (size_t i = 0; i < hits.size(); i++) {
        gvt::render::actor::Ray &r = *(raysit.begin() + i);
        bool write_to_fb = false; // write this ray data to fb
        int target_queue = -1; // target queue to stash this ray in. -1 = dont queue
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
-       if (r.id == target) {
-        targetpixel = true;
-        } else {
-        targetpixel = false;
-        }
        if(r.depth & RAY_BOUNDARY){
         if(hits[i].next != -1) {
           r.origin = r.origin + r.direction *(hits[i].t * (1.0f+std::numeric_limits<float>::epsilon()));
           target_queue = hits[i].next;
           //local_queue[hits[i].next].push_back(r);
-          if(targetpixel) std::cout << "domID " << domID << " target queue " << target_queue << std::endl;
           } else {
             r.depth &= ~RAY_BOUNDARY;
             r.depth |= RAY_EXTERNAL_BOUNDARY;
             target_queue = -1;
-          if(targetpixel) std::cout << " set extbnd bit " << r.depth << std::endl;
           }
        }
        // check types
@@ -291,34 +282,22 @@ public:
         if((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
           write_to_fb = true;
           target_queue = -1;
-         //tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-         //colorBuf[r.id] += r.color;
-         if(targetpixel) std::cout << " add to fb " << r.color <<  std::endl;
         } else if(r.depth & ~RAY_BOUNDARY) {
-            //r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
-            //target_queue = hits[i].next;
             target_queue = domID;
-            //r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
-            //local_queue[hits[i].next].push_back(r);
-        if(targetpixel) std::cout << " queued target " << target_queue << std::endl;
         }
        } else if(r.type == RAY_SHADOW) {
-          if(targetpixel) std::cout << " shadow " << r.color << std::endl;
           if(r.depth & RAY_EXTERNAL_BOUNDARY) { 
             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
             colorBuf[r.id] += r.color;
           }else if(r.depth & RAY_BOUNDARY) {
-            //r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
             r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
             local_queue[hits[i].next].push_back(r);
           }
        } else if(r.type == RAY_AO) {
-          if(targetpixel) std::cout << " AO " << r.color << std::endl;
           if(r.depth &(RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
             colorBuf[r.id] += r.color;
           } else if (r.depth & RAY_BOUNDARY) {
-              //r.origin = r.origin + r.direction *(hits[i].t * 0.95f);
               r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
               local_queue[hits[i].next].push_back(r);
           }
@@ -332,7 +311,6 @@ public:
        }
 
 
-       targetpixel = false;
 #else
        if (hits[i].next != -1) {
          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
