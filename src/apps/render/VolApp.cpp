@@ -360,6 +360,7 @@ int main(int argc, char **argv) {
   worldsize = MPI::COMM_WORLD.Get_size();
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
+      std::cout << " rank " << rank << " reading domain " << domain << std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
@@ -389,6 +390,12 @@ int main(int argc, char **argv) {
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
       vol->SetSamplingRate(10.0);
+      // try setting an isovalue
+      float *isoval ;
+      int niso = 1;
+      isoval = new float[niso];
+      *isoval = 0.75;
+      //vol->SetIsovalues(1,isoval);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
       // stuff it in the db
       VolumeNode["file"] = volumefile.c_str();
@@ -533,7 +540,7 @@ int main(int argc, char **argv) {
 #elif
     gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(mycamera.rays, myimage);
 #endif
-    for (int z = 0; z < 3; z++) {
+    for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();

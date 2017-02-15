@@ -67,12 +67,15 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     for(int i=0;i<n_slices;i++)
       std::memcpy(glm::value_ptr(slices[i]),slicevector+(4*i),4*sizeof(float));
       OSPData sliceData = ospNewData(n_slices,OSP_FLOAT4,slicevector);
+      ospCommit(sliceData);
       ospSetData(theOSPVolume,"slices",sliceData);
   }
   data->GetIsovalues(n_isovalues,isovalues);
   if(n_isovalues != 0) {
+    std::cout << "got isovalue " << n_isovalues << " "  << std::endl;
     dolights = true;
     OSPData isoData = ospNewData(n_isovalues,OSP_FLOAT,isovalues);
+    ospCommit(isoData);
     ospSetData(theOSPVolume,"isovalues",isoData);
   }
   data->GetGlobalOrigin(globalorigin);

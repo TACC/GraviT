@@ -42,3 +42,10 @@ void gvt::render::data::primitives::Volume::GetCounts(glm::vec3 &cnts) { cnts = 
 void gvt::render::data::primitives::Volume::GetGlobalOrigin(glm::vec3 &orig) { orig = origin; }
 gvt::render::data::primitives::Volume::~Volume() {}
 gvt::render::data::primitives::Box3D *gvt::render::data::primitives::Volume::getBoundingBox() {return &boundingBox;}
+void gvt::render::data::primitives::Volume::SetIsovalues(int n, float* vals) {
+  n_isovalues = n;
+  isovalues = new float[n_isovalues];
+  for(int i=0;i<n_isovalues;i++) {
+    isovalues[i] = vals[i];
+  }
+}
