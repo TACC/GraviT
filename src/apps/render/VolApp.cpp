@@ -360,7 +360,6 @@ int main(int argc, char **argv) {
   worldsize = MPI::COMM_WORLD.Get_size();
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
-      std::cout << " rank " << rank << " reading domain " << domain << std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
