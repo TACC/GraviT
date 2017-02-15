@@ -174,7 +174,6 @@ public:
     const size_t chunksize = MAX(2, rays.size() / (std::thread::hardware_concurrency() * 4));
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
-    //tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       std::vector<gvt::render::data::accel::BVH::hit> hits =
@@ -330,7 +329,7 @@ public:
           // end getAdapterFromCache concept
 
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: calling process queue");
-          
+          {
             t_trace.resume();
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 #ifdef GVT_USE_DEBUG
@@ -339,7 +338,7 @@ public:
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],instMinvN[instTarget], lights);
             this->queue[instTarget].clear();
             t_trace.stop();
-          
+          }
 
           GVT_DEBUG(DBG_ALWAYS, "image scheduler: marching rays");
           t_shuffle.resume();

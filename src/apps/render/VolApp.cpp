@@ -74,6 +74,8 @@
 
 using namespace std;
 
+// split a string into parts using the delimiter given return 
+// the parts in a vector of strings. 
 std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss(s);
     std::string item;
@@ -103,7 +105,8 @@ struct bovheader {
     INT,
     FLOAT,
     UINT,
-    SHORT
+    SHORT,
+    UNKNOWN
   } dfmt;
   std::string variable;
   enum endian {
@@ -149,6 +152,13 @@ struct bovheader {
            dfmt = INT;
          } else if(elems[1] == "FLOAT") {
            dfmt = FLOAT;
+         } else if(elems[1] == "UINT") {
+           dfmt = UINT;
+         } else if(elems[1] == "SHORT") {
+           dfmt = SHORT;
+         } else {
+           cout << " BovReader: Unrecognized datatype " << endl;
+           dfmt = UNKNOWN;
          }
         } else if(elems[0] == "VARIABLE:" ) {
            variable = elems[1];
@@ -251,11 +261,9 @@ struct bovheader {
     }
     myfile.close();
     glm::vec3 lower(origin[0],origin[1],origin[2]);
-    //glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
     dfmt = FLOAT;
-    //std::cout << " origin " << origin[0] << " " << origin[1] << " " << origin[2]  << " counts " << counts[0] << " " << counts[1] << " " << counts[2] << std::endl;
     return samples;
   }
 };
@@ -277,6 +285,7 @@ int main(int argc, char **argv) {
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
   cmd.addoption("volfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to Volume");
+  cmd.addoption("imagefile", ParseCommandLine::PATH , "image file name");
   cmd.addoption("ctffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to color transfer function");
   cmd.addoption("otffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to opacity transfer function");
   cmd.addoption("image", ParseCommandLine::NONE, "schedule", 0);
@@ -316,7 +325,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
-  std::string filename, filepath, volumefile,otffile,ctffile;
+  std::string filename, filepath, volumefile,otffile,ctffile,imagefile;
   volumefile = cmd.get<std::string>("volfile");
   ctffile = cmd.get<std::string>("ctffile");
   otffile = cmd.get<std::string>("otffile");
@@ -365,11 +374,11 @@ int main(int argc, char **argv) {
       // this value range is for small enzo data
       //tf->setValueRange(glm::vec2(0.0,65536.0));
       //this value range is for large enzo data
-      //tf->setValueRange(glm::vec2(0.0,1801.0));
+      tf->setValueRange(glm::vec2(0.0,1801.0));
       // this value range is for asteroid data
       //tf->setValueRange(glm::vec2(0.0,1.0));
       // this value range is for sphere data
-      tf->setValueRange(glm::vec2(0.866,85.74));
+      //tf->setValueRange(glm::vec2(0.866,85.74));
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
@@ -379,6 +388,7 @@ int main(int argc, char **argv) {
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
+      vol->SetSamplingRate(10.0);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
       // stuff it in the db
       VolumeNode["file"] = volumefile.c_str();
@@ -401,6 +411,8 @@ int main(int argc, char **argv) {
         (gvt::render::data::primitives::Box3D *)VolumeNode["bbox"].value().toULongLong();
       instnode["id"] = domain;
       instnode["meshRef"] = VolumeNode.UUID();
+      // we dont transform or use instancing in this example 
+      // We load the identity matrix transformations anyway. 
       auto m = new glm::mat4(1.f);
       auto minv = new glm::mat4(1.f);
       auto normi = new glm::mat3(1.f);
@@ -420,11 +432,13 @@ int main(int argc, char **argv) {
   cntxt->syncContext();
 
   // add lights, camera, and film to the database all nodes do this.
+  // again some default stuff loaded in. Not entirely required in this
+  // instance but get in tha habbit of putting it there anyway.
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(0.0, 0.0, 1.0);
   lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
-  // camera
+  // camera. this stuff is required. No camera no image.
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(127.5,127.5,1024);
   camNode["focus"] = glm::vec3(127.5, 127.5, 0.0);
@@ -437,6 +451,7 @@ int main(int argc, char **argv) {
   filmNode["width"] = 100;
   filmNode["height"] = 100;
 
+  // override some defaults...
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
@@ -458,13 +473,8 @@ int main(int argc, char **argv) {
   else
     schedNode["type"] = gvt::render::scheduler::Image;
 
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-  int adapterType = gvt::render::adapter::Embree;
-#elif GVT_RENDER_ADAPTER_MANTA
-  int adapterType = gvt::render::adapter::Manta;
-#elif GVT_RENDER_ADAPTER_OPTIX
-  int adapterType = gvt::render::adapter::Optix;
-#elif GVT_RENDER_ADAPTER_OSPRAY
+  // at this point application only works with ospray adapter
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
   int adapterType = gvt::render::adapter::Ospray;
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
@@ -491,7 +501,12 @@ int main(int argc, char **argv) {
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
   // setup image from database sizes
-  gvt::render::data::scene::Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "enzo");
+  if(cmd.isSet("imagefile")) {
+    imagefile = cmd.get<std::string>("imagefile");
+  } else {
+    imagefile = string("volapptest");
+  }
+  gvt::render::data::scene::Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), imagefile.c_str());
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays();

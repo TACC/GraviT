@@ -29,9 +29,11 @@ using namespace gvt::render::adapter::ospray::data;
 
 bool OSPRayAdapter::init = false;
 
+// constructor for data (not implemented)
 OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Data *data):Adapter(data) {
   theOSPRenderer = ospNewRenderer("ptracer");
 }
+// constructor for mesh data (not implemented)
 OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data):Adapter(data) {
   theOSPRenderer = ospNewRenderer("ptracer");
 }
@@ -57,8 +59,10 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   theOSPRenderer = ospNewRenderer("ptracer");
   // build the ospray volume from the data in the GraviT volume
   theOSPVolume = ospNewVolume("shared_structured_volume");
+  dolights = false;
   data->GetSlices(n_slices,slices);
   if(n_slices != 0) {
+    dolights = true;
     float *slicevector = new float[4*n_slices];
     for(int i=0;i<n_slices;i++)
       std::memcpy(glm::value_ptr(slices[i]),slicevector+(4*i),4*sizeof(float));
@@ -67,6 +71,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   }
   data->GetIsovalues(n_isovalues,isovalues);
   if(n_isovalues != 0) {
+    dolights = true;
     OSPData isoData = ospNewData(n_isovalues,OSP_FLOAT,isovalues);
     ospSetData(theOSPVolume,"isovalues",isoData);
   }
@@ -89,6 +94,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   spacing.z = volumespacing.z;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
+  // as of now only two voxel types are supported by the ospray lib
   switch(vt){
     case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
       int numberofsamples = counts.x*counts.y*counts.z;
@@ -101,7 +107,6 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     default : std::cerr << " error setting voxel type " << std::endl;
       break;
   }
-  data->SetSamplingRate(10.0);
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
   data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
@@ -205,6 +210,11 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
   return out;
 }
 
+// this is the trace function that gets called by the scheduler to actually
+// trace the rays. The signature is the same as for ospray as for the other
+// engines. Lighting is not used for volume rendering unless implicit 
+// surfaces and/or slices are used. Still, a light vector is passed. It
+// may be empty. 
 void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights, size_t begin ,size_t end) { 
   // lights
   // todo sort point and area lights. For now assume point light. 
@@ -213,37 +223,43 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
   // have direction pointing to origin. Also scale to unit vector.
   float* lghts = new float[3*lights.size()];
   float* lghtptr = lghts;
-  gvt::render::data::scene::Light lgt;
-  for(gvt::render::data::scene::Light *lgt : lights) {
-    glm::vec3 pos = lgt->position;
-    float d = 1/sqrt(pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]);
-    lghtptr[0] = -pos[0]*d;
-    lghtptr[1] = -pos[1]*d;
-    lghtptr[2] = -pos[2]*d;
-    lghtptr +=3;
-  }
-  OSPData lightData = ospNewData(lights.size(),OSP_FLOAT3,lghts);
-  ospSetData(theOSPRenderer,"lights",lightData);
+  // if the adapter constructor has not created implicit surfaces or
+  // slices for a volume data then dolignts will be false and we
+  // dont need to deal with them. If however there is some geometry
+  // then dolights will be true and we will process the lights. 
+  if(dolights) {
+    gvt::render::data::scene::Light lgt;
+    for(gvt::render::data::scene::Light *lgt : lights) {
+     glm::vec3 pos = lgt->position;
+     float d = 1/sqrt(pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]);
+     lghtptr[0] = -pos[0]*d;
+     lghtptr[1] = -pos[1]*d;
+     lghtptr[2] = -pos[2]*d;
+     lghtptr +=3;
+    }
+    OSPData lightData = ospNewData(lights.size(),OSP_FLOAT3,lghts);
+    ospSetData(theOSPRenderer,"lights",lightData);
   // some light and effect control variables. These should be stashed in the
   // context rather than hardcoded here. 
-  float ka,kd,arad;
-  int nar;
-  bool dos;
+    float ka,kd,arad;
+    int nar;
+    bool dos;
   // these are only used in the case of isosurface or slice planes I think.
-  ka = 0.4;
-  kd = 0.6;
+    ka = 0.4;
+    kd = 0.6;
   // do shadows boolean. Not used since I need an integer.
-  dos = false;
+    dos = false;
   // ambient occlusion radius 
-  arad = 0.0;
+    arad = 0.0;
   // number of ambient occlusion rays. 
-  nar = 0;
-  ospSet1i(theOSPRenderer,"do_shadows",0);
-  ospSet1i(theOSPRenderer,"n_ao_rays",nar);
-  ospSet1f(theOSPRenderer,"ao_radius",arad);
-  ospSet1f(theOSPRenderer,"Ka",ka);
-  ospSet1f(theOSPRenderer,"Kd",kd);
-  ospCommit(theOSPRenderer);
+    nar = 0;
+    ospSet1i(theOSPRenderer,"do_shadows",0);
+    ospSet1i(theOSPRenderer,"n_ao_rays",nar);
+    ospSet1f(theOSPRenderer,"ao_radius",arad);
+    ospSet1f(theOSPRenderer,"Ka",ka);
+    ospSet1f(theOSPRenderer,"Kd",kd);
+    ospCommit(theOSPRenderer);
+  }
   // convert GVT RayVector into the OSPExternalRays used by ospray. 
   OSPExternalRays rl = GVT2OSPRays(rayList);
   // trace'em 

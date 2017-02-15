@@ -61,6 +61,7 @@ protected:
   static bool init;
   size_t begin, end;
   int width, height;
+  bool dolights;
 public:
   OSPRenderer theOSPRenderer;
   OSPVolume theOSPVolume;
