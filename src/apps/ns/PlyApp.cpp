@@ -91,6 +91,8 @@ public:
 
 int main(int argc, char **argv) {
 
+  gvt::core::time::timer t_skip(true,"To skip");
+
   ParseCommandLine cmd("gvtPly");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -261,7 +263,7 @@ int main(int argc, char **argv) {
   }
 
   // end db setup
-
+  t_skip.stop();
   std::shared_ptr<gvt::render::RayTracer> rt;
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {

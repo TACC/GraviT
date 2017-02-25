@@ -51,7 +51,7 @@ PlyProperty face_props[] = {
 };
 
 PlyReader::PlyReader(std::string rootdir, bool dist) {
-  gvt::comm::communicator &comm = gvt::comm::communicator::instance();
+  // gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   // mess I use to open and read the ply file with the c utils I found.
   PlyFile *in_ply;
   Vertex *vert;
@@ -179,7 +179,7 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
     if (!dist)
       loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
     else {
-      loc = cntxt->createNode("rank", (int)(k % comm.lastid()));
+      loc = cntxt->createNode("rank", (int)(k % MPI::COMM_WORLD.Get_size()));
     }
     PlyMeshNode["Locations"] += loc;
 

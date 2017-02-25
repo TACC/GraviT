@@ -793,7 +793,7 @@ struct OptixParallelTrace {
 			gvt::render::actor::RayVector::iterator localRayList = rayList
 					+ begin + localIdx;
 
-	
+
 			cudaSetRays(localRayList, localPacketSize, cudaGvtCtx.rays,
 					localIdx, cudaGvtCtx.stream, cudaRaysBuff);
 
@@ -844,9 +844,9 @@ void OptixMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
 		gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
         glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
         size_t _begin, size_t _end) {
-#ifdef GVT_USE_DEBUG
-	boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
-#endif
+// #ifdef GVT_USE_DEBUG
+// 	boost::timer::auto_cpu_timer t_functor("OptixMeshAdapter: trace time: %w\n");
+// #endif
 
 	if (_end == 0)
 		_end = rayList.size();
