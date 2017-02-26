@@ -451,7 +451,6 @@ if (GVT_RENDER)
 
   add_library(gvtRender STATIC
               ${GVT_CORE_HDRS}
-              ${GVT_CORE_SRCS}
               ${GVT_RENDER_HDRS}
               ${GVT_RENDER_SRCS})
 
