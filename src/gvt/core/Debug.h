@@ -26,11 +26,12 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <sstream>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <sstream>
-#include <iostream>
-#include <cstring>
+
 #define __FILE_SHORT__ (strstr(__FILE__, "src/") ? std::strstr(__FILE__, "src/") + 4 : __FILE__)
 
 const char *const DBG_COLOR_NORMAL = "\033[0m";
@@ -187,5 +188,10 @@ template <typename T> inline std::string to_string(T value) {
 // end XXX TODO - remove these from source
 
 #endif // defined GVT_USE_DEBUG
+
+#define GVT_ERR_MESSAGE(message)                                                                                 \
+      std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE << DBG_COLOR_RED << ":"                  \
+                << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl;                                         \
+
 
 #endif // GVT_CORE_DEBUG_H

@@ -31,18 +31,14 @@
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
-
 #include <mpi.h>
-
-#include <gvt/render/algorithm/TracerBase.h>
+#include <sstream>
 
 using namespace gvt::render::data::scene;
 
 void Image::Write() {
-  gvt::render::algorithm::GVT_COMM comm;
 
-  if (!comm.root()) return;
+  if (MPI::COMM_WORLD.Get_rank() != 0) return;
 
   std::string ext;
   switch (format) {
@@ -50,7 +46,7 @@ void Image::Write() {
     ext = ".ppm";
     break;
   default:
-    GVT_DEBUG(DBG_ALWAYS, "ERROR: unknown image format '" << format << "'");
+
     return;
   }
 
@@ -63,14 +59,16 @@ void Image::Write() {
   file.open((filename + ext).c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
   file << header.str();
 
+  std::cout << "Image write " << width << " x " << height << std::endl;
   // reverse row order so image is correctly oriented
-  for (int j = height - 1; j >= 0; --j) {
+  for (int j = height - 1; j >= 0; j--) {
     int offset = j * width;
     for (int i = 0; i < width; ++i) {
       int index = 3 * (offset + i);
+      // if (rgb[index + 0] == 0 || rgb[index + 1] == 0 || rgb[index + 2] == 0) std::cout << ".";
       file << rgb[index + 0] << rgb[index + 1] << rgb[index + 2];
     }
   }
-
+  std::cout << std::endl;
   file.close();
 }

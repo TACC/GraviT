@@ -28,6 +28,7 @@
 #ifndef GVT_RENDER_DATA_SCENE_IMAGE_H
 #define GVT_RENDER_DATA_SCENE_IMAGE_H
 
+#include <glm/glm.hpp>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 
 #include <string>
@@ -61,26 +62,51 @@ public:
     rgb[index + 2] = (unsigned char)(buf[2] * 256.f);
   }
 
-  void Add(int pixel, ColorAccumulator &ca) {
+  void Add(int pixel, glm::vec3 &ca) {
     int index = 3 * pixel;
-    rgb[index + 0] = (unsigned char)(ca.rgba[0] / ca.rgba[3] * 255.f);
-    rgb[index + 1] = (unsigned char)(ca.rgba[1] / ca.rgba[3] * 255.f);
-    rgb[index + 2] = (unsigned char)(ca.rgba[2] / ca.rgba[3] * 255.f);
+    rgb[index + 0] = (unsigned char)(ca[0] * 255.f);
+    rgb[index + 1] = (unsigned char)(ca[1] * 255.f);
+    rgb[index + 2] = (unsigned char)(ca[2] * 255.f);
     if (rgb[index + 0] > 255.f) rgb[index + 0] = 255;
     if (rgb[index + 1] > 255.f) rgb[index + 1] = 255;
     if (rgb[index + 2] > 255.f) rgb[index + 2] = 255;
   }
 
-  void Add(int pixel, ColorAccumulator &ca, float w) {
+  void Add(int pixel, glm::vec4 &ca) {
     int index = 3 * pixel;
-    rgb[index + 0] = ((unsigned char)(ca.rgba[0] / ca.rgba[3] * 255.f) * w);
-    rgb[index + 1] = ((unsigned char)(ca.rgba[1] / ca.rgba[3] * 255.f) * w);
-    rgb[index + 2] = ((unsigned char)(ca.rgba[2] / ca.rgba[3] * 255.f) * w);
+    rgb[index + 0] = (unsigned char)(ca[0] * 255.f);
+    rgb[index + 1] = (unsigned char)(ca[1] * 255.f);
+    rgb[index + 2] = (unsigned char)(ca[2] * 255.f);
+    if (rgb[index + 0] > 255.f) rgb[index + 0] = 255;
+    if (rgb[index + 1] > 255.f) rgb[index + 1] = 255;
+    if (rgb[index + 2] > 255.f) rgb[index + 2] = 255;
+  }
+
+  void Add(int pixel, glm::vec3 &ca, float w) {
+    int index = 3 * pixel;
+    rgb[index + 0] = ((unsigned char)(ca[0] * 255.f) * w);
+    rgb[index + 1] = ((unsigned char)(ca[1] * 255.f) * w);
+    rgb[index + 2] = ((unsigned char)(ca[2] * 255.f) * w);
   }
 
   unsigned char *GetBuffer() { return rgb; }
 
+  unsigned char *swap(unsigned char *buf) {
+    if (buf == nullptr) return nullptr;
+    std::swap(rgb, buf);
+    return buf;
+  }
+
   void Write();
+  void resize(const size_t &w, const size_t &h) {
+    if (rgb) delete[] rgb;
+    width = w;
+    height = h;
+    int size = 3 * width * height;
+    rgb = new unsigned char[size];
+    std::memset(rgb, 0, sizeof(char) * 3 * width * height);
+  }
+
   void clear() { std::memset(rgb, 0, sizeof(char) * 3 * width * height); }
 
   ~Image() { delete[] rgb; }

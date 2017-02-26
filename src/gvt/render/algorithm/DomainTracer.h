@@ -31,30 +31,27 @@
 #ifndef GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 #define GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 
-#include <gvt/core/mpi/Wrapper.h>
-#include <gvt/render/Types.h>
-#ifdef GVT_USE_MPE
-#include "mpe.h"
-#endif
-#include <gvt/core/schedule/TaskScheduling.h>
+#include <gvt/render/RenderContext.h>
+#include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
-#include <gvt/render/Schedulers.h>
-#include <gvt/render/RenderContext.h>
+#include <iterator>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-#include <gvt/render/adapter/heterogeneous/Wrapper.h>
+#include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
+
+#include <gvt/core/utils/global_counter.h>
 
 #include <boost/foreach.hpp>
 
@@ -62,7 +59,6 @@
 
 #define RAY_BUF_SIZE 10485760 // 10 MB per neighbor
 
-using namespace gvt::core::mpi;
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -91,105 +87,154 @@ public:
   size_t rays_start, rays_end;
 
   // caches meshes that are converted into the adapter's format
-  std::map<gvt::core::Uuid, gvt::render::Adapter *> adapterCache;
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes;
-  std::map<gvt::core::Uuid, size_t> mpiInstanceMap;
-#ifdef GVT_USE_MPE
-  int tracestart, traceend;
-  int shufflestart, shuffleend;
-  int framebufferstart, framebufferend;
-  int localrayfilterstart, localrayfilterend;
-  int intersectbvhstart, intersectbvhend;
-  int marchinstart, marchinend;
-#endif
+  gvt::core::Map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
+  gvt::core::Map<int, int> mpiInstanceMap;
 
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
-#ifdef GVT_USE_MPE
-    // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPE_Log_get_state_eventIDs(&tracestart, &traceend);
-    MPE_Log_get_state_eventIDs(&shufflestart, &shuffleend);
-    MPE_Log_get_state_eventIDs(&framebufferstart, &framebufferend);
-    MPE_Log_get_state_eventIDs(&localrayfilterstart, &localrayfilterend);
-    MPE_Log_get_state_eventIDs(&intersectbvhstart, &intersectbvhend);
-    MPE_Log_get_state_eventIDs(&marchinstart, &marchinend);
-    if (mpi.rank == 0) {
-      MPE_Describe_state(tracestart, traceend, "Process Queue", "blue");
-      MPE_Describe_state(shufflestart, shuffleend, "Shuffle Rays", "green");
-      MPE_Describe_state(framebufferstart, framebufferend, "Gather Framebuffer", "orange");
-      MPE_Describe_state(localrayfilterstart, localrayfilterend, "Filter Rays Local", "coral");
-      MPE_Describe_state(intersectbvhstart, intersectbvhend, "Intersect BVH", "azure");
-      MPE_Describe_state(marchinstart, marchinend, "March Ray in", "LimeGreen");
+
+    Initialize();
+  }
+
+  void resetInstances() {
+    AbstractTrace::resetInstances();
+    for (auto a : adapterCache) {
+      delete a.second;
     }
-#endif
-    dataNodes = rootnode["Data"].getChildren();
+    adapterCache.clear();
+    mpiInstanceMap.clear();
+    Initialize();
+  }
+
+  virtual void Initialize() {
+
+    std::cout << "Entered here" << std::endl;
+
+    gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
+    gvt::core::Map<int, std::set<std::string> > meshAvailbyMPI;         // where meshes are by mpi node
+    gvt::core::Map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
+
+    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
+
+    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
+
+    // build location map, where meshes are by mpi node
+    for (size_t i = 0; i < dataNodes.size(); i++) {
+      gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
+      for (auto loc : locations) {
+        meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
+      }
+    }
+
+    lastAssigned = meshAvailbyMPI.begin();
 
     // create a map of instances to mpi rank
     for (size_t i = 0; i < instancenodes.size(); i++) {
-      gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
 
-      size_t dataIdx = -1;
-      for (size_t d = 0; d < dataNodes.size(); d++) {
-        if (dataNodes[d].UUID() == meshNode.UUID()) {
-          dataIdx = d;
-          break;
-        }
+      mpiInstanceMap[i] = -1;
+      if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
+
+        gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
+
+        // Instance to mpi-node Round robin assignment considering mesh availability
+        auto startedAt = lastAssigned;
+        do {
+          if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
+            if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
+              mpiInstanceMap[i] = lastAssigned->first;
+              lastAssigned++;
+              if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+              break;
+            } else {
+              // branch out from lastAssigned and search for a mpi-node with the mesh
+              // keep lastAssigned to continue with round robin
+              auto branchOutSearch = lastAssigned;
+              do {
+                if (branchOutSearch->second.find(meshNode.UUID().toString()) != branchOutSearch->second.end()) {
+                  mpiInstanceMap[i] = branchOutSearch->first;
+                  break;
+                }
+                branchOutSearch++;
+                if (branchOutSearch == meshAvailbyMPI.end()) branchOutSearch = meshAvailbyMPI.begin();
+              } while (branchOutSearch != lastAssigned);
+              break; // If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
+            }
+          }
+          lastAssigned++;
+          if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
+        } while (lastAssigned != startedAt);
       }
-
-      // NOTE: mpi-data(domain) assignment strategy
-      size_t mpiNode = dataIdx % mpi.world_size;
-
-      GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: instId: " << i << ", dataIdx: " << dataIdx
-                                << ", target mpi node: " << mpiNode << ", world size: " << mpi.world_size);
-
-      GVT_ASSERT(dataIdx != -1, "domain scheduler: could not find data node");
-      mpiInstanceMap[instancenodes[i].UUID()] = mpiNode;
     }
   }
 
   virtual ~Tracer() {}
 
-  virtual void FilterRaysLocally() {
-    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until
-                                          // shuffleRays is fully replaced
-    shuffleRays(rays, nullNode);
+  void shuffleDropRays(gvt::render::actor::RayVector &rays) {
 
-    for (auto e : queue) {
-      if (mpiInstanceMap[instancenodes[e.first].UUID()] != mpi.rank) {
-        GVT_DEBUG(DBG_ALWAYS, " rank[" << mpi.rank << "] FILTERRAYS: removing queue " << e.first);
-        queue[e.first].clear();
-      }
-    }
+    const size_t chunksize = MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
+    static tbb::simple_partitioner ap;
+
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+                      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+
+                        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+                            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
+                        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+                        for (size_t i = 0; i < hits.size(); i++) {
+                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+                          if (hits[i].next != -1) {
+                            r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+                            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
+                            if (inRank) local_queue[hits[i].next].push_back(r);
+                          }
+                        }
+
+                        for (auto &q : local_queue) {
+                          queue_mutex[q.first].lock();
+                          queue[q.first].insert(queue[q.first].end(),
+                                                std::make_move_iterator(local_queue[q.first].begin()),
+                                                std::make_move_iterator(local_queue[q.first].end()));
+                          queue_mutex[q.first].unlock();
+                        }
+                      },
+                      ap);
+
+    rays.clear();
   }
 
-  virtual void operator()() {
-    boost::timer::cpu_timer t_sched;
-    t_sched.start();
-    boost::timer::cpu_timer t_trace;
-    GVT_DEBUG(DBG_ALWAYS, "domain scheduler: starting, num rays: " << rays.size());
+  inline void FilterRaysLocally() { shuffleDropRays(rays); }
+
+  inline void operator()() {
+
+    gvt::core::time::timer t_diff(false, "domain tracer: diff timers/frame:");
+    gvt::core::time::timer t_all(false, "domain tracer: all timers:");
+    gvt::core::time::timer t_frame(true, "domain tracer: frame :");
+    gvt::core::time::timer t_gather(false, "domain tracer: gather :");
+    gvt::core::time::timer t_send(false, "domain tracer: send :");
+    gvt::core::time::timer t_shuffle(false, "domain tracer: shuffle :");
+    gvt::core::time::timer t_trace(false, "domain tracer: trace :");
+    gvt::core::time::timer t_sort(false, "domain tracer: select :");
+    gvt::core::time::timer t_adapter(false, "domain tracer: adapter :");
+    gvt::core::time::timer t_filter(false, "domain tracer: filter :");
+
+    gvt::util::global_counter gc_rays("Number of rays traced :");
+    gvt::util::global_counter gc_filter("Number of rays filtered :");
+    gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
+    gvt::util::global_counter gc_sent("Number of rays sent :");
+
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
     clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
-    long domain_counter = 0;
-
-// FindNeighbors();
-
-// sort rays into queues
-// note: right now throws away rays that do not hit any domain owned by the current
-// rank
-#ifdef GVT_USE_MPE
-    MPE_Log_event(localrayfilterstart, 0, NULL);
-#endif
+    t_filter.resume();
+    gc_filter.add(rays.size());
     FilterRaysLocally();
-#ifdef GVT_USE_MPE
-    MPE_Log_event(localrayfilterend, 0, NULL);
-#endif
-
-    GVT_DEBUG(DBG_LOW, "tracing rays");
+    t_filter.stop();
 
     // process domains until all rays are terminated
     bool all_done = false;
+    int nqueue = 0;
     std::set<int> doms_to_send;
     int lastInstance = -1;
     // gvt::render::data::domain::AbstractDomain* dom = NULL;
@@ -201,259 +246,137 @@ public:
     size_t instTargetCount = 0;
 
     gvt::render::Adapter *adapter = 0;
+    do {
 
-    while (!all_done) {
-
-      if (!queue.empty()) {
-        // process domain assigned to this proc with most rays queued
-        // if there are queues for instances that are not assigned
-        // to the current rank, erase those entries
+      do {
+        // process domain with most rays queued
         instTarget = -1;
         instTargetCount = 0;
 
-        std::vector<int> to_del;
-        GVT_DEBUG(DBG_ALWAYS, "domain scheduler: selecting next instance, num queues: " << this->queue.size());
+        t_sort.resume();
+
         for (auto &q : queue) {
-          const bool inRank = mpiInstanceMap[instancenodes[q.first].UUID()] == mpi.rank;
 
-          if (q.second.empty() || !inRank) {
-            to_del.push_back(q.first);
-            continue;
-          }
-
+          const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
           }
         }
+        t_sort.stop();
 
-        // erase empty queues
-        for (int instId : to_del) {
-          GVT_DEBUG(DBG_ALWAYS, "rank[" << mpi.rank << "] DOMAINTRACER: deleting queue for instance " << instId);
-          queue.erase(instId);
-        }
-
-        if (instTarget == -1) {
-          continue;
-        }
-
-        GVT_DEBUG(DBG_ALWAYS, "domain scheduler: next instance: " << instTarget << ", rays: " << instTargetCount << " ["
-                                                                  << mpi.rank << "]");
-
-        doms_to_send.clear();
-        // pnav: use this to ignore domain x:        int domi=0;if (0)
         if (instTarget >= 0) {
-          GVT_DEBUG(DBG_LOW, "Getting instance " << instTarget);
-          // gvt::render::Adapter *adapter = 0;
-          gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
+          t_adapter.resume();
+          gvt::render::Adapter *adapter = 0;
+          // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
 
-          if (instTarget != lastInstance) {
-            // TODO: before we would free the previous domain before loading the
-            // next
-            // this can be replicated by deleting the adapter
-            delete adapter;
+          gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
+
+          // TODO: Make cache generic needs to accept any kind of adpater
+
+          // 'getAdapterFromCache' functionality
+          auto it = adapterCache.find(mesh);
+          if (it != adapterCache.end()) {
+            adapter = it->second;
+          } else {
             adapter = 0;
           }
-
-          // track domains loaded
-          if (instTarget != lastInstance) {
-            ++domain_counter;
-            lastInstance = instTarget;
-
-            //
-            // 'getAdapterFromCache' functionality
-            if (!adapter) {
-              GVT_DEBUG(DBG_ALWAYS, "domain scheduler: creating new adapter");
-              switch (adapterType) {
+          if (!adapter) {
+            switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-              case gvt::render::adapter::Embree:
-                adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(meshNode);
-                break;
+            case gvt::render::adapter::Embree:
+              adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+              break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
-              case gvt::render::adapter::Manta:
-                adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(meshNode);
-                break;
+            case gvt::render::adapter::Manta:
+              adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
+              break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-              case gvt::render::adapter::Optix:
-                adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(meshNode);
-                break;
+            case gvt::render::adapter::Optix:
+              adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+              break;
 #endif
-#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-              case gvt::render::adapter::Heterogeneous:
-                adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(meshNode);
-                break;
-#endif
-              default:
-                GVT_DEBUG(DBG_SEVERE, "domain scheduler: unknown adapter type: " << adapterType);
-              }
-              // adapterCache[meshNode.UUID()] = adapter; // note: cache logic
-              // comes later when we implement hybrid
-            }
-            // end 'getAdapterFromCache' concept
-            //
-          }
-          GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
 
-          GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] domain scheduler: calling process queue");
+#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
+            case gvt::render::adapter::Heterogeneous:
+              adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+              break;
+#endif
+            default:
+              GVT_ERR_MESSAGE("domain scheduler: unknown adapter type: " << adapterType);
+            }
+
+            adapterCache[mesh] = adapter;
+          }
+          t_adapter.stop();
+          GVT_ASSERT(adapter != nullptr, "domain scheduler: adapter not set");
+          // end getAdapterFromCache concept
+
           {
             t_trace.resume();
+            gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
-#ifdef GVT_USE_DEBUG
-            boost::timer::auto_cpu_timer t("Tracing rays in adapter: %w\n");
-#endif
-#ifdef GVT_USE_MPE
-            MPE_Log_event(tracestart, 0, NULL);
-#endif
-            adapter->trace(this->queue[instTarget], moved_rays, instancenodes[instTarget]);
-#ifdef GVT_USE_MPE
-            MPE_Log_event(traceend, 0, NULL);
-#endif
+            adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
+                           instMinvN[instTarget], lights);
+
             this->queue[instTarget].clear();
+
             t_trace.stop();
           }
 
-#ifdef GVT_USE_MPE
-          MPE_Log_event(shufflestart, 0, NULL);
-#endif
-          shuffleRays(moved_rays, instancenodes[instTarget]);
-#ifdef GVT_USE_MPE
-          MPE_Log_event(shuffleend, 0, NULL);
-#endif
+          t_shuffle.resume();
+          gc_shuffle.add(moved_rays.size());
+          shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
+          t_shuffle.stop();
         }
-      }
+      } while (instTarget != -1);
 
-#if GVT_USE_DEBUG
-      if (!queue.empty()) {
-        std::cout << "[" << mpi.rank << "] Queue is not empty" << std::endl;
-        for (auto q : queue) {
-          std::cout << "[" << mpi.rank << "] [" << q.first << "] : " << q.second.size() << std::endl;
+      {
+        t_send.resume();
+        // done with current domain, send off rays to their proper processors.
+        SendRays(gc_sent);
+        // are we done?
+
+        // root proc takes empty flag from all procs
+        int not_done = 0;
+
+        for (auto &q : queue) not_done += q.second.size();
+
+        int *empties = (mpi.rank == 0) ? new int[mpi.world_size] : NULL;
+        MPI_Gather(&not_done, 1, MPI_INT, empties, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        if (mpi.rank == 0) {
+          not_done = 0;
+          for (size_t i = 0; i < mpi.world_size; ++i) not_done += empties[i];
+          for (size_t i = 0; i < mpi.world_size; ++i) empties[i] = not_done;
         }
+
+        MPI_Scatter(empties, 1, MPI_INT, &not_done, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        all_done = (not_done == 0);
+        t_send.stop();
+        delete[] empties;
       }
-#endif
+    } while (!all_done);
 
-      // done with current domain, send off rays to their proper processors.
-      GVT_DEBUG(DBG_ALWAYS, "Rank [ " << mpi.rank << "]  calling SendRays");
-      SendRays();
-      // are we done?
+    // add colors to the framebuffer
 
-      // root proc takes empty flag from all procs
-      int not_done = (int)(!queue.empty());
-      int *empties = (mpi.rank == 0) ? new int[mpi.world_size] : NULL;
-      MPI_Gather(&not_done, 1, MPI_INT, empties, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      if (mpi.rank == 0) {
-        not_done = 0;
-        for (size_t i = 0; i < mpi.world_size; ++i) not_done += empties[i];
-        for (size_t i = 0; i < mpi.world_size; ++i) empties[i] = not_done;
-      }
-
-      MPI_Scatter(empties, 1, MPI_INT, &not_done, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      GVT_DEBUG_CODE(DBG_ALWAYS, if (DEBUG_RANK) cerr << mpi.rank << ": " << not_done << " procs still have rays"
-                                                      << " (my q:" << queue.size() << ")");
-      all_done = (not_done == 0);
-
-      delete[] empties;
-    }
-
-// add colors to the framebuffer
-#ifdef GVT_USE_MPE
-    MPE_Log_event(framebufferstart, 0, NULL);
-#endif
+    t_gather.resume();
     this->gatherFramebuffers(this->rays_end - this->rays_start);
-#ifdef GVT_USE_MPE
-    MPE_Log_event(framebufferend, 0, NULL);
-#endif
+    t_gather.stop();
+    t_frame.stop();
+    t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter + t_send;
+    t_diff = t_frame - t_all;
+
+    gc_filter.print();
+    gc_shuffle.print();
+    gc_rays.print();
+    gc_sent.print();
   }
 
-  // FIXME: update FindNeighbors to use mpiInstanceMap
-  virtual void FindNeighbors() {
-    gvt::core::math::Vector3f topo;
-    topo = rootnode["Dataset"]["topology"].value().toVector3f();
-    int total = topo[2], plane = topo[1], row = topo[0]; // XXX TODO:
-    // int total = gvt::render::Attributes::rta->GetTopology()[2],
-    //   plane = gvt::render::Attributes::rta->GetTopology()[1],
-    //  row = gvt::render::Attributes::rta->GetTopology()[0];  // XXX TODO:
-    // assumes grid
-    // layout
-    int offset[3] = { -1, 0, 1 };
-    std::set<int> n_doms;
-
-    // find all domains that neighbor my domains
-    for (int i = 0; i < total; ++i) {
-      if (i % mpi.world_size != mpi.rank) continue;
-
-      // down, left
-      int n = i - 1;
-      if (n >= 0 && (n % row) < (i % row)) n_doms.insert(n);
-      n = i - row;
-      if (n >= 0 && (n % plane) < (i % plane)) n_doms.insert(n);
-      n = i - row - 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
-      n = i - row + 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
-
-      // up, right
-      n = i + 1;
-      if (n < total && (n % row) > (i % row)) n_doms.insert(n);
-      n = i + row;
-      if (n < total && (n % plane) > (i % plane)) n_doms.insert(n);
-      n = i + row - 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
-      n = i + row + 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
-
-      // bottom
-      n = i - plane;
-      if (n >= 0) n_doms.insert(n);
-      // bottom: down, left
-      n = i - plane - 1;
-      if (n >= 0 && (n % row) < (i % row)) n_doms.insert(n);
-      n = i - plane - row;
-      if (n >= 0 && (n % plane) < (i % plane)) n_doms.insert(n);
-      n = i - plane - row - 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
-      n = i - plane - row + 1;
-      if (n >= 0 && (n % plane) < (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
-      // bottom: up, right
-      n = i - plane + 1;
-      if (n >= 0 && (n % row) > (i % row)) n_doms.insert(n);
-      n = i - plane + row;
-      if (n >= 0 && (n % plane) > (i % plane)) n_doms.insert(n);
-      n = i - plane + row - 1;
-      if (n >= 0 && (n % plane) > (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
-      n = i - plane + row + 1;
-      if (n >= 0 && (n % plane) > (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
-
-      // top
-      n = i + plane;
-      if (n < total) n_doms.insert(n);
-      // down, left
-      n = i + plane - 1;
-      if (n < total && (n % row) < (i % row)) n_doms.insert(n);
-      n = i + plane - row;
-      if (n < total && (n % plane) < (i % plane)) n_doms.insert(n);
-      n = i + plane - row - 1;
-      if (n < total && (n % plane) < (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
-      n = i + plane - row + 1;
-      if (n < total && (n % plane) < (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
-      // up, right
-      n = i + plane + 1;
-      if (n < total && (n % row) > (i % row)) n_doms.insert(n);
-      n = i + plane + row;
-      if (n < total && (n % plane) > (i % plane)) n_doms.insert(n);
-      n = i + plane + row - 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) < (i % row)) n_doms.insert(n);
-      n = i + plane + row + 1;
-      if (n < total && (n % plane) > (i % plane) && (n % row) > (i % row)) n_doms.insert(n);
-    }
-
-    // find which proc owns each neighboring domain
-    for (std::set<int>::iterator it = n_doms.begin(); it != n_doms.end(); ++it)
-      if (*it % mpi.world_size != mpi.rank) neighbors.insert(*it % mpi.world_size);
-  }
-  virtual bool SendRays() {
+  inline bool SendRays(gvt::util::global_counter &counter) {
     int *outbound = new int[2 * mpi.world_size];
     int *inbound = new int[2 * mpi.world_size];
     MPI_Request *reqs = new MPI_Request[2 * mpi.world_size];
@@ -471,29 +394,26 @@ public:
     }
 
     // count how many rays are to be sent to each neighbor
-    for (std::map<int, gvt::render::actor::RayVector>::iterator q = queue.begin(); q != queue.end(); ++q) {
+    for (auto &q : queue) {
       // n is the rank this vector of rays (q.second) belongs on.
-      size_t n = mpiInstanceMap[instancenodes[q->first].UUID()]; // bds
-      GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: instance " << q->first << " maps to proc " << n);
-      if (n != mpi.rank) { // bds if instance n is not this rank send rays to it.
+      size_t n = mpiInstanceMap[q.first]; // bds
+      if (n != mpi.rank) {                // bds if instance n is not this rank send rays to it.
         int n_ptr = 2 * n;
         int buf_size = 0;
 
-        outbound[n_ptr] += q->second.size(); // outbound[n_ptr] has number of rays going
-        for (size_t r = 0; r < q->second.size(); ++r) {
-          buf_size += (q->second)[r].packedSize(); // rays can have diff packed sizes
+        outbound[n_ptr] += q.second.size(); // outbound[n_ptr] has number of rays going
+
+        for (size_t r = 0; r < q.second.size(); ++r) {
+          buf_size += (q.second)[r].packedSize(); // rays can have diff packed sizes
         }
         outbound[n_ptr + 1] += buf_size;    // size of buffer needed to hold rays
         outbound[n_ptr + 1] += sizeof(int); // bds add space for the queue number
         outbound[n_ptr + 1] += sizeof(int); // bds add space for the number of rays in queue
-        GVT_DEBUG(DBG_ALWAYS, " neighbor! Added " << q->second.size() << " rays (" << buf_size << " bytes)"
-                                                  << std::endl);
       }
     }
 
     // let the neighbors know what's coming
     // and find out what's coming here
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: sending neighbor info" << std::endl);
 
     int tag = 0;
     for (size_t n = 0; n < mpi.world_size; ++n) // bds sends to self?
@@ -502,17 +422,6 @@ public:
       MPI_Isend(&outbound[2 * n], 2, MPI_INT, n, tag, MPI_COMM_WORLD, &reqs[2 * n + 1]);
 
     MPI_Waitall(2 * mpi.world_size, reqs, stat);
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]:GOT HEADS UP " << std::endl);
-#ifdef GVT_DEBUG
-    std::cerr << mpi.rank << ": sent neighbor info" << std::endl;
-    std::cerr << mpi.rank << ": inbound ";
-    for (size_t i = 0; i < mpi.world_size; ++i) std::cerr << "(" << inbound[2 * i] << "," << inbound[2 * i + 1] << ") ";
-    std::cerr << std::endl << mpi.rank << ": outbound ";
-    for (size_t i = 0; i < mpi.world_size; ++i)
-
-      std::cerr << "(" << outbound[2 * i] << "," << outbound[2 * i + 1] << ") ";
-    std::cerr << std::endl;
-#endif
 
     // set up send and recv buffers
     for (size_t i = 0, j = 0; i < mpi.world_size; ++i, j += 2) {
@@ -532,59 +441,45 @@ public:
     tag = tag + 1;
     for (size_t n = 0; n < mpi.world_size; ++n) { // bds loop through all ranks
       if (inbound[2 * n] > 0) {
-        GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: recv " << inbound[2 * n] << " rays (" << inbound[2 * n + 1]
-                                  << " bytes) from " << n << std::endl);
         MPI_Irecv(recv_buf[n], inbound[2 * n + 1], MPI_UNSIGNED_CHAR, n, tag, MPI_COMM_WORLD, &reqs[2 * n]);
-        GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << ": recv posted from " << n << std::endl);
       }
     }
     // ******************** pack the send buffers *********************************
-    std::vector<int> to_del;
-    for (std::map<int, gvt::render::actor::RayVector>::iterator q = queue.begin(); q != queue.end(); ++q) {
-      int n = mpiInstanceMap[instancenodes[q->first].UUID()]; // bds use instance map
+    // gvt::core::Vector<int> to_del;
+    // for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = queue.begin(); q != queue.end(); ++q) {
+    for (auto &q : queue) {
+      int n = mpiInstanceMap[q.first]; // bds use instance map
       if (outbound[2 * n] > 0) {
-        *((int *)(send_buf[n] + send_buf_ptr[n])) = q->first;         // bds load queue number into send buffer
-        send_buf_ptr[n] += sizeof(int);                               // bds advance pointer
-        *((int *)(send_buf[n] + send_buf_ptr[n])) = q->second.size(); // bds load number of rays into send buffer
-        send_buf_ptr[n] += sizeof(int);                               // bds advance pointer
-        GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: loading queue " << q->first << std::endl);
-        for (size_t r = 0; r < q->second.size(); ++r) { // load the rays in this queue
-          gvt::render::actor::Ray ray = (q->second)[r];
+        *((int *)(send_buf[n] + send_buf_ptr[n])) = q.first;         // bds load queue number into send buffer
+        send_buf_ptr[n] += sizeof(int);                              // bds advance pointer
+        *((int *)(send_buf[n] + send_buf_ptr[n])) = q.second.size(); // bds load number of rays into send buffer
+        send_buf_ptr[n] += sizeof(int);                              // bds advance pointer
+        for (size_t r = 0; r < q.second.size(); ++r) {               // load the rays in this queue
+          gvt::render::actor::Ray ray = (q.second)[r];
           send_buf_ptr[n] += ray.pack(send_buf[n] + send_buf_ptr[n]);
         }
-        to_del.push_back(q->first);
+        // to_del.push_back(q->first);
+        q.second.clear();
       }
     }
     for (size_t n = 0; n < mpi.world_size; ++n) { // bds loop over all
+      counter.add(outbound[2 * n + 1]);
       if (outbound[2 * n] > 0) {
         MPI_Isend(send_buf[n], outbound[2 * n + 1], MPI_UNSIGNED_CHAR, n, tag, MPI_COMM_WORLD, &reqs[2 * n + 1]);
-        GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: send done to " << n << std::endl);
       }
     }
-
-    // GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << ": q(" << queue.size()
-    //                            << ") erasing " << to_del.size());
-    // for (int i = 0; i < to_del.size(); ++i) queue.erase(to_del[i]);
-    // GVT_DEBUG(DBG_ALWAYS,  " q(" << queue.size() << ")" << std::endl);
 
     MPI_Waitall(2 * mpi.world_size, reqs, stat); // XXX TODO refactor to use Waitany?
 
     // ******************* unpack rays into the queues **************************
     for (int n = 0; n < mpi.world_size; ++n) { // bds loop over all
-      GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] " << n << " inbound[2*n] " << inbound[2 * n] << std::endl);
       if (inbound[2 * n] > 0) {
-        // clang-format off
-        GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: adding " << inbound[2 * n] << " rays (" << inbound[2 * n + 1]
-                                  << " B) from " << n << std::endl << "    recv buf: " << (long)recv_buf[n]
-                                  << std::endl);
-        // clang-format on
         int ptr = 0;
         while (ptr < inbound[2 * n + 1]) {
           int q_number = *((int *)(recv_buf[n] + ptr)); // bds get queue number
           ptr += sizeof(int);
           int raysinqueue = *((int *)(recv_buf[n] + ptr)); // bds get rays in this queue
           ptr += sizeof(int);
-          GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: unpacking queue " << q_number << std::endl);
           for (int c = 0; c < raysinqueue; ++c) {
             gvt::render::actor::Ray r(recv_buf[n] + ptr);
             queue[q_number].push_back(r);
@@ -593,7 +488,6 @@ public:
         }
       }
     }
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "]: sent and received rays" << std::endl);
 
     // clean up
     for (size_t i = 0; i < mpi.world_size; ++i) {
@@ -607,7 +501,6 @@ public:
     delete[] outbound;
     delete[] reqs;
     delete[] stat;
-    GVT_DEBUG(DBG_ALWAYS, "[" << mpi.rank << "] done with DomainSendRays");
     return false;
   }
 };

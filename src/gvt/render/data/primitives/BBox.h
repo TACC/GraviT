@@ -31,40 +31,61 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_BBOX_H
 #define GVT_RENDER_DATA_PRIMITIVES_BBOX_H
 
+#include <fstream>
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 #include <gvt/render/actor/Ray.h>
-#include <fstream>
 
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
+
+template <typename T> inline T fastmin(const T &a, const T &b) { return (a < b) ? a : b; }
+
+template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) ? a : b; }
+
 /// bounding box for data and acceleration structures
 class Box3D {
 public:
-  gvt::core::math::Point4f bounds[2];
+  glm::vec3 bounds_min;
+  float aa0;
+  glm::vec3 bounds_max;
+  float aa1;
 
   Box3D();
-  Box3D(gvt::core::math::Point4f vmin, gvt::core::math::Point4f vmax);
+  Box3D(glm::vec3 vmin, glm::vec3 vmax);
 
   Box3D(const Box3D &other);
-  bool intersect(const gvt::render::actor::Ray &r) const;
-  bool intersect(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
-  bool inBox(const gvt::render::actor::Ray &r) const;
-  bool inBox(const gvt::core::math::Point4f &r) const;
-  gvt::core::math::Point4f getHitpoint(const gvt::render::actor::Ray &r) const;
-  bool intersectDistance(const gvt::render::actor::Ray &r, float &t) const;
-  bool intersectDistance(const gvt::render::actor::Ray &r, float &tmin, float &tmax) const;
+  inline bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &t) const {
+    glm::vec3 l = (bounds_min - origin) * inv;
+    glm::vec3 u = (bounds_max - origin) * inv;
+    glm::vec3 m = glm::min(l, u);
+    float tmin = fastmax(fastmax(m.x, m.y), m.z);
+
+    if (tmin < gvt::render::actor::Ray::RAY_EPSILON) return false;
+
+    glm::vec3 M = glm::max(l, u);
+
+    float tmax = fastmin(fastmin(M.x, M.y), M.z);
+
+    if (tmax < 0 || tmin > tmax) return false;
+    t = (tmin > 0) ? tmin : -1;
+
+    return (t > gvt::render::actor::Ray::RAY_EPSILON);
+  };
+  bool intersectDistance(const glm::vec3 &origin, const glm::vec3 &inv, float &tmin, float &tmax) const;
   void merge(const Box3D &other);
-  void expand(gvt::core::math::Point4f &v);
+  void expand(glm::vec3 &v);
   int wideRangingBoxDir() const;
-  gvt::core::math::Point4f centroid() const;
+  glm::vec3 centroid() const;
   float surfaceArea() const;
 
+  Box3D transform(glm::mat4 m);
+
   friend std::ostream &operator<<(std::ostream &os, const Box3D &bbox) {
-    os << bbox.bounds[0] << " x ";
-    os << bbox.bounds[1];
+    os << bbox.bounds_min << " x ";
+    os << bbox.bounds_max;
     return os;
   }
 

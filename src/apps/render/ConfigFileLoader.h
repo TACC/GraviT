@@ -32,9 +32,9 @@
 
 #include <string>
 
-#include <gvt/render/data/Dataset.h>
-#include <gvt/render/data/Domains.h>
 #include <gvt/core/Debug.h>
+#include <gvt/render/data/Domains.h>
+
 
 namespace gvtapps {
 namespace render {
@@ -73,7 +73,7 @@ public:
   /** gvt render dataset member function that contains all the scene data,
   cameras, lights, objects etc.
   */
-  gvt::render::data::Dataset scene;
+  // gvt::render::data::Dataset scene;
 
   /**  data member that indicates the type of renderer to use. Options include
   but are not limited to Manta, Optix, and Embree.

@@ -30,45 +30,18 @@
 
 #ifndef GVT_RENDER_ACTOR_RAY_H
 #define GVT_RENDER_ACTOR_RAY_H
+
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/Types.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 
-#include <limits>
-#include <boost/aligned_storage.hpp>
-#include <boost/container/set.hpp>
-#include <boost/container/vector.hpp>
-#include <boost/pool/pool.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/smart_ptr.hpp>
-
-#include <vector>
+#include <iomanip>
 
 namespace gvt {
 namespace render {
 namespace actor {
-/// container for intersection point information
-typedef struct intersection {
-  int domain; /// domain in which the intersection occurred
-  float d;    /// distance to the intersection point
 
-  intersection(int dom) : domain(dom), d(FLT_MAX) {}
-  intersection(int dom, float dist) : domain(dom), d(dist) {}
-
-  /// return the id of the intersected domain
-  operator int() { return domain; }
-  /// return the distance to the intersection point
-  operator float() { return d; }
-  friend inline bool operator==(const intersection &lhs, const intersection &rhs) {
-    return (lhs.d == rhs.d) && (lhs.d == rhs.d);
-  }
-  friend inline bool operator<(const intersection &lhs, const intersection &rhs) {
-    return (lhs.d < rhs.d) || ((lhs.d == rhs.d) && (lhs.domain < rhs.domain));
-  }
-
-} isecDom;
-
-typedef std::vector<isecDom> isecDomList;
 
 class Ray {
 public:
@@ -86,58 +59,67 @@ public:
   };
 
   const static float RAY_EPSILON;
+
   // clang-format on
+  inline Ray() { }
+  inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
+      : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
+        t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
 
-  Ray(gvt::core::math::Point4f origin = gvt::core::math::Point4f(0, 0, 0, 1),
-      gvt::core::math::Vector4f direction = gvt::core::math::Vector4f(0, 0, 0, 0), float contribution = 1.f,
-      RayType type = PRIMARY, int depth = 10);
-  Ray(Ray &ray, gvt::core::math::AffineTransformMatrix<float> &m);
-  Ray(const Ray &orig);
-  Ray(Ray &&ray);
-  Ray(const unsigned char *buf);
+  inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
 
-  Ray operator=(const Ray &r) { return std::move(Ray(r)); }
+  inline Ray(Ray &&r) { std::memmove(data, r.data, packedSize()); }
 
-  virtual ~Ray();
+  inline Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
 
-  void setDirection(gvt::core::math::Vector4f dir);
-  void setDirection(double *dir);
-  void setDirection(float *dir);
+  inline Ray &operator=(const Ray &r) {
+    std::memcpy(data, r.data, packedSize());
+    return *this;
+  }
+
+  inline Ray &operator=(Ray &&r) {
+    std::memmove(data, r.data, packedSize());
+    return *this;
+  }
+  ~Ray(){}
 
   /// returns size in bytes for the ray information to be sent via MPI
-  int packedSize();
+  size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
-  int pack(unsigned char *buffer);
+  size_t pack(unsigned char *buffer) {
+    unsigned char *buf = buffer;
+    std::memcpy(buf, data, packedSize());
+    return packedSize();
+  }
 
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
-    stream << ray.origin << "-->" << ray.direction << " [" << ray.type << "]";
+    stream << std::setprecision(4) << std::fixed << std::scientific;
+    stream << "Ray[" << ray.id << "][" << ((ray.type == PRIMARY) ? "P" : (ray.type == SHADOW) ? "SH" : "S");
+    stream << "]" << ray.origin << " " << ray.direction << " " << ray.color;
+    stream << " t[" << ray.t_min << ", " << ray.t << ", " << ray.t_max << "]";
     return stream;
   }
 
   union {
     struct {
-      mutable gvt::core::math::Point4f origin;
-      mutable gvt::core::math::Vector4f direction;
-      mutable gvt::core::math::Vector4f inverseDirection;
-      mutable GVT_COLOR_ACCUM color;
+      glm::vec3 origin;
+      float t_min;
+      glm::vec3 direction;
+      float t_max;
+      glm::vec3 color;
+      float t;
       int id;    ///<! index into framebuffer
       int depth; ///<! sample rate
       float w;   ///<! weight of image contribution
-      mutable float t;
-      mutable float t_min;
-      mutable float t_max;
       int type;
     };
-    unsigned char data[16 * 4 + 7 * 4];
+    unsigned char data[64] GVT_ALIGN(16);
   };
-  isecDomList domains;
 
-protected:
 };
 
-// NOTE: removing boost pool allocator greatly improves timings
-typedef std::vector<Ray> RayVector;
+typedef gvt::core::Vector<Ray> RayVector;
 }
 }
 }

@@ -1,0 +1,13 @@
+PROJECT(MPICommLib)
+
+FILE(GLOB_RECURSE MPI_COMM_CPP_FILES *.cpp)
+FILE(GLOB_RECURSE MPI_COMM_C_FILES *.c)
+
+find_package(MPI REQUIRED)
+find_package(TBB REQUIRED)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${MPICOMM_INCLUDE_DIRS})
+
+add_library(${PROJECT_NAME} STATIC ${MPI_COMM_CPP_FILES} ${MPI_COMM_CPP_FILES})
+target_link_libraries(${PROJECT_NAME} ${MPI_COMM_LIBS_DEPS})

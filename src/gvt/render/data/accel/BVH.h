@@ -28,9 +28,13 @@
 #ifndef GVT_RENDER_DATA_ACCEL_BVH_H
 #define GVT_RENDER_DATA_ACCEL_BVH_H
 
+#include <stack>
+#include <mutex>
+
+#include <gvt/core/Math.h>
+#include <gvt/render/actor/RayPacket.h>
 #include <gvt/render/data/accel/AbstractAccel.h>
 #include <gvt/render/data/primitives/BBox.h>
-#include <gvt/core/Math.h>
 
 namespace gvt {
 namespace render {
@@ -48,13 +52,83 @@ public:
   BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet);
   ~BVH();
 
-  /// traverse ray through BVH and return list of leaves hit
-  /**
-  traverse the given ray against this BVH and return a list of leaves hit
-  \param ray the ray to traverse
-  \param isect list of leaves intersected
-  */
-  virtual void intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect);
+  struct hit {
+    int next = -1;
+    float t = FLT_MAX;
+  };
+
+  template <size_t simd_width>
+  gvt::core::Vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
+                                   const gvt::render::actor::RayVector::iterator &ray_end,
+                                   const int from) {
+
+    gvt::core::Vector<hit> ret((ray_end - ray_begin));
+    size_t offset = 0;
+#ifndef GVT_BRUTEFORCE
+    Node *stack[instanceSet.size() * 2];
+    Node **stackptr = stack;
+#endif
+
+    gvt::render::actor::RayVector::iterator chead = ray_begin;
+    for (; offset < ret.size(); offset += simd_width, chead += simd_width) {
+      gvt::render::actor::RayPacketIntersection<simd_width> rp(chead, ray_end);
+
+#ifdef GVT_BRUTEFORCE
+      for (int i = 0; i < instanceSet.size(); i++) {
+        if (from == instanceSetID[i]) continue;
+        int hit[simd_width];
+        const primitives::Box3D &ibbox = *instanceSetBB[i];
+        rp.intersect(ibbox, hit, true);
+        {
+          for (int o = 0; o < simd_width; ++o) {
+            if (hit[o] == 1 && rp.mask[o] == 1) {
+              ret[offset + o].next = instanceSetID[i];
+              ret[offset + o].t = rp.t[o];
+            }
+          }
+        }
+      }
+#else
+
+      *(stackptr++) = nullptr;
+      Node *cur = root;
+      int hit[simd_width];
+      while (cur) {
+
+        const gvt::render::data::primitives::Box3D &bb = cur->bbox;
+        if (!rp.intersect(bb, hit)) {
+          cur = *(--stackptr);
+          continue;
+        }
+
+        if (cur->numInstances > 0) { // leaf node
+          int start = cur->instanceSetIdx;
+          int end = start + cur->numInstances;
+          for (int i = start; i < end; ++i) {
+            if (from == instanceSetID[i]) continue;
+            const primitives::Box3D &ibbox = *instanceSetBB[i];
+            int hit[simd_width];
+            if (rp.intersect(ibbox, hit, true)) {
+              for (int o = 0; o < simd_width; ++o) {
+                if (hit[o] == 1 && rp.mask[o] == 1 && ret[offset + o].t > rp.t[o]) {
+                  ret[offset + o].next = instanceSetID[i];
+                  ret[offset + o].t = rp.t[o];
+                }
+              }
+            }
+          }
+
+          cur = *(--stackptr);
+
+        } else {
+          *(stackptr++) = cur->rightChild;
+          cur = cur->leftChild;
+        }
+      }
+#endif
+    }
+    return ret;
+  }
 
 private:
   struct Node {
@@ -70,7 +144,7 @@ private:
     CentroidLessThan(float splitPoint, int splitAxis) : splitPoint(splitPoint), splitAxis(splitAxis) {}
     bool operator()(const gvt::core::DBNodeH inst) const {
       gvt::core::DBNodeH i2 = inst;
-      gvt::core::math::Point4f centroid = i2["centroid"].value().toPoint4f();
+      glm::vec3 centroid = i2["centroid"].value().tovec3();
       return (centroid[splitAxis] < splitPoint);
     }
 
@@ -83,16 +157,13 @@ private:
 
   float findSplitPoint(int splitAxis, int start, int end);
 
-  /// traverse ray through BVH. Called by intersect().
-  void trace(const gvt::render::actor::Ray &ray, const Node *node, /*ClosestHit &hit,*/
-             gvt::render::actor::isecDomList &isect, int level);
-
-  std::vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
-  std::vector<int> instanceSetID;
+  gvt::core::Vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
+  gvt::core::Vector<int> instanceSetID;
 
 private:
-  std::vector<Node *> nodes;
+  gvt::core::Vector<Node *> nodes;
   Node *root;
+  static std::mutex c_out;
 };
 }
 }
