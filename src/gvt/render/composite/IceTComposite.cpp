@@ -52,7 +52,6 @@ namespace composite {
 
 const IceTFloat black[] = { 1.0, 0.0, 0.0, 1.0 };
 
-
 IceTComposite::IceTComposite(std::size_t width, std::size_t height)
     : gvt::render::composite::ImageComposite(width, height) {
 
@@ -101,12 +100,10 @@ float *IceTComposite::composite() {
   return color_buffer_final;
 }
 
-void IceTComposite::localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha,
-                             float t) {
+void IceTComposite::localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha, float t) {
   for (int i = 0; i < 3; i++) {
     color_buffer[(y * width + x) * 4 + i] += color[i];
-    if (color_buffer[(y * width + x) * 4 + i] > 1.f)
-      color_buffer[(y * width + x) * 4 + i] = 1.f;
+    if (color_buffer[(y * width + x) * 4 + i] > 1.f) color_buffer[(y * width + x) * 4 + i] = 1.f;
   }
   color_buffer[(y * width + x) * 4 + 3] += alpha;
 };
@@ -139,8 +136,7 @@ void IceTComposite::write(std::string filename) {
   header << "255" << std::endl << std::flush;
 
   std::fstream file;
-  file.open((filename + ext).c_str(),
-            std::fstream::out | std::fstream::trunc | std::fstream::binary);
+  file.open((filename + ext).c_str(), std::fstream::out | std::fstream::trunc | std::fstream::binary);
   file << header.str();
 
   std::cout << "Image write " << width << " x " << height << std::endl << std::flush;

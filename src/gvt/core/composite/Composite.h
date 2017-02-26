@@ -47,15 +47,12 @@ protected:
   std::size_t width, height;
 
 public:
-  Buffer(std::size_t width = 0, std::size_t height = 0)
-      : AbstractCompositeBuffer(), width(width), height(height) {}
+  Buffer(std::size_t width = 0, std::size_t height = 0) : AbstractCompositeBuffer(), width(width), height(height) {}
   ~Buffer() {}
   virtual void reset(){};
   virtual T *composite() { return nullptr; };
-  virtual void localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha = 1.f,
-                        float t = 0.f){};
-  virtual void localAdd(size_t i, const glm::vec3 &color, float alpha = 1.f,
-                        float t = 0.f){};
+  virtual void localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha = 1.f, float t = 0.f){};
+  virtual void localAdd(size_t i, const glm::vec3 &color, float alpha = 1.f, float t = 0.f){};
 
 private:
 };

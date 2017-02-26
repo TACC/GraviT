@@ -156,7 +156,7 @@ void CoreContext::syncContext() {
   int nTreeNodeEntries = 0;
 
   gvt::core::Vector<int> mySyncTable(rankSize, 0); // array with the # tree-nodes to send
-  gvt::core::Vector<int> syncTable(rankSize, 0); // reduced array with the # tree-nodes to send from all nodes
+  gvt::core::Vector<int> syncTable(rankSize, 0);   // reduced array with the # tree-nodes to send from all nodes
   gvt::core::Vector<MarshedDatabaseNode> buf;
 
   mySyncTable[myRank] = __nodesToSync.size();

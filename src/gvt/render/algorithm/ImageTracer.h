@@ -89,13 +89,13 @@ public:
                                                 : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
   }
 
-   void resetInstances() {
-      AbstractTrace::resetInstances();
-      for (auto a : adapterCache) {
-          delete a.second;
-        }
-      adapterCache.clear();
-   }
+  void resetInstances() {
+    AbstractTrace::resetInstances();
+    for (auto a : adapterCache) {
+      delete a.second;
+    }
+    adapterCache.clear();
+  }
 
   // organize the rays into queues
   // if using mpi, only keep the rays for the current rank
@@ -126,7 +126,6 @@ public:
     gvt::core::time::timer t_adapter(false, "image tracer: adapter :");
     gvt::core::time::timer t_filter(false, "image tracer: filter :");
 
-
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
     GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
@@ -141,7 +140,8 @@ public:
 
     gvt::render::actor::RayVector moved_rays;
     int instTarget = -1, instTargetCount = 0;
-    for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end(); ++q) {
+    for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
+         ++q) {
       if (q->second.size() > (size_t)instTargetCount) {
         instTargetCount = q->second.size();
         instTarget = q->first;
@@ -164,8 +164,6 @@ public:
         }
       }
       t_sort.stop();
-
-
 
       if (instTarget >= 0) {
         t_adapter.resume();
@@ -207,8 +205,7 @@ public:
             break;
 #endif
           default:
-              GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
-
+            GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
           }
 
           adapterCache[mesh] = adapter;
@@ -216,7 +213,6 @@ public:
         t_adapter.stop();
         GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
         // end getAdapterFromCache concept
-
 
         {
           t_trace.resume();
@@ -229,13 +225,12 @@ public:
           t_trace.stop();
         }
 
-
         t_shuffle.resume();
         shuffleRays(moved_rays, instTarget);
         moved_rays.clear();
         t_shuffle.stop();
       } else {
-        //std::cout << "No more work" << std::endl;
+        // std::cout << "No more work" << std::endl;
       }
     } while (instTarget != -1);
 
@@ -245,10 +240,8 @@ public:
     t_gather.stop();
     t_frame.stop();
 
-
     t_all = t_sort + t_trace + t_shuffle + t_gather + t_adapter + t_filter;
     t_diff = t_frame - t_all;
-
   }
 };
 }

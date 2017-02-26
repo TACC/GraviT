@@ -32,29 +32,25 @@
 #include <cuda_runtime.h>
 #include <optix_prime/optix_primepp.h>
 
-
-
 /**
  * CUDA shading API /////
  */
-#include "Mesh.cuh"
-#include "Ray.cuh"
 #include "Light.cuh"
 #include "Material.cuh"
-#include "curand_kernel.h"
+#include "Mesh.cuh"
 #include "OptixMeshAdapter.cuh"
+#include "Ray.cuh"
+#include "curand_kernel.h"
 
-void shade( gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
+void shade(gvt::render::data::cuda_primitives::CudaGvtContext *cudaGvtCtx);
 
-curandState* set_random_states(int N);
+curandState *set_random_states(int N);
 
-void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay* optixrays, bool* valid,
-                  const int localPacketSize, gvt::render::data::cuda_primitives::Ray* rays,
-                    gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx, bool,
-                    cudaStream_t& stream);
+void cudaPrepOptixRays(gvt::render::data::cuda_primitives::OptixRay *optixrays, bool *valid, const int localPacketSize,
+                       gvt::render::data::cuda_primitives::Ray *rays,
+                       gvt::render::data::cuda_primitives::CudaGvtContext *cudaGvtCtx, bool, cudaStream_t &stream);
 
-
-void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaGvtContext* cudaGvtCtx);
+void cudaProcessShadows(gvt::render::data::cuda_primitives::CudaGvtContext *cudaGvtCtx);
 
 /**
  * /////// CUDA shading API
@@ -66,24 +62,19 @@ namespace adapter {
 namespace optix {
 namespace data {
 
-
-
 struct OptixContext {
 
+  OptixContext() { optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA); }
 
-  OptixContext() {
-	  optix_context_ = ::optix::prime::Context::create(RTP_CONTEXT_TYPE_CUDA);
-  }
+  void initCuda(int packetSize) {
+    if (!_cudaGvtCtx[0]) {
 
-  void initCuda(int packetSize){
-	  if (!_cudaGvtCtx[0]){
+      cudaMallocHost(&(_cudaGvtCtx[0]), sizeof(gvt::render::data::cuda_primitives::CudaGvtContext));
+      cudaMallocHost(&(_cudaGvtCtx[1]), sizeof(gvt::render::data::cuda_primitives::CudaGvtContext));
 
-	      cudaMallocHost(&(_cudaGvtCtx[0]), sizeof (gvt::render::data::cuda_primitives::CudaGvtContext));
-	      cudaMallocHost(&(_cudaGvtCtx[1]), sizeof (gvt::render::data::cuda_primitives::CudaGvtContext));
-
-	      _cudaGvtCtx[0]->initCudaBuffers(packetSize);
-	      _cudaGvtCtx[1]->initCudaBuffers(packetSize);
-	  }
+      _cudaGvtCtx[0]->initCudaBuffers(packetSize);
+      _cudaGvtCtx[1]->initCudaBuffers(packetSize);
+    }
   }
 
   static OptixContext *singleton() {
@@ -91,7 +82,6 @@ struct OptixContext {
 
       _singleton = new OptixContext();
       printf("Initizalized cuda-optix adpater...\n");
-
     }
     return _singleton;
   };
@@ -103,8 +93,7 @@ struct OptixContext {
   /*
    * Two contexts due to memory transfer and computation overlap
    */
-  gvt::render::data::cuda_primitives::CudaGvtContext* _cudaGvtCtx[2] = {NULL, NULL};
-
+  gvt::render::data::cuda_primitives::CudaGvtContext *_cudaGvtCtx[2] = { NULL, NULL };
 };
 
 class OptixMeshAdapter : public gvt::render::Adapter {
@@ -134,7 +123,6 @@ public:
 
   unsigned long long packetSize;
 
-
 protected:
   /**
    * Handle to Optix context.
@@ -154,13 +142,13 @@ protected:
 
   size_t begin, end;
 
-	gvt::render::data::cuda_primitives::Ray* disp_Buff[2];
+  gvt::render::data::cuda_primitives::Ray *disp_Buff[2];
 
-	gvt::render::data::cuda_primitives::Ray* cudaRaysBuff[2];
+  gvt::render::data::cuda_primitives::Ray *cudaRaysBuff[2];
 
-	glm::mat4 *m_pinned;
-	glm::mat4 *minv_pinned;
-	glm::mat3* normi_pinned;
+  glm::mat4 *m_pinned;
+  glm::mat4 *minv_pinned;
+  glm::mat3 *normi_pinned;
 };
 }
 }

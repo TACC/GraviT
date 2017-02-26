@@ -39,9 +39,7 @@ struct EmptyMessage : public gvt::comm::Message {
 protected:
 public:
   EmptyMessage() : gvt::comm::Message() { tag(COMMUNICATOR_MESSAGE_TAG); };
-  EmptyMessage(const size_t &n) : gvt::comm::Message(n) {
-    tag(COMMUNICATOR_MESSAGE_TAG);
-  };
+  EmptyMessage(const size_t &n) : gvt::comm::Message(n) { tag(COMMUNICATOR_MESSAGE_TAG); };
   // EmptyMessage(const long src, const long dst, gvt::render::actor::RayVector &raylist);
 };
 

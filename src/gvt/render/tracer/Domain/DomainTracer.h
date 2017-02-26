@@ -38,7 +38,7 @@ protected:
   gvt::core::Map<int, gvt::render::actor::RayVector> queue;
 
   gvt::core::Map<int, std::set<int> > remote;
-  gvt::core::Map<int,bool> instances_in_node;
+  gvt::core::Map<int, bool> instances_in_node;
 
   std::shared_ptr<comm::vote::vote> v;
   volatile bool _GlobalFrameFinished = false;

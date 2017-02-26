@@ -24,8 +24,8 @@
 #ifndef GVT_CORE_DATABASE_H
 #define GVT_CORE_DATABASE_H
 
-#include "gvt/core/context/DatabaseNode.h"
 #include "gvt/core/Types.h"
+#include "gvt/core/context/DatabaseNode.h"
 
 #include <iostream>
 
@@ -48,15 +48,15 @@ public:
   bool hasNode(Uuid);
   // does the database contain this node
   bool hasNode(DatabaseNode *);
-  
-  //checks if non-leaf node exists by name
+
+  // checks if non-leaf node exists by name
   bool hasParentNode(String parentName);
 
   // get the database node with the given unique id
   DatabaseNode *getItem(Uuid);
 
-  //return non-leaf node exists by name
-  DatabaseNode * getParentNode(String parentName);
+  // return non-leaf node exists by name
+  DatabaseNode *getParentNode(String parentName);
 
   /// add this node to the database
   void setItem(DatabaseNode *);
@@ -88,16 +88,16 @@ public:
   void printTree(const Uuid &parent, const int depth = 0, std::ostream &os = std::cout);
 
   /// print the complete database hierarchy rooted at the given node for a single mpi-rank
-  ///synced print, all nodes required
+  /// synced print, all nodes required
   void printTree(const Uuid &parent, int rank, const int depth = 0, std::ostream &os = std::cout);
 
   /// Copies the node data to a byte buffer
   /// Structure: <uuid><nodeName><int variant type><value>
-  void marshLeaf(unsigned char *buffer, DatabaseNode& leaf);
+  void marshLeaf(unsigned char *buffer, DatabaseNode &leaf);
 
   /// Create a node from byte buffer
   /// check marshLeaf for structure
-  DatabaseNode * unmarshLeaf(unsigned char *buffer, Uuid parent);
+  DatabaseNode *unmarshLeaf(unsigned char *buffer, Uuid parent);
 
 private:
   Map<Uuid, DatabaseNode *> __nodes;

@@ -54,7 +54,6 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
     instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
     instanceSetID.push_back(node["id"].value().toInteger());
   }
-
 }
 
 BVH::~BVH() {
@@ -65,10 +64,7 @@ BVH::~BVH() {
   }
 }
 
-BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet,
-                      int start,
-                      int end,
-                      int level) {
+BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, int start, int end, int level) {
   Node *node = new Node();
 
   // TODO: better way to manange memory allocation?

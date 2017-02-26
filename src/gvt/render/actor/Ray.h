@@ -42,7 +42,6 @@ namespace gvt {
 namespace render {
 namespace actor {
 
-
 class Ray {
 public:
   /// ray type
@@ -61,7 +60,7 @@ public:
   const static float RAY_EPSILON;
 
   // clang-format on
-  inline Ray() { }
+  inline Ray() {}
   inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
       : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
         t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
@@ -81,7 +80,7 @@ public:
     std::memmove(data, r.data, packedSize());
     return *this;
   }
-  ~Ray(){}
+  ~Ray() {}
 
   /// returns size in bytes for the ray information to be sent via MPI
   size_t packedSize() const { return sizeof(Ray); }
@@ -116,7 +115,6 @@ public:
     };
     unsigned char data[64] GVT_ALIGN(16);
   };
-
 };
 
 typedef gvt::core::Vector<Ray> RayVector;

@@ -82,8 +82,8 @@ void Mesh::setVertex(int which, glm::vec3 vertex, glm::vec3 normal, glm::vec3 te
 }
 
 void Mesh::setMaterial(Material *mat_) {
-	this->mat = new Material();
-	*(this->mat) = *mat_;
+  this->mat = new Material();
+  *(this->mat) = *mat_;
 }
 
 void Mesh::addFace(int v0, int v1, int v2) {
@@ -91,10 +91,9 @@ void Mesh::addFace(int v0, int v1, int v2) {
   GVT_ASSERT((v1 - 1 >= 0) && v1 - 1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1 - 1));
   GVT_ASSERT((v2 - 1 >= 0) && v2 - 1 < vertices.size(), "Vertex index 2 outside bounds : " << (v2 - 1));
 
-  if (vertices[v0 - 1] == vertices[v1 - 1] ||
-		  vertices[v1 - 1] == vertices[v2 - 1] ||
-		  vertices[v2 - 1] == vertices[v0 - 1])
-	  	  return;
+  if (vertices[v0 - 1] == vertices[v1 - 1] || vertices[v1 - 1] == vertices[v2 - 1] ||
+      vertices[v2 - 1] == vertices[v0 - 1])
+    return;
 
   faces.push_back(Face(v0 - 1, v1 - 1, v2 - 1));
 }
@@ -141,7 +140,7 @@ void Mesh::generateNormals() {
   haveNormals = true;
 }
 
-//Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource) {
+// Color Mesh::shadeFace(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource) {
 //  // XXX TODO: shadeFace returns constant color, fix?
 //
 //  if (!faces_to_materials.size()) return shade(r, normal, lsource, lsource->position);
@@ -154,7 +153,7 @@ void Mesh::generateNormals() {
 //  return c;
 //}
 //
-//Color Mesh::shadeFaceAreaLight(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource,
+// Color Mesh::shadeFaceAreaLight(const int face_id, const Ray &r, const glm::vec3 &normal, const Light *lsource,
 //                               const glm::vec3 areaLightPosition) {
 //
 //  if (!faces_to_materials.size()) return shade(r, normal, lsource, areaLightPosition);
@@ -167,7 +166,7 @@ void Mesh::generateNormals() {
 //  return c;
 //}
 //
-//Color Mesh::shade(const Ray &r, const glm::vec3 &normal, const Light *lsource, const glm::vec3 areaLightPosition) {
+// Color Mesh::shade(const Ray &r, const glm::vec3 &normal, const Light *lsource, const glm::vec3 areaLightPosition) {
 //  return mat->shade(r, normal, lsource, areaLightPosition);
 //}
 

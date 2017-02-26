@@ -31,9 +31,9 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_RAY_CUH
 #define GVT_RENDER_DATA_PRIMITIVES_RAY_CUH
 
-#include <vector_functions.h>
-#include <stdio.h>
 #include <float.h>
+#include <stdio.h>
+#include <vector_functions.h>
 
 namespace gvt {
 namespace render {
@@ -46,65 +46,52 @@ typedef cuda_vec Color;
 #define make_cuda_vec make_float3
 
 struct OptixRay {
-	float origin[3];
-	float t_min;
-	float direction[3];
-	float t_max;
+  float origin[3];
+  float t_min;
+  float direction[3];
+  float t_max;
 
-	__device__
-	void print() {
-		printf("optix gpu ray  o: %f %f %f, d: %f %f %f \n", origin[0],
-				origin[1], origin[2], direction[0], direction[1], direction[2]);
-	}
+  __device__ void print() {
+    printf("optix gpu ray  o: %f %f %f, d: %f %f %f \n", origin[0], origin[1], origin[2], direction[0], direction[1],
+           direction[2]);
+  }
 };
 
 /// OptiX hit format
 struct OptixHit {
-	float t;
-	int triangle_id;
-	float u;
-	float v;
+  float t;
+  int triangle_id;
+  float u;
+  float v;
 
-	__device__
-	void print() {
-		printf("gpu hit  t: %f , triID: %d \n", t, triangle_id);
-	}
+  __device__ void print() { printf("gpu hit  t: %f , triID: %d \n", t, triangle_id); }
 };
 
 class Ray {
 public:
+  typedef enum { PRIMARY, SHADOW, SECONDARY } RayType;
 
-	typedef enum {
-		PRIMARY, SHADOW, SECONDARY
-	} RayType;
+  struct {
 
+    cuda_vec origin;
+    float t_min;
+    cuda_vec direction;
+    float t_max;
+    cuda_vec color;
+    float t;
+    int id;    ///<! index into framebuffer
+    int depth; ///<! sample rate
+    float w;   ///<! weight of image contribution
+    int type;
+  };
 
-	struct {
+  __device__ void print() {
+    printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n", origin.x, origin.y, origin.z, direction.x, direction.y,
+           direction.z);
+  }
 
-		cuda_vec origin;
-		float t_min;
-		cuda_vec direction;
-		float t_max;
-		cuda_vec color;
-		float t;
-		int id;    ///<! index into framebuffer
-		int depth; ///<! sample rate
-		float w;   ///<! weight of image contribution
-		int type;
-
-	};
-
-	__device__
-	void print() {
-		printf("cuda gpu ray  o: %f %f %f, d: %f %f %f \n", origin.x, origin.y,
-				origin.z, direction.x, direction.y, direction.z);
-	}
-
-	__device__
-	void setDirection(cuda_vec dir);
-
+  __device__ void setDirection(cuda_vec dir);
 };
-
 }
 }
 }
