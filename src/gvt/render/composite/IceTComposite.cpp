@@ -94,10 +94,16 @@ float *IceTComposite::composite() {
   icetResetTiles();
   icetAddTile(0, 0, width, height, 0);
   // IceTInt g_local_valid_pixel_viewport[4] = { 0, 0, width, height };
-
+  int size;
+  MPI_Comm_size(MPI_COMM_WORLD,&size);
+  num_pixels = width * height;
+  if(size == 1)
+    color_buffer_final = color_buffer;
+  else {
   IceTImage image = icetCompositeImage(color_buffer, NULL, NULL, NULL, NULL, black);
   num_pixels = icetImageGetNumPixels(image);
   color_buffer_final = icetImageGetColorf(image);
+  }
   return color_buffer_final;
 }
 
