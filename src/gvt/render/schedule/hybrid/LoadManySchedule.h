@@ -67,7 +67,7 @@ struct LoadManySchedule : public HybridScheduleBase {
   virtual ~LoadManySchedule() {}
 
   virtual void operator()() {
-    
+
     for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     gvt::core::Map<int, int> data2proc;
@@ -79,12 +79,10 @@ struct LoadManySchedule : public HybridScheduleBase {
         // that's okay since we don't want to dup data,
         // we want to reset the map to only one proc per domain unless pending rays demand more
         data2proc[map_recv_bufs[s][0]] = data2proc[map_recv_bufs[s][0]] + s;
-        
 
         // add ray counts
         for (int d = 1; d < map_size_buf[s]; d += 2) {
           data2size[map_recv_bufs[s][d]] += map_recv_bufs[s][d + 1];
-          
         }
       }
     }
@@ -104,11 +102,9 @@ struct LoadManySchedule : public HybridScheduleBase {
       gvt::core::Map<int, int>::iterator d2pit = data2proc.find(s2dit->second);
       if (d2pit != data2proc.end()) {
         newMap[d2pit->second] = d2pit->first;
-        
       }
 
       bloated.push_back(s2dit->second);
-      
     }
 
 // iterate over newMap, fill as many procs as possible with data
@@ -154,8 +150,6 @@ struct LoadManySchedule : public HybridScheduleBase {
         }
       }
     }
-
-    
   }
 };
 }

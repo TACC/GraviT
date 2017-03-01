@@ -35,11 +35,11 @@
 #include <boost/regex.h>
 #include <boost/regex.hpp>
 #include <fstream>
+#include <gvt/core/Math.h>
+#include <gvt/render/RenderContext.h>
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <gvt/render/RenderContext.h>
-#include <gvt/core/Math.h>
 
 using namespace gvtapps::render;
 
@@ -265,7 +265,7 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
       lightNode["height"] = height;
       lightNode["color"] = color;
 
-     GVT_ERR_MESSAGE("Light area not implemented");
+      GVT_ERR_MESSAGE("Light area not implemented");
     } else if (elems[0] == "RT") {
       GVT_ERR_MESSAGE("option RT not supported");
     } else if (elems[0] == "ST") {

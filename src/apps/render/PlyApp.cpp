@@ -57,9 +57,9 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
+#include "ParseCommandLine.h"
 #include <boost/range/algorithm.hpp>
 #include <gvt/render/data/reader/PlyReader.h>
-#include "ParseCommandLine.h"
 
 using namespace std;
 using namespace gvt::render;
@@ -68,24 +68,23 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 #include <tbb/task_scheduler_observer.h>
-class concurrency_tracker: public tbb::task_scheduler_observer {
-    tbb::atomic<int> num_threads;
+class concurrency_tracker : public tbb::task_scheduler_observer {
+  tbb::atomic<int> num_threads;
+
 public:
-    concurrency_tracker() : num_threads() { observe(true); }
-    /*override*/ void on_scheduler_entry( bool ) { ++num_threads; }
-    /*override*/ void on_scheduler_exit( bool ) { --num_threads; }
+  concurrency_tracker() : num_threads() { observe(true); }
+  /*override*/ void on_scheduler_entry(bool) { ++num_threads; }
+  /*override*/ void on_scheduler_exit(bool) { --num_threads; }
 
-    int get_concurrency() { return num_threads; }
+  int get_concurrency() { return num_threads; }
 };
-
-
 
 // Used for testing purposes where it specifies the number of ply blocks read by each mpi
 //#define DOMAIN_PER_NODE 2
 
 int main(int argc, char **argv) {
 
-  gvt::core::time::timer t_skip(true,"To skip");
+  gvt::core::time::timer t_skip(true, "To skip");
 
   ParseCommandLine cmd("gvtPly");
 
@@ -107,20 +106,17 @@ int main(int argc, char **argv) {
 
   cmd.parse(argc, argv);
 
-  tbb::task_scheduler_init* init;
+  tbb::task_scheduler_init *init;
   if (!cmd.isSet("threads")) {
-	  init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
-	  std::cout << "Initialized GraviT with " << std::thread::hardware_concurrency() <<
-	  " threads..."<< std::endl;
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+    std::cout << "Initialized GraviT with " << std::thread::hardware_concurrency() << " threads..." << std::endl;
   } else {
-	  init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
-	  std::cout << "Initialized GraviT with " << cmd.get<int>("threads") <<
-		  " threads..."<< std::endl;
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+    std::cout << "Initialized GraviT with " << cmd.get<int>("threads") << " threads..." << std::endl;
   }
 
-//  concurrency_tracker tracker;
-//  tracker.observe(true);
-
+  //  concurrency_tracker tracker;
+  //  tracker.observe(true);
 
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
@@ -133,11 +129,9 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-
   gvt::core::DBNodeH root = cntxt->getRootNode();
-   root+= cntxt->createNode(
- 		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
-
+  root += cntxt->createNode(
+      "threads", cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   // A single mpi node will create db nodes and then broadcast them
   if (MPI::COMM_WORLD.Get_rank() == 0) {
@@ -320,7 +314,7 @@ int main(int argc, char **argv) {
 
   myimage.Write();
 
-  //std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
+  // std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
 
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }

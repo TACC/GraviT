@@ -41,8 +41,7 @@ void ImageComposite::reset() {}
 
 float *ImageComposite::composite() { return nullptr; }
 
-void ImageComposite::localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha,
-                              float t){};
+void ImageComposite::localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha, float t){};
 
 void ImageComposite::localAdd(size_t idx, const glm::vec3 &color, float alpha, float t){
 

@@ -53,7 +53,7 @@ struct LoadOnceSchedule : public HybridScheduleBase {
   virtual ~LoadOnceSchedule() {}
 
   virtual void operator()() {
-    
+
     for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     gvt::core::Map<int, int> data2proc;
@@ -65,12 +65,10 @@ struct LoadOnceSchedule : public HybridScheduleBase {
         data2proc[map_recv_bufs[s][0]] = s; // this will evict previous entries.
                                             // that's okay since we don't want
                                             // to dup data
-        
 
         // add ray counts
         for (int d = 1; d < map_size_buf[s]; d += 2) {
           data2size[map_recv_bufs[s][d]] += map_recv_bufs[s][d + 1];
-          
         }
       }
     }
@@ -89,10 +87,9 @@ struct LoadOnceSchedule : public HybridScheduleBase {
       gvt::core::Map<int, int>::iterator d2pit = data2proc.find(d2sit->second);
       if (d2pit != data2proc.end()) {
         newMap[d2pit->second] = d2pit->first;
-        
+
       } else {
         homeless.push_back(d2sit->second);
-        
       }
     }
 
@@ -108,8 +105,6 @@ struct LoadOnceSchedule : public HybridScheduleBase {
         }
       }
     }
-
-    
   }
 };
 }

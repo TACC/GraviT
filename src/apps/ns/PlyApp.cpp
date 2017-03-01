@@ -91,7 +91,7 @@ public:
 
 int main(int argc, char **argv) {
 
-  gvt::core::time::timer t_skip(true,"To skip");
+  gvt::core::time::timer t_skip(true, "To skip");
 
   ParseCommandLine cmd("gvtPly");
 

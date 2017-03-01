@@ -1,1 +1,0 @@
-/opt/intel/2015/composer_xe_2015.2.164/bin/intel64/icpc      CMakeFiles/obj_sticher.dir/examples/obj_sticher/obj_writer.cc.o CMakeFiles/obj_sticher.dir/examples/obj_sticher/obj_sticher.cc.o  -o obj_sticher -rdynamic libtinyobjloader.a 

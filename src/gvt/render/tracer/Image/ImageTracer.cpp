@@ -50,50 +50,50 @@ void ImageTracer::resetBVH() {
 
 void ImageTracer::operator()() {
 
-    img->reset();
+  img->reset();
 
-    gvt::core::time::timer t_frame(true,"image tracer: frame: ");
-    gvt::core::time::timer t_all(false,"image tracer: all timers: ");
-    gvt::core::time::timer t_gather(false,"image tracer: gather: ");
-    gvt::core::time::timer t_shuffle(false,"image tracer: shuffle: ");
-    gvt::core::time::timer t_tracer(false,"image tracer: adapter+trace : ");
-    gvt::core::time::timer t_select(false,"image tracer: select : ");
-    gvt::core::time::timer t_filter(false,"image tracer: filter : ");
-    gvt::core::time::timer t_camera(false,"image tracer: gen rays : ");
-    t_camera.resume();
-    cam->AllocateCameraRays();
-    cam->generateRays();
-    t_camera.stop();
-    t_filter.resume();
-    processRaysAndDrop(cam->rays);
-    t_filter.stop();
-    gvt::render::actor::RayVector returned_rays;
-    do {
-        int target = -1;
-        int amount = 0;
-        t_select.resume();
-        for (auto &q : queue) {
-            if (q.second.size() > amount) {
-                amount = q.second.size();
-                target = q.first;
-            }
-        }
-        t_select.stop();
-        if (target != -1) {
-            t_tracer.resume();
-            returned_rays.reserve(queue[target].size() * 10);
-            RayTracer::calladapter(target, queue[target], returned_rays);
-            queue[target].clear();
-            t_tracer.stop();
-            t_shuffle.resume();
-            processRays(returned_rays, target);
-            t_shuffle.stop();
-        }
-    } while (hasWork());
-    t_gather.resume();
-    img->composite();
-    t_gather.stop();
-    t_all = t_gather + t_shuffle + t_tracer + t_select + t_filter;
+  gvt::core::time::timer t_frame(true, "image tracer: frame: ");
+  gvt::core::time::timer t_all(false, "image tracer: all timers: ");
+  gvt::core::time::timer t_gather(false, "image tracer: gather: ");
+  gvt::core::time::timer t_shuffle(false, "image tracer: shuffle: ");
+  gvt::core::time::timer t_tracer(false, "image tracer: adapter+trace : ");
+  gvt::core::time::timer t_select(false, "image tracer: select : ");
+  gvt::core::time::timer t_filter(false, "image tracer: filter : ");
+  gvt::core::time::timer t_camera(false, "image tracer: gen rays : ");
+  t_camera.resume();
+  cam->AllocateCameraRays();
+  cam->generateRays();
+  t_camera.stop();
+  t_filter.resume();
+  processRaysAndDrop(cam->rays);
+  t_filter.stop();
+  gvt::render::actor::RayVector returned_rays;
+  do {
+    int target = -1;
+    int amount = 0;
+    t_select.resume();
+    for (auto &q : queue) {
+      if (q.second.size() > amount) {
+        amount = q.second.size();
+        target = q.first;
+      }
+    }
+    t_select.stop();
+    if (target != -1) {
+      t_tracer.resume();
+      returned_rays.reserve(queue[target].size() * 10);
+      RayTracer::calladapter(target, queue[target], returned_rays);
+      queue[target].clear();
+      t_tracer.stop();
+      t_shuffle.resume();
+      processRays(returned_rays, target);
+      t_shuffle.stop();
+    }
+  } while (hasWork());
+  t_gather.resume();
+  img->composite();
+  t_gather.stop();
+  t_all = t_gather + t_shuffle + t_tracer + t_select + t_filter;
 }
 
 void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
@@ -104,7 +104,8 @@ void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
   const unsigned ray_end = ray_chunk * (comm.id() + 1);
 
   const int chunksize =
-      MAX(GVT_SIMD_WIDTH, ray_chunk / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+      MAX(GVT_SIMD_WIDTH,
+          ray_chunk / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::simple_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin() + ray_start,

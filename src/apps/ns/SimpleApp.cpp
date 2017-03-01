@@ -443,9 +443,6 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-
-
-
   std::shared_ptr<gvt::render::RayTracer> rt;
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
@@ -474,8 +471,6 @@ int main(int argc, char **argv) {
   if (gvt::comm::communicator::instance().id() == 0)
     (*rt).getComposite()->write(filmNode["outputPath"].value().toString());
   gvt::comm::communicator::instance().terminate();
-
-
 
   // end db setup
 
