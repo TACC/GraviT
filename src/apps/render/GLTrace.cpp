@@ -105,8 +105,8 @@ static bool printHelp = true;
 gvt::render::algorithm::AbstractTrace *tracer;
 gvtPerspectiveCamera mycamera;
 Image *imageptr;
-boost::timer::cpu_timer t_frame;
-boost::timer::cpu_times lastFrameTime;
+// boost::timer::cpu_timer t_frame;
+// boost::timer::cpu_times lastFrameTime;
 
 #define MIN(a, b) ((a < b) ? (a) : (b))
 #define MAX(a, b) ((a > b) ? (a) : (b))
@@ -729,7 +729,7 @@ void Render() {
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  t_frame.start();
+  // t_frame.start();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
     std::cout << "starting image scheduler" << std::endl;
@@ -748,8 +748,8 @@ void Render() {
   }
   }
 
-  t_frame.stop();
-  lastFrameTime = t_frame.elapsed();
+  // t_frame.stop();
+  // lastFrameTime = t_frame.elapsed();
 }
 
 void RenderFilm() {

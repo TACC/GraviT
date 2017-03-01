@@ -85,6 +85,8 @@ public:
 
 int main(int argc, char **argv) {
 
+  gvt::core::time::timer t_skip(true,"To skip");
+
   ParseCommandLine cmd("gvtPly");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -275,6 +277,7 @@ int main(int argc, char **argv) {
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
+  t_skip.stop();
 
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "output");

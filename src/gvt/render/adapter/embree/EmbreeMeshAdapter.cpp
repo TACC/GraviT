@@ -63,7 +63,7 @@
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
 #define GVT_EMBREE_INTERSECTION rtcIntersect16
 #define GVT_EMBREE_OCCULUSION rtcOccluded16
-#elif defined(GVT_AVX512_TARGET)
+#elif (defined(GVT_AVX512KNL_TARGET) || defined(GVT_AVX512SKX_TARGET))
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
 #define GVT_EMBREE_PACKET_SIZE 16
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
@@ -554,7 +554,7 @@ struct embreeParallelTrace {
                 const float multiplier =
                     1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
                 const float t_secondary = multiplier * r.t;
-                r.origin = r.origin + r.direction * t_secondary; 
+                r.origin = r.origin + r.direction * t_secondary;
                 r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
                 r.w = r.w * glm::dot(r.direction, normal);

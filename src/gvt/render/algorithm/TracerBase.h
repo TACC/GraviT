@@ -343,7 +343,7 @@ public:
 
     const size_t size = width * height;
     const size_t chunksize =
-        MAX(2, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+        MAX(GVT_SIMD_WIDTH, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
                       [&](tbb::blocked_range<size_t> chunk) {
