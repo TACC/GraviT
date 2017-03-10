@@ -30,39 +30,101 @@
 #include <cstring>
 #include <memory>
 
+/**
+ *  \brief Communication message definiton
+ *
+ */
+
 namespace gvt {
 namespace comm {
+/**
+ *  \brief High level message tagging
+ */
+enum SYSTEM_COMM_TAG {
+  CONTROL_SYSTEM_TAG = 0x8 /**< Used internally by the raytracing framework*/,
+  CONTROL_USER_TAG /**< Developer level message */,
+  CONTROL_VOTE_TAG /**< Voting message */
+};
 
-enum SYSTEM_COMM_TAG { CONTROL_SYSTEM_TAG = 0x8, CONTROL_USER_TAG, CONTROL_VOTE_TAG };
-
+/**
+ * Register a message type in the communicator
+ * @method REGISTERABLE_MESSAGE
+ * @param  ClassName            Name of the class to register
+ * @return                      Return the message type identifer in the communicator
+ */
 #define REGISTERABLE_MESSAGE(ClassName) static int COMMUNICATOR_MESSAGE_TAG;
+/**
+ * Register a message type in the communicator
+ * @method REGISTERABLE_MESSAGE
+ * @param  ClassName            Name of the class to register
+ * @return                      Return the message type identifer in the communicator
+ */
 #define REGISTER_INIT_MESSAGE(ClassName) int ClassName::COMMUNICATOR_MESSAGE_TAG = -1;
 
+/**
+ * \brief Abstract Communication Message
+ */
 struct Message {
 
   typedef unsigned char Byte;
 
   REGISTERABLE_MESSAGE(Message);
 
+  /**
+   * \brief Message header definition
+   */
   struct header {
-    std::size_t USER_TAG;
-    std::size_t SYSTEM_TAG = CONTROL_USER_TAG;
-    std::size_t USER_MSG_SIZE;
-    long dst;
-    long src;
+    std::size_t USER_TAG;                      /**< Message identifer at user level */
+    std::size_t SYSTEM_TAG = CONTROL_USER_TAG; /**< System tag indentifier (By default always at user level) */
+    std::size_t USER_MSG_SIZE;                 /**< Size of the buffer to be sent as defined by the user */
+    long dst;                                  /**< Compute node id destination */
+    long src;                                  /**< Compute node ID origin */
   };
 
+  /**
+   * \brief Create a message with buffer size
+   * @param size Size of the buffer in bytes
+   */
   Message(const std::size_t &size = 0);
+
+  /**
+   * \brief Copy constructor
+   */
   Message(const Message &msg);
+  /**
+   * \brief Move semantics constructor
+   */
   Message(Message &&msg);
 
   ~Message();
 
+  /**
+   * Get the header of the message
+   * @method getHeader
+   * @return reference to header object
+   */
   header &getHeader();
+
+  /**
+   * Return the message tag/type
+   * @method tag
+   * @return Message tag
+   */
   std::size_t tag();
+  /**
+   * Sets the message tag
+   * @method tag
+   * @param  tag identifier @see SYSTEM_COMM_TAG
+   */
   void tag(const std::size_t tag);
+  /**
+   * [size description]
+   * @method size
+   * @return [description]
+   */
   std::size_t size();
   void size(const std::size_t size);
+
   template <typename T> std::size_t sizehas() { return getHeader().USER_MSG_SIZE / sizeof(T); };
 
   std::size_t system_tag();
@@ -77,7 +139,7 @@ struct Message {
 
   template <typename T> T *getMessage() { return reinterpret_cast<T *>(content); }
   template <typename T> void setMessage(T *orig, const std::size_t &os) {
-    header mhi = getHeader();
+    header &mhi = getHeader();
     std::size_t bs = sizeof(T) * os;
     if (_buffer_size > 0) {
       content = static_cast<Byte *>(std::realloc(content, bs + sizeof(header)));
