@@ -32,17 +32,12 @@
 
 namespace gvt {
 namespace comm {
-
-struct EmptyMessage : public gvt::comm::Message {
-  REGISTERABLE_MESSAGE(EmptyMessage);
-
-protected:
-public:
-  EmptyMessage() : gvt::comm::Message() { tag(COMMUNICATOR_MESSAGE_TAG); };
-  EmptyMessage(const size_t &n) : gvt::comm::Message(n) { tag(COMMUNICATOR_MESSAGE_TAG); };
-  // EmptyMessage(const long src, const long dst, gvt::render::actor::RayVector &raylist);
-};
-
+/**
+ * @brief Send ray list message implementation
+ *
+ * Sends a list of rays to another node
+ *
+ */
 struct SendRayList : public gvt::comm::Message {
   REGISTERABLE_MESSAGE(SendRayList);
 
@@ -52,8 +47,20 @@ protected:
   // long dst = -1;
 
 public:
+    /**
+     * @brief Default constructor
+     */
   SendRayList() : gvt::comm::Message(){};
+  /**
+   * @brief Create a message with a buffer of n size(bytes)
+   */
   SendRayList(const size_t &n) : gvt::comm::Message(n){};
+  /**
+   * @brief Create a message and copyt the ray list to the message buffer
+   * @param src The origin compute node id
+   * @param dst The destination compute node id
+   * @param raylist The list of rays to send
+   */
   SendRayList(const long src, const long dst, gvt::render::actor::RayVector &raylist);
 };
 }

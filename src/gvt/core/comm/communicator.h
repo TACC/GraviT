@@ -25,7 +25,7 @@
 #define GVT_CORE_COMMUNICATOR_H
 
 #include <gvt/core/comm/message.h>
-#include <gvt/core/comm/vote/votebooth.h>
+#include <gvt/core/comm/vote/vote.h>
 
 #include <memory>
 #include <mutex>
@@ -45,7 +45,12 @@
 
 namespace gvt {
 namespace comm {
-
+/**
+ * \brief Abstract communication handler
+ *
+ * The struct implements the abstract methods to send message between nodes.
+ *
+ */
 struct communicator {
 
   static std::shared_ptr<communicator> _instance; /**< Stores the communicator singleton pointer*/
@@ -114,7 +119,7 @@ struct communicator {
   virtual void terminate();
 
   /*!
-     \brief Terminate communicator
+     \brief Communicator set vote procedure
   */
   virtual void setVote(std::shared_ptr<comm::vote::vote> vote) { voting = vote; }
 

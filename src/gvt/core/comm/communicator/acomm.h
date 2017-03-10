@@ -28,15 +28,41 @@
 
 namespace gvt {
 namespace comm {
+    /**
+     * @brief Pure assynchronous communicator
+     *
+     * This communicator assumes that all message passing is done asynchronously. If a compute threads sends a message
+     * the message is placed in a queue to be sent later by the resident communication threads and a handler is return to
+     * the calling control flow so that we can determine is the message was already sent or not.
+     *
+     */
 struct acomm : public communicator {
   acomm();
+  /**
+   * Communicator singleton initialization
+   * @param argc        Number of arguments in command line (required by MPI Init)
+   * @param argv        Arguments in the application command line
+   * @param start_thread Should it start a communication threads or not (If the application only uses on compute node)
+   */
   static void init(int argc = 0, char *argv[] = nullptr, bool start_thread = true);
-  virtual void send(std::shared_ptr<comm::Message> msg, std::size_t to);
+  /**
+   * Send msg to compute node id
+   * @param msg Message to be sent
+   * @param id  Destination compute node id
+   */
+  virtual void send(std::shared_ptr<comm::Message> msg, std::size_t id);
+  /**
+   * Send msg to all compute nodes
+   * @param msg Message to be sent
+   */
   virtual void broadcast(std::shared_ptr<comm::Message> msg);
+  /**
+   * Method execute by the resident communication thread
+   */
   virtual void run();
 
-  std::vector<std::shared_ptr<Message> > _outbox;
-  std::mutex moutbox;
+  std::vector<std::shared_ptr<Message> > _outbox; /**< Outbox message queue */
+  std::mutex moutbox; /** Outbox protection mutex */
 };
 }
 }

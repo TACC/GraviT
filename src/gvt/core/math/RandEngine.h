@@ -29,6 +29,10 @@ namespace gvt {
 namespace core {
 namespace math {
 
+/**
+ * @brief Rundom number generator
+ */
+
 class RandEngine {
 public:
 #define rotl(r, n) (((r) << (n)) | ((r) >> ((8 * sizeof(r)) - (n))))

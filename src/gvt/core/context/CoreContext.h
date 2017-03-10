@@ -121,8 +121,8 @@ public:
   // one to all communication model
   void syncContext();
 
-  inline std::shared_ptr<gvt::core::Tracer> tracer() { return _tracer; }
-  inline void settracer(std::shared_ptr<gvt::core::Tracer> t) { _tracer = t; }
+  inline std::shared_ptr<gvt::core::Scheduler> tracer() { return _tracer; }
+  inline void settracer(std::shared_ptr<gvt::core::Scheduler> t) { _tracer = t; }
 
 protected:
   CoreContext();
@@ -133,7 +133,7 @@ protected:
 
   // New scheduler
 
-  std::shared_ptr<gvt::core::Tracer> _tracer;
+  std::shared_ptr<gvt::core::Scheduler> _tracer;
 };
 }
 }

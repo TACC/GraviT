@@ -118,26 +118,74 @@ struct Message {
    */
   void tag(const std::size_t tag);
   /**
-   * [size description]
+   * Get message size
    * @method size
-   * @return [description]
+   * @return return buffer size
    */
   std::size_t size();
+
+
+  /**
+   * Set buffer size
+   * @param size Size of the buffer to send in bytes
+   */
   void size(const std::size_t size);
 
+  /**
+   * Return number of elements of type T
+   * @return number of elements of type T
+   */
   template <typename T> std::size_t sizehas() { return getHeader().USER_MSG_SIZE / sizeof(T); };
 
+  /**
+   * Return system type
+   * @return @see SYSTEM_COMM_TAG
+   */
   std::size_t system_tag();
+  /**
+   * Set system tag
+   * @param std::size_t @see SYSTEM_COMM_TAG
+   */
   void system_tag(std::size_t);
+
+  /**
+   * Return header+_buffer size
+   * @return buffer size in bytes
+   */
   std::size_t buffer_size() const { return _buffer_size; };
 
+  /**
+   * Message compute node destination
+   * @return compute node id
+   */
   long &dst() { return getHeader().dst; }
+  /**
+   * Message compute node source
+   * @return compute node id
+   */
   long &src() { return getHeader().src; }
 
+  /**
+   * Set message destination cpompute node
+   * @param d destination compute node id
+   */
   void dst(long d) { getHeader().dst = d; }
+  /**
+   * Ser message source compute node
+   * @param s source compute node id
+   */
   void src(long s) { getHeader().src = s; }
 
+  /**
+   * Returns the message content as a buffer of type T
+   * @return pointer to buffer of type T
+   */
   template <typename T> T *getMessage() { return reinterpret_cast<T *>(content); }
+  /**
+   * Set message content
+   * @param orig Original buffer of type T
+   * @param os   Number of elements of type T in the buffer
+   */
   template <typename T> void setMessage(T *orig, const std::size_t &os) {
     header &mhi = getHeader();
     std::size_t bs = sizeof(T) * os;
@@ -155,6 +203,18 @@ struct Message {
 protected:
   std::size_t _buffer_size = 0;
   Byte *content = nullptr;
+};
+
+/**
+ * @brief Empty message instanciation
+ */
+struct EmptyMessage : public gvt::comm::Message {
+  REGISTERABLE_MESSAGE(EmptyMessage);
+
+protected:
+public:
+  EmptyMessage() : gvt::comm::Message() { tag(COMMUNICATOR_MESSAGE_TAG); };
+  EmptyMessage(const size_t &n) : gvt::comm::Message(n) { tag(COMMUNICATOR_MESSAGE_TAG); };
 };
 }
 }

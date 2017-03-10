@@ -36,16 +36,29 @@ namespace gvt {
 namespace comm {
 namespace vote {
 
+
+/**
+ * @brief Voting procedure
+ *
+ * Voting procedure based of two-pahse commit with 0-failure taulerance
+ * since we are in a synchrounous world under mpi (a failure will terminate all nodes immediatly)
+ * the nodes only need to agree if there is still work somewhere.
+ *
+ */
 struct vote {
 
-  std::function<bool(void)> _callback_check = nullptr;
-  std::function<void(bool)> _callback_update = nullptr;
+
+  std::function<bool(void)> _callback_check = nullptr; /**< Check is there is still work in node callback (implemented in the scheduler)*/
+  std::function<void(bool)> _callback_update = nullptr; /**< Update all nodes done callback (implemented in the scheduler)*/
   std::mutex _only_one;
 
-  enum ClientType { COORDINATOR, COHORT };
+  enum ClientType { COORDINATOR, COHORT }; /**< Node type coordinator (always node 0 since 0=failure) or cohort */
 
+ /**
+  * @brief Vote state
+  */
   enum VoteState {
-    VOTE_UNKNOWN = 0,
+    VOTE_UNKNOWN = 0, /**< Not in a voting cycle */
     PROPOSE,
     VOTE_ABORT,
     VOTE_COMMIT,
@@ -58,6 +71,9 @@ struct vote {
 
   const static char *state_names[];
 
+  /**
+   * @brief Current ballot
+   */
   struct Ballot {
     long ballotnumber = 0;
     VoteState vote = VOTE_UNKNOWN;
@@ -65,15 +81,38 @@ struct vote {
 
   std::atomic<std::size_t> _count;
 
+  /**
+   * @brief Vote construct
+   * @param CallBackCheck   Check if there is no more work in node
+   * @param CallBackUpdate   Inform scheduler that all nodes agree that there is no more work antwhere
+   */
   vote(std::function<bool(void)> CallBackCheck = nullptr, std::function<void(bool)> CallBackUpdate = nullptr);
+  /**
+   * @brief Copy constructor
+   */
   vote(const vote &other);
+  /**
+   * Initiale a voting round
+   * @return if the init was sucessful or not
+   */
   bool PorposeVoting();
+  /**
+   * Process received message invoked by the communicator thread when it receives a mesage tagged CONTROL_VOTE_TAG
+   * @see Message
+   * @param msg Raw message received by the communicator
+   */
   void processMessage(std::shared_ptr<comm::Message> msg);
 
-  void processCohort(std::shared_ptr<comm::Message> msg);
-  void processCoordinator(std::shared_ptr<comm::Message> msg);
-
+  /**
+   * Assign operator
+   */
   vote operator=(const vote &other) { return vote(other); }
+
+private:
+  void processCohort(std::shared_ptr<comm::Message> msg); /**< Process vote messages if node is a cohort */
+  void processCoordinator(std::shared_ptr<comm::Message> msg); /**< Process vote messages if node is a Coordinator */
+
+
 };
 }
 }

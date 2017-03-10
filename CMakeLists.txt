@@ -202,7 +202,6 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
   src/gvt/core/comm/communicator/scomm.h
   src/gvt/core/comm/message.h
   src/gvt/core/comm/vote/vote.h
-  src/gvt/core/comm/vote/votebooth.h
   src/gvt/core/composite/Composite.h
 
   src/gvt/core/tracer/tracer.h
@@ -220,7 +219,6 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
   src/gvt/core/comm/communicator/scomm.cpp
   src/gvt/core/comm/message.cpp
   src/gvt/core/comm/vote/vote.cpp
-  src/gvt/core/comm/vote/votebooth.cpp
 
   src/gvt/core/tracer/tracer.cpp
 )

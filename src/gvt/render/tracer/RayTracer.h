@@ -56,7 +56,7 @@
 namespace gvt {
 namespace render {
 
-class RayTracer : public gvt::core::Tracer {
+class RayTracer : public gvt::core::Scheduler {
 private:
 protected:
   std::shared_ptr<gvt::render::composite::ImageComposite> img;
