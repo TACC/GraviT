@@ -30,7 +30,10 @@ namespace core {
 namespace math {
 
 /**
- * @brief Rundom number generator
+ * @brief Random number generator wrapper
+ *
+ *  Fast random generator implementation
+ *
  */
 
 class RandEngine {

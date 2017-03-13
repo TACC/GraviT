@@ -41,23 +41,45 @@ namespace gvt {
 namespace render {
 namespace actor {
 
+/**
+ * Min of two T values
+ * @method fastmin
+ * @param  a
+ * @param  b
+ * @return
+ */
 template <typename T> inline T fastmin(const T &a, const T &b) { return (a < b) ? a : b; }
-
+/**
+ * Max of two T values
+ * @method fastmax
+ * @param  a
+ * @param  b
+ * @return
+ */
 template <typename T> inline T fastmax(const T &a, const T &b) { return (a > b) ? a : b; }
 
+/**
+ * \brief Ray packet intersion with a AABB box.
+ *
+ * @tparam simd_width Architecture vector unit width defined at compile time @see GVT_SIMD_WIDTH
+ *
+ */
 template <size_t simd_width> struct RayPacketIntersection {
-  float ox[simd_width];
-  float oy[simd_width];
-  float oz[simd_width];
-  float dx[simd_width];
-  float dy[simd_width];
-  float dz[simd_width];
-  float t[simd_width];
-  int mask[simd_width];
+  float ox[simd_width]; /**< Origin x component for all rays in packet */
+  float oy[simd_width]; /**< Origin y component for all rays in packet */
+  float oz[simd_width]; /**< Origin z component for all rays in packet */
+  float dx[simd_width]; /**< Direction x component for all rays in packet */
+  float dy[simd_width]; /**< Direction y component for all rays in packet */
+  float dz[simd_width]; /**< Direction z component for all rays in packet */
+  float t[simd_width];  /**< Intersection distance */
+  int mask[simd_width]; /**< Ray packet mask 0 | disable ray, 1 | Ray enable */
 
-  //
-  // float data[simd_width * 6];
-  // float *lx, *ly, *lz, *ux, *uy, *uz;
+  /**
+   * Creates ray packet of the first simd_width elements from list of rays starting at ray_begin.
+   * @method RayPacketIntersection
+   * @param  ray_begin             Ray start iterator
+   * @param  ray_end               Ray list end iterator
+   */
   inline RayPacketIntersection(const RayVector::iterator &ray_begin, const RayVector::iterator &ray_end) {
     size_t i;
     RayVector::iterator rayit = ray_begin;
@@ -78,6 +100,14 @@ template <size_t simd_width> struct RayPacketIntersection {
     }
   }
 
+  /**
+   * Computed the intersection of all rays in the packet with a AABB.
+   * @method intersect
+   * @param  bb        AABB
+   * @param  hit       Array returns if the corresponding index ray hits the AABB (1) or not (-1)
+   * @param  update    Should update t or not.
+   * @return           At least one ray hits the AABB
+   */
   inline bool intersect(const gvt::render::data::primitives::Box3D &bb, int hit[], bool update = false) {
     float lx[simd_width];
     float ly[simd_width];

@@ -44,54 +44,98 @@ namespace actor {
 
 class Ray {
 public:
-  /// ray type
-  /** ray type enumeration
-   - PRIMARY - a camera or eye ray
-   - SHADOW - a ray that tests visibility from a light source to an intersection point
-   - SECONDARY - all other rays
+  /**
+   * \brief Ray type
    */
-  // clang-format off
   enum RayType {
-    PRIMARY,
-    SHADOW,
-    SECONDARY
+    PRIMARY /**< Camera ray */,
+    SHADOW /**< Ray that tests visibility from a light source to an intersection point */,
+    SECONDARY /**< All other rays */
   };
 
+  /**
+   * \brief Ray intersection epsilon
+   */
   const static float RAY_EPSILON;
 
-  // clang-format on
+  /**
+   * Empty contructor
+   * @method Ray
+   */
   inline Ray() {}
+  /**
+   * Constructor
+   * @method Ray
+   * @param  _origin      Ray origin
+   * @param  _direction   Ray direction
+   * @param  contribution Ray contribution
+   * @param  type         Ray type
+   * @param  depth        Recursion dept
+   */
   inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
       : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
         t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
-
+  /**
+   * Copy constructor
+   * @method Ray
+   * @param  r   Ray t copy
+   */
   inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
-
+  /**
+   * Move constructor
+   * @method Ray
+   * @param  r   Ray to move
+   */
   inline Ray(Ray &&r) { std::memmove(data, r.data, packedSize()); }
 
+  /**
+   * Unpacked from communication buffer
+   * @method Ray
+   * @param  buf Ray pointer
+   */
   inline Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
 
+  /**
+   * \brief assign operator
+   * @see Copy constructor
+   */
   inline Ray &operator=(const Ray &r) {
     std::memcpy(data, r.data, packedSize());
     return *this;
   }
 
+  /**
+   * \brief Assign move contructor
+   */
   inline Ray &operator=(Ray &&r) {
     std::memmove(data, r.data, packedSize());
     return *this;
   }
   ~Ray() {}
 
-  /// returns size in bytes for the ray information to be sent via MPI
+  /**
+   * Returns size in bytes for the ray information to be sent via MPI
+   * @method packedSize
+   * @return Size of ray in bytes
+   */
   size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
+  /**
+   * Pack ray into buffer
+   * @method pack
+   * @param  buffer Pointer to ray packeting position
+   * @return        number of bytes packed
+   */
   size_t pack(unsigned char *buffer) {
     unsigned char *buf = buffer;
     std::memcpy(buf, data, packedSize());
     return packedSize();
   }
 
+  /**
+   *
+   */
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
     stream << std::setprecision(4) << std::fixed << std::scientific;
     stream << "Ray[" << ray.id << "][" << ((ray.type == PRIMARY) ? "P" : (ray.type == SHADOW) ? "SH" : "S");
@@ -102,22 +146,22 @@ public:
 
   union {
     struct {
-      glm::vec3 origin;
-      float t_min;
-      glm::vec3 direction;
-      float t_max;
-      glm::vec3 color;
-      float t;
-      int id;    ///<! index into framebuffer
-      int depth; ///<! sample rate
-      float w;   ///<! weight of image contribution
-      int type;
+      glm::vec3 origin;    /**< Ray origin */
+      float t_min;         /**< Ray t_min */
+      glm::vec3 direction; /**< Ray direction */
+      float t_max;         /**< Ray t_max */
+      glm::vec3 color;     /**< Current radiance */
+      float t;             /**< Latest intersection distance */
+      int id;              ///<! index into framebuffer
+      int depth;           ///<! sample rate
+      float w;             ///<! weight of image contribution
+      int type;            /**< Ray type */
     };
-    unsigned char data[64] GVT_ALIGN(16);
+    unsigned char data[68] GVT_ALIGN(16); /**< Packeted Ray in memory */
   };
 };
 
-typedef gvt::core::Vector<Ray> RayVector;
+typedef gvt::core::Vector<Ray> RayVector; /**< Array of Rays type */
 }
 }
 }

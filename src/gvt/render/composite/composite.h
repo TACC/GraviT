@@ -7,7 +7,10 @@
 namespace gvt {
 namespace render {
 namespace composite {
-
+/**
+ * \brief old IceT composite method
+ * @deprecated IceTComposite
+ */
 struct composite {
 
   IceTInt num_proc;
