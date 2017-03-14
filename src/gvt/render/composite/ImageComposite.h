@@ -37,16 +37,6 @@ namespace composite {
 
 struct ImageComposite : gvt::core::composite::Buffer<float> {
 
-  // glm::vec4 *buffer;
-  // IceTInt num_proc;
-  // IceTFloat *color_buffer;
-  // IceTFloat *color_buffer_final;
-  // IceTFloat *depth_buffer;
-  //
-  // IceTCommunicator comm;
-  // IceTInt *process_ranks;
-  // IceTInt proc;
-
   ImageComposite(std::size_t width = 0, std::size_t height = 0);
 
   ~ImageComposite();

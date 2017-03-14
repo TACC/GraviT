@@ -48,9 +48,9 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
+#include <gvt/render/data/reader/PlyReader.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
-#include <gvt/render/data/reader/PlyReader.h>
 
 #include <gvt/core/Debug.h>
 
@@ -1100,14 +1100,14 @@ int main(int argc, char *argv[]) {
 
   cmd.parse(argc, argv);
 
-  tbb::task_scheduler_init* init;
+  tbb::task_scheduler_init *init;
   if (!cmd.isSet("threads")) {
     init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
   } else {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
-  //tbb::task_scheduler_init init(2);
+  // tbb::task_scheduler_init init(2);
 
   mpi_rank = -1;
   MPI_Init(&argc, &argv);
@@ -1124,9 +1124,8 @@ int main(int argc, char *argv[]) {
   }
 
   gvt::core::DBNodeH root = cntxt->getRootNode();
-  root+= cntxt->createNode(
-		  "threads",cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
-
+  root += cntxt->createNode(
+      "threads", cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   if (master) {
     cntxt->addToSync(cntxt->createNodeFromType("Data", "glTraceData", root.UUID()));

@@ -22,7 +22,6 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-
 #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 
 #include <gvt/core/context/CoreContext.h>
@@ -31,17 +30,16 @@
 #include <gvt/core/Math.h>
 #include <gvt/core/math/RandEngine.h>
 #include <gvt/render/actor/Ray.h>
-#include <gvt/render/data/scene/ColorAccumulator.h>
-#include <gvt/render/data/scene/Light.h>
 #include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/data/primitives/Shade.h>
+#include <gvt/render/data/scene/ColorAccumulator.h>
+#include <gvt/render/data/scene/Light.h>
 
 // Manta includes
 #include <Core/Math/CheapRNG.h>
 #include <Core/Math/MT_RNG.h>
-#include <Model/Materials/Lambertian.h>
 #include <Interface/Context.h>
-
+#include <Model/Materials/Lambertian.h>
 
 #include <atomic>
 #include <thread>
@@ -510,7 +508,6 @@ struct mantaParallelTrace {
                 const float t_secondary = multiplier * r.t;
                 r.origin = r.origin + r.direction * t_secondary;
 
-
                 r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
                 r.w = r.w * glm::dot(r.direction, normal);
@@ -532,7 +529,6 @@ struct mantaParallelTrace {
         traceShadowRays();
       }
     }
-
 
     // copy localDispatch rays to outgoing rays queue
     std::unique_lock<std::mutex> moved(adapter->_outqueue);

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.4)
 
 # version information
 set(VERSION_MAJOR 0)
-set(VERSION_MINOR 1)
+set(VERSION_MINOR 5)
 set(VERSION_PATCH 0)
 
 
@@ -15,11 +15,11 @@ if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)
 
   # use rpath on MacOS
-  #cmake_policy(SET CMP0042 NEW)
+  cmake_policy(SET CMP0042 NEW)
 endif(COMMAND cmake_policy)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the build type: Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # build options
@@ -36,19 +36,19 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   message (STATUS "HOSTNAME is ${HOST_NAME}")
 
   if(HOST_NAME MATCHES "(.)*maverick(.)*")
-    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_C_FLAGS}")
     SET(GVT_HOST "Maverick" CACHE STRING "Choose Stampede | Maverick | Other")
   elseif(HOST_NAME MATCHES "login-knl1.stampede(.)*")
-      set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_CXX_FLAGS}")
-      set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_C_FLAGS}")
-      SET(GVT_HOST "KNL-Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_C_FLAGS}")
+    SET(GVT_HOST "KNL-Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
   elseif(HOST_NAME MATCHES "(.)*stampede(.)*")
-      set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_CXX_FLAGS}")
-      set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.1/ ${CMAKE_C_FLAGS}")
-      SET(GVT_HOST "Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
+    set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_C_FLAGS}")
+    SET(GVT_HOST "Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
   else()
-      SET(GVT_HOST "Other (${HOST_NAME})" CACHE STRING "Choose Stampede | Maverick | Other")
+    SET(GVT_HOST "Other (${HOST_NAME})" CACHE STRING "Choose Stampede | Maverick | Other")
   endif()
 endif()
 
@@ -85,12 +85,6 @@ if (APPLE)
   set(MACOSX_RPATH ${LIBRARY_OUTPUT_PATH})
 endif(APPLE)
 
-#link_directories(${GVT_LIB_DIR})
-
-#MARK_AS_ADVANCED(LIBRARY_OUTPUT_PATH)
-#MARK_AS_ADVANCED(EXECUTABLE_OUTPUT_PATH)
-#MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
-#MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 
 # compiler options
 
@@ -114,7 +108,6 @@ SET(CMAKE_PREFIX_PATH ${PROJECT_SOURCE_DIR}/third-party/glm)
 find_package(GLM REQUIRED)
 include_directories(${GLM_DIR})
 include(CMake/glm.cmake)
-#set(GVT_THIRDPARTY_TOBJ "/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master")
 set(GVT_THIRDPARTY_TOBJ "${CMAKE_SOURCE_DIR}/third-party/tinyobjloader-master")
 
 add_subdirectory(${GVT_THIRDPARTY_TOBJ})
@@ -132,27 +125,12 @@ endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
 #TODO best way to just include embre folder ?
 set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
-#find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_EMBREE})
-#if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
-#  MESSAGE(SEND ERRORS "ply reader header not found")
-#endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
-# if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-#   #set(CMAKE_CXX_FLAGS "-Wall  -Wno-reorder -Wno-unused-variable")
-#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-# set(GVT_USE_ICC ON CACHE BOOL "Use Intel Compiler?")
-# elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-#   set(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
-# endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 FIND_PACKAGE(IceT REQUIRED)
 include_directories(${ICET_INCLUDE_DIRS})
-
-MESSAGE(STATUS "ICET : ${ICET_INCLUDE_DIRS}")
+find_package(MPI REQUIRED)
+include_directories(${MPI_INCLUDE_PATH})
 
 # modules
 include(CMake/gravit.cmake)
@@ -219,13 +197,12 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
   src/gvt/core/context/Variant.h
 
   src/gvt/core/comm/comm.h
-	src/gvt/core/comm/communicator.h
-	src/gvt/core/comm/communicator/acomm.h
-	src/gvt/core/comm/communicator/scomm.h
-	src/gvt/core/comm/message.h
-	src/gvt/core/comm/vote/vote.h
-	src/gvt/core/comm/vote/votebooth.h
-	src/gvt/core/composite/Composite.h
+  src/gvt/core/comm/communicator.h
+  src/gvt/core/comm/communicator/acomm.h
+  src/gvt/core/comm/communicator/scomm.h
+  src/gvt/core/comm/message.h
+  src/gvt/core/comm/vote/vote.h
+  src/gvt/core/composite/Composite.h
 
   src/gvt/core/tracer/tracer.h
 )
@@ -242,7 +219,6 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
   src/gvt/core/comm/communicator/scomm.cpp
   src/gvt/core/comm/message.cpp
   src/gvt/core/comm/vote/vote.cpp
-  src/gvt/core/comm/vote/votebooth.cpp
 
   src/gvt/core/tracer/tracer.cpp
 )
@@ -325,36 +301,36 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
 if (GVT_RENDER_ADAPTER_MANTA)
   add_definitions(-DGVT_RENDER_ADAPTER_MANTA)
   set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-      src/gvt/render/adapter/manta/MantaMeshAdapter.h
-      src/gvt/render/adapter/manta/DynBVH.h
- )
+    src/gvt/render/adapter/manta/MantaMeshAdapter.h
+    src/gvt/render/adapter/manta/DynBVH.h
+  )
   set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} src/gvt/render/adapter/manta/MantaMeshAdapter.cpp)
 endif(GVT_RENDER_ADAPTER_MANTA)
 
 if (GVT_RENDER_ADAPTER_OPTIX_PRIME)
   add_definitions(-DGVT_RENDER_ADAPTER_OPTIX)
-	set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
-                src/gvt/render/adapter/optix/Formats.h
-                src/gvt/render/adapter/optix/Transforms.h
-                src/gvt/render/adapter/optix/OptixMeshAdapter.h
-                src/gvt/render/adapter/optix/Mesh.cuh
-                src/gvt/render/adapter/optix/Light.cuh
-                src/gvt/render/adapter/optix/Material.cuh
-                src/gvt/render/adapter/optix/Ray.cuh
-                src/gvt/render/adapter/optix/cutil_math.h
-		)
+  set(GVT_RENDER_CUDA_HDRS ${GVT_RENDER_CUDA_HDRS}
+    src/gvt/render/adapter/optix/Formats.h
+    src/gvt/render/adapter/optix/Transforms.h
+    src/gvt/render/adapter/optix/OptixMeshAdapter.h
+    src/gvt/render/adapter/optix/Mesh.cuh
+    src/gvt/render/adapter/optix/Light.cuh
+    src/gvt/render/adapter/optix/Material.cuh
+    src/gvt/render/adapter/optix/Ray.cuh
+    src/gvt/render/adapter/optix/cutil_math.h
+  )
 
-	set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
-                src/gvt/render/adapter/optix/OptixMeshAdapter.cu
-                src/gvt/render/adapter/optix/Light.cu
-                src/gvt/render/adapter/optix/Material.cu
-                src/gvt/render/adapter/optix/Ray.cu
-		)
-	set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-                src/gvt/render/adapter/optix/OptixMeshAdapter.cpp
-		)
-	set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-		)
+  set(GVT_RENDER_CUDA_SRCS ${GVT_RENDER_CUDA_SRCS}
+    src/gvt/render/adapter/optix/OptixMeshAdapter.cu
+    src/gvt/render/adapter/optix/Light.cu
+    src/gvt/render/adapter/optix/Material.cu
+    src/gvt/render/adapter/optix/Ray.cu
+  )
+  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+    src/gvt/render/adapter/optix/OptixMeshAdapter.cpp
+  )
+  set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+  )
 endif(GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
@@ -401,13 +377,11 @@ endif(GVT_CORE)
 if (GVT_RENDER)
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS})
 
-
-  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS}
-    ${ICET_MPI_LIBS})
+  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS})
   include_directories(${TINYOBJPATH})
 
-  find_package(Boost REQUIRED COMPONENTS system)
-  include_directories(${Boost_INCLUDE_DIRS})
+  # find_package(Boost REQUIRED COMPONENTS system)
+  # include_directories(${Boost_INCLUDE_DIRS})
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
 
   if(GVT_RENDER_ADAPTER_MANTA)
@@ -427,12 +401,12 @@ if (GVT_RENDER)
     set(OptiX_LIBRARIES ${optix_LIBRARY} ${optix_prime_LIBRARY})
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${CUDA_LIBRARIES} ${OptiX_LIBRARIES})
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-    	--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
-        -gencode arch=compute_20,code=sm_20
-    	-gencode arch=compute_30,code=sm_30
-    	-gencode arch=compute_35,code=sm_35
-    	-gencode arch=compute_50,code=sm_50
-        --compiler-options -fPIC )
+      --compiler-options -fno-strict-aliasing -lineinfo -use_fast_math
+      -gencode arch=compute_20,code=sm_20
+      -gencode arch=compute_30,code=sm_30
+      -gencode arch=compute_35,code=sm_35
+      -gencode arch=compute_50,code=sm_50
+    --compiler-options -fPIC )
     #cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
     CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS}  OPTIONS ${CUDA_NVCC_FLAGS})
 
@@ -450,16 +424,15 @@ if (GVT_RENDER)
   endif(GVT_RENDER_ADAPTER_EMBREE)
 
   add_library(gvtRender STATIC
-              ${GVT_CORE_HDRS}
-              ${GVT_CORE_SRCS}
-              ${GVT_RENDER_HDRS}
-              ${GVT_RENDER_SRCS})
+    ${GVT_CORE_HDRS}
+    ${GVT_RENDER_HDRS}
+  ${GVT_RENDER_SRCS})
 
   target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
 
   install(TARGETS gvtRender
-          LIBRARY DESTINATION lib
-          ARCHIVE DESTINATION lib)
+    LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
 endif(GVT_RENDER)
 
 
@@ -491,16 +464,16 @@ if (GVT_CTEST)
   add_test( SimpleAppImageDiff_ImageScheduler ${PROJECT_BINARY_DIR}/bin/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test1.ppm")
 
   ## Integration Test for SimpleFileLoad --Image Scheduler
-    add_test( SimpleFileLoad_ImageScheduler  ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -image -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test2)
-    add_test( SimpleFileLoadImageDiff_ImageScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test2.ppm")
+  add_test( SimpleFileLoad_ImageScheduler  ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -image -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test2)
+  add_test( SimpleFileLoadImageDiff_ImageScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test2.ppm")
 
   ## Integration Test for SimpleApp --Domain Scheduler
-    add_test( SimpleApp_DomainScheduler   ${runConfig} ${GVT_BIN_DIR}/gvtSimple -domain -output ${TestOutputFolder}/test3)
-    add_test( SimpleAppImageDiff_DomainScheduler  ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test3.ppm")
+  add_test( SimpleApp_DomainScheduler   ${runConfig} ${GVT_BIN_DIR}/gvtSimple -domain -output ${TestOutputFolder}/test3)
+  add_test( SimpleAppImageDiff_DomainScheduler  ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test/CTESTtest/data/simple.ppm,${TestOutputFolder}/test3.ppm")
 
   ## Integration Test for SimpleFileLoad --Domain Scheduler
-    add_test( SimpleFileLoad_DomainScheduler ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -domain -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test4)
-    add_test( SimpleFileLoadImageDiff_DomainScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test4.ppm")
+  add_test( SimpleFileLoad_DomainScheduler ${runConfig} ${GVT_BIN_DIR}/gvtFileLoad -domain -obj ${SimpleFileLoadObjLocation} -output ${TestOutputFolder}/test4)
+  add_test( SimpleFileLoadImageDiff_DomainScheduler ${GVT_BIN_DIR}/gvtImageDiff -tolerance ${ImageDiffTolerance} -diff "${PROJECT_SOURCE_DIR}/Test//CTESTtest/data/bunny.ppm,${TestOutputFolder}/test4.ppm")
 
   ## Image difference program to verify integration tests
   set(GVTIMAGE_DIFF_SRCS  src/apps/render/ImageDiff.cpp)
@@ -509,8 +482,8 @@ if (GVT_CTEST)
 endif(GVT_CTEST)
 
 if (GVT_SIMPLE_APP)
-  find_package(MPI REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH})
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH})
   set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
   set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
   add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
@@ -518,8 +491,8 @@ if (GVT_SIMPLE_APP)
 endif(GVT_SIMPLE_APP)
 
 if (GVT_SIMPLE_NS_APP)
-  find_package(MPI REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH})
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH})
   set(GVTSIMPLE_NS_RENDER_LIBS ${GVTSIMPLE_NS_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
   set(GVTSIMPLE_NS_RENDER_SRCS ${GVTSIMPLE_NS_RENDER_SRCS} src/apps/ns/SimpleApp.cpp)
   add_executable(gvtSimpleNS ${GVTSIMPLE_NS_RENDER_SRCS})
@@ -533,15 +506,16 @@ if(GVT_TESTING)
   set(GVT_TESTING_SRCS ${GVT_TESTING_SRCS} Test/timer.c ${PLYPATH}/ply.c)
   add_executable(osptest ${GVT_TESTING_SRCS} Test/OSPRayTest/BenchOspray.cpp)
   target_link_libraries(osptest ${OSPRAY_LIBRARIES})
-  find_package(MPI REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH})
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH})
   add_executable(gvttest ${GVT_TESTING_SRCS} Test/GVTTest/GVTTest.cpp)
   target_link_libraries(gvttest gvtCore gvtRender ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${OSPRAY_LIBRARIES} ${GVT_CORE_LIBS})
 endif(GVT_TESTING)
 
 if (GVT_PLY_APP)
-  find_package(MPI REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH}
+  include_directories(${PLYPATH})
   set(GVTPLY_RENDER_LIBS ${GVTPLY_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${GVT_CORE_LIBS})
   set(GVTPLY_RENDER_SRCS ${GVTPLY_RENDER_SRCS}
     src/apps/render/PlyApp.cpp
@@ -551,8 +525,9 @@ if (GVT_PLY_APP)
 endif(GVT_PLY_APP)
 
 if (GVT_PLY_NS_APP)
-  find_package(MPI REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+  include_directories(${PLYPATH})
   set(GVTPLY_NS_RENDER_LIBS ${GVTPLY_NS_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${GVT_CORE_LIBS})
   set(GVTPLY_NS_RENDER_SRCS ${GVTPLY_NS_RENDER_SRCS}
     src/apps/ns/PlyApp.cpp
@@ -563,8 +538,8 @@ if (GVT_PLY_NS_APP)
 endif(GVT_PLY_NS_APP)
 
 if (GVT_SIMPLE_FILE_LOAD_APP)
-  find_package(MPI REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH})
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH})
   set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
   set(GVTSIMPLEFILE_RENDER_SRCS ${GVTSIMPLEFILE_RENDER_SRCS} src/apps/render/SimpleFileLoadApp.cpp)
   add_executable(gvtFileLoad ${GVTSIMPLEFILE_RENDER_SRCS})
@@ -572,9 +547,9 @@ if (GVT_SIMPLE_FILE_LOAD_APP)
 endif(GVT_SIMPLE_FILE_LOAD_APP)
 
 if (GVT_GLRENDER_APP)
-  find_package(MPI REQUIRED)
+  # find_package(MPI REQUIRED)
+  # include_directories(${MPI_INCLUDE_PATH})
   find_package(OpenGL REQUIRED)
-  include_directories(${MPI_INCLUDE_PATH})
   set(GVTGLAPP_RENDER_LIBS ${GVTGLAPP_RENDER_LIBS}  ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 
   find_library(GLUTLIB glut)

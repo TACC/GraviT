@@ -34,29 +34,67 @@
 
 namespace gvt {
 namespace core {
-class Tracer {
+    /**
+     * @brief Abstract scheduler
+     *
+     *  Defines the methods required by all derived schedule implementation
+     *
+     *  Implements the methods required to register and handle messages between nodes
+     *
+     */
+class Scheduler {
 protected:
-  std::vector<std::string> _registered_messages;
+  std::vector<std::string> _registered_messages; /**< Message registery */
 
 public:
-  Tracer() {}
-  virtual ~Tracer() {}
+    /**
+     * @brief Constructor
+     */
+  Scheduler() {}
+  /**
+   * @brief Destructor
+   */
+
+  virtual ~Scheduler() {}
+  /**
+   * The scheduling operation
+   */
   virtual void operator()() { GVT_ASSERT(false, "Tracer not implemented"); };
 
+  /**
+   * Message handling method
+   * @param  msg Message received by the communicator @see communicator
+   */
   virtual bool MessageManager(std::shared_ptr<gvt::comm::Message> msg) { return false; }
 
+  /**
+   * Register Scheduler required messages with the communicator
+   * @return [description]
+   */
   template <class M> int RegisterMessage() { return gvt::comm::communicator::RegisterMessageType<M>(); }
 
+  /**
+   * Check if the node has more work to be done.
+   * @return true is work is found, false othewise
+   */
   virtual bool isDone() {
     GVT_ASSERT(false, "Tracer not implemented");
     return false;
   }
 
+  /**
+   * Check if the node has more work to be done.
+   * @return true is work is found, false othewise
+   */
   virtual bool hasWork() {
     GVT_ASSERT(false, "Tracer not implemented");
     return false;
   }
 
+  /**
+   * Get the cuurent buffer image used the scheduler to accumulate results
+   * @return buffer pointer (nullptr if it does not exist)
+   */
   virtual float *getImageBuffer() {
     GVT_ASSERT(false, "Tracer not implemented");
     return nullptr;

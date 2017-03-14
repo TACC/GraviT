@@ -54,14 +54,9 @@ public:
    */
   virtual ~EmbreeMeshAdapter();
 
-  virtual void trace(gvt::render::actor::RayVector &rayList,
-                     gvt::render::actor::RayVector &moved_rays,
-                     glm::mat4 *m,
-                     glm::mat4 *minv,
-                     glm::mat3 *normi,
-                     gvt::core::Vector<gvt::render::data::scene::Light *> &lights,
-                     size_t begin = 0,
-                     size_t end = 0);
+  virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
+                     glm::mat4 *minv, glm::mat3 *normi, gvt::core::Vector<gvt::render::data::scene::Light *> &lights,
+                     size_t begin = 0, size_t end = 0);
 
   /**
    * Handle to Embree scene.
@@ -69,7 +64,6 @@ public:
   RTCScene global_scene;
 
 protected:
-
   RTCDevice device;
 
   /**

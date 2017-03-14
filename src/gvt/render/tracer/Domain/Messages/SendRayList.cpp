@@ -32,14 +32,12 @@ namespace comm {
 REGISTER_INIT_MESSAGE(EmptyMessage);
 REGISTER_INIT_MESSAGE(SendRayList);
 
-SendRayList::SendRayList(const long _src, const long _dst,
-                         gvt::render::actor::RayVector &raylist)
+SendRayList::SendRayList(const long _src, const long _dst, gvt::render::actor::RayVector &raylist)
     : gvt::comm::Message(sizeof(gvt::render::actor::Ray) * raylist.size()) {
   tag(COMMUNICATOR_MESSAGE_TAG);
   src(_src);
   dst(_dst);
-  std::memcpy(getMessage<void>(), &raylist[0],
-              sizeof(gvt::render::actor::Ray) * raylist.size());
+  std::memcpy(getMessage<void>(), &raylist[0], sizeof(gvt::render::actor::Ray) * raylist.size());
 
   // std::size_t size = ;
   // _buffer = make_shared_buffer<unsigned char>(size + sizeof(long));

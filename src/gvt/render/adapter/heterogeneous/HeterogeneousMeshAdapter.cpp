@@ -36,7 +36,7 @@
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::heterogeneous::data;
-//using namespace gvt::render::data::primitives;
+// using namespace gvt::render::data::primitives;
 
 HeterogeneousMeshAdapter::HeterogeneousMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
   _embree = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
@@ -48,45 +48,38 @@ HeterogeneousMeshAdapter::~HeterogeneousMeshAdapter() {
   delete _optix;
 }
 
-void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList,
-		gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
-		glm::mat4 *minv, glm::mat3 *normi,
-		std::vector<gvt::render::data::scene::Light *> &lights, size_t begin,
-		size_t end) {
+void HeterogeneousMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
+                                     glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                                     std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
 
-	gvt::render::actor::RayVector mOptix;
-	std::mutex _lock_rays;
+  gvt::render::actor::RayVector mOptix;
+  std::mutex _lock_rays;
 
-	const size_t size = rayList.size();
-	bool useGPU = true;
+  const size_t size = rayList.size();
+  bool useGPU = true;
 
-	if (size < _optix->packetSize / 2) /* hand tunned value*/
-		useGPU = false;
+  if (size < _optix->packetSize / 2) /* hand tunned value*/
+    useGPU = false;
 
-	size_t split = end;
-	if (useGPU)
-		split = size * 0.60;
+  size_t split = end;
+  if (useGPU) split = size * 0.60;
 
+  tbb::task_group g;
 
-	tbb::task_group g;
+  g.run([&]() {
+    _embree->trace(rayList, moved_rays, m, minv, normi, lights, 0, split);
 
-	g.run([&]() {
-		_embree->trace(rayList, moved_rays, m, minv, normi, lights, 0, split);
+  });
 
-	});
+  if (useGPU)
+    g.run([&]() {
+      _optix->trace(rayList, mOptix, m, minv, normi, lights, split, end);
 
-	if (useGPU)
-		g.run([&]() {
-			_optix->trace(rayList, mOptix, m, minv, normi, lights, split, end);
+    });
 
-		});
-
-	g.wait();
-	if (useGPU) {
-		moved_rays.reserve(moved_rays.size() + mOptix.size());
-		moved_rays.insert(moved_rays.end(),
-				std::make_move_iterator(mOptix.begin()),
-				std::make_move_iterator(mOptix.end()));
-	}
-
+  g.wait();
+  if (useGPU) {
+    moved_rays.reserve(moved_rays.size() + mOptix.size());
+    moved_rays.insert(moved_rays.end(), std::make_move_iterator(mOptix.begin()), std::make_move_iterator(mOptix.end()));
+  }
 }

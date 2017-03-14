@@ -34,6 +34,13 @@ namespace gvt {
 namespace core {
 namespace composite {
 
+/**
+ * @brief Abstract Composite Buffer
+ *
+ * Abtract generic class that all Composite buffers derive from. Use for polimorphism.
+ *
+ */
+
 class AbstractCompositeBuffer {
 public:
   AbstractCompositeBuffer() {}
@@ -41,21 +48,57 @@ public:
 
   virtual void reset(){};
 };
-
+/**
+ * @brief Buffer
+ *
+ * Implements/defines all the required methods required by the scheduler to composite the image at the end of the frame.
+ *
+ * T defines the type of data (e.g. float RGBA requires a struct with 4 floats)
+ *
+ */
 template <typename T> class Buffer : public AbstractCompositeBuffer {
 protected:
-  std::size_t width, height;
+  std::size_t width /**< Width of the image */, height /**< Height of the image */;
 
 public:
-  Buffer(std::size_t width = 0, std::size_t height = 0)
-      : AbstractCompositeBuffer(), width(width), height(height) {}
+  /**
+   * @brief constructor
+   *
+   * @param width Width of the 2D buffer
+   * @param height Height of the 2D buffers
+   */
+  Buffer(std::size_t width = 0, std::size_t height = 0) : AbstractCompositeBuffer(), width(width), height(height) {}
   ~Buffer() {}
+  /**
+   * Reset the buffer (e.g. set all values to 0)
+   * @method reset
+   */
   virtual void reset(){};
+  /**
+   * Call the composite method when several compute nodes cooperate to produce the final image
+   * @method composite
+   * @return [description]
+   */
   virtual T *composite() { return nullptr; };
-  virtual void localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha = 1.f,
-                        float t = 0.f){};
-  virtual void localAdd(size_t i, const glm::vec3 &color, float alpha = 1.f,
-                        float t = 0.f){};
+  /**
+   * Add contribution to the buffer
+   * @method localAdd
+   * @param  x        x coordinate
+   * @param  y        y coordinate
+   * @param  color    color contribution
+   * @param  alpha    alpha value
+   * @param  t        depth value
+   */
+  virtual void localAdd(size_t x, size_t y, const glm::vec3 &color, float alpha = 1.f, float t = 0.f){};
+  /**
+   * Add contribution to the buffer
+   * @method localAdd
+   * @param  i buffer index  = floor (y / width) + (x mod width)
+   * @param  color    color contribution
+   * @param  alpha    alpha value
+   * @param  t        depth value
+   */
+  virtual void localAdd(size_t i, const glm::vec3 &color, float alpha = 1.f, float t = 0.f){};
 
 private:
 };

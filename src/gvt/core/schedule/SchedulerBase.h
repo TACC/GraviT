@@ -34,6 +34,9 @@
 #include <gvt/core/Debug.h>
 
 /// base class for work schedulers
+/**
+ * \brief Abstract scheduderl implementation
+ */
 class SchedulerBase {
 public:
   SchedulerBase() {}

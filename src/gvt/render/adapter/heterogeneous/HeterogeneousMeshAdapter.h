@@ -31,7 +31,6 @@
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 
-
 namespace gvt {
 namespace render {
 namespace adapter {

@@ -29,41 +29,30 @@
  * Created on February 4, 2016, 19:00 PM
  */
 
-
 #ifndef CUDASHADING_H
 #define CUDASHADING_H
 
 #include <vector_functions.h>
 
-#include "Ray.cuh"
 #include "Light.cuh"
+#include "Ray.cuh"
 #include <gvt/render/data/primitives/Material.h>
-
 
 namespace gvt {
 namespace render {
 namespace data {
 namespace cuda_primitives {
 
-
 /*
  * Material proxy call implemented per adpater
  * Interfaces to the different shading materials may be significantly different
  * mainly due to light assessing and vec formats
  */
-    __device__  bool Shade(
-           gvt::render::data::primitives::Material* material,
-                              const Ray &ray,
-                              const cuda_vec &sufaceNormal,
-                              const Light *lightSource,
-                              const cuda_vec lightPostion,
-                                cuda_vec& color);
-
+__device__ bool Shade(gvt::render::data::primitives::Material *material, const Ray &ray, const cuda_vec &sufaceNormal,
+                      const Light *lightSource, const cuda_vec lightPostion, cuda_vec &color);
 }
 }
 }
 }
-
 
 #endif // CUDASHADING_H
-

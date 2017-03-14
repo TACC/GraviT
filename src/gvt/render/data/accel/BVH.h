@@ -28,8 +28,8 @@
 #ifndef GVT_RENDER_DATA_ACCEL_BVH_H
 #define GVT_RENDER_DATA_ACCEL_BVH_H
 
-#include <stack>
 #include <mutex>
+#include <stack>
 
 #include <gvt/core/Math.h>
 #include <gvt/render/actor/RayPacket.h>
@@ -59,8 +59,7 @@ public:
 
   template <size_t simd_width>
   gvt::core::Vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
-                                   const gvt::render::actor::RayVector::iterator &ray_end,
-                                   const int from) {
+                                   const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
 
     gvt::core::Vector<hit> ret((ray_end - ray_begin));
     size_t offset = 0;

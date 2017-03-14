@@ -60,8 +60,6 @@ struct SpreadSchedule : public HybridScheduleBase {
 
   virtual void operator()() {
 
-    
-
     for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     gvt::core::Map<int, int> data2proc;
@@ -70,7 +68,6 @@ struct SpreadSchedule : public HybridScheduleBase {
       if (map_recv_bufs[s]) {
         // add currently loaded data
         data2proc[map_recv_bufs[s][0]] = s; // this will evict previous entries, that's okay (I think)
-        
 
         // add queued data
         for (int d = 1; d < map_size_buf[s]; d += 2) queued.push_back(map_recv_bufs[s][d]);
@@ -83,10 +80,9 @@ struct SpreadSchedule : public HybridScheduleBase {
       gvt::core::Map<int, int>::iterator it = data2proc.find(queued[i]);
       if (it != data2proc.end()) {
         newMap[it->second] = it->first;
-        
+
       } else {
         homeless.push_back(queued[i]);
-        
       }
     }
 
@@ -102,8 +98,6 @@ struct SpreadSchedule : public HybridScheduleBase {
         }
       }
     }
-
-    
   }
 };
 }

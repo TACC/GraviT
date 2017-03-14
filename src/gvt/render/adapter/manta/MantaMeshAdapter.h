@@ -38,8 +38,8 @@
 #include <Interface/LightSet.h>
 #include <Interface/MantaInterface.h>
 #include <Interface/Object.h>
-#include <Interface/Scene.h>
 #include <Interface/RandomNumberGenerator.h>
+#include <Interface/Scene.h>
 #include <Model/Groups/DynBVH.h>
 #include <Model/Groups/Mesh.h>
 #include <Model/Lights/PointLight.h>

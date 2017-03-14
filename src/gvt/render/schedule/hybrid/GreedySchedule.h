@@ -74,9 +74,6 @@ struct GreedySchedule : public HybridScheduleBase {
         }
       }
     }
-
-    
-
   }
 };
 }

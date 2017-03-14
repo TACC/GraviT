@@ -29,14 +29,14 @@
 #include <gvt/core/context/Variant.h>
 
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace gvt {
 namespace core {
-  typedef std::string String;
-  template <class T> using Vector = std::vector<T>;
-  template <class K, class V> using Map = std::map<K, V>;
+typedef std::string String;
+template <class T> using Vector = std::vector<T>;
+template <class K, class V> using Map = std::map<K, V>;
 }
 }
 

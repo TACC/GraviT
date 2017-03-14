@@ -58,7 +58,7 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
   virtual ~AdaptiveSendSchedule() {}
 
   virtual void operator()() {
-    
+
     for (int i = 0; i < size; ++i) newMap[i] = -1;
 
     gvt::core::Map<int, gvt::core::Vector<int> > cur_data2procs;
@@ -71,13 +71,12 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
         // track number of procs that have data loaded
         cur_data2procs[map_recv_bufs[s][0]].push_back(s);
         procs_count[map_recv_bufs[s][0]] += 1;
-        
 
         // add data with queued rays
         // track number of rays needed (assumes map inits to zero)
         for (int d = 1; d < map_size_buf[s]; d += 2) {
           data2size[map_recv_bufs[s][d]] += map_recv_bufs[s][d + 1];
-                  }
+        }
       }
     }
 
@@ -90,21 +89,19 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
     int avail = 0;
     for (gvt::core::Map<int, int>::iterator it = data2size.begin(); it != data2size.end(); ++it) {
       int idx = it->second / add_a_proc;
-      
+
       if (idx > 0) {
         priority[idx].push_back(it->first);
       } else {
         gvt::core::Map<int, int>::iterator pdit = procs_count.find(it->first);
         if (pdit != procs_count.end()) {
           for (int i = 0; i < pdit->second; ++i) {
-            
 
             zero_priority[i].push_back(cur_data2procs[pdit->first][i]); // push proc id onto stack, let
                                                                         // map sort into use-first
                                                                         // order
           }
           avail += pdit->second;
-          
         }
       }
     }
@@ -112,42 +109,36 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
     // track procs that have data with no pending rays
     // give them artificially high sort order so they'll be used first
     if (!priority.empty()) {
-      for (gvt::core::Map<int, gvt::core::Vector<int> >::iterator it = cur_data2procs.begin(); it != cur_data2procs.end(); ++it) {
+      for (gvt::core::Map<int, gvt::core::Vector<int> >::iterator it = cur_data2procs.begin();
+           it != cur_data2procs.end(); ++it) {
         if (data2size.find(it->first) == data2size.end()) {
           int pc = procs_count[it->first];
           for (int i = 0; i < pc; ++i) {
-            
+
             zero_priority[(pc << 6) + i].push_back(it->second[i]);
           }
           avail += pc;
-          
         }
       }
     }
 
-    
-    
-    
-    
-
     // while procs are available
     // get highest priority and allocate procs
     // gvt::core::Vector<int> excess;  // reclaim excess procs? or reclaim them when become zero priority?
-    
+
     for (gvt::core::Map<int, gvt::core::Vector<int> >::reverse_iterator rit = priority.rbegin();
          (rit != priority.rend()) & (avail > 0); ++rit) {
       for (gvt::core::Vector<int>::iterator it = rit->second.begin(); (it != rit->second.end()) & (avail > 0); ++it) {
         int need = rit->first - procs_count[*it];
-        
+
         if (procs_count[*it] > 0) {
-          
+
           // add already-allocated procs
           int used;
           for (used = 0; (used < procs_count[*it]) & (need > 0); ++used) {
             int p = cur_data2procs[*it][used];
             newMap[p] = *it;
             --need;
-            
           }
 
           // put remaining processor into empty queue,
@@ -159,11 +150,11 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
               cur_data2procs[*it].pop_back();
               ++avail;
             }
-            
+
           } else {
             need = (need > avail) ? avail : (need > 0) ? need : 0;
             avail -= need;
-            
+
             // data already loaded, put rest in send queue
             gvt::core::Map<int, gvt::core::Vector<int> >::reverse_iterator zpi = zero_priority.rbegin();
             for (int i = 0; i < need; ++i) {
@@ -174,12 +165,11 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
               if (zpi->second.empty()) {
                 ++zpi;
               }
-              
             }
             if (zpi != zero_priority.rbegin()) {
               --zpi;
               int target = zpi->first;
-              
+
               zero_priority.erase(zero_priority.find(target), zero_priority.end());
             }
           }
@@ -189,7 +179,6 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
           need = (need > avail) ? avail : (need > 0) ? need : 0;
           avail -= need;
 
-          
           gvt::core::Map<int, gvt::core::Vector<int> >::reverse_iterator zpi = zero_priority.rbegin();
           int victim = zpi->second.back();
           newMap[victim] = *it;
@@ -198,7 +187,6 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
           if (zpi->second.empty()) {
             ++zpi;
           }
-          
 
           // put rest in send queue
           // start from 1, to account for first just added
@@ -210,24 +198,20 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
             if (zpi->second.empty()) {
               ++zpi;
             }
-            
           }
           if (zpi != zero_priority.rbegin()) {
             --zpi;
             int target = zpi->first;
-            
+
             zero_priority.erase(zero_priority.find(target), zero_priority.end());
           }
         }
       }
     }
 
-    
-
     // allocate zero-priority if that's all that's present
     // use adaptive allocation scheme
     if (priority.empty()) {
-      
 
       gvt::core::Map<int, int> size2data;
       // convert data2size into size2data,
@@ -243,10 +227,9 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
         gvt::core::Map<int, gvt::core::Vector<int> >::iterator d2pit = cur_data2procs.find(d2sit->second);
         if (d2pit != cur_data2procs.end()) {
           newMap[d2pit->second[0]] = d2pit->first;
-          
+
         } else {
           homeless.push_back(d2sit->second);
-          
         }
       }
 
@@ -259,7 +242,6 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
             newMap[i] = homeless.back();
             cur_data2procs[newMap[i]].push_back(i);
             homeless.pop_back();
-            
           }
         }
       }
@@ -267,20 +249,17 @@ struct AdaptiveSendSchedule : public HybridScheduleBase {
 
     // build data send buffer
     // index is proc to receive, value is proc to send
-    
+
     for (gvt::core::Map<int, gvt::core::Vector<int> >::iterator it = send_data.begin(); it != send_data.end(); ++it) {
       int to_recv = it->second.size();
       int to_send = cur_data2procs[it->first].size();
-      
+
       for (int r = 0, s = 0; r < to_recv; ++r, ++s) {
         s = r % to_send; // XXX TODO pnav: 's' is likely an error here, but confirm and fix
-        
+
         data_send_buf[it->second[r]] = cur_data2procs[it->first][s];
       }
     }
-
-    
-
   }
 };
 }

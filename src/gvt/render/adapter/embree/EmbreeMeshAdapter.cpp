@@ -237,8 +237,9 @@ struct embreeParallelTrace {
   embreeParallelTrace(gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter,
                       gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                       const size_t workSize, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                      gvt::core::Vector<gvt::render::data::scene::Light *> &lights, gvt::render::data::primitives::Mesh *mesh,
-                      std::atomic<size_t> &counter, const size_t begin, const size_t end)
+                      gvt::core::Vector<gvt::render::data::scene::Light *> &lights,
+                      gvt::render::data::primitives::Mesh *mesh, std::atomic<size_t> &counter, const size_t begin,
+                      const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
         lights(lights), counter(counter), begin(begin), end(end), mesh(mesh) {}
   /**
@@ -588,7 +589,8 @@ struct embreeParallelTrace {
 
 void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                               glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                              gvt::core::Vector<gvt::render::data::scene::Light *> &lights, size_t _begin, size_t _end) {
+                              gvt::core::Vector<gvt::render::data::scene::Light *> &lights, size_t _begin,
+                              size_t _end) {
 
   global_scene = rtcDeviceNewScene(device, RTC_SCENE_STATIC, GVT_EMBREE_ALGORITHM);
   unsigned instID = rtcNewInstance(global_scene, scene);
@@ -604,10 +606,10 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   this->begin = _begin;
   this->end = _end;
 
-  const size_t numThreads =  gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
+  const size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
   const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
-                                                                                           // of rays to work
-                                                                   // on
+                                                                                              // of rays to work
+                                                                                              // on
 
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),

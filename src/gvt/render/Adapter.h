@@ -48,7 +48,7 @@ public:
   /**
    * Construct an adapter with a given data node
    */
-  Adapter(gvt::render::data::primitives::Mesh *mesh ) : mesh(mesh) {}
+  Adapter(gvt::render::data::primitives::Mesh *mesh) : mesh(mesh) {}
 
   /**
    * Destroy the adapter
@@ -68,7 +68,6 @@ public:
 
   std::mutex _inqueue;
   std::mutex _outqueue;
-
 };
 
 } // render

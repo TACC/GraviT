@@ -30,24 +30,68 @@
 
 namespace gvt {
 namespace render {
+/**
+ * \Brief ray trace Image Decomposition scheduler
+ *
+ * Implements a image decomposition strategy to generate the final image. The image space is divided equally amount all
+ * compute nodes and each node assumes that they have aceess to the entire data. The termination condition only needs to
+ * check that there is no more rays to be processed localy does voting and message passing is not required.
+ */
 class ImageTracer : public gvt::render::RayTracer {
 private:
 protected:
-  std::mutex *queue_mutex = nullptr;
-  gvt::core::Map<int, gvt::render::actor::RayVector> queue;
-
 public:
   ImageTracer();
   ~ImageTracer();
 
+  /**
+   * \brief Ray trace image decomposition implementation
+   *
+   * @method operator
+   */
   virtual void operator()();
+
+  /**
+   * Checks if the rays intersect any of the high level bounding boxes that encapsulate each instance and places the ray
+   * in the first intersected instance queue. All other rays are dropped.
+   * @method processRaysAndDrop
+   * @param  rays               [description]
+   */
   virtual void processRaysAndDrop(gvt::render::actor::RayVector &rays);
+  /**
+   * Process rays returned by the adpater
+   * @method processRays
+   * @param  rays        List of rays returned by the adpater
+   * @param  src         Instance id from where the rays originated
+   * @param  dst         Instance id of rays destination (not used)
+   */
   virtual void processRays(gvt::render::actor::RayVector &rays, const int src = -1, const int dst = -1);
 
+  /**
+   * Message Manager, to used since no messages are exchanged in this scheduler
+   *
+   * @method MessageManager
+   * @param  msg            Raw message
+   * @return                [description]
+   */
   virtual bool MessageManager(std::shared_ptr<gvt::comm::Message> msg);
+
+  /**
+   * Checks id all queues are empty
+   * @method isDone
+   * @return return true if all instance queues are empty
+   */
   virtual bool isDone();
+  /**
+   * Checks if at least one instance queue has work
+   * @method hasWork
+   */
   virtual bool hasWork();
 
+  /**
+   * Reset BVH and update
+   * @method resetBVH
+   */
   virtual void resetBVH();
 };
 };

@@ -165,7 +165,7 @@ void DomainTracer::operator()() {
 
     if (target == -1) {
       t_send.resume();
-      for (auto& q : queue) {
+      for (auto &q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
         queue_mutex[q.first].lock();
         gc_sent.add(q.second.size());
@@ -211,7 +211,8 @@ inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays
                       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
                       for (size_t i = 0; i < hits.size(); i++) {
                         gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                        if (hits[i].next != -1) if(instances_in_node[hits[i].next]) local_queue[hits[i].next].push_back(r);
+                        if (hits[i].next != -1)
+                          if (instances_in_node[hits[i].next]) local_queue[hits[i].next].push_back(r);
                       }
                       for (auto &q : local_queue) {
                         queue_mutex[q.first].lock();

@@ -22,15 +22,12 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 #include "gvt/core/context/DatabaseNode.h"
-#include "gvt/core/context/CoreContext.h"
 #include "gvt/core/Debug.h"
+#include "gvt/core/context/CoreContext.h"
 
 using namespace gvt::core;
 
-DatabaseNode *DatabaseNode::errNode = new DatabaseNode(String("error"),
-                                                       String("error"),
-                                                       Uuid::null(),
-                                                       Uuid::null());
+DatabaseNode *DatabaseNode::errNode = new DatabaseNode(String("error"), String("error"), Uuid::null(), Uuid::null());
 
 DatabaseNode::DatabaseNode(String name, Variant value, Uuid uuid, Uuid parentUUID)
     : p_uuid(uuid), p_name(name), p_value(value), p_parent(parentUUID) {}
@@ -106,7 +103,7 @@ DBNodeH DBNodeH::operator[](const String &key) {
   Database &db = *(ctx->database());
   DatabaseNode *child = db.getChildByName(_uuid, key);
   if (!child) {
-    GVT_ERR_MESSAGE( "DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
+    GVT_ERR_MESSAGE("DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
     child = &(ctx->createNode(key).getNode());
   }
   return DBNodeH(child->UUID());

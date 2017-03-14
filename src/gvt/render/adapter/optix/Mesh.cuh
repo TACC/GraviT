@@ -31,63 +31,52 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_MESH_CUH
 #define GVT_RENDER_DATA_PRIMITIVES_MESH_CUH
 
-#include <vector_functions.h>
 #include "Material.cuh"
+#include <vector_functions.h>
 
 namespace gvt {
 namespace render {
 namespace data {
 namespace cuda_primitives {
 
-
 class Matrix3f {
   //---[ Private Variable Declarations ]-----------------
 public:
   // matrix elements in row major order
 
-	float n[3][3];
+  float n[3][3];
 
-  inline __device__ float3 operator*(const float3& v)
-  {
+  inline __device__ float3 operator*(const float3 &v) {
 
-  return make_float3(n[0][0] * v.x + n[1][0] * v.y + n[2][0] * v.z,
-	  			n[0][1] * v.x + n[1][1] * v.y + n[2][1] * v.z ,
-	  			n[0][2] * v.x + n[1][2] * v.y + n[2][2] * v.z );
+    return make_float3(n[0][0] * v.x + n[1][0] * v.y + n[2][0] * v.z, n[0][1] * v.x + n[1][1] * v.y + n[2][1] * v.z,
+                       n[0][2] * v.x + n[1][2] * v.y + n[2][2] * v.z);
   }
-
 };
-
 
 class Matrix4f {
   //---[ Private Variable Declarations ]-----------------
 public:
   // matrix elements in row major order
 
-	float n[4][4];
+  float n[4][4];
 
+  inline __device__ float4 operator*(const float4 &v) {
 
-  inline __device__ float4 operator*(const float4& v)
-  {
-
-	  return make_float4(n[0][0] * v.x + n[1][0] * v.y + n[2][0] * v.z + n[3][0] * v.w,
-	  			n[0][1] * v.x + n[1][1] * v.y + n[2][1] * v.z + n[3][1] * v.w,
-	  			n[0][2] * v.x + n[1][2] * v.y + n[2][2] * v.z + n[3][2] * v.w,
-	  			n[0][3] * v.x + n[1][3] * v.y + n[2][3] * v.z + n[3][3] * v.w);
-
+    return make_float4(n[0][0] * v.x + n[1][0] * v.y + n[2][0] * v.z + n[3][0] * v.w,
+                       n[0][1] * v.x + n[1][1] * v.y + n[2][1] * v.z + n[3][1] * v.w,
+                       n[0][2] * v.x + n[1][2] * v.y + n[2][2] * v.z + n[3][2] * v.w,
+                       n[0][3] * v.x + n[1][3] * v.y + n[2][3] * v.z + n[3][3] * v.w);
   }
-
-
 };
 
 /// base class for mesh
 class AbstractMesh {
 public:
-	 __device__ AbstractMesh() {}
+  __device__ AbstractMesh() {}
 
-	 __device__ AbstractMesh(const AbstractMesh &) {}
+  __device__ AbstractMesh(const AbstractMesh &) {}
 
-	 __device__  ~AbstractMesh() {}
-
+  __device__ ~AbstractMesh() {}
 };
 
 /// geometric mesh
@@ -97,23 +86,17 @@ public:
 
 class Mesh : public AbstractMesh {
 public:
+  __device__ Mesh() {}
 
-   __device__ Mesh(){
-
-  }
-
-   __device__ virtual ~Mesh(){
-
-  }
+  __device__ virtual ~Mesh() {}
 
 public:
-   data::primitives::Material* mat;
-  cuda_vec* vertices;
-  cuda_vec* normals;
-  int3* faces;
-  int3* faces_to_normals;
-  cuda_vec* face_normals;
-
+  data::primitives::Material *mat;
+  cuda_vec *vertices;
+  cuda_vec *normals;
+  int3 *faces;
+  int3 *faces_to_normals;
+  cuda_vec *face_normals;
 };
 }
 }

@@ -41,12 +41,10 @@ namespace render {
 namespace data {
 namespace accel {
 
-
 /// abstract base class for acceleration structures
 class AbstractAccel {
 public:
-  AbstractAccel(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) :
-    instanceSet(instanceSet) {}
+  AbstractAccel(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : instanceSet(instanceSet) {}
 
   virtual ~AbstractAccel() {}
 

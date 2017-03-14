@@ -54,8 +54,6 @@ public:
   void propagateUpdate();
   explicit operator bool() const;
 
-
-
   static DatabaseNode *errNode;
 };
 
