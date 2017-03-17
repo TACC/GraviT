@@ -83,7 +83,7 @@ using namespace gvt::render::data::primitives;
 void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
-
+{
   ParseCommandLine cmd("gvtSimple");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -471,7 +471,8 @@ int main(int argc, char **argv) {
   if (gvt::comm::communicator::instance().id() == 0)
     (*rt).getComposite()->write(filmNode["outputPath"].value().toString());
   gvt::comm::communicator::instance().terminate();
-
+  }
+  MPI_Finalize();
   // end db setup
 
   // cntxt->database()->printTree(root.UUID(), 10, std::cout);

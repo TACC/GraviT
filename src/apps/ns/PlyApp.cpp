@@ -90,7 +90,7 @@ public:
 //#define DOMAIN_PER_NODE 2
 
 int main(int argc, char **argv) {
-
+{
   gvt::core::time::timer t_skip(true, "To skip");
 
   ParseCommandLine cmd("gvtPly");
@@ -293,65 +293,6 @@ int main(int argc, char **argv) {
     (*rt).getComposite()->write(filmNode["outputPath"].value().toString());
   gvt::comm::communicator::instance().terminate();
 
-#if 0
-  // use db to create structs needed by system
-  // setup gvtCamera from database entries
-  gvtPerspectiveCamera mycamera;
-  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
-  glm::vec3 focus = camNode["focus"].value().tovec3();
-  float fov = camNode["fov"].value().toFloat();
-  glm::vec3 up = camNode["upVector"].value().tovec3();
-  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
-  int raySamples = camNode["raySamples"].value().toInteger();
-  mycamera.lookAt(cameraposition, focus, up);
-  mycamera.setMaxDepth(rayMaxDepth);
-  mycamera.setSamples(raySamples);
-  mycamera.setFOV(fov);
-  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
-
-  // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "output");
-
-  mycamera.AllocateCameraRays();
-  mycamera.generateRays();
-
-  int schedType = root["Schedule"]["type"].value().toInteger();
-  switch (schedType) {
-  case gvt::render::scheduler::Image: {
-    std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
-      mycamera.AllocateCameraRays();
-      mycamera.generateRays();
-      myimage.clear();
-      tracer();
-    }
-    break;
   }
-  case gvt::render::scheduler::Domain: {
-    std::cout << "starting domain scheduler" << std::endl;
-
-    // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
-    std::cout << "starting image scheduler" << std::endl;
-    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
-      mycamera.AllocateCameraRays();
-      mycamera.generateRays();
-      myimage.clear();
-      tracer();
-    }
-    break;
-  }
-  default: {
-    std::cout << "unknown schedule type provided: " << schedType << std::endl;
-    break;
-  }
-  }
-
-  myimage.Write();
-
-  // std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
-
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#endif
+  MPI_Finalize();
 }

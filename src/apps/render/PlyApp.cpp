@@ -83,7 +83,7 @@ public:
 //#define DOMAIN_PER_NODE 2
 
 int main(int argc, char **argv) {
-
+ {
   gvt::core::time::timer t_skip(true, "To skip");
 
   ParseCommandLine cmd("gvtPly");
@@ -313,8 +313,8 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-
+  }
   // std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
 
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+  MPI_Finalize();
 }

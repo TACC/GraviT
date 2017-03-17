@@ -42,7 +42,7 @@ void scomm::init(int argc, char *argv[], bool start_thread) {
   // MVAPICH2 http://mailman.cse.ohio-state.edu/pipermail/mvapich-discuss/2012-December/004151.html
   // MV2_ENABLE_AFFINITY=0
   int req = MPI_THREAD_MULTIPLE;
-  int prov;
+  int prov= MPI_THREAD_MULTIPLE;
   MPI_Init_thread(&argc, &argv, req, &prov);
 
   communicator::_instance = std::make_shared<scomm>();
@@ -62,7 +62,7 @@ void scomm::init(int argc, char *argv[], bool start_thread) {
     break;
   case MPI_THREAD_MULTIPLE:
     std::cout << "MPI_THREAD_MULTIPLE" << std::endl;
-    communicator::_MPI_THREAD_SERIALIZED = false;
+    communicator::_MPI_THREAD_SERIALIZED = true;
     break;
   default:
     std::cout << "Upppsssss" << std::endl;
