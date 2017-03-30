@@ -28,7 +28,8 @@
 #include "gvt/render/Adapter.h"
 #include <gvt/render/RenderContext.h>
 #include "ospray/ospray.h"
-#include "ospray/OSPExternalRays.h"
+//#include "ospray/OSPExternalRays.h"
+#include "ospray/ExternalAPI.h"
 
 namespace gvt {
 namespace render {
