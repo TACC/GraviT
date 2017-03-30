@@ -7,10 +7,12 @@
 namespace gvt {
 namespace render {
 namespace composite {
-
+/**
+ * \brief old IceT composite method
+ * @deprecated IceTComposite
+ */
 struct composite {
 
-  // glm::vec4 *buffer;
   IceTInt num_proc;
 
   composite() {}

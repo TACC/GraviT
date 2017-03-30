@@ -24,7 +24,7 @@
 #ifndef GVT_RENDER_ADAPTER_H
 #define GVT_RENDER_ADAPTER_H
 
-#include <gvt/core/DatabaseNode.h>
+#include <gvt/core/context/DatabaseNode.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
@@ -48,7 +48,7 @@ public:
   /**
    * Construct an adapter with a given data node
    */
-  Adapter(gvt::render::data::primitives::Mesh *mesh ) : mesh(mesh) {}
+  Adapter(gvt::render::data::primitives::Mesh *mesh) : mesh(mesh) {}
 
   /**
    * Destroy the adapter
@@ -68,7 +68,6 @@ public:
 
   std::mutex _inqueue;
   std::mutex _outqueue;
-
 };
 
 } // render

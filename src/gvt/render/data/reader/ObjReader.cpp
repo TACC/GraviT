@@ -46,7 +46,7 @@ namespace render {
 namespace data {
 namespace domain {
 namespace reader {
-std::vector<std::string> split(const std::string &s, char delim, std::vector<std::string> &elems) {
+gvt::core::Vector<std::string> split(const std::string &s, char delim, gvt::core::Vector<std::string> &elems) {
   std::stringstream ss(s);
   std::string item;
   while (std::getline(ss, item, delim)) {
@@ -69,18 +69,18 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   // file.open(filename.c_str());
   // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  Material* m = new Material();
-//  m->type = LAMBERT;
-//  //m->type = EMBREE_MATERIAL_MATTE;
-//  m->kd = glm::vec3(1.0,1.0, 1.0);
-//  m->ks = glm::vec3(1.0,1.0,1.0);
-//  m->alpha = 0.5;
-//
-//  //m->type = EMBREE_MATERIAL_METAL;
-//  //copper metal
-//  m->eta = glm::vec3(.19,1.45, 1.50);
-//  m->k = glm::vec3(3.06,2.40, 1.88);
-//  m->roughness = 0.05;
+  Material *m = new Material();
+  //  m->type = LAMBERT;
+  //  //m->type = EMBREE_MATERIAL_MATTE;
+  //  m->kd = glm::vec3(1.0,1.0, 1.0);
+  //  m->ks = glm::vec3(1.0,1.0,1.0);
+  //  m->alpha = 0.5;
+  //
+  //  //m->type = EMBREE_MATERIAL_METAL;
+  //  //copper metal
+  //  m->eta = glm::vec3(.19,1.45, 1.50);
+  //  m->k = glm::vec3(3.06,2.40, 1.88);
+  //  m->roughness = 0.05;
 
   objMesh = new Mesh(m);
 
@@ -111,15 +111,15 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   std::size_t found = filename.find_last_of("/");
   std::string path = filename.substr(0, found + 1);
 
-  std::vector<tinyobj::shape_t> shapes;
-  std::vector<tinyobj::material_t> materials;
+  gvt::core::Vector<tinyobj::shape_t> shapes;
+  gvt::core::Vector<tinyobj::material_t> materials;
 
-  // std::vector<pathtr::math::vec3<float> > vertices;
-  // std::vector<pathtr::math::vec3<int> > faces;
-  // std::vector<pathtr::math::vec3<float> > normals;
-  // std::vector<size_t> cindex;
-  // std::vector<pathtr::material> color;
-  // std::vector<size_t> lfaces;
+  // gvt::core::Vector<pathtr::math::vec3<float> > vertices;
+  // gvt::core::Vector<pathtr::math::vec3<int> > faces;
+  // gvt::core::Vector<pathtr::math::vec3<float> > normals;
+  // gvt::core::Vector<size_t> cindex;
+  // gvt::core::Vector<pathtr::material> color;
+  // gvt::core::Vector<size_t> lfaces;
   // bbox bb;
 
   std::string err;
@@ -198,28 +198,28 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
 }
 
 void ObjReader::parseVertex(std::string line) {
-  std::vector<std::string> elems;
+  gvt::core::Vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing vertex");
   objMesh->addVertex(glm::vec3(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str())));
 }
 
 void ObjReader::parseVertexNormal(std::string line) {
-  std::vector<std::string> elems;
+  gvt::core::Vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing vertex normal");
   objMesh->addNormal(glm::vec3(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), std::atof(elems[3].c_str())));
 }
 
 void ObjReader::parseVertexTexture(std::string line) {
-  std::vector<std::string> elems;
+  gvt::core::Vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 3, "Error parsing texture map");
   objMesh->addTexUV(glm::vec3(std::atof(elems[1].c_str()), std::atof(elems[2].c_str()), 0));
 }
 
 void ObjReader::parseFace(std::string line) {
-  std::vector<std::string> elems;
+  gvt::core::Vector<std::string> elems;
   split(line, ' ', elems);
   GVT_ASSERT(elems.size() == 4, "Error parsing face");
 

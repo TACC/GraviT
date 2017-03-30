@@ -30,97 +30,112 @@
 
 #ifndef GVT_RENDER_ACTOR_RAY_H
 #define GVT_RENDER_ACTOR_RAY_H
+
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
+#include <gvt/core/Types.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 
-#include <boost/aligned_storage.hpp>
-#include <boost/container/set.hpp>
-#include <boost/container/vector.hpp>
-#include <boost/pool/pool.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/smart_ptr.hpp>
-#include <limits>
-
 #include <iomanip>
-#include <vector>
 
 namespace gvt {
 namespace render {
 namespace actor {
-/// container for intersection point information
-typedef struct intersection {
-  int domain; /// domain in which the intersection occurred
-  float d;    /// distance to the intersection point
-
-  intersection(int dom) : domain(dom), d(FLT_MAX) {}
-  intersection(int dom, float dist) : domain(dom), d(dist) {}
-
-  /// return the id of the intersected domain
-  operator int() { return domain; }
-  /// return the distance to the intersection point
-  operator float() { return d; }
-  friend inline bool operator==(const intersection &lhs, const intersection &rhs) {
-    return (lhs.d == rhs.d) && (lhs.d == rhs.d);
-  }
-  friend inline bool operator<(const intersection &lhs, const intersection &rhs) {
-    return (lhs.d < rhs.d) || ((lhs.d == rhs.d) && (lhs.domain < rhs.domain));
-  }
-
-} isecDom;
-
-typedef std::vector<isecDom> isecDomList;
 
 class Ray {
 public:
-  /// ray type
-  /** ray type enumeration
-   - PRIMARY - a camera or eye ray
-   - SHADOW - a ray that tests visibility from a light source to an intersection point
-   - SECONDARY - all other rays
+  /**
+   * \brief Ray type
    */
-  // clang-format off
   enum RayType {
-    PRIMARY,
-    SHADOW,
-    SECONDARY
+    PRIMARY /**< Camera ray */,
+    SHADOW /**< Ray that tests visibility from a light source to an intersection point */,
+    SECONDARY /**< All other rays */
   };
 
+  /**
+   * \brief Ray intersection epsilon
+   */
   const static float RAY_EPSILON;
-  // clang-format on
-  inline Ray() /*: t_min(gvt::render::actor::Ray::RAY_EPSILON), t_max(FLT_MAX), t(FLT_MAX), id(-1), depth(8), w(0.f), type(PRIMARY) */ {
-  }
+
+  /**
+   * Empty contructor
+   * @method Ray
+   */
+  inline Ray() {}
+  /**
+   * Constructor
+   * @method Ray
+   * @param  _origin      Ray origin
+   * @param  _direction   Ray direction
+   * @param  contribution Ray contribution
+   * @param  type         Ray type
+   * @param  depth        Recursion dept
+   */
   inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
       : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)),
         t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
-
+  /**
+   * Copy constructor
+   * @method Ray
+   * @param  r   Ray t copy
+   */
   inline Ray(const Ray &r) { std::memcpy(data, r.data, packedSize()); }
-
+  /**
+   * Move constructor
+   * @method Ray
+   * @param  r   Ray to move
+   */
   inline Ray(Ray &&r) { std::memmove(data, r.data, packedSize()); }
 
+  /**
+   * Unpacked from communication buffer
+   * @method Ray
+   * @param  buf Ray pointer
+   */
   inline Ray(const unsigned char *buf) { std::memcpy(data, buf, packedSize()); }
 
+  /**
+   * \brief assign operator
+   * @see Copy constructor
+   */
   inline Ray &operator=(const Ray &r) {
     std::memcpy(data, r.data, packedSize());
     return *this;
   }
 
+  /**
+   * \brief Assign move contructor
+   */
   inline Ray &operator=(Ray &&r) {
     std::memmove(data, r.data, packedSize());
     return *this;
   }
-  ~Ray(){};
+  ~Ray() {}
 
-  /// returns size in bytes for the ray information to be sent via MPI
+  /**
+   * Returns size in bytes for the ray information to be sent via MPI
+   * @method packedSize
+   * @return Size of ray in bytes
+   */
   size_t packedSize() const { return sizeof(Ray); }
 
   /// packs the ray information onto the given buffer and returns the number of bytes packed
-  int pack(unsigned char *buffer) {
+  /**
+   * Pack ray into buffer
+   * @method pack
+   * @param  buffer Pointer to ray packeting position
+   * @return        number of bytes packed
+   */
+  size_t pack(unsigned char *buffer) {
     unsigned char *buf = buffer;
     std::memcpy(buf, data, packedSize());
     return packedSize();
   }
 
+  /**
+   *
+   */
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
     stream << std::setprecision(4) << std::fixed << std::scientific;
     stream << "Ray[" << ray.id << "][" << ((ray.type == PRIMARY) ? "P" : (ray.type == SHADOW) ? "SH" : "S");
@@ -131,25 +146,22 @@ public:
 
   union {
     struct {
-      glm::vec3 origin;
-      float t_min;
-      glm::vec3 direction;
-      float t_max;
-      glm::vec3 color;
-      float t;
-      int id;    ///<! index into framebuffer
-      int depth; ///<! sample rate
-      float w;   ///<! weight of image contribution
-      int type;
+      glm::vec3 origin;    /**< Ray origin */
+      float t_min;         /**< Ray t_min */
+      glm::vec3 direction; /**< Ray direction */
+      float t_max;         /**< Ray t_max */
+      glm::vec3 color;     /**< Current radiance */
+      float t;             /**< Latest intersection distance */
+      int id;              ///<! index into framebuffer
+      int depth;           ///<! sample rate
+      float w;             ///<! weight of image contribution
+      int type;            /**< Ray type */
     };
-    unsigned char data[64] GVT_ALIGN(16);
+    unsigned char data[68] GVT_ALIGN(16); /**< Packeted Ray in memory */
   };
-
-protected:
 };
 
-// NOTE: removing boost pool allocator greatly improves timings
-typedef std::vector<Ray> RayVector;
+typedef gvt::core::Vector<Ray> RayVector; /**< Array of Rays type */
 }
 }
 }

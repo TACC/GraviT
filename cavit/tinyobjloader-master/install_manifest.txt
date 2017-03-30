@@ -1,3 +1,0 @@
-/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/bin/obj_sticher
-/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/lib/libtinyobjloader.a
-/home/01197/semeraro/Projects/Gravity/gravit/third-party/tinyobjloader-master/include/tiny_obj_loader.h

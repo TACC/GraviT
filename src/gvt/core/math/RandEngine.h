@@ -29,6 +29,13 @@ namespace gvt {
 namespace core {
 namespace math {
 
+/**
+ * @brief Random number generator wrapper
+ *
+ *  Fast random generator implementation
+ *
+ */
+
 class RandEngine {
 public:
 #define rotl(r, n) (((r) << (n)) | ((r) >> ((8 * sizeof(r)) - (n))))

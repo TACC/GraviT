@@ -51,7 +51,7 @@ public:
   Light(const Light &orig);
   virtual ~Light();
 
-  virtual glm::vec3 contribution(const glm::vec3 &hitpoint,const glm::vec3 &samplePos) const;
+  virtual glm::vec3 contribution(const glm::vec3 &hitpoint, const glm::vec3 &samplePos) const;
 
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
@@ -67,7 +67,7 @@ public:
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 
-  virtual glm::vec3 contribution(const glm::vec3 &hitpoint,const glm::vec3 &samplePos = glm::vec3()) const;
+  virtual glm::vec3 contribution(const glm::vec3 &hitpoint, const glm::vec3 &samplePos = glm::vec3()) const;
 
   glm::vec3 color;
 };

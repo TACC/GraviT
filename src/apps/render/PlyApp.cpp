@@ -25,13 +25,11 @@
  * A simple GraviT application that loads some geometry and renders it.
  *
  * This application renders a simple scene of cones and cubes using the GraviT interface.
- * This will run in both single-process and MPI modes. You can alter the work scheduler
- * used by changing line 242.
+ * This will run in both single-process and MPI modes.
  *
 */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -43,101 +41,50 @@
 #include <thread>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/Wrapper.h>
+#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/Wrapper.h>
+#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/Wrapper.h>
+#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-#ifdef GVT_USE_MPE
-#include "mpe.h"
-#endif
 #include <gvt/render/algorithm/Tracers.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
-
-#include <iostream>
-#include <math.h>
-#include <ply.h>
-#include <glob.h>
-#include <sys/stat.h>
-#include <cstdint>
-#include <stdio.h>
-
 #include "ParseCommandLine.h"
+#include <boost/range/algorithm.hpp>
+#include <gvt/render/data/reader/PlyReader.h>
 
 using namespace std;
 using namespace gvt::render;
-
-using namespace gvt::core::mpi;
 using namespace gvt::render::data::scene;
 using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
-// determine if file is a directory
-bool isdir(const char *path) {
-  struct stat buf;
-  stat(path, &buf);
-  return S_ISDIR(buf.st_mode);
-}
-// determine if a file exists
-bool file_exists(const char *path) {
-  struct stat buf;
-  return(stat(path, &buf) == 0);
-}
-std::vector<std::string> findply(const std::string dirname) {
-  glob_t result;
-  std::string exp = dirname + "/*.ply";
-  glob(exp.c_str(), GLOB_TILDE, NULL, &result);
-  std::vector<std::string> ret;
-  for (int i = 0; i < result.gl_pathc; i++) {
-    ret.push_back(std::string(result.gl_pathv[i]));
-  }
-  globfree(&result);
-  return ret;
-}
-void test_bvh(gvtPerspectiveCamera &camera);
-typedef struct Vertex {
-  float x, y, z;
-  float nx, ny, nz;
-  void *other_props; /* other properties */
-} Vertex;
+#include <tbb/task_scheduler_observer.h>
+class concurrency_tracker : public tbb::task_scheduler_observer {
+  tbb::atomic<int> num_threads;
 
-typedef struct Face {
-  unsigned char nverts; /* number of vertex indices in list */
-  int *verts;           /* vertex index list */
-  void *other_props;    /* other properties */
-} Face;
+public:
+  concurrency_tracker() : num_threads() { observe(true); }
+  /*override*/ void on_scheduler_entry(bool) { ++num_threads; }
+  /*override*/ void on_scheduler_exit(bool) { --num_threads; }
 
-PlyProperty vert_props[] = {
-  /* list of property information for a vertex */
-  { "x", Float32, Float32, offsetof(Vertex, x), 0, 0, 0, 0 },
-  { "y", Float32, Float32, offsetof(Vertex, y), 0, 0, 0, 0 },
-  { "z", Float32, Float32, offsetof(Vertex, z), 0, 0, 0, 0 },
-  { "nx", Float32, Float32, offsetof(Vertex, nx), 0, 0, 0, 0 },
-  { "ny", Float32, Float32, offsetof(Vertex, ny), 0, 0, 0, 0 },
-  { "nz", Float32, Float32, offsetof(Vertex, nz), 0, 0, 0, 0 },
+  int get_concurrency() { return num_threads; }
 };
-
-PlyProperty face_props[] = {
-  /* list of property information for a face */
-  { "vertex_indices", Int32, Int32, offsetof(Face, verts), 1, Uint8, Uint8, offsetof(Face, nverts) },
-};
-static Vertex **vlist;
-static Face **flist;
 
 // Used for testing purposes where it specifies the number of ply blocks read by each mpi
 //#define DOMAIN_PER_NODE 2
 
 int main(int argc, char **argv) {
+ {
+  gvt::core::time::timer t_skip(true, "To skip");
 
   ParseCommandLine cmd("gvtPly");
 
@@ -148,34 +95,29 @@ int main(int argc, char **argv) {
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
+  cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
+  cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
 
   cmd.addconflict("image", "domain");
+  cmd.addconflict("embree", "manta");
+  cmd.addconflict("embree", "optix");
+  cmd.addconflict("manta", "optix");
 
   cmd.parse(argc, argv);
 
+  tbb::task_scheduler_init *init;
   if (!cmd.isSet("threads")) {
-    tbb::task_scheduler_init init(std::thread::hardware_concurrency());
+    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+    std::cout << "Initialized GraviT with " << std::thread::hardware_concurrency() << " threads..." << std::endl;
   } else {
-    tbb::task_scheduler_init init(cmd.get<int>("threads"));
+    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+    std::cout << "Initialized GraviT with " << cmd.get<int>("threads") << " threads..." << std::endl;
   }
 
-  // mess I use to open and read the ply file with the c utils I found.
-  PlyFile *in_ply;
-  Vertex *vert;
-  Face *face;
-  int elem_count, nfaces, nverts;
-  int i, j, k;
-  float xmin, ymin, zmin, xmax, ymax, zmax;
-  char *elem_name;
-  ;
-  FILE *myfile;
-  char txt[16];
-  std::string temp;
-  std::string filename, filepath, rootdir;
-  rootdir = cmd.get<std::string>("file");
-  // rootdir = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/";
-  // filename = "/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyData/block0.ply";
-  // myfile = fopen(filename.c_str(),"r");
+  //  concurrency_tracker tracker;
+  //  tracker.observe(true);
+
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
   int rank = -1;
@@ -186,12 +128,15 @@ int main(int argc, char **argv) {
     std::cout << "Something went wrong initializing the context" << std::endl;
     exit(0);
   }
+
   gvt::core::DBNodeH root = cntxt->getRootNode();
+  root += cntxt->createNode(
+      "threads", cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
 
   // A single mpi node will create db nodes and then broadcast them
-  if (MPI::COMM_WORLD.Get_rank()==0){
-	  cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
-  	  cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
   }
 
   cntxt->syncContext();
@@ -199,146 +144,37 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
 
+  gvt::render::data::domain::reader::PlyReader plyReader(cmd.get<std::string>("file"));
 
-  // Enzo isosurface...
-  if(!file_exists(rootdir.c_str())) {
-    cout << "File \"" << rootdir << "\" does not exist. Exiting." << endl;
-    return 0;
-  }
-  
-  if(!isdir(rootdir.c_str())) {
-    cout << "File \"" << rootdir << "\" is not a directory. Exiting." << endl;
-    return 0;
-  }
-  vector<string> files = findply(rootdir);
-  if(files.empty()) {
-    cout << "Directory \"" << rootdir << "\" contains no .ply files. Exiting." << endl;
-    return 0;
-  }
-  // read 'em 
-  vector<string>::const_iterator file;
-  //for (k = 0; k < 8; k++) {
-  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
-//if defined, ply blocks load are divided across available mpi ranks
-//Each block will be loaded by a single mpi rank and a mpi rank can read multiple blocks
-#ifdef DOMAIN_PER_NODE
-  	if (!((k >= MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE) && (k < MPI::COMM_WORLD.Get_rank() * DOMAIN_PER_NODE + DOMAIN_PER_NODE))) continue;
-#endif
+  // context has the location information of the domain, so for simplicity only one mpi will create the instances
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    for (int k = 0; k < plyReader.getMeshes().size(); k++) {
 
-//if all ranks read all ply blocks, one has to create the db node which is then broadcasted.
-//if not, since each block will be loaded by only one mpi, this mpi rank will create the db node
-#ifndef DOMAIN_PER_NODE
-    if (MPI::COMM_WORLD.Get_rank()==0)
-#endif
-    gvt::core::DBNodeH PlyMeshNode =  cntxt->addToSync(cntxt->createNodeFromType("Mesh",*file, dataNodes.UUID()));
+      // add instance
+      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+      gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+      instnode["id"] = k;
+      instnode["meshRef"] = meshNode.UUID();
+      auto m = new glm::mat4(1.f);
+      auto minv = new glm::mat4(1.f);
+      auto normi = new glm::mat3(1.f);
+      instnode["mat"] = (unsigned long long)m;
+      *minv = glm::inverse(*m);
+      instnode["matInv"] = (unsigned long long)minv;
+      *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+      instnode["normi"] = (unsigned long long)normi;
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+      Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+      instnode["bbox"] = (unsigned long long)ibox;
+      instnode["centroid"] = ibox->centroid();
 
-#ifndef DOMAIN_PER_NODE
-    cntxt->syncContext();
-    gvt::core::DBNodeH PlyMeshNode = dataNodes.getChildren()[k];
-#endif
-    filepath =  *file;
-    myfile = fopen(filepath.c_str(), "r");
-    in_ply = read_ply(myfile);
-    for (i = 0; i < in_ply->num_elem_types; i++) {
-      elem_name = setup_element_read_ply(in_ply, i, &elem_count);
-      temp = elem_name;
-      if (temp == "vertex") {
-        vlist = (Vertex **)malloc(sizeof(Vertex *) * elem_count);
-        nverts = elem_count;
-        setup_property_ply(in_ply, &vert_props[0]);
-        setup_property_ply(in_ply, &vert_props[1]);
-        setup_property_ply(in_ply, &vert_props[2]);
-        for (j = 0; j < elem_count; j++) {
-          vlist[j] = (Vertex *)malloc(sizeof(Vertex));
-          get_element_ply(in_ply, (void *)vlist[j]);
-        }
-      } else if (temp == "face") {
-        flist = (Face **)malloc(sizeof(Face *) * elem_count);
-        nfaces = elem_count;
-        setup_property_ply(in_ply, &face_props[0]);
-        for (j = 0; j < elem_count; j++) {
-          flist[j] = (Face *)malloc(sizeof(Face));
-          get_element_ply(in_ply, (void *)flist[j]);
-        }
-      }
+      cntxt->addToSync(instnode);
     }
-    close_ply(in_ply);
-    // smoosh data into the mesh object
-    {
-      Material* m = new Material();
-      Mesh *mesh = new Mesh(m);
-      vert = vlist[0];
-      xmin = vert->x;
-      ymin = vert->y;
-      zmin = vert->z;
-      xmax = vert->x;
-      ymax = vert->y;
-      zmax = vert->z;
-
-      for (i = 0; i < nverts; i++) {
-        vert = vlist[i];
-        xmin = MIN(vert->x, xmin);
-        ymin = MIN(vert->y, ymin);
-        zmin = MIN(vert->z, zmin);
-        xmax = MAX(vert->x, xmax);
-        ymax = MAX(vert->y, ymax);
-        zmax = MAX(vert->z, zmax);
-        mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
-      }
-      glm::vec3 lower(xmin, ymin, zmin);
-      glm::vec3 upper(xmax, ymax, zmax);
-      Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-      // add faces to mesh
-      for (i = 0; i < nfaces; i++) {
-        face = flist[i];
-        mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
-      }
-      mesh->generateNormals();
-      // add Ply mesh to the database
-      // PlyMeshNode["file"] = string("/work/01197/semeraro/maverick/DAVEDATA/EnzoPlyDATA/Block0.ply");
-      PlyMeshNode["file"] = string(filepath);
-      PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
-      PlyMeshNode["ptr"] = (unsigned long long)mesh;
-
-      gvt::core::DBNodeH loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-      PlyMeshNode["Locations"] += loc;
-
-      cntxt->addToSync(PlyMeshNode);
-    }
-
   }
-   cntxt->syncContext();
 
-   // context has the location information of the domain, so for simplicity only one mpi will create the instances
-   if (MPI::COMM_WORLD.Get_rank()==0) {
-		  for (file = files.begin(),k = 0; file != files.end(); file++, k++) {
-
-		// add instance
-		gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-		gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
-		Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-		instnode["id"] = k;
-		instnode["meshRef"] = meshNode.UUID();
-		auto m = new glm::mat4(1.f);
-		auto minv = new glm::mat4(1.f);
-		auto normi = new glm::mat3(1.f);
-		instnode["mat"] = (unsigned long long)m;
-		*minv = glm::inverse(*m);
-		instnode["matInv"] = (unsigned long long)minv;
-		*normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-		instnode["normi"] = (unsigned long long)normi;
-		auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-		auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-		Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-		instnode["bbox"] = (unsigned long long)ibox;
-		instnode["centroid"] = ibox->centroid();
-
-		cntxt->addToSync(instnode);
-		  }
-	}
-
-
-   cntxt->syncContext();
+  cntxt->syncContext();
 
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
@@ -359,16 +195,16 @@ int main(int argc, char **argv) {
   filmNode["height"] = 1080;
 
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
 
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
+    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
     filmNode["height"] = wsize[1];
   }
@@ -379,17 +215,43 @@ int main(int argc, char **argv) {
   else
     schedNode["type"] = gvt::render::scheduler::Image;
 
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-  int adapterType = gvt::render::adapter::Embree;
-#elif GVT_RENDER_ADAPTER_MANTA
-  int adapterType = gvt::render::adapter::Manta;
-#elif GVT_RENDER_ADAPTER_OPTIX
-  int adapterType = gvt::render::adapter::Optix;
-#else
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
-#endif
+  string adapter("embree");
 
-  schedNode["adapter"] = adapterType;
+  if (cmd.isSet("manta")) {
+    adapter = "manta";
+  } else if (cmd.isSet("optix")) {
+    adapter = "optix";
+  }
+
+  // adapter
+  if (adapter.compare("embree") == 0) {
+    std::cout << "Using embree adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+    schedNode["adapter"] = gvt::render::adapter::Embree;
+#else
+    std::cout << "Embree adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("manta") == 0) {
+    std::cout << "Using manta adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_MANTA
+    schedNode["adapter"] = gvt::render::adapter::Manta;
+#else
+    std::cout << "Manta adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("optix") == 0) {
+    std::cout << "Using optix adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+    schedNode["adapter"] = gvt::render::adapter::Optix;
+#else
+    std::cout << "Optix adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else {
+    std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
+    exit(1);
+  }
 
   // end db setup
 
@@ -409,9 +271,8 @@ int main(int argc, char **argv) {
   mycamera.setFOV(fov);
   mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 
-#ifdef GVT_USE_MPE
-  MPE_Log_event(readend, 0, NULL);
-#endif
+  t_skip.stop();
+
   // setup image from database sizes
   Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), "output");
 
@@ -433,22 +294,16 @@ int main(int argc, char **argv) {
   }
   case gvt::render::scheduler::Domain: {
     std::cout << "starting domain scheduler" << std::endl;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderstart, 0, NULL);
-#endif
+
     // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
     std::cout << "starting image scheduler" << std::endl;
     gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
+    for (int z = 0; z < 100; z++) {
       mycamera.AllocateCameraRays();
       mycamera.generateRays();
       myimage.clear();
       tracer();
     }
-    break;
-#ifdef GVT_USE_MPE
-    MPE_Log_event(renderend, 0, NULL);
-#endif
     break;
   }
   default: {
@@ -458,67 +313,8 @@ int main(int argc, char **argv) {
   }
 
   myimage.Write();
-#ifdef GVT_USE_MPE
-  MPE_Log_sync_clocks();
-// MPE_Finish_log("gvtSimplelog");
-#endif
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-}
+  }
+  // std::cout << "Observed threads: " << tracker.get_concurrency() << std::endl;
 
-// // bvh intersection list test
-// void test_bvh(gvtPerspectiveCamera &mycamera) {
-//   gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-//
-//   cout << "\n-- bvh test --" << endl;
-//
-//   auto ilist = root["Instances"].getChildren();
-//   auto bvh = new gvt::render::data::accel::BVH(ilist);
-//
-//   // list of rays to test
-//   std::vector<gvt::render::actor::Ray> rays;
-//   rays.push_back(mycamera.rays[100 * 512 + 100]);
-//   rays.push_back(mycamera.rays[182 * 512 + 182]);
-//   rays.push_back(mycamera.rays[256 * 512 + 256]);
-//   auto dir = glm::normalize(glm::vec3(0.0, 0.0, 0.0) - glm::vec3(1.0, 1.0, 1.0));
-//   rays.push_back(gvt::render::actor::Ray(glm::vec3(1.0, 1.0, 1.0), dir));
-//   rays.push_back(mycamera.rays[300 * 512 + 300]);
-//   rays.push_back(mycamera.rays[400 * 512 + 400]);
-//   rays.push_back(mycamera.rays[470 * 512 + 470]);
-//   rays.push_back(gvt::render::actor::Ray(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0)));
-//   rays.push_back(mycamera.rays[144231]);
-//
-//   // test rays and print out which instances were hit
-//   for (size_t z = 0; z < rays.size(); z++) {
-//     gvt::render::actor::Ray &r = rays[z];
-//     cout << "bvh: r[" << z << "]: " << r << endl;
-//
-//     gvt::render::actor::isecDomList &isect = r.domains;
-//     bvh->intersect(r, isect);
-//     std::sort(isect.begin(), isect.end());
-//     cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-//     for (auto i : isect) {
-//       cout << i.domain << " ";
-//     }
-//     cout << endl;
-//   }
-//
-// #if 0
-//     cout << "- check all rays" << endl;
-//     for(int z=0; z<mycamera.rays.size(); z++) {
-//         gvt::render::actor::Ray &r = mycamera.rays[z];
-//
-//         gvt::render::actor::isecDomList& isect = r.domains;
-//         bvh->intersect(r, isect);
-//         std::sort(isect);
-//
-//         if(isect.size() > 1) {
-//             cout << "bvh: r[" << z << "]: " << r << endl;
-//             cout << "bvh: r[" << z << "]: isect[" << isect.size() << "]: ";
-//             for(auto i : isect) { cout << i.domain << " "; }
-//             cout << endl;
-//         }
-//     }
-// #endif
-//
-//   cout << "--------------\n\n" << endl;
-// }
+  MPI_Finalize();
+}
