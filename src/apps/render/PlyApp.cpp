@@ -241,20 +241,20 @@ int main(int argc, char **argv) {
     std::cout << "Embree adapter missing. recompile" << std::endl;
     exit(1);
 #endif
-  } else if (adapter.compare("manta") == 0) {
-    std::cout << "Using manta adapter " << std::endl;
-#ifdef GVT_RENDER_ADAPTER_MANTA
-    schedNode["adapter"] = gvt::render::adapter::Manta;
-#else
-    std::cout << "Manta adapter missing. recompile" << std::endl;
-    exit(1);
-#endif
   } else if (adapter.compare("embree-stream") == 0) {
     std::cout << " embree stream adapter " << std::endl;
 #ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
     schedNode["adapter"] = gvt::render::adapter::EmbreeStream;
 #else
     std::cout << "Embree stream adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("manta") == 0) {
+    std::cout << "Using manta adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_MANTA
+    schedNode["adapter"] = gvt::render::adapter::Manta;
+#else
+    std::cout << "Manta adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else if (adapter.compare("optix") == 0) {
