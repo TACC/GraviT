@@ -45,6 +45,10 @@
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+#include <gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h>
+#endif
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif

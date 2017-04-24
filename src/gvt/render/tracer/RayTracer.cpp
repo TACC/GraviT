@@ -96,6 +96,11 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
       adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeMeshAdapter>(mesh);
       break;
 #endif
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+    case gvt::render::adapter::EmbreeStream:
+      adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter>(mesh);
+      break;
+#endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
     case gvt::render::adapter::Manta:
       adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);

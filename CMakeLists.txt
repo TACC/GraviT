@@ -57,6 +57,7 @@ endif()
 if (GVT_RENDER)
   option(GVT_RENDER_ADAPTER_MANTA  		"Build the SCI Manta ray tracing engine adapter" OFF)
   option(GVT_RENDER_ADAPTER_EMBREE 		"Build the Intel Embree ray tracing engine adapter" ON)
+  option(GVT_RENDER_ADAPTER_EMBREE_STREAM	"Build the Intel Embree (stream 1M) ray tracing engine adapter" ON)
   option(GVT_RENDER_ADAPTER_OPTIX_PRIME 	"Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
   option(GVT_RENDER_APP 					"Build the GraviT example renderer application" ON)
   option(GVT_GLRENDER_APP			"Build the interactive X application" ON)
@@ -344,6 +345,41 @@ if (GVT_RENDER_ADAPTER_EMBREE)
   )
 endif(GVT_RENDER_ADAPTER_EMBREE)
 
+if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
+  MESSAGE(SEND_ERRORS "tiny obj reader not found")
+endif (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
+
+set(GVT_EMBREE_STREAM_PACKET_SIZE 1 CACHE STRING "Embree stream size in stream mode (number of packets per stream).")
+set(GVT_EMBREE_STREAM_STREAM_SIZE 64 CACHE STRING "Embree packet size in stream mode (number of rays per packet).")
+
+if (GVT_RENDER_ADAPTER_EMBREE_STREAM)
+  add_definitions(-DGVT_RENDER_ADAPTER_EMBREE_STREAM)
+
+  if (GVT_EMBREE_STREAM_PACKET_SIZE GREATER 1)
+    add_definitions(-DGVT_EMBREE_STREAM_NM)
+  elseif (GVT_EMBREE_STREAM_PACKET_SIZE EQUAL 1)
+    add_definitions(-DGVT_EMBREE_STREAM_1M)
+  else()
+    MESSAGE(FATAL_ERROR "GVT_EMBREE_STREAM_PACKET_SIZE must be greater than 0")
+  endif()
+
+  if (GVT_EMBREE_STREAM_STREAM_SIZE LESS 1)
+    MESSAGE(FATAL_ERROR "GVT_EMBREE_STREAM_STREAM_SIZE must be greater than 0")
+  endif()
+
+  set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+    src/gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h
+  )
+  set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+    src/gvt/render/adapter/embree/EmbreeStreamMeshAdapter.cpp
+  )
+
+  configure_file (
+    "${PROJECT_SOURCE_DIR}/src/gvt/render/adapter/embree/EmbreeConfig.h.in"
+    "${PROJECT_BINARY_DIR}/EmbreeConfig.h"
+  )
+endif(GVT_RENDER_ADAPTER_EMBREE_STREAM)
+
 if (GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
   set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
     src/gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h
@@ -418,10 +454,10 @@ if (GVT_RENDER)
   include_directories(${OptiX_INCLUDE})
   include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
 
-  if (GVT_RENDER_ADAPTER_EMBREE)
+  if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
     find_package(Embree REQUIRED)
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
-  endif(GVT_RENDER_ADAPTER_EMBREE)
+  endif(GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
 
   add_library(gvtRender STATIC
     ${GVT_CORE_HDRS}
