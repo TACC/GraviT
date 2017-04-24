@@ -1011,24 +1011,18 @@ void EmbreeStreamMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt:
   this->begin = _begin;
   this->end = _end;
 
-  // const size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
+  const size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
 
-  // const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
-  //                                                                                             // of rays to work
-  //                                                                                             // on
-  const size_t numThreads = std::thread::hardware_concurrency();
-  const size_t workSize = std::max((size_t)4, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
-                                                                                           // of rays to work
-                                                                                           // on
+  const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
+                                                                                              // of rays to work
+                                                                                              // on
 
-  // static tbb::auto_partitioner ap;
-  // tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
-  //                   [&](tbb::blocked_range<size_t> chunk) {
-  //                     embreeStreamParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi,
-  //                                               lights, mesh, counter, chunk.begin(), chunk.end())();
-  //                   },
-  //                   ap);
-  embreeStreamParallelTrace(this, rayList, moved_rays, end - begin, m, minv, normi, lights, mesh, counter, begin,
-                            end)();
+  static tbb::auto_partitioner ap;
+  tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
+                    [&](tbb::blocked_range<size_t> chunk) {
+                      embreeStreamParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi,
+                                                lights, mesh, counter, chunk.begin(), chunk.end())();
+                    },
+                    ap);
   // rtcDeleteScene(global_scene);
 }
