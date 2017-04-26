@@ -113,7 +113,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
   data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
-  ospSet1i(theOSPVolume,"volume rendering",1);
+  ospSet1i(theOSPVolume,"volume_rendering",1);
   ospCommit(theOSPVolume);
   // make a model and stuff the volume in it.
   theOSPModel = ospNewModel();
@@ -172,6 +172,9 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
     ray.color.r = rl->xr.r[ii];
     ray.color.g = rl->xr.g[ii];
     ray.color.b = rl->xr.b[ii];
+    //if((ray.color.r != 0) ||(ray.color.g!=0)||(ray.color.g != 0)){ 
+    // std::cout << ray.color.r << " " << ray.color.g << " " << ray.color.b << std::endl;
+    //}
     ray.w = rl->xr.o[ii];
     ray.t = rl->xr.t[ii];
     ray.t_max = rl->xr.tMax[ii];
@@ -266,7 +269,8 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
   // convert GVT RayVector into the OSPExternalRays used by ospray. 
   OSPExternalRays rl = GVT2OSPRays(rayList);
   // trace'em 
-  OSPExternalRays out = ospTraceRays(theOSPRenderer,rl); // ospray trace
+  std::cout << " trace 'em " <<  std::endl;
+  OSPExternalRays out = ospTraceRays(theOSPRenderer,theOSPModel,rl); // ospray trace
   // push everything from out and rl into moved_rays for sorting into houses
   // YA Griffindor. 
   OSP2GVTMoved_Rays(out,rl,moved_rays);

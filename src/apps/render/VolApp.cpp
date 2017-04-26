@@ -374,11 +374,11 @@ int main(int argc, char **argv) {
       // this value range is for small enzo data
       //tf->setValueRange(glm::vec2(0.0,65536.0));
       //this value range is for large enzo data
-      tf->setValueRange(glm::vec2(0.0,1801.0));
+      //tf->setValueRange(glm::vec2(0.0,1801.0));
       // this value range is for asteroid data
       //tf->setValueRange(glm::vec2(0.0,1.0));
       // this value range is for sphere data
-      //tf->setValueRange(glm::vec2(0.866,85.74));
+      tf->setValueRange(glm::vec2(0.866,85.74));
       // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
