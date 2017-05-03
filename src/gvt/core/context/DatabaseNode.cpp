@@ -103,7 +103,10 @@ DBNodeH DBNodeH::operator[](const String &key) {
   Database &db = *(ctx->database());
   DatabaseNode *child = db.getChildByName(_uuid, key);
   if (!child) {
-    GVT_ERR_MESSAGE("DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
+    // pnav: this isn't an error, since this is one way we create new nodes.
+    //       replacing with debug message, since this is useful for finding context issues
+    //GVT_ERR_MESSAGE("DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
+    GVT_DEBUG(DBG_LOW,"DBNodeH[] failed to find key \"" << key << "\" for uuid " << _uuid.toString());
     child = &(ctx->createNode(key).getNode());
   }
   return DBNodeH(child->UUID());
@@ -186,4 +189,12 @@ Vector<DBNodeH> DBNodeH::getChildren() {
   Vector<DBNodeH> result;
   for (int i = 0; i < children.size(); i++) result.push_back(DBNodeH(children[i]->UUID()));
   return result;
+}
+
+DBNodeH DBNodeH::getChildByName(String name) {
+  CoreContext *ctx = CoreContext::instance();
+  Database &db = *(ctx->database());
+  DatabaseNode* child = db.getChildByName(UUID(),name);
+  if (child != NULL) { return DBNodeH(child->UUID()); }
+  else { return DBNodeH(); }
 }

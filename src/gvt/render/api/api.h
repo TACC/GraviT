@@ -39,7 +39,6 @@
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-
 void gvtInit() {
     // init mpi... or not
     int initialized,rank;
@@ -55,7 +54,7 @@ void gvtInit() {
     gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
     if (cntxt == NULL) // context creation failed
     {
-        std::cout << "gvtInit: context init failed" << std::endl;
+        GVT_ERR_MESSAGE("gvtInit: context init failed");
         exit(0);
     }
     else // build base context objects. 
@@ -73,7 +72,7 @@ void gvtInit() {
 
     }   
 }
-void addMeshToContext(int loc, Box3D *mshbx, Mesh *mesh,String meshname) {
+void addMesh(int loc, Box3D *mshbx, Mesh *mesh,String meshname) {
     // add a mesh to the context.
     // loc is the rank the mesh lives on
     // mshbx is the mesh bounding box
@@ -95,10 +94,210 @@ void addMeshToContext(int loc, Box3D *mshbx, Mesh *mesh,String meshname) {
     amesh["Locations"] += loc;
     cntxt->addToSync(amesh);
 }
-void addInstanceToContext() {}
-void addLightToContext() {}
-void modifyLight() {}
-void addCameraToContext() {}
-void addFilmToContext() {}
-void setScheduleToContext() {}
-void setAdapterInContext() {}
+void addInstanceToContext() {} // pnav: context has only single instance... what is this supposed to do?
+/* add a point light to the render context 
+ * \param name the name of the light
+ * \param pos the light location in world coordinates
+ * \param color the light color as RGB float
+ */
+void addLight(String name, glm::vec3& pos, glm::vec3& color) {
+    gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+    gvt::core::DBNodeH root = ctx->getRootNode();
+    gvt::core::DBNodeH lights = root["Lights"];
+    gvt::core::DBNodeH pl = ctx->createNodeFromType("PointLight",name,lights.UUID());
+    pl["position"] = pos;
+    pl["color"] = color;
+    
+    ctx->addToSync(pl);
+}
+/* add an area light to the render context 
+ * \param name the name of the light
+ * \param pos the light location in world coordinates
+ * \param color the light color as RGB float
+ * \param n the normal for the area light surface
+ * \param w the area light width
+ * \param h the area light height
+ */
+void addLight(String name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float w, float h) {
+    gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+    gvt::core::DBNodeH root = ctx->getRootNode();
+    gvt::core::DBNodeH lights = root["Lights"];
+    gvt::core::DBNodeH al = ctx->createNodeFromType("AreaLight",name,lights.UUID());
+    al["position"] = pos;
+    al["color"] = color;
+    al["normal"] = n;
+    al["height"] = h;
+    al["width"] = w;
+
+    ctx->addToSync(al);
+}
+/* modify an existing light position and/or color. This works for PointLight and AreaLight objects. If the light does not exist, this method has no effect. An error message will be printed if compiled with debugging.
+ * \param name the name of the light
+ * \param pos the new light positon
+ * \param color the new light color
+ */
+void modifyLight(String name, glm::vec3& pos, glm::vec3& color) {
+    gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+    gvt::core::DBNodeH root = ctx->getRootNode();
+    gvt::core::DBNodeH lights = root.getChildByName("Lights");  // use this search so new node is not created if no lights
+    if (!lights.isValid()) { GVT_ERR_MESSAGE("modifyLight() called for light " << name << " but no lights defined"); return; }
+    gvt::core::DBNodeH light = root.getChildByName(name);
+    if (!light.isValid()) { GVT_ERR_MESSAGE("modifyLight() called for light " << name << " but no such light found"); return; }
+
+    light["position"] = pos;
+    light["color"] = color;
+
+    ctx->addToSync(light);     
+}
+/* modify an existing light position, color, normal, height and/or width. Calling this on a PointLight will make it an AreaLight. If the light does not exist, this method has no effect. An error message will be printed if compiled with debugging.
+ * \param name the name of the light
+ * \param pos the new light positon
+ * \param color the new light color
+ * \param n the new normal
+ * \param w the new width
+ * \param h the new height 
+ */
+void modifyLight(String name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float w, float h) {
+    gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+    gvt::core::DBNodeH root = ctx->getRootNode();
+    gvt::core::DBNodeH lights = root.getChildByName("Lights");  // use this search so new node is not created if no lights
+    if (!lights.isValid()) { GVT_ERR_MESSAGE("modifyLight() called for light " << name << " but no lights defined"    ); return; }
+    gvt::core::DBNodeH light = root.getChildByName(name);
+    if (!light.isValid()) { GVT_ERR_MESSAGE("modifyLight() called for light " << name << " but no such light found    "); return; }
+
+    light["position"] = pos;
+    light["color"] = color;
+    light["normal"] = n;
+    light["height"] = h;
+    light["width"] = w;
+
+    ctx->addToSync(light);
+}     
+/* add a camera to the scene
+ * \param name the camera name
+ * \param pos the camera position
+ * \param focus the focus direction of the camera
+ * \param up the up orientation vector for the camera
+ * \param fov the camera field of view in radians
+ * \param depth the maximum ray depth for rays spawned from this camera
+ * \param samples the number of rays cast per pixel for this camera
+ * \param jitter the window size for jittering multiple samples per pixel
+ */
+void addCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov, int depth, int samples, float jitter) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH cam = ctx->createNodeFromType("Camera", name, root.UUID());
+  cam["eyePoint"] = pos;
+  cam["focus"] = focus;
+  cam["upVector"] = up;
+  cam["fov"] = fov;
+  cam["rayMaxDepth"] = depth;
+  cam["raySamples"] = samples;
+  cam["jitterWindowSize"] = jitter; 
+
+  ctx->addToSync(cam);
+}
+/* modify the given camera, if it exists
+ * \param name the camera name
+ * \param pos the camera position
+ * \param focus the focus direction of the camera
+ * \param up the up orientation vector for the camera
+ * \param fov the camera field of view in radians
+ * \param depth the maximum ray depth for rays spawned from this camera
+ * \param samples the number of rays cast per pixel for this camera
+ * \param jitter the window size for jittering multiple samples per pixel
+ */
+void modifyCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov, int depth, int samples, float jitter) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH cam = root.getChildByName(name);
+  if (!cam.isValid()) { GVT_ERR_MESSAGE("modifyCamera() called for camera " << name << " but no camera defined"); return; }
+  cam["eyePoint"] = pos;
+  cam["focus"] = focus; 
+  cam["upVector"] = up;
+  cam["fov"] = fov;
+  cam["rayMaxDepth"] = depth;
+  cam["raySamples"] = samples;
+  cam["jitterWindowSize"] = jitter; 
+
+  ctx->addToSync(cam);
+}
+/* modify the given camera, if it exists
+ * \param name the camera name
+ * \param pos the camera position
+ * \param focus the focus direction of the camera
+ * \param up the up orientation vector for the camera
+ * \param fov the camera field of view in radians
+ */
+void modifyCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH cam = root.getChildByName(name);
+  if (!cam.isValid()) { GVT_ERR_MESSAGE("modifyCamera() called for camera " << name << " but no such camera defined"); return; }
+  cam["eyePoint"] = pos;
+  cam["focus"] = focus; 
+  cam["upVector"] = up;
+  cam["fov"] = fov;
+
+  ctx->addToSync(cam);
+}
+/* add a film object to the context
+ * \param w the image width
+ * \param h the image height
+ * \param path the path for the image file
+ */
+void addFilm(String name, int w, int h, String path) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH film = ctx->createNodeFromType("Film", name, root.UUID());
+  film["width"] = w;
+  film["height"] = h;
+  film["outputPath"] = path;
+
+  ctx->addToSync(film);
+}
+/* modify film object, if it exists
+ * \param w the image width
+ * \param h the image height
+ * \param path the path for the image file
+ */
+void modifyFilm(String name, int w, int h, String path) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH film = root.getChildByName(name);
+  if (!film.isValid()) { GVT_ERR_MESSAGE("modifyFilm() called for film " << name << " but no such film defined"); return; }
+  film["width"] = w;
+  film["height"] = h;
+  film["outputPath"] = path;
+
+  ctx->addToSync(film);
+}
+/* add a renderer to the context
+ * \param name the renderer name
+ * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
+ * \param schedule the schedule to use for this adapter (image,domain,hybrid)
+ */
+void addRenderer(String name, int adapter, int schedule) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH render = ctx->createNodeFromType("Schedule", name, root.UUID());
+  render["type"] = schedule;
+  render["adapter"] = adapter;
+
+  ctx->addToSync(render);
+}
+/* modify a renderer in the context, if it exists
+ * \param name the renderer name
+ * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
+ * \param schedule the schedule to use for this adapter (image,domain,hybrid)
+ */
+void modifyRenderer(String name, int adapter, int schedule) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH render = root.getChildByName(name);
+  if (!render.isValid()) { GVT_ERR_MESSAGE("modifyRenderer() called for renderer " << name << " but no such renderer defined"); return; }
+  render["type"] = schedule;
+  render["adapter"] = adapter;
+
+  ctx->addToSync(render);
+}

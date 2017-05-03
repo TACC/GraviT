@@ -65,12 +65,15 @@ public:
   Uuid parentUUID();
   Variant value();
 
+  bool isValid() { return !u.isNull(); }
+
   void setUUID(Uuid uuid);
   void setName(String name);
   void setParentUUID(Uuid parentUUID);
   void setValue(Variant value);
 
   Vector<DBNodeH> getChildren();
+  DBNodeH getChildByName(String name);
 
   void propagateUpdate();
   DBNodeH deRef();
