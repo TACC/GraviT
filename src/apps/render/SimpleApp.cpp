@@ -366,15 +366,23 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
 #endif
 #if 1
-  auto pos =  glm::vec3(1.0,0.0,-1.0);
-  auto color =  glm::vec3(1.0,1.0,1.0);
+  auto lpos =  glm::vec3(1.0,0.0,-1.0);
+  auto lcolor =  glm::vec3(1.0,1.0,1.0);
   string lightname = "conelight";
+  if (cmd.isSet("lpos")) {
+    gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
+    lpos = glm::vec3(pos[0], pos[1], pos[2]);
+  }
+  if (cmd.isSet("lcolor")) {
+    gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
+    lcolor = glm::vec3(color[0], color[1], color[2]);
+  }
 #ifdef USEAPI
-  addPointLight(lightname,pos,color);
+  addPointLight(lightname,lpos,lcolor);
 #else
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", lightname.c_str(), lightNodes.UUID());
-  lightNode["position"] = pos;
-  lightNode["color"] = color;
+  lightNode["position"] = lpos;
+  lightNode["color"] = lcolor;
  // lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
  // lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 #endif
@@ -389,8 +397,17 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef USEAPI
+// camera bits..
   auto eye = glm::vec3(4.0, 0.0, 0.0);
+  if (cmd.isSet("eye")) {
+    gvt::core::Vector<float> cameye = cmd.getValue<float>("eye");
+    eye = glm::vec3(cameye[0], cameye[1], cameye[2]);
+  }
   auto focus = glm::vec3(0.0, 0.0, 0.0);
+  if (cmd.isSet("look")) {
+    gvt::core::Vector<float> foc = cmd.getValue<float>("look");
+    focus = glm::vec3(foc[0], foc[1], foc[2]);
+  }
   auto upVector = glm::vec3(0.0, 1.0, 0.0);
   float fov = (float)(45.0 * M_PI / 180.0);
   int rayMaxDepth = (int)1;
@@ -398,12 +415,65 @@ int main(int argc, char **argv) {
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
   addCamera(camname,eye,focus,upVector,fov,rayMaxDepth,raySamples,jitterWindowSize);
+// film bits..
   string filmname = "conefilm";
   int width = (int)512;
   int height = (int)512;
+  if (cmd.isSet("wsize")) {
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
+    width = wsize[0];
+    height = wsize[1];
+  }
   string outputpath = "simple";
+  if (cmd.isSet("output")) {
+    gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
+    outputpath = output[0];
+  }
   addFilm(filmname,width,height,outputpath);
+// render bits (schedule and adapter)
+  string rendername("Enzoschedule");
+  int schedtype;
+  int adaptertype;
+  if (cmd.isSet("domain"))
+    schedtype = gvt::render::scheduler::Domain;
+  else
+    schedtype = gvt::render::scheduler::Image;
 
+  string adapter("embree");
+  if (cmd.isSet("manta")) {
+    adapter = "manta";
+  } else if (cmd.isSet("optix")) {
+    adapter = "optix";
+  }
+  if (adapter.compare("embree") == 0) {
+    std::cout << " embree adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+    adaptertype = gvt::render::adapter::Embree;
+#else
+    std::cout << "Embree adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("manta") == 0) {
+    std::cout << " manta adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_MANTA
+    adaptertype = gvt::render::adapter::Manta;
+#else
+    std::cout << "Manta adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("optix") == 0) {
+    std::cout << " optix adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_OPTIX
+    adaptertype = gvt::render::adapter::Optix;
+#else
+    std::cout << "Optix adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else {
+    std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
+    exit(1);
+  }
+  addRenderer(rendername,adaptertype,schedtype);
 #else
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
@@ -418,7 +488,6 @@ int main(int argc, char **argv) {
   filmNode["width"] = 512;
   filmNode["height"] = 512;
   filmNode["outputPath"] = (std::string) "simple";
-#endif
 
   if (cmd.isSet("lpos")) {
     gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
@@ -455,7 +524,6 @@ int main(int argc, char **argv) {
     schedNode["type"] = gvt::render::scheduler::Image;
 
   string adapter("embree");
-
   if (cmd.isSet("manta")) {
     adapter = "manta";
   } else if (cmd.isSet("optix")) {
@@ -492,6 +560,7 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+#endif
   // end db setup
 
   // cntxt->database()->printTree(root.UUID(), 10, std::cout);
