@@ -66,6 +66,8 @@ void gvtInit(int &argc, char** &argv) {
     {
         // root node 
         gvt::core::DBNodeH root = cntxt->getRootNode();
+        // nodes that have multpple leaves are added here
+        // for example there may be many lights but generally one camera.
         if(rank == 0)
         {
 	    //root node for mesh data
@@ -74,10 +76,12 @@ void gvtInit(int &argc, char** &argv) {
             cntxt->addToSync(cntxt->createNodeFromType("Instances","Instances",root.UUID()));
             // root node for lights
             cntxt->addToSync(cntxt->createNodeFromType("Lights","Lights",root.UUID()));
-            // root node for film
-            cntxt->addToSync(cntxt->createNodeFromType("Camera","Camera",root.UUID()));
             // root node for camera
-            cntxt->addToSync(cntxt->createNodeFromType("Film","Film",root.UUID()));
+            //cntxt->addToSync(cntxt->createNodeFromType("Camera","Camera",root.UUID()));
+            // root node for film
+            //cntxt->addToSync(cntxt->createNodeFromType("Film","Film",root.UUID()));
+	    // root node for renderer
+	    //cntxt->addToSync(cntxt->createNodeFromType("Schedule","Schedule",root.UUID()));
         }
         cntxt->syncContext();
 
