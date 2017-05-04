@@ -102,8 +102,42 @@ void addMesh( Box3D *mshbx, Mesh *mesh, string meshname) {
 }
 
 /* each mesh needs one or more instance. 
- * */
-void addInstance( ) {} 
+ * Insert an instance for a particular named mesh. The instance
+ * contains the transformation matrix information needed to locate
+ * the mesh correctly in world space
+ * \param meshname the name of the mesh this instance refers to.
+ * \param instId id of this instance
+ * \param m transformation matrix that moves and scales instance*/
+void addInstance(string instname, string meshname,int instID, glm::mat4 *m  ) {
+  // grab a context handle and data handle. 
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH instNodes = root["Instances"]; 
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  // create a new instance node
+  gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance",instname.c_str(),instNodes.UUID());
+  // find the mesh from meshname
+  gvt::core::DBNodeH meshNode = dataNodes.getChildByName(meshname);
+  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+  // build the instance data
+  auto minv = new glm::mat4(1.f);
+  auto normi = new glm::mat3(1.f);
+  *minv = glm::inverse(*m);
+  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+  Box3D *ibox = new gvt::render::data::primitives::Box3D(il,ih);
+  // load the node
+  instNode["id"] = instID;
+  instNode["meshRef"] = meshNode.UUID();
+  instNode["mat"] = (unsigned long long)m;
+  instNode["matInv"] = (unsigned long long)minv;
+  instNode["normi"] = (unsigned long long)normi;
+  instNode["bbox"] = (unsigned long long)ibox;
+  instNode["centroid"] = ibox->centroid();
+
+  ctx->addToSync(instNode);
+} 
 /* add a point light to the render context 
  * \param name the name of the light
  * \param pos the light location in world coordinates

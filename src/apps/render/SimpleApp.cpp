@@ -322,6 +322,14 @@ int main(int argc, char **argv) {
     int jj[2] = { -2, 3 }; // j range
     for (int i = ii[0]; i < ii[1]; i++) {
       for (int j = jj[0]; j < jj[1]; j++) {
+        auto m = new glm::mat4(1.f);
+        *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
+        *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
+#ifdef USEAPI
+	string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
+        string instanceName = "inst";
+	addInstance(instanceName,instanceMeshname,instId,m);
+#else
         gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
         // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
         gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
@@ -330,13 +338,10 @@ int main(int argc, char **argv) {
         instnode["id"] = instId++;
         instnode["meshRef"] = meshNode.UUID();
 
-        auto m = new glm::mat4(1.f);
         auto minv = new glm::mat4(1.f);
         auto normi = new glm::mat3(1.f);
         //*m *glm::mat4::createTranslation(0.0, i * 0.5, j * 0.5);
-        *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
         //*m = *m * glm::mat4::createScale(0.4, 0.4, 0.4);
-        *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
 
         instnode["mat"] = (unsigned long long)m;
         *minv = glm::inverse(*m);
@@ -350,6 +355,7 @@ int main(int argc, char **argv) {
         instnode["centroid"] = ibox->centroid();
 
         cntxt->addToSync(instnode);
+#endif
       }
     }
   }
