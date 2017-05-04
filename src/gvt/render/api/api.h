@@ -18,10 +18,12 @@
    ======================================================================================= */
 
 // API functions
+#include <string>
 #include <gvt/core/context/Variant.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
+#include <gvt/core/Math.h>
 #include <gvt/render/data/Domains.h>
 
 #include <tbb/task_scheduler_init.h>
@@ -39,7 +41,10 @@
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-void gvtInit() {
+using namespace std;
+using namespace gvt::render::data::primitives;
+
+void gvtInit(int &argc, char** &argv) {
     // init mpi... or not
     int initialized,rank;
     MPI_Initialized(&initialized);
@@ -63,7 +68,8 @@ void gvtInit() {
         gvt::core::DBNodeH root = cntxt->getRootNode();
         if(rank == 0)
         {
-            gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt-createNodeFromType("Data","Data",root.UUID()));
+            //gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt-createNodeFromType("Data","Data",root.UUID()));
+            cntxt->addToSync(cntxt->createNodeFromType("Data","Data",root.UUID()));
             // this node holds instances if any
             cntxt->addToSync(cntxt->createNodeFromType("Instances","Instances",root.UUID()));
         }
@@ -72,7 +78,7 @@ void gvtInit() {
 
     }   
 }
-void addMesh(int loc, Box3D *mshbx, Mesh *mesh,String meshname) {
+void addMesh( Box3D *mshbx, Mesh *mesh, string meshname) {
     // add a mesh to the context.
     // loc is the rank the mesh lives on
     // mshbx is the mesh bounding box
@@ -84,23 +90,26 @@ void addMesh(int loc, Box3D *mshbx, Mesh *mesh,String meshname) {
     gvt::core::DBNodeH root = cntxt->getRootNode();
     gvt::core::DBNodeH dataNodes = root["Data"];
     // meshes get appended to the data node as a child
-    gvt::core::DBNodeH amesh=cntxt->createNodeFromType("Mesh",meshname,dataNodes.UUID());
-    amesh["file"] = meshname;
-    amesh["bbox"] = (unsigned long long)meshbox;
-    amesh["ptr"] = (unsigned long long)mesh;
+    gvt::core::DBNodeH ameshnode=cntxt->createNodeFromType("Mesh",meshname.c_str(),dataNodes.UUID());
+    ameshnode["file"] = meshname.c_str();
+    ameshnode["bbox"] = (unsigned long long)mshbx;
+    ameshnode["ptr"] = (unsigned long long)mesh;
     int rank ;
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     gvt::core::DBNodeH loc = cntxt->createNode("rank",rank);
-    amesh["Locations"] += loc;
-    cntxt->addToSync(amesh);
+    ameshnode["Locations"] += loc;
+    cntxt->addToSync(ameshnode);
 }
-void addInstanceToContext() {} // pnav: context has only single instance... what is this supposed to do?
+
+/* each mesh needs one or more instance. 
+ * */
+void addInstance( ) {} 
 /* add a point light to the render context 
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
  */
-void addLight(String name, glm::vec3& pos, glm::vec3& color) {
+void addPointLight(string name, glm::vec3& pos, glm::vec3& color) {
     gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
     gvt::core::DBNodeH root = ctx->getRootNode();
     gvt::core::DBNodeH lights = root["Lights"];
@@ -118,7 +127,7 @@ void addLight(String name, glm::vec3& pos, glm::vec3& color) {
  * \param w the area light width
  * \param h the area light height
  */
-void addLight(String name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float w, float h) {
+void addAreaLight(string name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float w, float h) {
     gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
     gvt::core::DBNodeH root = ctx->getRootNode();
     gvt::core::DBNodeH lights = root["Lights"];
@@ -136,7 +145,7 @@ void addLight(String name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float
  * \param pos the new light positon
  * \param color the new light color
  */
-void modifyLight(String name, glm::vec3& pos, glm::vec3& color) {
+void modifyLight(string name, glm::vec3& pos, glm::vec3& color) {
     gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
     gvt::core::DBNodeH root = ctx->getRootNode();
     gvt::core::DBNodeH lights = root.getChildByName("Lights");  // use this search so new node is not created if no lights
@@ -157,7 +166,7 @@ void modifyLight(String name, glm::vec3& pos, glm::vec3& color) {
  * \param w the new width
  * \param h the new height 
  */
-void modifyLight(String name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float w, float h) {
+void modifyLight(string name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, float w, float h) {
     gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
     gvt::core::DBNodeH root = ctx->getRootNode();
     gvt::core::DBNodeH lights = root.getChildByName("Lights");  // use this search so new node is not created if no lights
@@ -183,7 +192,7 @@ void modifyLight(String name, glm::vec3& pos, glm::vec3& color, glm::vec3& n, fl
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void addCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov, int depth, int samples, float jitter) {
+void addCamera(string name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov, int depth, int samples, float jitter) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH cam = ctx->createNodeFromType("Camera", name, root.UUID());
@@ -207,7 +216,7 @@ void addCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, flo
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void modifyCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov, int depth, int samples, float jitter) {
+void modifyCamera(string name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov, int depth, int samples, float jitter) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH cam = root.getChildByName(name);
@@ -229,7 +238,7 @@ void modifyCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, 
  * \param up the up orientation vector for the camera
  * \param fov the camera field of view in radians
  */
-void modifyCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov) {
+void modifyCamera(string name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, float fov) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH cam = root.getChildByName(name);
@@ -246,7 +255,7 @@ void modifyCamera(String name, glm::vec3& pos, glm::vec3& focus, glm::vec3& up, 
  * \param h the image height
  * \param path the path for the image file
  */
-void addFilm(String name, int w, int h, String path) {
+void addFilm(string name, int w, int h, string path) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH film = ctx->createNodeFromType("Film", name, root.UUID());
@@ -261,7 +270,7 @@ void addFilm(String name, int w, int h, String path) {
  * \param h the image height
  * \param path the path for the image file
  */
-void modifyFilm(String name, int w, int h, String path) {
+void modifyFilm(string name, int w, int h, string path) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH film = root.getChildByName(name);
@@ -277,7 +286,7 @@ void modifyFilm(String name, int w, int h, String path) {
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void addRenderer(String name, int adapter, int schedule) {
+void addRenderer(string name, int adapter, int schedule) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH render = ctx->createNodeFromType("Schedule", name, root.UUID());
@@ -291,7 +300,7 @@ void addRenderer(String name, int adapter, int schedule) {
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void modifyRenderer(String name, int adapter, int schedule) {
+void modifyRenderer(string name, int adapter, int schedule) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH render = root.getChildByName(name);

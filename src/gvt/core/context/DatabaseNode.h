@@ -65,7 +65,7 @@ public:
   Uuid parentUUID();
   Variant value();
 
-  bool isValid() { return !u.isNull(); }
+  bool isValid() { return !_uuid.isNull(); }
 
   void setUUID(Uuid uuid);
   void setName(String name);

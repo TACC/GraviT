@@ -67,7 +67,10 @@
 #endif
 
 #include "ParseCommandLine.h"
-
+#define USEAPI
+#ifdef USEAPI
+#include <gvt/render/api/api.h>
+#endif
 using namespace std;
 using namespace gvt::render;
 
@@ -109,10 +112,11 @@ int main(int argc, char **argv) {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
+#ifdef USEAPI
+  gvtInit(argc,argv); 
+#else
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
@@ -140,7 +144,9 @@ int main(int argc, char **argv) {
 
   gvt::core::DBNodeH coneMeshNode = dataNodes.getChildren()[0];
   gvt::core::DBNodeH cubeMeshNode = dataNodes.getChildren()[1];
+#endif
 
+// create a cone mesh with a particular material
   {
     Material *m = new Material();
     m->type = LAMBERT;
@@ -188,7 +194,10 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
     // add cone mesh to the database
-
+#ifdef USEAPI
+  string meshname("conemesh");
+  addMesh(meshbbox, mesh,meshname); 
+#else
     coneMeshNode["file"] = string("/fake/path/to/cone");
     coneMeshNode["bbox"] = (unsigned long long)meshbbox;
     coneMeshNode["ptr"] = (unsigned long long)mesh;
@@ -197,8 +206,10 @@ int main(int argc, char **argv) {
     coneMeshNode["Locations"] += loc;
 
     cntxt->addToSync(coneMeshNode);
+#endif
   }
 
+// and now a cube
   {
 
     Material *m = new Material();
@@ -281,6 +292,10 @@ int main(int argc, char **argv) {
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
+#ifdef USEAPI
+  string meshname("cubemesh");
+  addMesh(meshbbox, mesh,meshname); 
+#else
     // add cube mesh to the database
     cubeMeshNode["file"] = string("/fake/path/to/cube");
     cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
@@ -290,10 +305,16 @@ int main(int argc, char **argv) {
     cubeMeshNode["Locations"] += loc;
 
     cntxt->addToSync(cubeMeshNode);
+#endif
   }
 
+// this should happen first thing in the render call
+#ifndef USEAPI
   cntxt->syncContext();
+#endif
 
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
     // create a NxM grid of alternating cones / cubes, offset using i and j
     int instId = 0;

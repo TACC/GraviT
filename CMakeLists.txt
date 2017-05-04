@@ -225,6 +225,7 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+  src/gvt/render/api/api.h
   src/gvt/render/actor/Ray.h
   src/gvt/render/algorithm/DomainTracer.h
   src/gvt/render/algorithm/HybridTracer.h
