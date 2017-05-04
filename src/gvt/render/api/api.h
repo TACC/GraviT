@@ -64,17 +64,22 @@ void gvtInit(int &argc, char** &argv) {
     }
     else // build base context objects. 
     {
-        // some data nodes
+        // root node 
         gvt::core::DBNodeH root = cntxt->getRootNode();
         if(rank == 0)
         {
-            //gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt-createNodeFromType("Data","Data",root.UUID()));
+	    //root node for mesh data
             cntxt->addToSync(cntxt->createNodeFromType("Data","Data",root.UUID()));
             // this node holds instances if any
             cntxt->addToSync(cntxt->createNodeFromType("Instances","Instances",root.UUID()));
+            // root node for lights
+            cntxt->addToSync(cntxt->createNodeFromType("Lights","Lights",root.UUID()));
+            // root node for film
+            cntxt->addToSync(cntxt->createNodeFromType("Camera","Camera",root.UUID()));
+            // root node for camera
+            cntxt->addToSync(cntxt->createNodeFromType("Film","Film",root.UUID()));
         }
         cntxt->syncContext();
-        // default camera and light nodes
 
     }   
 }

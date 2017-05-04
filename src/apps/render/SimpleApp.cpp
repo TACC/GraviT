@@ -360,14 +360,24 @@ int main(int argc, char **argv) {
     }
   }
 
+#ifndef USEAPI
   cntxt->syncContext();
-
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
+#endif
 #if 1
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+  auto pos =  glm::vec3(1.0,0.0,-1.0);
+  auto color =  glm::vec3(1.0,1.0,1.0);
+  string lightname = "conelight";
+#ifdef USEAPI
+  addPointLight(lightname,pos,color);
+#else
+  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", lightname.c_str(), lightNodes.UUID());
+  lightNode["position"] = pos;
+  lightNode["color"] = color;
+ // lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
+ // lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
+#endif
 #else
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "AreaLight", lightNodes.UUID());
 
@@ -378,6 +388,23 @@ int main(int argc, char **argv) {
   lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
 #endif
 
+#ifdef USEAPI
+  auto eye = glm::vec3(4.0, 0.0, 0.0);
+  auto focus = glm::vec3(0.0, 0.0, 0.0);
+  auto upVector = glm::vec3(0.0, 1.0, 0.0);
+  float fov = (float)(45.0 * M_PI / 180.0);
+  int rayMaxDepth = (int)1;
+  int raySamples = (int)1;
+  float jitterWindowSize = (float)0.5;
+  string camname = "conecam";
+  addCamera(camname,eye,focus,upVector,fov,rayMaxDepth,raySamples,jitterWindowSize);
+  string filmname = "conefilm";
+  int width = (int)512;
+  int height = (int)512;
+  string outputpath = "simple";
+  addFilm(filmname,width,height,outputpath);
+
+#else
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
   camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
   camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
@@ -391,6 +418,7 @@ int main(int argc, char **argv) {
   filmNode["width"] = 512;
   filmNode["height"] = 512;
   filmNode["outputPath"] = (std::string) "simple";
+#endif
 
   if (cmd.isSet("lpos")) {
     gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
