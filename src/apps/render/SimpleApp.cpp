@@ -35,6 +35,7 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
+#include <gvt/render/Renderer.h>
 #include <set>
 #include <vector>
 
@@ -561,6 +562,10 @@ int main(int argc, char **argv) {
   }
 
 #endif
+#ifdef USEAPI
+  gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+  ren->render();
+#else
   // end db setup
 
   // cntxt->database()->printTree(root.UUID(), 10, std::cout);
@@ -626,4 +631,5 @@ int main(int argc, char **argv) {
 
   myimage.Write();
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+#endif
 }

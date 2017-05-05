@@ -233,6 +233,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/algorithm/TracerBase.h
   src/gvt/render/algorithm/Tracers.h
   src/gvt/render/RenderContext.h
+  src/gvt/render/Renderer.h
   src/gvt/render/data/DerivedTypes.h
   src/gvt/render/data/reader/ObjReader.h
   src/gvt/render/data/reader/PlyReader.h
@@ -279,6 +280,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/actor/Ray.cpp
   src/gvt/render/RenderContext.cpp
+  src/gvt/render/Renderer.cpp
   src/gvt/render/data/reader/ObjReader.cpp
   src/gvt/render/data/reader/PlyReader.cpp
   src/gvt/render/data/primitives/BBox.cpp

@@ -17,6 +17,8 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
+#ifndef GVT_RENDER_API_H
+#define GVT_RENDER_API_H
 // API functions
 #include <string>
 #include <gvt/core/context/Variant.h>
@@ -353,3 +355,4 @@ void modifyRenderer(string name, int adapter, int schedule) {
 
   ctx->addToSync(render);
 }
+#endif // GVT_RENDER_API_H
