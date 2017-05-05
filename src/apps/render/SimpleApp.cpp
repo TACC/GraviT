@@ -68,7 +68,7 @@
 #endif
 
 #include "ParseCommandLine.h"
-#define USEAPI
+//#define USEAPI
 #ifdef USEAPI
 #include <gvt/render/api/api.h>
 #endif
@@ -118,6 +118,8 @@ int main(int argc, char **argv) {
 #else
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   if (cntxt == NULL) {
@@ -314,8 +316,8 @@ int main(int argc, char **argv) {
   cntxt->syncContext();
 #endif
 
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  //int rank = -1;
+  //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
     // create a NxM grid of alternating cones / cubes, offset using i and j
     int instId = 0;

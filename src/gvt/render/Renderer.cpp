@@ -74,10 +74,10 @@ gvtRenderer::gvtRenderer() {
 
   
 }
-gvtRenderer::render() {
+void gvtRenderer::render() {
   camera->AllocateCameraRays();
   camera->generateRays();
-  *tracer();
+  (*tracer)();
 }
 
 gvtRenderer *gvtRenderer::instance() {
