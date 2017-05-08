@@ -68,7 +68,7 @@
 #endif
 
 #include "ParseCommandLine.h"
-//#define USEAPI
+#define USEAPI
 #ifdef USEAPI
 #include <gvt/render/api/api.h>
 #endif
@@ -113,41 +113,7 @@ int main(int argc, char **argv) {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
-#ifdef USEAPI
   gvtInit(argc,argv); 
-#else
-  MPI_Init(&argc, &argv);
-  MPI_Pcontrol(0);
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-  if (cntxt == NULL) {
-    std::cout << "Something went wrong initializing the context" << std::endl;
-    exit(0);
-  }
-
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  root += cntxt->createNode(
-      "threads", cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
-
-  // mix of cones and cubes
-
-  if (rank == 0) {
-    gvt::core::DBNodeH dataNodes = cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
-    cntxt->addToSync(cntxt->createNodeFromType("Mesh", "conemesh", dataNodes.UUID()));
-    cntxt->addToSync(cntxt->createNodeFromType("Mesh", "cubemesh", dataNodes.UUID()));
-    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
-  }
-
-  cntxt->syncContext();
-
-  gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH instNodes = root["Instances"];
-
-  gvt::core::DBNodeH coneMeshNode = dataNodes.getChildren()[0];
-  gvt::core::DBNodeH cubeMeshNode = dataNodes.getChildren()[1];
-#endif
 
 // create a cone mesh with a particular material
   {
@@ -197,19 +163,9 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
     // add cone mesh to the database
-#ifdef USEAPI
   string meshname("conemesh");
-  addMesh(meshbbox, mesh,meshname); 
-#else
-    coneMeshNode["file"] = string("/fake/path/to/cone");
-    coneMeshNode["bbox"] = (unsigned long long)meshbbox;
-    coneMeshNode["ptr"] = (unsigned long long)mesh;
-
-    gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
-    coneMeshNode["Locations"] += loc;
-
-    cntxt->addToSync(coneMeshNode);
-#endif
+  std::cerr << "adding conemesh" << std::endl;
+  addMesh(meshbbox,mesh,meshname); 
   }
 
 // and now a cube
@@ -295,80 +251,37 @@ int main(int argc, char **argv) {
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
-#ifdef USEAPI
   string meshname("cubemesh");
-  addMesh(meshbbox, mesh,meshname); 
-#else
-    // add cube mesh to the database
-    cubeMeshNode["file"] = string("/fake/path/to/cube");
-    cubeMeshNode["bbox"] = (unsigned long long)meshbbox;
-    cubeMeshNode["ptr"] = (unsigned long long)mesh;
-
-    gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
-    cubeMeshNode["Locations"] += loc;
-
-    cntxt->addToSync(cubeMeshNode);
-#endif
+  std::cerr << "adding cubemesh" << std::endl;
+  addMesh(meshbbox,mesh,meshname); 
   }
 
 // this should happen first thing in the render call
-#ifndef USEAPI
-  cntxt->syncContext();
-#endif
 
-  //int rank = -1;
-  //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
     // create a NxM grid of alternating cones / cubes, offset using i and j
     int instId = 0;
     int ii[2] = { -2, 3 }; // i range
+      std::cerr << ii[0] << " " << ii[1] << std::endl;
     int jj[2] = { -2, 3 }; // j range
+      std::cerr << jj[0] << " " << jj[1] << std::endl;
     for (int i = ii[0]; i < ii[1]; i++) {
+      std::cerr << " i = " << i << std::endl;
       for (int j = jj[0]; j < jj[1]; j++) {
+      std::cerr << " j = " << j << std::endl;
         auto m = new glm::mat4(1.f);
         *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
         *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
-#ifdef USEAPI
 	string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
-        string instanceName = "inst";
+        string instanceName = "inst" + std::to_string(instId) ;
 	addInstance(instanceName,instanceMeshname,instId,m);
-#else
-        gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-        // gvt::core::DBNodeH meshNode = (instId % 2) ? coneMeshNode : cubeMeshNode;
-        gvt::core::DBNodeH meshNode = (instId % 2) ? cubeMeshNode : coneMeshNode;
-        Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
-
-        instnode["id"] = instId++;
-        instnode["meshRef"] = meshNode.UUID();
-
-        auto minv = new glm::mat4(1.f);
-        auto normi = new glm::mat3(1.f);
-        //*m *glm::mat4::createTranslation(0.0, i * 0.5, j * 0.5);
-        //*m = *m * glm::mat4::createScale(0.4, 0.4, 0.4);
-
-        instnode["mat"] = (unsigned long long)m;
-        *minv = glm::inverse(*m);
-        instnode["matInv"] = (unsigned long long)minv;
-        *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-        instnode["normi"] = (unsigned long long)normi;
-        auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-        auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-        Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-        instnode["bbox"] = (unsigned long long)ibox;
-        instnode["centroid"] = ibox->centroid();
-
-        cntxt->addToSync(instnode);
-#endif
+        instId++;
       }
     }
   }
 
-#ifndef USEAPI
-  cntxt->syncContext();
-  // add lights, camera, and film to the database
-  gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-#endif
-#if 1
   auto lpos =  glm::vec3(1.0,0.0,-1.0);
   auto lcolor =  glm::vec3(1.0,1.0,1.0);
   string lightname = "conelight";
@@ -380,26 +293,9 @@ int main(int argc, char **argv) {
     gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
     lcolor = glm::vec3(color[0], color[1], color[2]);
   }
-#ifdef USEAPI
+  std::cerr <<"add point light"<< std::endl;
   addPointLight(lightname,lpos,lcolor);
-#else
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", lightname.c_str(), lightNodes.UUID());
-  lightNode["position"] = lpos;
-  lightNode["color"] = lcolor;
- // lightNode["position"] = glm::vec3(1.0, 0.0, -1.0);
- // lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
-#endif
-#else
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("AreaLight", "AreaLight", lightNodes.UUID());
 
-  lightNode["position"] = glm::vec3(1.0, 0.0, 0.0);
-  lightNode["normal"] = glm::vec3(-1.0, 0.0, 0.0);
-  lightNode["width"] = 2.f;
-  lightNode["height"] = 2.f;
-  lightNode["color"] = glm::vec3(1.0, 1.0, 1.0);
-#endif
-
-#ifdef USEAPI
 // camera bits..
   auto eye = glm::vec3(4.0, 0.0, 0.0);
   if (cmd.isSet("eye")) {
@@ -417,6 +313,7 @@ int main(int argc, char **argv) {
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
+  std::cerr << " add Camera " << std::endl;
   addCamera(camname,eye,focus,upVector,fov,rayMaxDepth,raySamples,jitterWindowSize);
 // film bits..
   string filmname = "conefilm";
@@ -432,8 +329,10 @@ int main(int argc, char **argv) {
     gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     outputpath = output[0];
   }
+  std::cerr << " add film " << std::endl;
   addFilm(filmname,width,height,outputpath);
 // render bits (schedule and adapter)
+  std::cerr << "render bits" << std::endl;
   string rendername("Enzoschedule");
   int schedtype;
   int adaptertype;
@@ -449,189 +348,37 @@ int main(int argc, char **argv) {
     adapter = "optix";
   }
   if (adapter.compare("embree") == 0) {
-    std::cout << " embree adapter " << std::endl;
+    std::cerr << " embree adapter " << std::endl;
 #ifdef GVT_RENDER_ADAPTER_EMBREE
     adaptertype = gvt::render::adapter::Embree;
 #else
-    std::cout << "Embree adapter missing. recompile" << std::endl;
+    std::cerr << "Embree adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else if (adapter.compare("manta") == 0) {
-    std::cout << " manta adapter " << std::endl;
+    std::cerr << " manta adapter " << std::endl;
 #ifdef GVT_RENDER_ADAPTER_MANTA
     adaptertype = gvt::render::adapter::Manta;
 #else
-    std::cout << "Manta adapter missing. recompile" << std::endl;
+    std::cerr << "Manta adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else if (adapter.compare("optix") == 0) {
-    std::cout << " optix adapter " << std::endl;
+    std::cerr << " optix adapter " << std::endl;
 #ifdef GVT_RENDER_ADAPTER_OPTIX
     adaptertype = gvt::render::adapter::Optix;
 #else
-    std::cout << "Optix adapter missing. recompile" << std::endl;
+    std::cerr << "Optix adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else {
-    std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
+    std::cerr << "unknown adapter, " << adapter << ", specified." << std::endl;
     exit(1);
   }
+  std::cerr << "simplsApp: adding renderer" << std::endl;
   addRenderer(rendername,adaptertype,schedtype);
-#else
-  gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec3(4.0, 0.0, 0.0);
-  camNode["focus"] = glm::vec3(0.0, 0.0, 0.0);
-  camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
-  camNode["fov"] = (float)(45.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)1;
-  camNode["raySamples"] = (int)1;
-  camNode["jitterWindowSize"] = (float)0.5;
-
-  gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
-  filmNode["width"] = 512;
-  filmNode["height"] = 512;
-  filmNode["outputPath"] = (std::string) "simple";
-
-  if (cmd.isSet("lpos")) {
-    gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
-    lightNode["position"] = glm::vec3(pos[0], pos[1], pos[2]);
-  }
-  if (cmd.isSet("lcolor")) {
-    gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
-    lightNode["color"] = glm::vec3(color[0], color[1], color[2]);
-  }
-
-  if (cmd.isSet("eye")) {
-    gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
-    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
-  }
-
-  if (cmd.isSet("look")) {
-    gvt::core::Vector<float> eye = cmd.getValue<float>("look");
-    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
-  }
-  if (cmd.isSet("wsize")) {
-    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
-    filmNode["width"] = wsize[0];
-    filmNode["height"] = wsize[1];
-  }
-  if (cmd.isSet("output")) {
-    gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
-    filmNode["outputPath"] = output[0];
-  }
-
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
-  if (cmd.isSet("domain"))
-    schedNode["type"] = gvt::render::scheduler::Domain;
-  else
-    schedNode["type"] = gvt::render::scheduler::Image;
-
-  string adapter("embree");
-  if (cmd.isSet("manta")) {
-    adapter = "manta";
-  } else if (cmd.isSet("optix")) {
-    adapter = "optix";
-  }
-
-  // adapter
-  if (adapter.compare("embree") == 0) {
-    std::cout << " embree adapter " << std::endl;
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-    schedNode["adapter"] = gvt::render::adapter::Embree;
-#else
-    std::cout << "Embree adapter missing. recompile" << std::endl;
-    exit(1);
-#endif
-  } else if (adapter.compare("manta") == 0) {
-    std::cout << " manta adapter " << std::endl;
-#ifdef GVT_RENDER_ADAPTER_MANTA
-    schedNode["adapter"] = gvt::render::adapter::Manta;
-#else
-    std::cout << "Manta adapter missing. recompile" << std::endl;
-    exit(1);
-#endif
-  } else if (adapter.compare("optix") == 0) {
-    std::cout << " optix adapter " << std::endl;
-#ifdef GVT_RENDER_ADAPTER_OPTIX
-    schedNode["adapter"] = gvt::render::adapter::Optix;
-#else
-    std::cout << "Optix adapter missing. recompile" << std::endl;
-    exit(1);
-#endif
-  } else {
-    std::cout << "unknown adapter, " << adapter << ", specified." << std::endl;
-    exit(1);
-  }
-
-#endif
-#ifdef USEAPI
   gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
   ren->render();
-#else
-  // end db setup
 
-  // cntxt->database()->printTree(root.UUID(), 10, std::cout);
-
-  // use db to create structs needed by system
-
-  // setup gvtCamera from database entries
-  gvtPerspectiveCamera mycamera;
-  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
-  glm::vec3 focus = camNode["focus"].value().tovec3();
-  float fov = camNode["fov"].value().toFloat();
-  glm::vec3 up = camNode["upVector"].value().tovec3();
-
-  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
-  int raySamples = camNode["raySamples"].value().toInteger();
-  float jitterWindowSize = camNode["jitterWindowSize"].value().toFloat();
-
-  mycamera.setMaxDepth(rayMaxDepth);
-  mycamera.setSamples(raySamples);
-  mycamera.setJitterWindowSize(jitterWindowSize);
-  mycamera.lookAt(cameraposition, focus, up);
-  mycamera.setFOV(fov);
-  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
-
-  // setup image from database sizes
-  Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), filmNode["outputPath"].value().toString());
-
-  mycamera.AllocateCameraRays();
-  mycamera.generateRays();
-
-  int schedType = root["Schedule"]["type"].value().toInteger();
-  switch (schedType) {
-  case gvt::render::scheduler::Image: {
-    //   std::cout << "starting image scheduler" << std::endl;
-    //  std::cout << "ligthpos " << lightNode["position"].value().tovec3() << std::endl;
-    gvt::render::algorithm::Tracer<ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
-      mycamera.AllocateCameraRays();
-      mycamera.generateRays();
-      myimage.clear();
-      tracer();
-    }
-    break;
-  }
-  case gvt::render::scheduler::Domain: {
-    // std::cout << "starting domain scheduler" << std::endl;
-
-    // gvt::render::algorithm::Tracer<DomainScheduler>(mycamera.rays, myimage)();
-    gvt::render::algorithm::Tracer<DomainScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
-      mycamera.AllocateCameraRays();
-      mycamera.generateRays();
-      myimage.clear();
-      tracer();
-    }
-    break;
-  }
-  default: {
-    std::cout << "unknown schedule type provided: " << schedType << std::endl;
-    break;
-  }
-  }
-
-  myimage.Write();
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#endif
 }

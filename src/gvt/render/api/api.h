@@ -126,9 +126,18 @@ void addInstance(string instname, string meshname,int instID, glm::mat4 *m  ) {
   gvt::core::DBNodeH instNodes = root["Instances"]; 
   gvt::core::DBNodeH dataNodes = root["Data"];
   // create a new instance node
+  //std::cerr << "adding instance " << instID << " called " << instname << " to " << meshname << std::endl;
   gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance",instname.c_str(),instNodes.UUID());
-  // find the mesh from meshname
-  gvt::core::DBNodeH meshNode = dataNodes.getChildByName(meshname);
+  // find the mesh from meshname. search the vector of child nodes of datanode for a
+  // mesh with name child. 
+  gvt::core::Vector<gvt::core::DBNodeH> kids =  dataNodes.getChildren(); 
+  gvt::core::DBNodeH meshNode;
+  for(int k =0;k<kids.size();k++) {
+    if(kids[k].value() == meshname) meshNode=kids[k];
+    //std::cerr << k << " " << kids[k].value()<< std::endl;;
+  }
+  //gvt::core::DBNodeH meshNode = dataNodes.getChildByName(meshname.c_str());
+  //gvt::core::DBNodeH meshNode = dataNodes[meshname.c_str()];
   Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
   // build the instance data
   auto minv = new glm::mat4(1.f);
@@ -307,7 +316,7 @@ void addFilm(string name, int w, int h, string path) {
   film["width"] = w;
   film["height"] = h;
   film["outputPath"] = path;
-
+  std::cerr << "addFilm: w " << w << " h " << h << " path " << path << std::endl;
   ctx->addToSync(film);
 }
 /* modify film object, if it exists

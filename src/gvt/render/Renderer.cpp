@@ -34,6 +34,7 @@ gvtRenderer::gvtRenderer() {
   ctx = RenderContext::instance(); 
   ctx->syncContext();
   rootnode = ctx->getRootNode();
+  //ctx->database()->printTree(rootnode.UUID(), 10, std::cout);
   datanode = rootnode["Data"];
   instancesnode = rootnode["Instances"];
   lightsnode = rootnode["Lights"];
