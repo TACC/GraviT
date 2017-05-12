@@ -68,6 +68,7 @@ void gvtInit(int &argc, char** &argv) {
     {
         // root node 
         gvt::core::DBNodeH root = cntxt->getRootNode();
+        root += cntxt->createNode("threads",(int)std::thread::hardware_concurrency());
         // nodes that have multpple leaves are added here
         // for example there may be many lights but generally one camera.
         if(rank == 0)
@@ -316,7 +317,6 @@ void addFilm(string name, int w, int h, string path) {
   film["width"] = w;
   film["height"] = h;
   film["outputPath"] = path;
-  std::cerr << "addFilm: w " << w << " h " << h << " path " << path << std::endl;
   ctx->addToSync(film);
 }
 /* modify film object, if it exists

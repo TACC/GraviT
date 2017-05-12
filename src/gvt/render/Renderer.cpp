@@ -69,7 +69,6 @@ gvtRenderer::gvtRenderer() {
       break;
     }
     default: {
-      std::cout <<"unknown scuedule type provided: " << rootnode["Schedule"]["type"].value().toInteger();
     }
   }
 
@@ -79,6 +78,9 @@ void gvtRenderer::render() {
   camera->AllocateCameraRays();
   camera->generateRays();
   (*tracer)();
+}
+void gvtRenderer::WriteImage() {
+  myimage->Write();
 }
 
 gvtRenderer *gvtRenderer::instance() {

@@ -44,6 +44,7 @@ public:
   ~gvtRenderer();
   static gvtRenderer *instance();
   void render();
+  void WriteImage();
 
 protected:
   gvtRenderer(); // constructor

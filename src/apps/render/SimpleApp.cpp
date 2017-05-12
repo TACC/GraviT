@@ -223,22 +223,16 @@ int main(int argc, char **argv) {
     // faces are 1 indexed
     mesh->addFace(1, 2, 3);
     mesh->addFace(1, 3, 4);
-
     mesh->addFace(17, 19, 20);
     mesh->addFace(17, 20, 18);
-
     mesh->addFace(6, 5, 8);
     mesh->addFace(6, 8, 7);
-
     mesh->addFace(23, 21, 22);
     mesh->addFace(23, 22, 24);
-
     mesh->addFace(10, 9, 11);
     mesh->addFace(10, 11, 12);
-
     mesh->addFace(13, 15, 16);
     mesh->addFace(13, 16, 14);
-
     mesh->generateNormals();
 
     // calculate bbox
@@ -264,13 +258,9 @@ int main(int argc, char **argv) {
     // create a NxM grid of alternating cones / cubes, offset using i and j
     int instId = 0;
     int ii[2] = { -2, 3 }; // i range
-      std::cerr << ii[0] << " " << ii[1] << std::endl;
     int jj[2] = { -2, 3 }; // j range
-      std::cerr << jj[0] << " " << jj[1] << std::endl;
     for (int i = ii[0]; i < ii[1]; i++) {
-      std::cerr << " i = " << i << std::endl;
       for (int j = jj[0]; j < jj[1]; j++) {
-      std::cerr << " j = " << j << std::endl;
         auto m = new glm::mat4(1.f);
         *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
         *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
@@ -375,10 +365,11 @@ int main(int argc, char **argv) {
     std::cerr << "unknown adapter, " << adapter << ", specified." << std::endl;
     exit(1);
   }
-  std::cerr << "simplsApp: adding renderer" << std::endl;
+  std::cerr << "simplsApp: database setup complete - adding renderer" << std::endl;
   addRenderer(rendername,adaptertype,schedtype);
   gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
   ren->render();
+  ren->WriteImage();
 
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
