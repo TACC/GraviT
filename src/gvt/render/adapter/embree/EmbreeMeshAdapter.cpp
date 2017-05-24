@@ -90,7 +90,7 @@ struct embTriangle {
   int v0, v1, v2;
 };
 
-void error_handler(const RTCError code, const char *str = nullptr) {
+static void error_handler(const RTCError code, const char *str = nullptr) {
   if (code == RTC_NO_ERROR) return;
 
   printf("Embree: ");

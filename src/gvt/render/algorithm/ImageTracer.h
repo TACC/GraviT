@@ -43,6 +43,10 @@
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+#include <gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h>
+#endif
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
@@ -186,6 +190,11 @@ public:
 #ifdef GVT_RENDER_ADAPTER_EMBREE
           case gvt::render::adapter::Embree:
             adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+            break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+          case gvt::render::adapter::EmbreeStream:
+            adapter = new gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter(mesh);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA

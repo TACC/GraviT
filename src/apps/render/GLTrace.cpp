@@ -1087,6 +1087,7 @@ int main(int argc, char *argv[]) {
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
   cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("embree-stream", ParseCommandLine::NONE, "Embree Adapter Type (Stream)", 0);
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
 
@@ -1096,6 +1097,8 @@ int main(int argc, char *argv[]) {
   cmd.addconflict("image", "domain");
   cmd.addconflict("embree", "manta");
   cmd.addconflict("embree", "optix");
+  cmd.addconflict("embree-stream", "manta");
+  cmd.addconflict("embree-stream", "optix");
   cmd.addconflict("manta", "optix");
 
   cmd.parse(argc, argv);
@@ -1157,6 +1160,8 @@ int main(int argc, char *argv[]) {
     adapter = "manta";
   } else if (cmd.isSet("optix")) {
     adapter = "optix";
+  } else if (cmd.isSet("embree-stream")) {
+    adapter = "embree-stream";
   }
 
   // adapter
@@ -1166,6 +1171,14 @@ int main(int argc, char *argv[]) {
     schedNode["adapter"] = gvt::render::adapter::Embree;
 #else
     std::cout << "Embree adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("embree-stream") == 0) {
+    std::cout << " embree stream adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+    schedNode["adapter"] = gvt::render::adapter::EmbreeStream;
+#else
+    std::cout << "Embree stream adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else if (adapter.compare("manta") == 0) {
