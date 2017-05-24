@@ -414,7 +414,7 @@ if (GVT_RENDER)
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS})
 
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS})
-  include_directories(${TINYOBJPATH})
+  include_directories(${TINYOBJPATH} ${PLYPATH})
 
   # find_package(Boost REQUIRED COMPONENTS system)
   # include_directories(${Boost_INCLUDE_DIRS})
