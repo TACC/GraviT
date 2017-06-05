@@ -558,8 +558,6 @@ struct embreeParallelTrace {
                 // v: v2-v0
                 glm::vec3 ci = (c0 * (1.f - u - v)) + (c1 * u) + (c2 * v);
 
-                // std::cout << ci.r << "," << ci.g << "," << ci.b << std::endl;
-
                 // Create Material
                 mat = new gvt::render::data::primitives::Material;
                 mat->type = LAMBERT;

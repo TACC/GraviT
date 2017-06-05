@@ -42,9 +42,6 @@ PlyProperty vert_props[] = {
   { "red", Uint8, Uint8, offsetof(PlyReader::Vertex, cx), 0, 0, 0, 0 },
   { "green", Uint8, Uint8, offsetof(PlyReader::Vertex, cy), 0, 0, 0, 0 },
   { "blue", Uint8, Uint8, offsetof(PlyReader::Vertex, cz), 0, 0, 0, 0 }
-  // { "nx", Float32, Float32, offsetof(PlyReader::Vertex, nx), 0, 0, 0, 0 },
-  // { "ny", Float32, Float32, offsetof(PlyReader::Vertex, ny), 0, 0, 0, 0 },
-  // { "nz", Float32, Float32, offsetof(PlyReader::Vertex, nz), 0, 0, 0, 0 },
 };
 
 PlyProperty face_props[] = {
@@ -171,17 +168,8 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
       ymax = MAX(vert->y, ymax);
       zmax = MAX(vert->z, zmax);
       mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
-      if (i < 10 || i > nverts - 10) {
-        std::cout << vert->x << ", " << vert->y << ", " << vert->z << ", " << unsigned(vert->cx) << ", "
-                  << unsigned(vert->cy) << ", " << unsigned(vert->cz) << "\n";
-        if (i == 9) {
-          std::cout << "-------\n";
-        }
-      }
       if (has_color) {
         mesh->addVertexColor(glm::vec3(vert->cx / 255.f, vert->cy / 255.f, vert->cz / 255.f));
-        // mesh->addVertexColor(glm::vec3(vert->cx, vert->cy, vert->cz));
-        // std::cout << vert->cx / 255.f << "," << vert->cy / 255.f << "," << vert->cz / 255.f << "\n";
       }
     }
     glm::vec3 lower(xmin, ymin, zmin);
