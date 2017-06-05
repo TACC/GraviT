@@ -46,7 +46,8 @@ public:
 
   typedef struct Vertex {
     float x, y, z;
-    float nx, ny, nz;
+    unsigned char cx, cy, cz;
+    // float nx, ny, nz;
     void *other_props; /* other properties */
   } Vertex;
 

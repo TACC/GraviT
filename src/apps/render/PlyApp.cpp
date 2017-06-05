@@ -114,13 +114,15 @@ int main(int argc, char **argv) {
   cmd.parse(argc, argv);
 
   tbb::task_scheduler_init *init;
-  if (!cmd.isSet("threads")) {
-    init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
-    std::cout << "Initialized GraviT with " << std::thread::hardware_concurrency() << " threads..." << std::endl;
-  } else {
-    init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
-    std::cout << "Initialized GraviT with " << cmd.get<int>("threads") << " threads..." << std::endl;
-  }
+  // if (!cmd.isSet("threads")) {
+  //   init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+  //   std::cout << "Initialized GraviT with " << std::thread::hardware_concurrency() << " threads..." << std::endl;
+  // } else {
+  //   init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+  //   std::cout << "Initialized GraviT with " << cmd.get<int>("threads") << " threads..." << std::endl;
+  // }
+    init = new tbb::task_scheduler_init(1);
+    std::cout << "Initialized GraviT with " << 1 << " threads..." << std::endl;
 
   //  concurrency_tracker tracker;
   //  tracker.observe(true);
@@ -176,6 +178,9 @@ int main(int argc, char **argv) {
       Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
+      std::cout << "bounds_min:" << ibox->bounds_min.x << "," << ibox->bounds_min.y << "," << ibox->bounds_min.z << "\n";
+      std::cout << "bounds_max:" << ibox->bounds_max.x << "," << ibox->bounds_max.y << "," << ibox->bounds_max.z << "\n";
+      std::cout << "centroid:" << ibox->centroid().x << "," << ibox->centroid().y << "," << ibox->centroid().z << "\n";
 
       cntxt->addToSync(instnode);
     }
@@ -186,12 +191,18 @@ int main(int argc, char **argv) {
   // add lights, camera, and film to the database
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
-  lightNode["color"] = glm::vec3(1000.0, 1000.0, 1000.0);
+  // enzo
+  // lightNode["position"] = glm::vec3(512.0, 512.0, 2048.0);
+  // lightNode["color"] = glm::vec3(1000.0, 1000.0, 1000.0);
+  // color
+  lightNode["position"] = glm::vec3(1024, 1024, 1024);
+  lightNode["color"] = glm::vec3(1000, 1000, 1000);
   // camera
   gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec3(512.0, 512.0, 4096.0);
-  camNode["focus"] = glm::vec3(512.0, 512.0, 0.0);
+  // camNode["eyePoint"] = glm::vec3(512, 512, 0);
+  // camNode["focus"] = glm::vec3(512, 512, 512);
+  camNode["eyePoint"] = glm::vec3(1024, 1024, 1024);
+  camNode["focus"] = glm::vec3(0, 0, 0);
   camNode["upVector"] = glm::vec3(0.0, 1.0, 0.0);
   camNode["fov"] = (float)(25.0 * M_PI / 180.0);
   camNode["rayMaxDepth"] = (int)1;
