@@ -96,6 +96,18 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   spacing.y = volumespacing.y;
   spacing.z = volumespacing.z;
   ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
+  osp::vec3f lo = origin;
+  osp::vec3f hi = lo ;
+  hi.x = hi.x + (counts.x -1)*spacing.x;
+  hi.y = hi.y + (counts.y -1)*spacing.y;
+  hi.z = hi.z + (counts.z -1)*spacing.z;
+  float mbox[6];
+  mbox[0] = lo.x;
+  mbox[1] = lo.y;
+  mbox[2] = lo.z;
+  mbox[3] = hi.x;
+  mbox[4] = hi.y;
+  mbox[5] = hi.z;
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   // as of now only two voxel types are supported by the ospray lib
   switch(vt){
@@ -113,10 +125,17 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
   ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
   data->GetTransferFunction()->set();
   ospSetObject(theOSPVolume,"transferFunction",data->GetTransferFunction()->GetTheOSPTransferFunction());
-  ospSet1i(theOSPVolume,"volume_rendering",1);
+  ospSet1i(theOSPVolume,"volume rendering",1);
   ospCommit(theOSPVolume);
   // make a model and stuff the volume in it.
   theOSPModel = ospNewModel();
+  float gbbx[6] = {0.0,0.0,0.0,255.0,255.0,255.0};
+  OSPData boxData = ospNewData(6,OSP_FLOAT,mbox);
+  OSPData gboxData = ospNewData(6,OSP_FLOAT,gbbx);
+  std::cerr << mbox[0] << " " << mbox[1] << " " << mbox[2] << " " ;
+  std::cerr << mbox[3] << " " << mbox[4] << " " << mbox[5] << std::endl ;
+  ospSetData(theOSPModel,"local bbox",boxData);
+  ospSetData(theOSPModel,"global bbox",gboxData);
   ospAddVolume(theOSPModel,theOSPVolume);
   ospCommit(theOSPModel);
   // the model should be added to the renderer
@@ -269,8 +288,8 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
   // convert GVT RayVector into the OSPExternalRays used by ospray. 
   OSPExternalRays rl = GVT2OSPRays(rayList);
   // trace'em 
-  std::cout << " trace 'em " <<  std::endl;
-  OSPExternalRays out = ospTraceRays(theOSPRenderer,theOSPModel,rl); // ospray trace
+  //OSPExternalRays out = ospTraceRays(theOSPRenderer,theOSPModel,rl); // ospray trace
+  OSPExternalRays out = ospTraceRays(theOSPRenderer,rl); // ospray trace
   // push everything from out and rl into moved_rays for sorting into houses
   // YA Griffindor. 
   OSP2GVTMoved_Rays(out,rl,moved_rays);
