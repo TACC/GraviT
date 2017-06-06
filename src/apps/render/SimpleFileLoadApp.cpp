@@ -147,8 +147,6 @@ int main(int argc, char **argv) {
 
     mesh->computeBoundingBox();
     Box3D *meshbbox = mesh->getBoundingBox();
-    // std::cout << meshbbox->bounds_min.x << "," << meshbbox->bounds_min.y << "," << meshbbox->bounds_min.z << "\n";
-    // std::cout << meshbbox->bounds_max.x << "," << meshbbox->bounds_max.y << "," << meshbbox->bounds_max.z << "\n";
 
     // add bunny mesh to the database
 
