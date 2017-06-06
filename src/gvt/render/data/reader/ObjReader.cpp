@@ -69,7 +69,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   // file.open(filename.c_str());
   // GVT_ASSERT(file.good(), "Error loading obj file " << filename);
 
-  Material *m = new Material();
+  // Material *m = new Material();
   //  m->type = LAMBERT;
   //  //m->type = EMBREE_MATERIAL_MATTE;
   //  m->kd = glm::vec3(1.0,1.0, 1.0);
@@ -82,7 +82,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   //  m->k = glm::vec3(3.06,2.40, 1.88);
   //  m->roughness = 0.05;
 
-  objMesh = new Mesh(m);
+  // objMesh = new Mesh(m);
 
   // while (file.good()) {
   //   std::string line;
@@ -150,6 +150,23 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
   //   m.dissolve = materials[i].dissolve;
   // }
 
+  if (materials.size()) {
+    objMesh = new Mesh(nullptr);
+    objMesh->materials.reserve(materials.size());
+
+    for (std::size_t i = 0; i < materials.size(); ++i) {
+      Material *m = new Material;
+      objMesh->materials.push_back(m);
+      const tinyobj::material_t &mat = materials[i];
+      m->ka = glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
+      m->kd = glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
+      m->ks = glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]);
+      // m->type = material_type;
+    }
+  } else {
+    objMesh = new Mesh(new Material);
+  }
+
   size_t vertices_offset = 0;
 
   for (size_t i = 0; i < shapes.size(); i++) {
@@ -175,6 +192,11 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
       objMesh->faces.push_back(Mesh::Face(vertices_offset + shapes[i].mesh.indices[3 * f + 0],
                                           vertices_offset + shapes[i].mesh.indices[3 * f + 1],
                                           vertices_offset + shapes[i].mesh.indices[3 * f + 2]));
+
+      if (materials.size()) {
+        Material *mat = objMesh->materials[shapes[i].mesh.material_ids[f]];
+        objMesh->faces_to_materials.push_back(mat);
+      }
 
       // size_t midx = shapes[i].mesh.material_ids[f];
       // cindex.push_back(midx);

@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("point-light", ParseCommandLine::FLOAT, "Point light position and color (px,py,pz,cx,cy,cz)", 6);
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
@@ -146,6 +147,8 @@ int main(int argc, char **argv) {
 
     mesh->computeBoundingBox();
     Box3D *meshbbox = mesh->getBoundingBox();
+    // std::cout << meshbbox->bounds_min.x << "," << meshbbox->bounds_min.y << "," << meshbbox->bounds_min.z << "\n";
+    // std::cout << meshbbox->bounds_max.x << "," << meshbbox->bounds_max.y << "," << meshbbox->bounds_max.z << "\n";
 
     // add bunny mesh to the database
 
@@ -226,7 +229,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
-  filmNode["outputPath"] = (std::string) "bunny";
+  filmNode["outputPath"] = cmd.isSet("obj") ? std::string("output") : std::string("bunny");
 
   if (cmd.isSet("eye")) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
@@ -237,6 +240,13 @@ int main(int argc, char **argv) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
+
+  if (cmd.isSet("point-light")) {
+    gvt::core::Vector<float> light = cmd.getValue<float>("point-light");
+    lightNode["position"] = glm::vec3(light[0], light[1], light[2]);
+    lightNode["color"] = glm::vec3(light[3], light[4], light[5]);
+  }
+
   if (cmd.isSet("wsize")) {
     gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];

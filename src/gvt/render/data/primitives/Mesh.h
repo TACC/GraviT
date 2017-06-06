@@ -115,6 +115,7 @@ public:
   gvt::core::Vector<FaceToNormals> faces_to_normals;
   gvt::core::Vector<glm::vec3> face_normals;
   gvt::core::Vector<Material *> faces_to_materials;
+  std::vector<Material *> materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;
 };
