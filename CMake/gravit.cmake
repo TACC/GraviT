@@ -24,6 +24,8 @@ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 # 	INCLUDE(${PROJECT_BASE_DIR}/CMake/gcc.cmake)
 # ENDIF()
 
+include(${GVT_DIR}/CMake/macros.cmake)
+
 IF ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   SET(GVT_COMPILER ${CMAKE_CXX_COMPILER_ID} CACHE STRING "GraviT Compiler?")
   INCLUDE(${GVT_DIR}/CMake/clang.cmake)

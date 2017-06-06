@@ -374,6 +374,17 @@ if (GVT_CORE)
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
   )
+# foreach ( file ${GVT_CORE_HDRS} )
+#
+#   get_filename_component( f ${file} NAME )
+#   get_filename_component( dir ${file} DIRECTORY )
+#
+#   string(REPLACE "src/" "" ndir ${dir})
+#   message(STATUS "SRC HDR :  ${dir} ${ndir}   :  ${f}")
+#   install( FILES ${file} DESTINATION include/${ndir} )
+# endforeach()
+
+  INSTALL_HEADERS_WITH_DIRECTORY("src/" "${GVT_CORE_HDRS}")
 endif(GVT_CORE)
 
 
@@ -433,9 +444,13 @@ if (GVT_RENDER)
 
   target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
 
+
   install(TARGETS gvtRender
     LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
+
+  INSTALL_HEADERS_WITH_DIRECTORY("src/" "${GVT_RENDER_HDRS}")
+
 endif(GVT_RENDER)
 
 
