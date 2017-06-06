@@ -65,7 +65,7 @@
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
 #define GVT_EMBREE_INTERSECTION rtcIntersect16
 #define GVT_EMBREE_OCCULUSION rtcOccluded16
-#elif(defined(GVT_AVX512KNL_TARGET) || defined(GVT_AVX512SKX_TARGET))
+#elif (defined(GVT_AVX512KNL_TARGET) || defined(GVT_AVX512SKX_TARGET))
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
 #define GVT_EMBREE_PACKET_SIZE 16
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
@@ -545,55 +545,55 @@ struct embreeStreamParallelTrace {
     shadowRays.clear();
   }
 
-  /**
-   * Trace function.
-   *
-   * Loops through rays in `rayList`, converts them to embree format, and traces
-   * against embree's scene
-   *
-   * Threads work on rays in chunks of `workSize` units.  An atomic add on
-   * `sharedIdx` distributes
-   * the ranges of rays to work on.
-   *
-   * After getting a chunk of rays to work with, the adapter loops through in
-   * sets of `packetSize`.  Right
-   * now this supports a 4 wide packet [Embree has support for 8 and 16 wide
-   * packets].
-   *
-   * The packet is traced and re-used until all of the 4 rays and their
-   * secondary rays have been traced to
-   * completion.  Shadow rays are added to a queue and are tested after each
-   * intersection test.
-   *
-   * The `while(validRayLeft)` loop behaves something like this:
-   *
-   * r0: primary -> secondary -> secondary -> ... -> terminated
-   * r1: primary -> secondary -> secondary -> ... -> terminated
-   * r2: primary -> secondary -> secondary -> ... -> terminated
-   * r3: primary -> secondary -> secondary -> ... -> terminated
-   *
-   * It is possible to get diverging packets such as:
-   *
-   * r0: primary   -> secondary -> terminated
-   * r1: secondary -> secondary -> terminated
-   * r2: shadow    -> terminated
-   * r3: primary   -> secondary -> secondary -> secondary -> terminated
-   *
-   * TODO: investigate switching terminated rays in the vector with active rays
-   * [swap with ones at the end]
-   *
-   * Terminated above means:
-   * - shadow ray hits object and is occluded
-   * - primary / secondary ray miss and are passed out of the queue
-   *
-   * After a packet is completed [including its generated rays], the system
-   * moves on * to the next packet
-   * in its chunk. Once a chunk is completed, the thread increments `sharedIdx`
-   * again to get more work.
-   *
-   * If `sharedIdx` grows to be larger than the incoming ray size, then the
-   * thread is complete.
-   */
+/**
+ * Trace function.
+ *
+ * Loops through rays in `rayList`, converts them to embree format, and traces
+ * against embree's scene
+ *
+ * Threads work on rays in chunks of `workSize` units.  An atomic add on
+ * `sharedIdx` distributes
+ * the ranges of rays to work on.
+ *
+ * After getting a chunk of rays to work with, the adapter loops through in
+ * sets of `packetSize`.  Right
+ * now this supports a 4 wide packet [Embree has support for 8 and 16 wide
+ * packets].
+ *
+ * The packet is traced and re-used until all of the 4 rays and their
+ * secondary rays have been traced to
+ * completion.  Shadow rays are added to a queue and are tested after each
+ * intersection test.
+ *
+ * The `while(validRayLeft)` loop behaves something like this:
+ *
+ * r0: primary -> secondary -> secondary -> ... -> terminated
+ * r1: primary -> secondary -> secondary -> ... -> terminated
+ * r2: primary -> secondary -> secondary -> ... -> terminated
+ * r3: primary -> secondary -> secondary -> ... -> terminated
+ *
+ * It is possible to get diverging packets such as:
+ *
+ * r0: primary   -> secondary -> terminated
+ * r1: secondary -> secondary -> terminated
+ * r2: shadow    -> terminated
+ * r3: primary   -> secondary -> secondary -> secondary -> terminated
+ *
+ * TODO: investigate switching terminated rays in the vector with active rays
+ * [swap with ones at the end]
+ *
+ * Terminated above means:
+ * - shadow ray hits object and is occluded
+ * - primary / secondary ray miss and are passed out of the queue
+ *
+ * After a packet is completed [including its generated rays], the system
+ * moves on * to the next packet
+ * in its chunk. Once a chunk is completed, the thread increments `sharedIdx`
+ * again to get more work.
+ *
+ * If `sharedIdx` grows to be larger than the incoming ray size, then the
+ * thread is complete.
+ */
 // Reason for having GVT_EMBREE_STREAM_NM and GVT_EMBREE_STREAM_1M separately
 // From Embree's manual:
 // Please note that there is some incompatibility in the layout of a single ray
@@ -694,7 +694,6 @@ struct embreeStreamParallelTrace {
                 // old fixme: fix embree normal calculation to remove dependency
                 // from gvt mesh
 
-
                 glm::vec3 manualNormal;
 
                 float ngx = RTCRayN_Ng_x(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
@@ -745,7 +744,36 @@ struct embreeStreamParallelTrace {
 
                 unsigned primID = RTCRayN_primID(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
 
-                if (mesh->faces_to_materials.size() && mesh->faces_to_materials[primID]) {
+                if (!mesh->vertex_colors.empty()) { // per-vertex color available, create material here
+                  // Get vertex indexes
+                  gvt::render::data::primitives::Mesh::Face face = mesh->faces[primID];
+
+                  int v0 = face.get<0>();
+                  int v1 = face.get<1>();
+                  int v2 = face.get<2>();
+
+                  // Get U V Coordinates
+
+                  float u = RTCRayN_u(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
+                  float v = RTCRayN_v(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
+
+                  // Get color at each vertex
+                  glm::vec3 c0 = mesh->vertex_colors[v0];
+                  glm::vec3 c1 = mesh->vertex_colors[v1];
+                  glm::vec3 c2 = mesh->vertex_colors[v2];
+
+                  // Interpolate colors
+                  // given vertices v0, v1, v2, u and v are defined as
+                  // u: v1-v0
+                  // v: v2-v0
+                  glm::vec3 ci = (c0 * (1.f - u - v)) + (c1 * u) + (c2 * v);
+
+                  // Create Material
+                  mat = new gvt::render::data::primitives::Material;
+                  mat->type = LAMBERT;
+                  mat->kd = ci;
+
+                } else if (mesh->faces_to_materials.size() && mesh->faces_to_materials[primID]) {
                   mat = mesh->faces_to_materials[primID];
                   // mat = mesh->faces_to_materials[rayNM[m].primID[n]];
                   // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray1M[pi].primID]) {
@@ -761,6 +789,11 @@ struct embreeStreamParallelTrace {
                 }
 
                 generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
+
+                // In case we have per-vertex color information, destruct the material temporarily created
+                if (!mesh->vertex_colors.empty()) {
+                  delete mat;
+                }
 
                 int ndepth = r.depth - 1;
 
@@ -928,8 +961,38 @@ struct embreeStreamParallelTrace {
               const glm::vec3 &normal = manualNormal;
 
               Material *mat;
-              // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[rayNM[m].primID[n]])
-              if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray1M[pi].primID]) {
+
+              if (!mesh->vertex_colors.empty()) { // per-vertex color available, create material here
+                // Get vertex indexes
+                gvt::render::data::primitives::Mesh::Face face = mesh->faces[ray1M[pi].primID];
+
+                int v0 = face.get<0>();
+                int v1 = face.get<1>();
+                int v2 = face.get<2>();
+
+                // Get U V Coordinates
+
+                float u = ray1M[pi].u;
+                float v = ray1M[pi].v;
+
+                // Get color at each vertex
+                glm::vec3 c0 = mesh->vertex_colors[v0];
+                glm::vec3 c1 = mesh->vertex_colors[v1];
+                glm::vec3 c2 = mesh->vertex_colors[v2];
+
+                // Interpolate colors
+                // given vertices v0, v1, v2, u and v are defined as
+                // u: v1-v0
+                // v: v2-v0
+                glm::vec3 ci = (c0 * (1.f - u - v)) + (c1 * u) + (c2 * v);
+
+                // Create Material
+                mat = new gvt::render::data::primitives::Material;
+                mat->type = LAMBERT;
+                mat->kd = ci;
+
+                // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[rayNM[m].primID[n]])
+              } else if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray1M[pi].primID]) {
                 // mat = mesh->faces_to_materials[rayNM[m].primID[n]];
                 mat = mesh->faces_to_materials[ray1M[pi].primID];
               } else {
@@ -943,6 +1006,11 @@ struct embreeStreamParallelTrace {
               }
 
               generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
+
+              // In case we have per-vertex color information, destruct the material temporarily created
+              if (!mesh->vertex_colors.empty()) {
+                delete mat;
+              }
 
               int ndepth = r.depth - 1;
 
