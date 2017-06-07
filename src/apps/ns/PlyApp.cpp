@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
   filmNode["width"] = 1900;
   filmNode["height"] = 1080;
-  filmNode["outputPath"] = (std::string) "enzo";
+  filmNode["outputPath"] = (std::string) "output";
 
   if (cmd.isSet("eye")) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
