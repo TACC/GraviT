@@ -44,7 +44,7 @@ namespace data {
 namespace primitives {
 
 typedef enum {
-  LAMBERT,
+  LAMBERT = 0,
   PHONG,
   BLINN,
   EMBREE_MATERIAL_METAL,

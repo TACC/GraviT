@@ -62,7 +62,7 @@ gvt::core::Vector<std::string> split(const std::string &s, char delim, gvt::core
 }
 } // namespace reader} namespace domain} namespace data} namespace render} namespace gvt}
 
-ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
+ObjReader::ObjReader(const std::string filename, int material_type) : computeNormals(false) {
 
   // GVT_ASSERT(filename.size() > 0, "Invalid filename");
   // std::fstream file;
@@ -161,7 +161,7 @@ ObjReader::ObjReader(const std::string filename) : computeNormals(false) {
       m->ka = glm::vec3(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
       m->kd = glm::vec3(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
       m->ks = glm::vec3(mat.specular[0], mat.specular[1], mat.specular[2]);
-      // m->type = material_type;
+      m->type = material_type;
     }
   } else {
     objMesh = new Mesh(new Material);

@@ -88,6 +88,10 @@ int main(int argc, char **argv) {
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
 
+  cmd.addoption("material", ParseCommandLine::INT,
+                "Material type (0: Lambert, 1: Phong, 2: Blinn, 3: Embree_Metal, 4: Embree_Velvet, 5: Embree_Matte )",
+                1);
+
   cmd.addconflict("embree", "manta");
   cmd.addconflict("embree", "optix");
   cmd.addconflict("embree-stream", "manta");
@@ -133,14 +137,20 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH bunnyMeshNode = dataNodes.getChildren()[0];
 
   {
-
+    // path assumes binary is run as bin/gvtFileApp
     std::string objPath = std::string("../data/geom/bunny.obj");
     if (cmd.isSet("obj")) {
       objPath = cmd.getValue<std::string>("obj")[0];
     }
 
-    // path assumes binary is run as bin/gvtFileApp
-    gvt::render::data::domain::reader::ObjReader objReader(objPath);
+    int material_type = 0;
+    if (cmd.isSet("material")) {
+      gvt::core::Vector<int> type = cmd.getValue<int>("material");
+      material_type = type[0];
+    }
+
+    gvt::render::data::domain::reader::ObjReader objReader(objPath, material_type);
+
     // right now mesh must be converted to gvt format
     Mesh *mesh = objReader.getMesh();
     mesh->generateNormals();
