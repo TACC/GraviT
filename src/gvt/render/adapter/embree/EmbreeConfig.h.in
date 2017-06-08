@@ -21,50 +21,9 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#ifndef GVT_RENDER_TYPES_H
-#define GVT_RENDER_TYPES_H
 
-// clang-format off
+#define GVT_EMBREE_STREAM_SIZE_M @GVT_EMBREE_STREAM_STREAM_SIZE@
+#define GVT_EMBREE_PACKET_SIZE_N @GVT_EMBREE_STREAM_PACKET_SIZE@
 
-namespace gvt {
-namespace render {
-namespace adapter {
-/// render engine used
-enum RenderType {
-  Volume,
-  Surface,
-  Manta,
-  Optix,
-  Embree,
-  EmbreeStream,
-  Heterogeneous
-};
-} // namespace adapter
+#define GVT_EMBREE_STREAM_SIZE_NM (GVT_EMBREE_STREAM_SIZE_M * GVT_EMBREE_PACKET_SIZE_N)
 
-namespace scheduler {
-/// schedule used
-enum ScheduleType {
-  Image,
-  Domain,
-  RayWeightedSpread, // PAN: from EGPGV 2012 paper, deprecated, now called LoadOnce
-  LoadOnce,          // PAN: from TVCG 2013 paper
-  LoadAnyOnce,       // PAN: from TVCG 2013 paper
-  LoadAnother,       // PAN: from TVCG 2013 paper
-  LoadMany
-};
-} // namespace scheduler
-
-namespace accelerator {
-/// top-level acceleration structure to organize domains within GraviT
-enum AccelType {
-  NoAccel,
-  BVH
-};
-} // namespace accelerator
-
-} // namespace render
-} // namespace gvt
-
-// clang-format on
-
-#endif // GVT_RENDER_TYPES_H

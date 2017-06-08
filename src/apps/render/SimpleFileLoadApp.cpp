@@ -40,6 +40,10 @@
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+#include <gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h>
+#endif
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
@@ -79,11 +83,14 @@ int main(int argc, char **argv) {
   cmd.addoption("output", ParseCommandLine::PATH, "Output Image Path", 1);
 
   cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("embree-stream", ParseCommandLine::NONE, "Embree Adapter Type (Stream)", 0);
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
 
   cmd.addconflict("embree", "manta");
   cmd.addconflict("embree", "optix");
+  cmd.addconflict("embree-stream", "manta");
+  cmd.addconflict("embree-stream", "optix");
   cmd.addconflict("manta", "optix");
 
   cmd.addconflict("image", "domain");
@@ -250,6 +257,8 @@ int main(int argc, char **argv) {
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
   int adapterType = gvt::render::adapter::Embree;
+#elif GVT_RENDER_ADAPTER_EMBREE_STREAM
+  int adapterType = gvt::render::adapter::EmbreeStream;
 #elif GVT_RENDER_ADAPTER_MANTA
   int adapterType = gvt::render::adapter::Manta;
 #elif GVT_RENDER_ADAPTER_OPTIX
