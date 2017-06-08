@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
-  gvtInit(argc,argv); 
+  gvtInit(argc,argv);
 
 // create a cone mesh with a particular material
   {
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
     // add cone mesh to the database
   string meshname("conemesh");
   std::cerr << "adding conemesh" << std::endl;
-  addMesh(meshbbox,mesh,meshname); 
+  addMesh(meshbbox,mesh,meshname);
   }
 
 // and now a cube
@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
 
   string meshname("cubemesh");
   std::cerr << "adding cubemesh" << std::endl;
-  addMesh(meshbbox,mesh,meshname); 
+  addMesh(meshbbox,mesh,meshname);
   }
 
 // this should happen first thing in the render call
@@ -357,7 +357,7 @@ int main(int argc, char **argv) {
   } else if (adapter.compare("embree-stream") == 0) {
     std::cout << " embree stream adapter " << std::endl;
 #ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
-    schedNode["adapter"] = gvt::render::adapter::EmbreeStream;
+    adaptertype = gvt::render::adapter::EmbreeStream;
 #else
     std::cout << "Embree stream adapter missing. recompile" << std::endl;
     exit(1);

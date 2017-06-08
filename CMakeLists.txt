@@ -300,6 +300,8 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/tracer/Image/ImageTracer.cpp
   src/gvt/render/tracer/Domain/DomainTracer.cpp
   src/gvt/render/tracer/Domain/Messages/SendRayList.cpp
+
+  src/gvt/render/api/api.cpp
 )
 
 if (GVT_RENDER_ADAPTER_MANTA)
@@ -400,7 +402,6 @@ if (GVT_CORE)
   set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
   message(STATUS ${TBB_LIBRARIES})
   add_library(gvtCore STATIC
-    ${GVT_CORE_HDRS}
     ${GVT_CORE_SRCS}
   )
 
@@ -462,16 +463,14 @@ if (GVT_RENDER)
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
   endif(GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
 
-  add_library(gvtRender STATIC
-    ${GVT_CORE_HDRS}
-    ${GVT_RENDER_HDRS}
-  ${GVT_RENDER_SRCS})
+  add_library(gvtRender STATIC  ${GVT_RENDER_SRCS})
 
-  target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
+  target_link_libraries(gvtRender gvtCore ${GVT_RENDER_LIBS})
 
   install(TARGETS gvtRender
     LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
+
 endif(GVT_RENDER)
 
 
