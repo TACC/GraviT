@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("up", ParseCommandLine::FLOAT, "Camera up vector", 3);
   cmd.addoption("point-light", ParseCommandLine::FLOAT, "Point light position and color (px,py,pz,cx,cy,cz)", 6);
   cmd.addoption("file", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path");
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
@@ -210,6 +211,11 @@ int main(int argc, char **argv) {
   if (cmd.isSet("look")) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("up")) {
+    gvt::core::Vector<float> up = cmd.getValue<float>("up");
+    camNode["upVector"] = glm::vec3(up[0], up[1], up[2]);
   }
 
   if (cmd.isSet("point-light")) {
