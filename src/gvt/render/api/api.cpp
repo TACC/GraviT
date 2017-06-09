@@ -1,21 +1,21 @@
 /* =======================================================================================
-   This file is released as part of GraviT - scalable, platform independent ray tracing
-   tacc.github.io/GraviT
-   Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
-   All rights reserved.
-   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
-   except in compliance with the License.
-   A copy of the License is included with this software in the file LICENSE.
-   If your copy does not contain the License, you may obtain a copy of the License at:
-       http://opensource.org/licenses/BSD-3-Clause
-   Unless required by applicable law or agreed to in writing, software distributed under
-   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-   KIND, either express or implied.
-   See the License for the specific language governing permissions and limitations under
-   limitations under the License.
-   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
-   ACI-1339881 and ACI-1339840
-   ======================================================================================= */
+This file is released as part of GraviT - scalable, platform independent ray tracing
+tacc.github.io/GraviT
+Copyright 2013-2015 Texas Advanced Computing Center, The University of Texas at Austin
+All rights reserved.
+Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
+except in compliance with the License.
+A copy of the License is included with this software in the file LICENSE.
+If your copy does not contain the License, you may obtain a copy of the License at:
+http://opensource.org/licenses/BSD-3-Clause
+Unless required by applicable law or agreed to in writing, software distributed under
+the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under
+limitations under the License.
+GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
+ACI-1339881 and ACI-1339840
+======================================================================================= */
 
 // API functions
 #include <assert.h>
@@ -61,8 +61,8 @@ void gvtInit(int &argc, char **&argv) {
   {
     GVT_ERR_MESSAGE("gvtInit: context init failed");
     exit(0);
-  } else // build base context objects.
-  {
+  }
+
     // root node
     gvt::core::DBNodeH root = cntxt->getRootNode();
     root += cntxt->createNode("threads", (int)std::thread::hardware_concurrency());
@@ -83,10 +83,10 @@ void gvtInit(int &argc, char **&argv) {
       // cntxt->addToSync(cntxt->createNodeFromType("Schedule","Schedule",root.UUID()));
     }
     cntxt->syncContext();
-  }
+
 }
 
-void createMesh(const std::string &name) {
+void createMesh(const std::string name) {
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   // get the data node.
@@ -98,10 +98,33 @@ void createMesh(const std::string &name) {
   ameshnode["file"] = name.c_str();
   gvt::render::data::primitives::Mesh *m = new gvt::render::data::primitives::Mesh();
 
-  ameshnode["bbox"] = m->getBoundingBox();
+  ameshnode["bbox"] =  reinterpret_cast<unsigned long long>(m->getBoundingBox());
   ameshnode["ptr"] = reinterpret_cast<unsigned long long>(m);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  gvt::core::DBNodeH loc = cntxt->createNode("rank", rank);
+  ameshnode["Locations"] += loc;
   cntxt->addToSync(ameshnode);
 }
+
+gvt::core::DBNodeH getChildByName(gvt::core::DBNodeH dataNodes, std::string name) {
+    gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
+    gvt::core::DBNodeH Node;
+    for (int k = 0; k < kids.size(); k++) {
+      if (kids[k].value() == name) Node = kids[k];
+    }
+    return Node;
+}
+
+void printChildName(gvt::core::DBNodeH dataNodes) {
+    gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
+    for (int k = 0; k < kids.size(); k++) {
+      //if (kids[k].value() == name) Node = kids[k];
+      std::cout << kids[k].value() << std::endl;
+    }
+
+}
+
 
 void addMeshVertices(const std::string name, const unsigned &n, const float *vertices) {
 
@@ -109,8 +132,10 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  GVT_ASSERT(dataNodes.getChildByName(name.c_str()).isValid(), "Mesh name is not unique : " << name);
-  gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
+
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+  //gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -119,8 +144,9 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
     m->addVertex(glm::vec3(vertices[i + 0], vertices[i + 1], vertices[i + 2]));
   }
 
-  m->computeBoundingBox();
-  m->generateNormals();
+  // m->computeBoundingBox();
+  // m->generateNormals();
+  cntxt->addToSync(ameshnode);
 }
 
 void addMeshTriangles(const std::string name, const unsigned &n, const unsigned int *triangles) {
@@ -129,8 +155,10 @@ void addMeshTriangles(const std::string name, const unsigned &n, const unsigned 
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  GVT_ASSERT(dataNodes.getChildByName(name.c_str()).isValid(), "Mesh name is not unique : " << name);
-  gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
+
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add triangles) Mesh name is not unique : " << name);
+
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -138,8 +166,10 @@ void addMeshTriangles(const std::string name, const unsigned &n, const unsigned 
   for (int i = 0; i < n * 3; i += 3) {
     m->addFace(triangles[i + 0], triangles[i + 1], triangles[i + 2]);
   }
-  m->computeBoundingBox();
-  m->generateNormals();
+  // m->computeBoundingBox();
+  // m->generateNormals();
+
+  cntxt->addToSync(ameshnode);
 }
 
 void finishMesh(const std::string name, const bool compute_normal) {
@@ -147,36 +177,163 @@ void finishMesh(const std::string name, const bool compute_normal) {
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  GVT_ASSERT(dataNodes.getChildByName(name.c_str()).isValid(), "Mesh name is not unique : " << name);
-  gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
   m->computeBoundingBox();
   if (compute_normal) m->generateNormals();
+  ameshnode["bbox"] =  reinterpret_cast<unsigned long long>(m->getBoundingBox());
+  cntxt->addToSync(ameshnode);
 }
 
-void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float *ks) {
+/* Add triangles face normals array to the mesh
+ * \param name : mesh unique identifier
+ * \param n : number of triangles
+ * \param normals : face normals <x,y,z>
+ */
+void addMeshFaceNormals(const std::string name, const unsigned &n, const unsigned *normals) {
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  GVT_ASSERT(dataNodes.getChildByName(name.c_str()).isValid(), "Mesh name is not unique : " << name);
-  gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
 
-  gvt::render::data::primitives::Material *mat = new gvt::render::data::primitives::Material();
-
-  mat->type = mattype;
-  mat->kd = glm::vec3(kd[0], kd[1], kd[2]);
-  mat->ks = glm::vec3(ks[0], ks[1], ks[2]);
-
-  m->setMaterial(mat);
+  for (int i = 0; i < n * 3; i += 3) {
+    m->face_normals.push_back(glm::vec3(normals[i + 0], normals[i + 1], normals[i + 2]));
+  }
+  cntxt->addToSync(ameshnode);
 }
+
+/* Add triangles face normals array to the mesh
+ * \param name : mesh unique identifier
+ * \param n : number of vertex
+ * \param normals : vertex normals <x,y,z>
+ */
+void addMeshVertexNormals(const std::string name, const unsigned &n, const unsigned *normals) {
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  // get the data node.
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+
+
+  gvt::render::data::primitives::Mesh *m =
+      reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
+
+  for (int i = 0; i < n * 3; i += 3) {
+    m->normals.push_back(glm::vec3(normals[i + 0], normals[i + 1], normals[i + 2]));
+  }
+  cntxt->addToSync(ameshnode);
+}
+
+/**
+ * Add global diffuse material to mesh
+ *
+ */
+void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float alpha = 1.f) {
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  // get the data node.
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+
+
+  gvt::render::data::primitives::Mesh *m =
+      reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
+
+  m->mat = new gvt::render::data::primitives::Material();
+
+  m->mat->type = mattype;
+  m->mat->kd = glm::vec3(kd[0], kd[1], kd[2]);
+  m->mat->alpha = alpha;
+  cntxt->addToSync(ameshnode);
+}
+
+/**
+ * Add global specular material to mesh
+ *
+ */
+void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float *ks,
+                     const float alpha = 1.f) {
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  // get the data node.
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+
+
+  gvt::render::data::primitives::Mesh *m =
+      reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
+
+  m->mat = new gvt::render::data::primitives::Material();
+
+  m->mat->type = mattype;
+  m->mat->kd = glm::vec3(kd[0], kd[1], kd[2]);
+  m->mat->ks = glm::vec3(ks[0], ks[1], ks[2]);
+  m->mat->alpha = alpha;
+  cntxt->addToSync(ameshnode);
+}
+
+/**
+ * Add material list to mesh
+ *
+ *
+ */
 void addMeshMaterials(const std::string name, const unsigned n, const unsigned *mattype, const float *kd,
-                      const float *ks) {}
+                      const float *ks, const float *alpha) {
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+  // get the data node.
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
+
+
+  gvt::render::data::primitives::Mesh *m = reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
+
+  for(int i=0; i < n; i++) {
+      gvt::render::data::primitives::Material* mat = new gvt::render::data::primitives::Material();
+      mat->type = mattype[i];
+      mat->kd = glm::vec3(kd[(i*3)+0], kd[(i*3)+1], kd[(i*3)+2]);
+      mat->ks = glm::vec3(ks[(i*3)+0], ks[(i*3)+1], ks[(i*3)+2]);
+      mat->alpha = alpha[i];
+      m->faces_to_materials.push_back(mat);
+  }
+cntxt->addToSync(ameshnode);
+}
+
+// void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float *ks) {
+//   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+//   // get the data node.
+//   gvt::core::DBNodeH root = cntxt->getRootNode();
+//   gvt::core::DBNodeH dataNodes = root["Data"];
+//   GVT_ASSERT(dataNodes.getChildByName(name.c_str()).isValid(), "Mesh name is not unique : " << name);
+//   gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
+//
+//   gvt::render::data::primitives::Mesh *m =
+//       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
+//
+//   gvt::render::data::primitives::Material *mat = new gvt::render::data::primitives::Material();
+//
+//   mat->type = mattype;
+//   mat->kd = glm::vec3(kd[0], kd[1], kd[2]);
+//   mat->ks = glm::vec3(ks[0], ks[1], ks[2]);
+//
+//   m->setMaterial(mat);
+// }
+// void addMeshMaterials(const std::string name, const unsigned n, const unsigned *mattype, const float *kd,
+//                       const float *ks) {}
 
 void addMesh(Box3D *mshbx, Mesh *mesh, string meshname) {
   // add a mesh to the context.
@@ -212,22 +369,18 @@ void addInstance(string instname, string meshname, int instID, glm::mat4 *m) {
   // grab a context handle and data handle.
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
-  gvt::core::DBNodeH instNodes = root["Instances"];
+gvt::core::DBNodeH instNodes = root["Instances"];
   gvt::core::DBNodeH dataNodes = root["Data"];
   // create a new instance node
   // std::cerr << "adding instance " << instID << " called " << instname << " to " << meshname << std::endl;
   gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance", instname.c_str(), instNodes.UUID());
-  // find the mesh from meshname. search the vector of child nodes of datanode for a
-  // mesh with name child.
-  gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
-  gvt::core::DBNodeH meshNode;
-  for (int k = 0; k < kids.size(); k++) {
-    if (kids[k].value() == meshname) meshNode = kids[k];
-    // std::cerr << k << " " << kids[k].value()<< std::endl;;
-  }
-  // gvt::core::DBNodeH meshNode = dataNodes.getChildByName(meshname.c_str());
-  // gvt::core::DBNodeH meshNode = dataNodes[meshname.c_str()];
+
+  gvt::core::DBNodeH meshNode = getChildByName(dataNodes,meshname);
+
+  GVT_ASSERT(meshNode.isValid(), "(Add vertices) Mesh name is not unique : " << meshname);
+
   Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+
   // build the instance data
   auto minv = new glm::mat4(1.f);
   auto normi = new glm::mat3(1.f);

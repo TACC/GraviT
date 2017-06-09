@@ -68,14 +68,47 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
  * \param triangle : ccw triangle vertex indices <a,b,c>
  */
 void addMeshTriangles(const std::string name, const unsigned &n, const unsigned *triangles);
+
+/* Add triangles face normals array to the mesh
+ * \param name : mesh unique identifier
+ * \param n : number of triangles
+ * \param normals : face normals <x,y,z>
+ */
+void addMeshFaceNormals(const std::string name, const unsigned &n, const unsigned *normals);
+
+/* Add triangles face normals array to the mesh
+ * \param name : mesh unique identifier
+ * \param n : number of vertex
+ * \param normals : vertex normals <x,y,z>
+ */
+void addMeshVertexNormals(const std::string name, const unsigned &n, const unsigned *normals);
+
+
 /* Finish mesh by computing bounds and normals
  * \param compute_normals : Compute normals at each vertex
  */
 void finishMesh(const std::string name, const bool compute_normal = true);
 
-void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float *ks);
+/**
+ * Add global diffuse material to mesh
+ *
+ */
+void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float alpha = 1.f);
+
+/**
+ * Add global specular material to mesh
+ *
+ */
+void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float* ks, const float alpha = 1.f);
+
+/**
+ * Add material list to mesh
+ *
+ *
+ */
 void addMeshMaterials(const std::string name, const unsigned n, const unsigned *mattype, const float *kd,
-                      const float *ks);
+                      const float *ks, const float *alpha);
+
 
 /* each mesh needs one or more instance.
  * Insert an instance for a particular named mesh. The instance

@@ -121,6 +121,23 @@ int main(int argc, char **argv) {
   }
 
   gvtInit(argc,argv);
+#if 0
+  std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
+                                0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
+
+  std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
+
+  float kd[] = {1.f,1.f,1.f};
+  float ks[] = {1.f,1.f,1.f};
+  float alpha = .5f;
+
+      createMesh("conemesh");
+      addMeshVertices("conemesh", vertex.size() /3, &vertex[0]);
+      addMeshTriangles("conemesh", faces.size() /3, &faces[0]);
+      addMeshMaterial("conemesh", LAMBERT, kd, ks, alpha);
+      finishMesh("conemesh");
+#endif
+
 
 // create a cone mesh with a particular material
   {
@@ -139,7 +156,7 @@ int main(int argc, char **argv) {
 
     Mesh *mesh = new Mesh(m);
     int numPoints = 7;
-    glm::vec3 points[6];
+    glm::vec3 points[7];
     points[0] = glm::vec3(0.5, 0.0, 0.0);
     points[1] = glm::vec3(-0.5, 0.5, 0.0);
     points[2] = glm::vec3(-0.5, 0.25, 0.433013);
