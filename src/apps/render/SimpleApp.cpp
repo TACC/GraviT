@@ -27,15 +27,15 @@
  * This application renders a simple scene of cones and cubes using the GraviT interface.
  * This will run in both single-process and MPI modes.
  *
-*/
+ */
 #include <algorithm>
 #include <gvt/core/Math.h>
 #include <gvt/core/context/Variant.h>
 #include <gvt/render/RenderContext.h>
+#include <gvt/render/Renderer.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
-#include <gvt/render/Renderer.h>
 #include <set>
 #include <vector>
 
@@ -44,10 +44,6 @@
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
-#endif
-
-#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
-#include <gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h>
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_MANTA
@@ -101,14 +97,11 @@ int main(int argc, char **argv) {
   cmd.addconflict("image", "domain");
 
   cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
-  cmd.addoption("embree-stream", ParseCommandLine::NONE, "Embree Adapter Type (Stream)", 0);
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
 
   cmd.addconflict("embree", "manta");
   cmd.addconflict("embree", "optix");
-  cmd.addconflict("embree-stream", "manta");
-  cmd.addconflict("embree-stream", "optix");
   cmd.addconflict("manta", "optix");
 
   cmd.parse(argc, argv);
@@ -120,27 +113,28 @@ int main(int argc, char **argv) {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
   }
 
-  gvtInit(argc,argv);
-#if 0
-  std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
-                                0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
+  gvtInit(argc, argv);
 
-  std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
-
-  float kd[] = {1.f,1.f,1.f};
-  float ks[] = {1.f,1.f,1.f};
-  float alpha = .5f;
-
-      createMesh("conemesh");
-      addMeshVertices("conemesh", vertex.size() /3, &vertex[0]);
-      addMeshTriangles("conemesh", faces.size() /3, &faces[0]);
-      addMeshMaterial("conemesh", LAMBERT, kd, ks, alpha);
-      finishMesh("conemesh");
-#endif
-
-
-// create a cone mesh with a particular material
+  // create a cone mesh with a particular material
   {
+
+#if 1
+
+    std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
+                                  0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
+
+    std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
+
+    createMesh("conemesh");
+    addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
+    addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
+
+    float kd[] = { 1.f, 1.f, 1.f };
+    addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
+
+    finishMesh("conemesh");
+
+#else
     Material *m = new Material();
     m->type = LAMBERT;
     // m->type = EMBREE_MATERIAL_MATTE;
@@ -187,14 +181,44 @@ int main(int argc, char **argv) {
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
     // add cone mesh to the database
-  string meshname("conemesh");
-  std::cerr << "adding conemesh" << std::endl;
-  addMesh(meshbbox,mesh,meshname);
+    string meshname("conemesh");
+    std::cerr << "adding conemesh" << std::endl;
+    addMesh(meshbbox, mesh, meshname);
+#endif
   }
 
-// and now a cube
+  // and now a cube
   {
+#if 1
+    std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
 
+                                  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
+
+                                  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
+
+                                  -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5,
+
+                                  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5,
+
+                                  -0.5, -0.5, 0.5,  -0.5, 0.5,  0.5,  -0.5, -0.5, -0.5, -0.5, 0.5,  -0.5
+
+    };
+
+    std::vector<unsigned> faces = {
+      1,  2,  3,  1,  3,  4,  17, 19, 20, 17, 20, 18, 6,  5,  8,  6,  8,  7,
+      23, 21, 22, 23, 22, 24, 10, 9,  11, 10, 11, 12, 13, 15, 16, 13, 16, 14,
+
+    };
+
+    createMesh("cubemesh");
+    addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
+    addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
+
+    float kd[] = { 1.f, 1.f, 1.f };
+    addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
+
+    finishMesh("cubemesh");
+#else
     Material *m = new Material();
     m->type = LAMBERT;
     // m->type = EMBREE_MATERIAL_MATTE;
@@ -269,12 +293,13 @@ int main(int argc, char **argv) {
     }
     Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
 
-  string meshname("cubemesh");
-  std::cerr << "adding cubemesh" << std::endl;
-  addMesh(meshbbox,mesh,meshname);
+    string meshname("cubemesh");
+    std::cerr << "adding cubemesh" << std::endl;
+    addMesh(meshbbox, mesh, meshname);
+#endif
   }
 
-// this should happen first thing in the render call
+  // this should happen first thing in the render call
 
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -288,16 +313,16 @@ int main(int argc, char **argv) {
         auto m = new glm::mat4(1.f);
         *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
         *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
-	string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
-        string instanceName = "inst" + std::to_string(instId) ;
-	addInstance(instanceName,instanceMeshname,instId,m);
+        string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
+        string instanceName = "inst" + std::to_string(instId);
+        addInstance(instanceName, instanceMeshname, instId, m);
         instId++;
       }
     }
   }
 
-  auto lpos =  glm::vec3(1.0,0.0,-1.0);
-  auto lcolor =  glm::vec3(1.0,1.0,1.0);
+  auto lpos = glm::vec3(1.0, 0.0, -1.0);
+  auto lcolor = glm::vec3(1.0, 1.0, 1.0);
   string lightname = "conelight";
   if (cmd.isSet("lpos")) {
     gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
@@ -307,10 +332,10 @@ int main(int argc, char **argv) {
     gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
     lcolor = glm::vec3(color[0], color[1], color[2]);
   }
-  std::cerr <<"add point light"<< std::endl;
-  addPointLight(lightname,lpos,lcolor);
+  std::cerr << "add point light" << std::endl;
+  addPointLight(lightname, lpos, lcolor);
 
-// camera bits..
+  // camera bits..
   auto eye = glm::vec3(4.0, 0.0, 0.0);
   if (cmd.isSet("eye")) {
     gvt::core::Vector<float> cameye = cmd.getValue<float>("eye");
@@ -328,8 +353,8 @@ int main(int argc, char **argv) {
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
   std::cerr << " add Camera " << std::endl;
-  addCamera(camname,eye,focus,upVector,fov,rayMaxDepth,raySamples,jitterWindowSize);
-// film bits..
+  addCamera(camname, eye, focus, upVector, fov, rayMaxDepth, raySamples, jitterWindowSize);
+  // film bits..
   string filmname = "conefilm";
   int width = (int)512;
   int height = (int)512;
@@ -344,8 +369,8 @@ int main(int argc, char **argv) {
     outputpath = output[0];
   }
   std::cerr << " add film " << std::endl;
-  addFilm(filmname,width,height,outputpath);
-// render bits (schedule and adapter)
+  addFilm(filmname, width, height, outputpath);
+  // render bits (schedule and adapter)
   std::cerr << "render bits" << std::endl;
   string rendername("Enzoschedule");
   int schedtype;
@@ -360,8 +385,6 @@ int main(int argc, char **argv) {
     adapter = "manta";
   } else if (cmd.isSet("optix")) {
     adapter = "optix";
-  } else if (cmd.isSet("embree-stream")) {
-    adapter = "embree-stream";
   }
   if (adapter.compare("embree") == 0) {
     std::cerr << " embree adapter " << std::endl;
@@ -369,14 +392,6 @@ int main(int argc, char **argv) {
     adaptertype = gvt::render::adapter::Embree;
 #else
     std::cerr << "Embree adapter missing. recompile" << std::endl;
-    exit(1);
-#endif
-  } else if (adapter.compare("embree-stream") == 0) {
-    std::cout << " embree stream adapter " << std::endl;
-#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
-    adaptertype = gvt::render::adapter::EmbreeStream;
-#else
-    std::cout << "Embree stream adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else if (adapter.compare("manta") == 0) {
@@ -400,7 +415,7 @@ int main(int argc, char **argv) {
     exit(1);
   }
   std::cerr << "simplsApp: database setup complete - adding renderer" << std::endl;
-  addRenderer(rendername,adaptertype,schedtype);
+  addRenderer(rendername, adaptertype, schedtype);
   gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
   ren->render();
   ren->WriteImage();
