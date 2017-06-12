@@ -25,6 +25,8 @@ ACI-1339881 and ACI-1339840
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
+#include <gvt/render/Renderer.h>
+
 #include <string>
 
 #include <tbb/task_scheduler_init.h>
@@ -365,53 +367,62 @@ void addMesh(Box3D *mshbx, Mesh *mesh, string meshname) {
  * \param meshname the name of the mesh this instance refers to.
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
-void addInstance(string instname, string meshname, int instID, glm::mat4 *m) {
-  // grab a context handle and data handle.
-  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
-  gvt::core::DBNodeH root = ctx->getRootNode();
-gvt::core::DBNodeH instNodes = root["Instances"];
-  gvt::core::DBNodeH dataNodes = root["Data"];
-  // create a new instance node
-  // std::cerr << "adding instance " << instID << " called " << instname << " to " << meshname << std::endl;
-  gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance", instname.c_str(), instNodes.UUID());
 
-  gvt::core::DBNodeH meshNode = getChildByName(dataNodes,meshname);
 
-  GVT_ASSERT(meshNode.isValid(), "(Add vertices) Mesh name is not unique : " << meshname);
+void addInstance(std::string name, const float* am) {
 
-  Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+    gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+    gvt::core::DBNodeH root = ctx->getRootNode();
+    gvt::core::DBNodeH instNodes = root["Instances"];
+    gvt::core::DBNodeH dataNodes = root["Data"];
+    gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+    GVT_ASSERT(ameshnode.isValid(), "Mesh name does not exist : " << name);
 
-  // build the instance data
-  auto minv = new glm::mat4(1.f);
-  auto normi = new glm::mat3(1.f);
-  *minv = glm::inverse(*m);
-  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-  // load the node
-  instNode["id"] = instID;
-  instNode["meshRef"] = meshNode.UUID();
-  instNode["mat"] = (unsigned long long)m;
-  instNode["matInv"] = (unsigned long long)minv;
-  instNode["normi"] = (unsigned long long)normi;
-  instNode["bbox"] = (unsigned long long)ibox;
-  instNode["centroid"] = ibox->centroid();
+    int instID = instNodes.getChildren().size();
+    std::string instname = name + std::to_string(instNodes.getChildren().size());
 
-  ctx->addToSync(instNode);
+    gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance", instname.c_str(), instNodes.UUID());
+
+    std::cout << "Create instance " << instname << std::endl;
+    Box3D *mbox = (Box3D *)ameshnode["bbox"].value().toULongLong();
+    glm::mat4* m = new glm::mat4(1.f);
+    *m = glm::make_mat4(am);
+
+
+    // build the instance data
+    auto minv = new glm::mat4(1.f);
+    auto normi = new glm::mat3(1.f);
+    *minv = glm::inverse(*m);
+    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+    // load the node
+    instNode["id"] = instID;
+    instNode["meshRef"] = ameshnode.UUID();
+    instNode["mat"] = (unsigned long long)m;
+    instNode["matInv"] = (unsigned long long)minv;
+    instNode["normi"] = (unsigned long long)normi;
+    instNode["bbox"] = (unsigned long long)ibox;
+    instNode["centroid"] = ibox->centroid();
+
+    ctx->addToSync(instNode);
+
 }
+
+
 /* add a point light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
  */
-void addPointLight(string name, glm::vec3 &pos, glm::vec3 &color) {
+void addPointLight(string name, const float* pos, const float* color) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root["Lights"];
   gvt::core::DBNodeH pl = ctx->createNodeFromType("PointLight", name, lights.UUID());
-  pl["position"] = pos;
-  pl["color"] = color;
+  pl["position"] = glm::make_vec3(pos);
+  pl["color"] = glm::make_vec3(color);
 
   ctx->addToSync(pl);
 }
@@ -423,14 +434,14 @@ void addPointLight(string name, glm::vec3 &pos, glm::vec3 &color) {
  * \param w the area light width
  * \param h the area light height
  */
-void addAreaLight(string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, float w, float h) {
+void addAreaLight(string name, const float* pos, const float* color, const float* n, float w, float h) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root["Lights"];
   gvt::core::DBNodeH al = ctx->createNodeFromType("AreaLight", name, lights.UUID());
-  al["position"] = pos;
-  al["color"] = color;
-  al["normal"] = n;
+  al["position"] = glm::make_vec3(pos);
+  al["color"] = glm::make_vec3(color);
+  al["normal"] = glm::make_vec3(n);
   al["height"] = h;
   al["width"] = w;
 
@@ -440,7 +451,7 @@ void addAreaLight(string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, f
  * not exist, this method has no effect. An error message will be printed if compiled with debugging. \param name the
  * name of the light \param pos the new light positon \param color the new light color
  */
-void modifyLight(string name, glm::vec3 &pos, glm::vec3 &color) {
+void modifyLight(string name, const float* pos, const float* color) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root.getChildByName("Lights"); // use this search so new node is not created if no lights
@@ -454,8 +465,8 @@ void modifyLight(string name, glm::vec3 &pos, glm::vec3 &color) {
     return;
   }
 
-  light["position"] = pos;
-  light["color"] = color;
+  light["position"] = glm::make_vec3(pos);
+  light["color"] = glm::make_vec3(color);
 
   ctx->addToSync(light);
 }
@@ -464,7 +475,7 @@ void modifyLight(string name, glm::vec3 &pos, glm::vec3 &color) {
  * debugging. \param name the name of the light \param pos the new light positon \param color the new light color \param
  * n the new normal \param w the new width \param h the new height
  */
-void modifyLight(string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, float w, float h) {
+void modifyLight(string name, const float *pos, const float* color, const float *n, float w, float h) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root.getChildByName("Lights"); // use this search so new node is not created if no lights
@@ -478,9 +489,9 @@ void modifyLight(string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, fl
     return;
   }
 
-  light["position"] = pos;
-  light["color"] = color;
-  light["normal"] = n;
+  light["position"] = glm::make_vec3(pos);
+  light["color"] = glm::make_vec3(color);
+  light["normal"] = glm::make_vec3(n);
   light["height"] = h;
   light["width"] = w;
 
@@ -496,14 +507,14 @@ void modifyLight(string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, fl
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void addCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, float fov, int depth, int samples,
+void addCamera(string name, const float *pos, const float *focus, const float *up, float fov, int depth, int samples,
                float jitter) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH cam = ctx->createNodeFromType("Camera", name, root.UUID());
-  cam["eyePoint"] = pos;
-  cam["focus"] = focus;
-  cam["upVector"] = up;
+  cam["eyePoint"] = glm::make_vec3(pos);
+  cam["focus"] = glm::make_vec3(focus);
+  cam["upVector"] = glm::make_vec3(up);
   cam["fov"] = fov;
   cam["rayMaxDepth"] = depth;
   cam["raySamples"] = samples;
@@ -521,7 +532,7 @@ void addCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, flo
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void modifyCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, float fov, int depth, int samples,
+void modifyCamera(string name, const float* pos, const float *focus, const float* up, float fov, int depth, int samples,
                   float jitter) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
@@ -530,9 +541,9 @@ void modifyCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, 
     GVT_ERR_MESSAGE("modifyCamera() called for camera " << name << " but no camera defined");
     return;
   }
-  cam["eyePoint"] = pos;
-  cam["focus"] = focus;
-  cam["upVector"] = up;
+  cam["eyePoint"] = glm::make_vec3(pos);
+  cam["focus"] = glm::make_vec3(focus);
+  cam["upVector"] = glm::make_vec3(up);
   cam["fov"] = fov;
   cam["rayMaxDepth"] = depth;
   cam["raySamples"] = samples;
@@ -547,7 +558,7 @@ void modifyCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, 
  * \param up the up orientation vector for the camera
  * \param fov the camera field of view in radians
  */
-void modifyCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, float fov) {
+void modifyCamera(string name, const float* pos, const float* focus, const float* up, float fov) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH cam = root.getChildByName(name);
@@ -555,9 +566,9 @@ void modifyCamera(string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, 
     GVT_ERR_MESSAGE("modifyCamera() called for camera " << name << " but no such camera defined");
     return;
   }
-  cam["eyePoint"] = pos;
-  cam["focus"] = focus;
-  cam["upVector"] = up;
+  cam["eyePoint"] = glm::make_vec3(pos);
+  cam["focus"] = glm::make_vec3(focus);
+  cam["upVector"] = glm::make_vec3(up);
   cam["fov"] = fov;
 
   ctx->addToSync(cam);
@@ -595,6 +606,18 @@ void modifyFilm(string name, int w, int h, string path) {
 
   ctx->addToSync(film);
 }
+
+void render(std::string name) {
+    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+    ren->render();
+}
+void writeimage(std::string name, std::string output) {
+    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+    ren->WriteImage();
+}
+
+
+
 /* add a renderer to the context
  * \param name the renderer name
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)

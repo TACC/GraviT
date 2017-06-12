@@ -20,35 +20,35 @@
 #ifndef GVT_RENDER_API_H
 #define GVT_RENDER_API_H
 // API functions
-#include <gvt/core/Math.h>
-#include <gvt/core/context/Variant.h>
-#include <gvt/render/RenderContext.h>
-#include <gvt/render/Schedulers.h>
-#include <gvt/render/Types.h>
-#include <gvt/render/data/Domains.h>
+// #include <gvt/core/Math.h>
+// #include <gvt/core/context/Variant.h>
+// #include <gvt/render/RenderContext.h>
+// #include <gvt/render/Schedulers.h>
+// #include <gvt/render/Types.h>
+// #include <gvt/render/data/Domains.h>
 #include <string>
 
-#include <tbb/task_scheduler_init.h>
-#include <thread>
-
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
-#endif
-
-#ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
-#endif
-
-#ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
-#endif
+// #include <tbb/task_scheduler_init.h>
+// #include <thread>
+//
+// #ifdef GVT_RENDER_ADAPTER_EMBREE
+// #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
+// #endif
+//
+// #ifdef GVT_RENDER_ADAPTER_MANTA
+// #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
+// #endif
+//
+// #ifdef GVT_RENDER_ADAPTER_OPTIX
+// #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
+// #endif
 
 // using namespace std;
 // using namespace gvt::render::data::primitives;
 
 void gvtInit(int &argc, char **&argv);
-void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
-             std::string meshname);
+// void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
+//              std::string meshname);
 
 /* Creates a mesh with a unique name
  * \param Mesh unique name
@@ -117,13 +117,16 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
  * \param meshname the name of the mesh this instance refers to.
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
-void addInstance(std::string instname, std::string meshname, int instID, glm::mat4 *m);
+
+void addInstance(std::string name, const float* m);
+
 /* add a point light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
  */
-void addPointLight(std::string name, glm::vec3 &pos, glm::vec3 &color);
+void addPointLight(std::string name, const float* pos, const float* color);
+
 /* add an area light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
@@ -132,18 +135,18 @@ void addPointLight(std::string name, glm::vec3 &pos, glm::vec3 &color);
  * \param w the area light width
  * \param h the area light height
  */
-void addAreaLight(std::string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, float w, float h);
+void addAreaLight(std::string name, const float* pos,const float* color, const float* n, float w, float h);
 /* modify an existing light position and/or color. This works for PointLight and AreaLight objects. If the light does
  * not exist, this method has no effect. An error message will be printed if compiled with debugging. \param name the
  * name of the light \param pos the new light positon \param color the new light color
  */
-void modifyLight(std::string name, glm::vec3 &pos, glm::vec3 &color);
+void modifyLight(std::string name, const float* pos, const float* color);
 /* modify an existing light position, color, normal, height and/or width. Calling this on a PointLight will make it an
  * AreaLight. If the light does not exist, this method has no effect. An error message will be printed if compiled with
  * debugging. \param name the name of the light \param pos the new light positon \param color the new light color \param
  * n the new normal \param w the new width \param h the new height
  */
-void modifyLight(std::string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &n, float w, float h);
+void modifyLight(std::string name, const float* pos, const float* color, const float* n, float w, float h);
 /* add a camera to the scene
  * \param name the camera name
  * \param pos the camera position
@@ -154,7 +157,7 @@ void modifyLight(std::string name, glm::vec3 &pos, glm::vec3 &color, glm::vec3 &
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void addCamera(std::string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, float fov, int depth, int samples,
+void addCamera(std::string name, const float* pos, const float* focus, const float* up, float fov, int depth, int samples,
                float jitter);
 
 /* modify the given camera, if it exists
@@ -167,7 +170,7 @@ void addCamera(std::string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void modifyCamera(std::string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, float fov, int depth, int samples,
+void modifyCamera(std::string name, const float* pos, const float* focus, const float* up, float fov, int depth, int samples,
                   float jitter);
 /* modify the given camera, if it exists
  * \param name the camera name
@@ -176,7 +179,7 @@ void modifyCamera(std::string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 
  * \param up the up orientation vector for the camera
  * \param fov the camera field of view in radians
  */
-void modifyCamera(std::string name, glm::vec3 &pos, glm::vec3 &focus, glm::vec3 &up, float fov);
+void modifyCamera(std::string name, const float* pos, const float* focus, const float* up, float fov);
 /* add a film object to the context
  * \param w the image width
  * \param h the image height
@@ -194,6 +197,10 @@ void modifyFilm(std::string name, int w, int h, std::string path);
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
+
+void render(std::string name);
+void writeimage(std::string name, std::string output = "");
+
 void addRenderer(std::string name, int adapter, int schedule);
 /* modify a renderer in the context, if it exists
  * \param name the renderer name

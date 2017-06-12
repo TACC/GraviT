@@ -471,6 +471,8 @@ if (GVT_RENDER)
     LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 
+  install(FILES src/gvt/render/api/api.h DESTINATION include/)
+
 endif(GVT_RENDER)
 
 
@@ -616,7 +618,7 @@ if (GVT_GLRENDER_APP)
 
   target_link_libraries(glTracer ${OPENGL_gl_LIBRARY} ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
 
-  install(TARGETS glTracer
-    RUNTIME DESTINATION bin
-  )
+  # install(TARGETS glTracer
+  #   RUNTIME DESTINATION bin
+  # )
 endif(GVT_GLRENDER_APP)
