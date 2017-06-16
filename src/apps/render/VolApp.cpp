@@ -388,10 +388,10 @@ int main(int argc, char **argv) {
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
-      vol->SetSamplingRate(1.0);
+      vol->SetSamplingRate(10.0);
       // try setting an isovalue
       float *isoval ;
-      int niso = 0;
+      int niso = 1;
       isoval = new float[niso];
       *isoval = 0.75;
       //vol->SetIsovalues(1,isoval);
