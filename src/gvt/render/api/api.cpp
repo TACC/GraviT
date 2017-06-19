@@ -22,10 +22,10 @@ ACI-1339881 and ACI-1339840
 #include <gvt/core/Math.h>
 #include <gvt/core/context/Variant.h>
 #include <gvt/render/RenderContext.h>
+#include <gvt/render/Renderer.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
-#include <gvt/render/Renderer.h>
 
 #include <string>
 
@@ -47,7 +47,7 @@ ACI-1339881 and ACI-1339840
 using namespace std;
 using namespace gvt::render::data::primitives;
 
-void gvtInit(int &argc, char **&argv) {
+void gvtInit(int argc, char **argv) {
   // init mpi... or not
   int initialized, rank;
   MPI_Initialized(&initialized);
@@ -65,27 +65,26 @@ void gvtInit(int &argc, char **&argv) {
     exit(0);
   }
 
-    // root node
-    gvt::core::DBNodeH root = cntxt->getRootNode();
-    root += cntxt->createNode("threads", (int)std::thread::hardware_concurrency());
-    // nodes that have multpple leaves are added here
-    // for example there may be many lights but generally one camera.
-    if (rank == 0) {
-      // root node for mesh data
-      cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
-      // this node holds instances if any
-      cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
-      // root node for lights
-      cntxt->addToSync(cntxt->createNodeFromType("Lights", "Lights", root.UUID()));
-      // root node for camera
-      // cntxt->addToSync(cntxt->createNodeFromType("Camera","Camera",root.UUID()));
-      // root node for film
-      // cntxt->addToSync(cntxt->createNodeFromType("Film","Film",root.UUID()));
-      // root node for renderer
-      // cntxt->addToSync(cntxt->createNodeFromType("Schedule","Schedule",root.UUID()));
-    }
-    cntxt->syncContext();
-
+  // root node
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  root += cntxt->createNode("threads", (int)std::thread::hardware_concurrency());
+  // nodes that have multpple leaves are added here
+  // for example there may be many lights but generally one camera.
+  if (rank == 0) {
+    // root node for mesh data
+    cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+    // this node holds instances if any
+    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+    // root node for lights
+    cntxt->addToSync(cntxt->createNodeFromType("Lights", "Lights", root.UUID()));
+    // root node for camera
+    // cntxt->addToSync(cntxt->createNodeFromType("Camera","Camera",root.UUID()));
+    // root node for film
+    // cntxt->addToSync(cntxt->createNodeFromType("Film","Film",root.UUID()));
+    // root node for renderer
+    // cntxt->addToSync(cntxt->createNodeFromType("Schedule","Schedule",root.UUID()));
+  }
+  cntxt->syncContext();
 }
 
 void createMesh(const std::string name) {
@@ -100,7 +99,7 @@ void createMesh(const std::string name) {
   ameshnode["file"] = name.c_str();
   gvt::render::data::primitives::Mesh *m = new gvt::render::data::primitives::Mesh();
 
-  ameshnode["bbox"] =  reinterpret_cast<unsigned long long>(m->getBoundingBox());
+  ameshnode["bbox"] = reinterpret_cast<unsigned long long>(m->getBoundingBox());
   ameshnode["ptr"] = reinterpret_cast<unsigned long long>(m);
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -110,23 +109,21 @@ void createMesh(const std::string name) {
 }
 
 gvt::core::DBNodeH getChildByName(gvt::core::DBNodeH dataNodes, std::string name) {
-    gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
-    gvt::core::DBNodeH Node;
-    for (int k = 0; k < kids.size(); k++) {
-      if (kids[k].value() == name) Node = kids[k];
-    }
-    return Node;
+  gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
+  gvt::core::DBNodeH Node;
+  for (int k = 0; k < kids.size(); k++) {
+    if (kids[k].value() == name) Node = kids[k];
+  }
+  return Node;
 }
 
 void printChildName(gvt::core::DBNodeH dataNodes) {
-    gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
-    for (int k = 0; k < kids.size(); k++) {
-      //if (kids[k].value() == name) Node = kids[k];
-      std::cout << kids[k].value() << std::endl;
-    }
-
+  gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
+  for (int k = 0; k < kids.size(); k++) {
+    // if (kids[k].value() == name) Node = kids[k];
+    std::cout << kids[k].value() << std::endl;
+  }
 }
-
 
 void addMeshVertices(const std::string name, const unsigned &n, const float *vertices) {
 
@@ -135,19 +132,18 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
 
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
-  //gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
+  // gvt::core::DBNodeH ameshnode = dataNodes.getChildByName(name.c_str());
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
 
   for (int i = 0; i < n * 3; i += 3) {
     m->addVertex(glm::vec3(vertices[i + 0], vertices[i + 1], vertices[i + 2]));
+    // std::cout << vertices[i + 0] << "," << vertices[i + 1] << "," << vertices[i + 2] << std::endl;
   }
 
-  // m->computeBoundingBox();
-  // m->generateNormals();
   cntxt->addToSync(ameshnode);
 }
 
@@ -158,9 +154,8 @@ void addMeshTriangles(const std::string name, const unsigned &n, const unsigned 
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
 
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add triangles) Mesh name is not unique : " << name);
-
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -179,15 +174,14 @@ void finishMesh(const std::string name, const bool compute_normal) {
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
-
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
   m->computeBoundingBox();
   if (compute_normal) m->generateNormals();
-  ameshnode["bbox"] =  reinterpret_cast<unsigned long long>(m->getBoundingBox());
+  ameshnode["bbox"] = reinterpret_cast<unsigned long long>(m->getBoundingBox());
   cntxt->addToSync(ameshnode);
 }
 
@@ -196,14 +190,13 @@ void finishMesh(const std::string name, const bool compute_normal) {
  * \param n : number of triangles
  * \param normals : face normals <x,y,z>
  */
-void addMeshFaceNormals(const std::string name, const unsigned &n, const unsigned *normals) {
+void addMeshFaceNormals(const std::string name, const unsigned &n, const float *normals) {
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
-
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -219,14 +212,13 @@ void addMeshFaceNormals(const std::string name, const unsigned &n, const unsigne
  * \param n : number of vertex
  * \param normals : vertex normals <x,y,z>
  */
-void addMeshVertexNormals(const std::string name, const unsigned &n, const unsigned *normals) {
+void addMeshVertexNormals(const std::string name, const unsigned &n, const float *normals) {
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
-
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -246,9 +238,8 @@ void addMeshMaterial(const std::string name, const unsigned mattype, const float
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
-
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -271,9 +262,8 @@ void addMeshMaterial(const std::string name, const unsigned mattype, const float
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
-
 
   gvt::render::data::primitives::Mesh *m =
       reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
@@ -298,21 +288,21 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
   // get the data node.
   gvt::core::DBNodeH root = cntxt->getRootNode();
   gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
   GVT_ASSERT(ameshnode.isValid(), "(Add vertices) Mesh name is not unique : " << name);
 
+  gvt::render::data::primitives::Mesh *m =
+      reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
 
-  gvt::render::data::primitives::Mesh *m = reinterpret_cast<gvt::render::data::primitives::Mesh *>(ameshnode["ptr"].value().toULongLong());
-
-  for(int i=0; i < n; i++) {
-      gvt::render::data::primitives::Material* mat = new gvt::render::data::primitives::Material();
-      mat->type = mattype[i];
-      mat->kd = glm::vec3(kd[(i*3)+0], kd[(i*3)+1], kd[(i*3)+2]);
-      mat->ks = glm::vec3(ks[(i*3)+0], ks[(i*3)+1], ks[(i*3)+2]);
-      mat->alpha = alpha[i];
-      m->faces_to_materials.push_back(mat);
+  for (int i = 0; i < n; i++) {
+    gvt::render::data::primitives::Material *mat = new gvt::render::data::primitives::Material();
+    mat->type = mattype[i];
+    mat->kd = glm::vec3(kd[(i * 3) + 0], kd[(i * 3) + 1], kd[(i * 3) + 2]);
+    mat->ks = glm::vec3(ks[(i * 3) + 0], ks[(i * 3) + 1], ks[(i * 3) + 2]);
+    mat->alpha = alpha[i];
+    m->faces_to_materials.push_back(mat);
   }
-cntxt->addToSync(ameshnode);
+  cntxt->addToSync(ameshnode);
 }
 
 // void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float *ks) {
@@ -368,55 +358,51 @@ void addMesh(Box3D *mshbx, Mesh *mesh, string meshname) {
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
 
+void addInstance(std::string name, const float *am) {
 
-void addInstance(std::string name, const float* am) {
+  gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
+  gvt::core::DBNodeH root = ctx->getRootNode();
+  gvt::core::DBNodeH instNodes = root["Instances"];
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH ameshnode = getChildByName(dataNodes, name);
+  GVT_ASSERT(ameshnode.isValid(), "Mesh name does not exist : " << name);
 
-    gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
-    gvt::core::DBNodeH root = ctx->getRootNode();
-    gvt::core::DBNodeH instNodes = root["Instances"];
-    gvt::core::DBNodeH dataNodes = root["Data"];
-    gvt::core::DBNodeH ameshnode = getChildByName(dataNodes,name);
-    GVT_ASSERT(ameshnode.isValid(), "Mesh name does not exist : " << name);
+  int instID = instNodes.getChildren().size();
+  std::string instname = name + std::to_string(instNodes.getChildren().size());
 
-    int instID = instNodes.getChildren().size();
-    std::string instname = name + std::to_string(instNodes.getChildren().size());
+  gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance", instname.c_str(), instNodes.UUID());
 
-    gvt::core::DBNodeH instNode = ctx->createNodeFromType("Instance", instname.c_str(), instNodes.UUID());
+  std::cout << "Create instance " << instname << std::endl;
+  Box3D *mbox = (Box3D *)ameshnode["bbox"].value().toULongLong();
+  glm::mat4 *m = new glm::mat4(1.f);
+  *m = glm::make_mat4(am);
 
-    std::cout << "Create instance " << instname << std::endl;
-    Box3D *mbox = (Box3D *)ameshnode["bbox"].value().toULongLong();
-    glm::mat4* m = new glm::mat4(1.f);
-    *m = glm::make_mat4(am);
+  // build the instance data
+  auto minv = new glm::mat4(1.f);
+  auto normi = new glm::mat3(1.f);
+  *minv = glm::inverse(*m);
+  *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+  auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+  auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+  Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+  // load the node
+  instNode["id"] = instID;
+  instNode["meshRef"] = ameshnode.UUID();
+  instNode["mat"] = (unsigned long long)m;
+  instNode["matInv"] = (unsigned long long)minv;
+  instNode["normi"] = (unsigned long long)normi;
+  instNode["bbox"] = (unsigned long long)ibox;
+  instNode["centroid"] = ibox->centroid();
 
-
-    // build the instance data
-    auto minv = new glm::mat4(1.f);
-    auto normi = new glm::mat3(1.f);
-    *minv = glm::inverse(*m);
-    *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-    auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-    auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-    Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-    // load the node
-    instNode["id"] = instID;
-    instNode["meshRef"] = ameshnode.UUID();
-    instNode["mat"] = (unsigned long long)m;
-    instNode["matInv"] = (unsigned long long)minv;
-    instNode["normi"] = (unsigned long long)normi;
-    instNode["bbox"] = (unsigned long long)ibox;
-    instNode["centroid"] = ibox->centroid();
-
-    ctx->addToSync(instNode);
-
+  ctx->addToSync(instNode);
 }
-
 
 /* add a point light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
  */
-void addPointLight(string name, const float* pos, const float* color) {
+void addPointLight(string name, const float *pos, const float *color) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root["Lights"];
@@ -434,7 +420,7 @@ void addPointLight(string name, const float* pos, const float* color) {
  * \param w the area light width
  * \param h the area light height
  */
-void addAreaLight(string name, const float* pos, const float* color, const float* n, float w, float h) {
+void addAreaLight(string name, const float *pos, const float *color, const float *n, float w, float h) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root["Lights"];
@@ -451,7 +437,7 @@ void addAreaLight(string name, const float* pos, const float* color, const float
  * not exist, this method has no effect. An error message will be printed if compiled with debugging. \param name the
  * name of the light \param pos the new light positon \param color the new light color
  */
-void modifyLight(string name, const float* pos, const float* color) {
+void modifyLight(string name, const float *pos, const float *color) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root.getChildByName("Lights"); // use this search so new node is not created if no lights
@@ -475,7 +461,7 @@ void modifyLight(string name, const float* pos, const float* color) {
  * debugging. \param name the name of the light \param pos the new light positon \param color the new light color \param
  * n the new normal \param w the new width \param h the new height
  */
-void modifyLight(string name, const float *pos, const float* color, const float *n, float w, float h) {
+void modifyLight(string name, const float *pos, const float *color, const float *n, float w, float h) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH lights = root.getChildByName("Lights"); // use this search so new node is not created if no lights
@@ -532,7 +518,7 @@ void addCamera(string name, const float *pos, const float *focus, const float *u
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void modifyCamera(string name, const float* pos, const float *focus, const float* up, float fov, int depth, int samples,
+void modifyCamera(string name, const float *pos, const float *focus, const float *up, float fov, int depth, int samples,
                   float jitter) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
@@ -558,7 +544,7 @@ void modifyCamera(string name, const float* pos, const float *focus, const float
  * \param up the up orientation vector for the camera
  * \param fov the camera field of view in radians
  */
-void modifyCamera(string name, const float* pos, const float* focus, const float* up, float fov) {
+void modifyCamera(string name, const float *pos, const float *focus, const float *up, float fov) {
   gvt::render::RenderContext *ctx = gvt::render::RenderContext::instance();
   gvt::core::DBNodeH root = ctx->getRootNode();
   gvt::core::DBNodeH cam = root.getChildByName(name);
@@ -608,15 +594,13 @@ void modifyFilm(string name, int w, int h, string path) {
 }
 
 void render(std::string name) {
-    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
-    ren->render();
+  gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+  ren->render();
 }
 void writeimage(std::string name, std::string output) {
-    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
-    ren->WriteImage();
+  gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+  ren->WriteImage();
 }
-
-
 
 /* add a renderer to the context
  * \param name the renderer name

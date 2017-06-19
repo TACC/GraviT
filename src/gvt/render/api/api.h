@@ -46,7 +46,7 @@
 // using namespace std;
 // using namespace gvt::render::data::primitives;
 
-void gvtInit(int &argc, char **&argv);
+void gvtInit(int argc, char **argv);
 // void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
 //              std::string meshname);
 
@@ -74,15 +74,14 @@ void addMeshTriangles(const std::string name, const unsigned &n, const unsigned 
  * \param n : number of triangles
  * \param normals : face normals <x,y,z>
  */
-void addMeshFaceNormals(const std::string name, const unsigned &n, const unsigned *normals);
+void addMeshFaceNormals(const std::string name, const unsigned &n, const float *normals);
 
 /* Add triangles face normals array to the mesh
  * \param name : mesh unique identifier
  * \param n : number of vertex
  * \param normals : vertex normals <x,y,z>
  */
-void addMeshVertexNormals(const std::string name, const unsigned &n, const unsigned *normals);
-
+void addMeshVertexNormals(const std::string name, const unsigned &n, const float *normals);
 
 /* Finish mesh by computing bounds and normals
  * \param compute_normals : Compute normals at each vertex
@@ -99,7 +98,8 @@ void addMeshMaterial(const std::string name, const unsigned mattype, const float
  * Add global specular material to mesh
  *
  */
-void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float* ks, const float alpha = 1.f);
+void addMeshMaterial(const std::string name, const unsigned mattype, const float *kd, const float *ks,
+                     const float alpha = 1.f);
 
 /**
  * Add material list to mesh
@@ -109,7 +109,6 @@ void addMeshMaterial(const std::string name, const unsigned mattype, const float
 void addMeshMaterials(const std::string name, const unsigned n, const unsigned *mattype, const float *kd,
                       const float *ks, const float *alpha);
 
-
 /* each mesh needs one or more instance.
  * Insert an instance for a particular named mesh. The instance
  * contains the transformation matrix information needed to locate
@@ -118,14 +117,14 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
 
-void addInstance(std::string name, const float* m);
+void addInstance(std::string name, const float *m);
 
 /* add a point light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
  */
-void addPointLight(std::string name, const float* pos, const float* color);
+void addPointLight(std::string name, const float *pos, const float *color);
 
 /* add an area light to the render context
  * \param name the name of the light
@@ -135,18 +134,18 @@ void addPointLight(std::string name, const float* pos, const float* color);
  * \param w the area light width
  * \param h the area light height
  */
-void addAreaLight(std::string name, const float* pos,const float* color, const float* n, float w, float h);
+void addAreaLight(std::string name, const float *pos, const float *color, const float *n, float w, float h);
 /* modify an existing light position and/or color. This works for PointLight and AreaLight objects. If the light does
  * not exist, this method has no effect. An error message will be printed if compiled with debugging. \param name the
  * name of the light \param pos the new light positon \param color the new light color
  */
-void modifyLight(std::string name, const float* pos, const float* color);
+void modifyLight(std::string name, const float *pos, const float *color);
 /* modify an existing light position, color, normal, height and/or width. Calling this on a PointLight will make it an
  * AreaLight. If the light does not exist, this method has no effect. An error message will be printed if compiled with
  * debugging. \param name the name of the light \param pos the new light positon \param color the new light color \param
  * n the new normal \param w the new width \param h the new height
  */
-void modifyLight(std::string name, const float* pos, const float* color, const float* n, float w, float h);
+void modifyLight(std::string name, const float *pos, const float *color, const float *n, float w, float h);
 /* add a camera to the scene
  * \param name the camera name
  * \param pos the camera position
@@ -157,8 +156,8 @@ void modifyLight(std::string name, const float* pos, const float* color, const f
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void addCamera(std::string name, const float* pos, const float* focus, const float* up, float fov, int depth, int samples,
-               float jitter);
+void addCamera(std::string name, const float *pos, const float *focus, const float *up, float fov, int depth,
+               int samples, float jitter);
 
 /* modify the given camera, if it exists
  * \param name the camera name
@@ -170,8 +169,8 @@ void addCamera(std::string name, const float* pos, const float* focus, const flo
  * \param samples the number of rays cast per pixel for this camera
  * \param jitter the window size for jittering multiple samples per pixel
  */
-void modifyCamera(std::string name, const float* pos, const float* focus, const float* up, float fov, int depth, int samples,
-                  float jitter);
+void modifyCamera(std::string name, const float *pos, const float *focus, const float *up, float fov, int depth,
+                  int samples, float jitter);
 /* modify the given camera, if it exists
  * \param name the camera name
  * \param pos the camera position
@@ -179,7 +178,7 @@ void modifyCamera(std::string name, const float* pos, const float* focus, const 
  * \param up the up orientation vector for the camera
  * \param fov the camera field of view in radians
  */
-void modifyCamera(std::string name, const float* pos, const float* focus, const float* up, float fov);
+void modifyCamera(std::string name, const float *pos, const float *focus, const float *up, float fov);
 /* add a film object to the context
  * \param w the image width
  * \param h the image height

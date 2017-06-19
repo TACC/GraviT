@@ -316,19 +316,14 @@ int main(int argc, char **argv) {
         string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
         string instanceName = "inst" + std::to_string(instId);
 
-
         auto &mi = (*m);
 
-        float mf[] = {
-            mi[0][0],mi[0][1],mi[0][2],mi[0][3],
-            mi[1][0],mi[1][1],mi[1][2],mi[1][3],
-            mi[2][0],mi[2][1],mi[2][2],mi[2][3],
-            mi[3][0],mi[3][1],mi[3][2],mi[3][3]
-    };
+        float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                       mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
 
         addInstance(instanceMeshname, mf);
 
-        //addInstance(instanceName, instanceMeshname, instId, m);
+        // addInstance(instanceName, instanceMeshname, instId, m);
         instId++;
       }
     }
@@ -364,12 +359,14 @@ int main(int argc, char **argv) {
   }
   auto upVector = glm::vec3(0.0, 1.0, 0.0);
   float fov = (float)(45.0 * M_PI / 180.0);
+
   int rayMaxDepth = (int)1;
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
   std::cerr << " add Camera " << std::endl;
-  addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples, jitterWindowSize);
+  addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
+            jitterWindowSize);
   // film bits..
   string filmname = "conefilm";
   int width = (int)512;
