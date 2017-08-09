@@ -268,7 +268,6 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
     // trace'em 
     OSPExternalRays out = ospTraceRays(theOSPRenderer,rl); // ospray trace
     // push everything from out and rl into moved_rays for sorting into houses
-    // YA Griffindor. 
     OSP2GVTMoved_Rays(out,rl,moved_rays);
     // out and rl are no longer needed since they have been copied into moved_rays so 
     // whack 'em. 
