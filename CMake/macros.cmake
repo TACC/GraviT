@@ -19,6 +19,24 @@
 #  SUCH DAMAGES
 #
 
+
+
+MACRO(INSTALL_HEADERS_WITH_DIRECTORY CDIR HEADER_LIST)
+
+  foreach ( file ${HEADER_LIST} )
+      get_filename_component( dir ${file} DIRECTORY )
+      string(REPLACE ${CDIR} "" dir ${dir})
+      install( FILES ${file} DESTINATION include/${dir} )
+  endforeach()
+
+    # FOREACH(HEADER ${${HEADER_LIST}})
+    #     STRING(REGEX MATCH "(.\\\*)\\\[/\\\]" DIR ${HEADER})
+    #     INSTALL(FILES ${HEADER} DESTINATION include/${DIR})
+    # ENDFOREACH(HEADER)
+
+ENDMACRO(INSTALL_HEADERS_WITH_DIRECTORY)
+
+
 # Appends VAL to the string contained in STR
 MACRO(APPEND_TO_STRING STR VAL)
   if (NOT "${ARGN}" STREQUAL "")
@@ -90,7 +108,7 @@ ENDMACRO(FIRST_TIME_SET)
 MACRO(FIRST_TIME_MESSAGE)
   IF(NOT PASSED_FIRST_CONFIGURE)
     MESSAGE(${ARGV})
-  ENDIF(NOT PASSED_FIRST_CONFIGURE)  
+  ENDIF(NOT PASSED_FIRST_CONFIGURE)
 ENDMACRO(FIRST_TIME_MESSAGE)
 
 MACRO(SUBDIRS_IF VARIABLE DESCRIPTION DIRS)
@@ -245,10 +263,10 @@ endmacro( ptx_to_cpp )
 
 
 ################################################################################
-# Strip library of all local symbols 
+# Strip library of all local symbols
 #
-# Usage: strip_symbols( target_name ) 
-#   target_name : [out] target name for the library to be stripped 
+# Usage: strip_symbols( target_name )
+#   target_name : [out] target name for the library to be stripped
 
 function( strip_symbols target )
   if( NOT WIN32 )
@@ -264,8 +282,8 @@ endfunction( strip_symbols )
 ################################################################################
 # Only export the symbols that we need.
 #
-# Usage: optix_setup_exports( target_name export_file ) 
-#   target_name : [in] target name for the library to be stripped 
+# Usage: optix_setup_exports( target_name export_file )
+#   target_name : [in] target name for the library to be stripped
 #   export_file : [in] name of the file that contains the export symbol names
 
 function( optix_setup_exports target export_file )
@@ -286,7 +304,7 @@ function( optix_setup_exports target export_file )
     # export_file.
     set(exported_symbols ${${target}_public_symbols})
     if( NOT RELEASE_PUBLIC )
-      list( APPEND exported_symbols ${${target}_developer_symbols} ) 
+      list( APPEND exported_symbols ${${target}_developer_symbols} )
     endif()
 
     # Create the symbol export file.  Since Apple and Linux have different file formats
@@ -318,7 +336,7 @@ function( optix_setup_exports target export_file )
 
     # Add the command to the LINK_FLAGS
     set_property( TARGET ${target}
-      APPEND_STRING 
+      APPEND_STRING
       PROPERTY LINK_FLAGS
       " -Wl,${export_arg},${exported_symbol_file}"
       )
@@ -473,4 +491,3 @@ function(compile_ptx sm_versions_in generated_files)
 
   set(${generated_files} ${${generated_files}} PARENT_SCOPE)
 endfunction()
-

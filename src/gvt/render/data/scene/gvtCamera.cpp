@@ -220,7 +220,6 @@ void gvtPerspectiveCamera::generateRays() {
   const float contri = 1.f / (samples * samples);
   // for (j = 0; j < buffer_height; j++)
   //   for (i = 0; i < buffer_width; i++) {
-
   const size_t chunksize =
       buffer_height / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4);
   static tbb::auto_partitioner ap;

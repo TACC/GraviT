@@ -226,6 +226,7 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+  src/gvt/render/api/api.h
   src/gvt/render/actor/Ray.h
   src/gvt/render/algorithm/DomainTracer.h
   src/gvt/render/algorithm/HybridTracer.h
@@ -233,6 +234,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/algorithm/TracerBase.h
   src/gvt/render/algorithm/Tracers.h
   src/gvt/render/RenderContext.h
+  src/gvt/render/Renderer.h
   src/gvt/render/data/DerivedTypes.h
   src/gvt/render/data/reader/ObjReader.h
   src/gvt/render/data/reader/PlyReader.h
@@ -279,6 +281,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/actor/Ray.cpp
   src/gvt/render/RenderContext.cpp
+  src/gvt/render/Renderer.cpp
   src/gvt/render/data/reader/ObjReader.cpp
   src/gvt/render/data/reader/PlyReader.cpp
   src/gvt/render/data/primitives/BBox.cpp
@@ -297,6 +300,8 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
   src/gvt/render/tracer/Image/ImageTracer.cpp
   src/gvt/render/tracer/Domain/DomainTracer.cpp
   src/gvt/render/tracer/Domain/Messages/SendRayList.cpp
+
+  src/gvt/render/api/api.cpp
 )
 
 if (GVT_RENDER_ADAPTER_MANTA)
@@ -397,7 +402,6 @@ if (GVT_CORE)
   set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
   message(STATUS ${TBB_LIBRARIES})
   add_library(gvtCore STATIC
-    ${GVT_CORE_HDRS}
     ${GVT_CORE_SRCS}
   )
 
@@ -407,6 +411,18 @@ if (GVT_CORE)
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
   )
+# foreach ( file ${GVT_CORE_HDRS} )
+#
+#   get_filename_component( f ${file} NAME )
+#   get_filename_component( dir ${file} DIRECTORY )
+#
+#   string(REPLACE "src/" "" ndir ${dir})
+#   message(STATUS "SRC HDR :  ${dir} ${ndir}   :  ${f}")
+#   install( FILES ${file} DESTINATION include/${ndir} )
+# endforeach()
+#  INSTALL_HEADERS_WITH_DIRECTORY("src/" "${GVT_CORE_HDRS}")
+
+
 endif(GVT_CORE)
 
 
@@ -455,20 +471,23 @@ if (GVT_RENDER)
   include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
 
   if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
-    find_package(Embree REQUIRED)
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_TARGET_LINK_LIBRARIES})
+    find_package(embree 2.15.0 REQUIRED)
+    include_directories(${EMBREE_INCLUDE_DIRS})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
   endif(GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
 
-  add_library(gvtRender STATIC
-    ${GVT_CORE_HDRS}
-    ${GVT_RENDER_HDRS}
-  ${GVT_RENDER_SRCS})
+  add_library(gvtRender STATIC  ${GVT_RENDER_SRCS})
 
-  target_link_libraries(gvtRender ${GVT_RENDER_LIBS})
+  target_link_libraries(gvtRender gvtCore ${GVT_RENDER_LIBS})
+
 
   install(TARGETS gvtRender
     LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
+
+#INSTALL_HEADERS_WITH_DIRECTORY("src/" "${GVT_RENDER_HDRS}")
+
+  install(FILES src/gvt/render/api/api.h DESTINATION include/)
 endif(GVT_RENDER)
 
 
@@ -614,7 +633,7 @@ if (GVT_GLRENDER_APP)
 
   target_link_libraries(glTracer ${OPENGL_gl_LIBRARY} ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
 
-  install(TARGETS glTracer
-    RUNTIME DESTINATION bin
-  )
+  # install(TARGETS glTracer
+  #   RUNTIME DESTINATION bin
+  # )
 endif(GVT_GLRENDER_APP)
