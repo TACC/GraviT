@@ -243,7 +243,6 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
   src/gvt/render/data/primitives/BBox.h
   src/gvt/render/data/primitives/Material.h
   src/gvt/render/data/primitives/Shade.h
-  src/gvt/render/data/primitives/EmbreeMaterial.h
   src/gvt/render/data/primitives/Mesh.h
   src/gvt/render/data/scene/gvtCamera.h
   src/gvt/render/data/scene/CameraConfig.h
@@ -344,6 +343,7 @@ if (GVT_RENDER_ADAPTER_EMBREE)
   add_definitions(-DGVT_RENDER_ADAPTER_EMBREE)
   set (GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
     src/gvt/render/adapter/embree/EmbreeMeshAdapter.h
+    src/gvt/render/adapter/embree/EmbreeMaterial.h
   )
   set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
     src/gvt/render/adapter/embree/EmbreeMeshAdapter.cpp
