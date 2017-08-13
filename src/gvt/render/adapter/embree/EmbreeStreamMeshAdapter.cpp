@@ -30,7 +30,7 @@
 #include <gvt/core/Math.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
-#include <gvt/render/data/primitives/EmbreeMaterial.h>
+#include <gvt/render/adapter/embree/EmbreeMaterial.h>
 #include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/data/primitives/Mesh.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
