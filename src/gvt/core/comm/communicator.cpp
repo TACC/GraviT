@@ -74,7 +74,7 @@ std::size_t communicator::lastid() {
 void communicator::terminate() {
   _terminate = true;
   tg.wait();
-  MPI_Finalize();
+  //MPI_Finalize();
 }
 
 inline void communicator::aquireComm() {

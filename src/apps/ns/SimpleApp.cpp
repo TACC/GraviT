@@ -45,6 +45,10 @@
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+#include <gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h>
+#endif
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
 #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
 #endif
@@ -83,7 +87,7 @@ using namespace gvt::render::data::primitives;
 void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
-
+{
   ParseCommandLine cmd("gvtSimple");
 
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -98,11 +102,14 @@ int main(int argc, char **argv) {
   cmd.addconflict("image", "domain");
 
   cmd.addoption("embree", ParseCommandLine::NONE, "Embree Adapter Type", 0);
+  cmd.addoption("embree-stream", ParseCommandLine::NONE, "Embree Adapter Type (Stream)", 0);
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
 
   cmd.addconflict("embree", "manta");
   cmd.addconflict("embree", "optix");
+  cmd.addconflict("embree-stream", "manta");
+  cmd.addconflict("embree-stream", "optix");
   cmd.addconflict("manta", "optix");
 
   cmd.parse(argc, argv);
@@ -411,6 +418,8 @@ int main(int argc, char **argv) {
     adapter = "manta";
   } else if (cmd.isSet("optix")) {
     adapter = "optix";
+  } else if (cmd.isSet("embree-stream")) {
+    adapter = "embree-stream";
   }
 
   // adapter
@@ -420,6 +429,14 @@ int main(int argc, char **argv) {
     schedNode["adapter"] = gvt::render::adapter::Embree;
 #else
     std::cout << "Embree adapter missing. recompile" << std::endl;
+    exit(1);
+#endif
+  } else if (adapter.compare("embree-stream") == 0) {
+    std::cout << " embree stream adapter " << std::endl;
+#ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
+    schedNode["adapter"] = gvt::render::adapter::EmbreeStream;
+#else
+    std::cout << "Embree stream adapter missing. recompile" << std::endl;
     exit(1);
 #endif
   } else if (adapter.compare("manta") == 0) {
@@ -471,7 +488,8 @@ int main(int argc, char **argv) {
   if (gvt::comm::communicator::instance().id() == 0)
     (*rt).getComposite()->write(filmNode["outputPath"].value().toString());
   gvt::comm::communicator::instance().terminate();
-
+  }
+  MPI_Finalize();
   // end db setup
 
   // cntxt->database()->printTree(root.UUID(), 10, std::cout);
