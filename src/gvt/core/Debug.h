@@ -162,11 +162,14 @@ template <typename T> inline std::string to_string(T value) {
 #define GVT_ASSERT(condition, message)                                                                                 \
   do {                                                                                                                 \
     if (!(condition)) {                                                                                                \
-      std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE << #condition << DBG_COLOR_RED << ":"                  \
-                << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl;                                         \
+    std::cerr << DBG_COLOR_RED << "Failed assertion `" << DBG_COLOR_BLUE << #condition << DBG_COLOR_RED << " ["        \
+              << DBG_COLOR_NORMAL << __FILE_SHORT__ << " : " << __LINE__ << DBG_COLOR_RED << "]: " << DBG_COLOR_GRAY   \
+              << message << DBG_COLOR_NORMAL << std::endl;                                                             \
       std::exit(EXIT_FAILURE);                                                                                         \
     }                                                                                                                  \
   } while (false)
+  //   std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE << #condition << DBG_COLOR_RED << ":"                  \
+  //             << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl;                                         \
 
 #define GVT_ASSERT_BACKTRACE(condition, message)                                                                       \
   do {                                                                                                                 \
@@ -188,5 +191,9 @@ template <typename T> inline std::string to_string(T value) {
 // end XXX TODO - remove these from source
 
 #endif // defined GVT_USE_DEBUG
+
+#define GVT_ERR_MESSAGE(message)                                                                                       \
+  std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE << DBG_COLOR_RED << ":" << DBG_COLOR_GRAY << message       \
+            << DBG_COLOR_NORMAL << std::endl;
 
 #endif // GVT_CORE_DEBUG_H

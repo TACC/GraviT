@@ -29,6 +29,7 @@
 // Dave Semeraro - May 2015
 //
 #include <gvt/core/Math.h>
+#include <gvt/core/math/RandEngine.h>
 #include <gvt/render/data/Primitives.h>
 #include <stdlib.h>
 
@@ -54,30 +55,40 @@ public:
    *  vector is set to (0, 1, 0, 0) This is the OpenGL camera default.
    */
   gvtCameraBase();
+
   /** Copy constructor */
   gvtCameraBase(const gvtCameraBase &cam);
+
   /** Destructor */
   ~gvtCameraBase();
+
   /** Set film size film_size[0] is width */
   void setFilmsize(const int film_size[]);
+
   /** Set Film size from two ints */
   void setFilmsize(int width, int height);
+
   /** get the film width */
   int getFilmSizeWidth();
+
   /** get the film height */
   int getFilmSizeHeight();
+
   /** Set the eye point or position of the camera. This call causes recomputation of the
    *  transformation matrix, and all other camera parameters impacted by the change. */
   void setEye(const glm::vec3 &eye);
+
   /** Pass in the camera ray vector reference so the camera can populate it with rays.
    *  This method is not really necessary and is only here for backward compatibility. */
   void SetCamera(gvt::render::actor::RayVector &rays, float rate);
+
   /** Return a random floating point value between 0.0 and 1.0 */
   float frand();
+
   /** Fill up the ray vector with correct rays. Base class just initializes the vector.
    *  Derived classes insert the rays themselves. */
-  // virtual gvt::render::actor::RayVector AllocateCameraRays();
   virtual void AllocateCameraRays();
+
   /** given a new eye point, focal point, and up vector modify all the other dependant vars.
    *  in particular rebuild the transformation matrix. The new camera position is passed in as
    *  eye. The new focal point is passed in as focus. And the camera up vector is passed in as up. The
@@ -94,16 +105,26 @@ public:
 
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
+
   // clang-format off
   glm::vec3 getEyePoint() {
     return eye_point;
-  };
+  }
+
   glm::vec3 getFocalPoint() {
     return focal_point;
-  };
+  }
+
   glm::vec3 getUpVector() {
     return up_vector;
-  };
+  }
+
+  /** Fill the ray data structure */
+  virtual void generateRays() = 0;
+
+  /** Set the field of view angle in degrees*/
+  virtual void setFOV(const float fov) = 0;
+
   // clang-format on
 public:
   int samples;
@@ -118,7 +139,7 @@ public:
   int depth;                //!< legacy variable from previous cameras. Initializes ray depth
   glm::vec3 u, v, w;        //!< unit basis vectors for camera space in world coords.
   float INVRAND_MAX;
-  RandEngine randEngine;
+  gvt::core::math::RandEngine randEngine;
   //
   void buildTransform(); //!< Build the transformation matrix and inverse
 };
@@ -133,12 +154,16 @@ class gvtPerspectiveCamera : public gvtCameraBase {
 public:
   /** Perspective camera default constructor */
   gvtPerspectiveCamera();
+
   /** Perspective camera copy constructor */
   gvtPerspectiveCamera(const gvtPerspectiveCamera &cam);
+
   /** Perspective camera destructor */
   ~gvtPerspectiveCamera();
+
   /** Set the field of view angle in degrees*/
   void setFOV(const float fov);
+
   /** Fill the ray data structure */
   virtual void generateRays();
 

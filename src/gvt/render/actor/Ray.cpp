@@ -30,25 +30,4 @@
 
 #include <gvt/render/actor/Ray.h>
 
-#include <boost/foreach.hpp>
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/pool/singleton_pool.hpp>
-
-using namespace gvt::render::actor;
-
-const float Ray::RAY_EPSILON = 1.e-6;
-// void Ray::setDirection(glm::vec3 dir) {
-//   direction = glm::normalize(dir);
-//   //  inverseDirection = 1.f / direction;
-//   //  for (int i = 0; i < 3; i++) {
-//   //    if (direction[i] != 0)
-//   //      inverseDirection[i] = 1.0 / direction[i];
-//   //    else
-//   //      inverseDirection[i] = 0.;
-//   //  }
-// }
-/*
-void Ray::setDirection(double *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
-
-void Ray::setDirection(float *dir) { setDirection(glm::vec3(dir[0], dir[1], dir[2])); }
-*/
+const float gvt::render::actor::Ray::RAY_EPSILON = 1.e-6;

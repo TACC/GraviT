@@ -46,7 +46,7 @@ void Image::Write() {
     ext = ".ppm";
     break;
   default:
-    GVT_DEBUG(DBG_ALWAYS, "ERROR: unknown image format '" << format << "'");
+
     return;
   }
 

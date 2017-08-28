@@ -37,6 +37,7 @@ enum RenderType {
   Optix,
   Embree,
   Ospray,
+  EmbreeStream,
   Heterogeneous
 };
 } // namespace adapter

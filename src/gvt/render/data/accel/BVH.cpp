@@ -21,9 +21,6 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-//
-// BVH.cpp
-//
 
 #include <gvt/render/data/accel/BVH.h>
 
@@ -53,15 +50,10 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   // this->instanceSet.swap(sortedInstanceSet);
   std::swap(this->instanceSet, sortedInstanceSet);
 
-  // std::vector<gvt::render::data::primitives::Box3D*> instanceSetBB;
-  // std::vector<int> instanceSetID;
-
   for (auto &node : this->instanceSet) {
     instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
     instanceSetID.push_back(node["id"].value().toInteger());
   }
-
-  //std::cout << "BVH has " << instanceSet.size() << " instances " << root->bbox << std::endl;
 }
 
 BVH::~BVH() {
@@ -69,17 +61,6 @@ BVH::~BVH() {
   for (int i = 0; i < nodes.size(); ++i) {
     delete nodes[i];
     nodes[i] = NULL;
-  }
-}
-
-void BVH::intersect(const gvt::render::actor::Ray &ray, gvt::render::actor::isecDomList &isect) {
-
-  const glm::vec3 &origin = ray.origin;
-  const glm::vec3 &inv = 1.f / ray.direction;
-
-  if (root) {
-    // ClosestHit hit;
-    trace(origin, inv, root, /*hit,*/ isect, 0);
   }
 }
 
@@ -217,83 +198,3 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
   }
   return splitPoint;
 }
-
-void BVH::trace(const glm::vec3 &origin, const glm::vec3 &inv, const Node *node, /*ClosestHit &hit,*/
-                gvt::render::actor::isecDomList &isect, int level) {
-
-  float t = std::numeric_limits<float>::max();
-
-  if (!(node->bbox.intersectDistance(origin, inv, t) && (t > gvt::render::actor::Ray::RAY_EPSILON))) {
-    return;
-  }
-
-  // if (t > hit.distance) {
-  //   return;
-  // }
-
-  int instanceCount = node->numInstances;
-
-  if (instanceCount > 0) { // leaf node
-#ifdef DEBUG_ACCEL
-    assert(!node->leftChild && !node->rightChild);
-#endif
-    int start = node->instanceSetIdx;
-    int end = start + instanceCount;
-
-    for (int i = start; i < end; ++i) {
-      Box3D *ibbox = instanceSetBB[i];
-      if (ibbox->intersectDistance(origin, inv, t) && (t > gvt::render::actor::Ray::RAY_EPSILON)) {
-        int id = instanceSetID[i]; // gvt::core::variant_toInteger(instanceSet[i]["id"].value());
-        isect.push_back(gvt::render::actor::isecDom(id, t));
-      }
-    }
-  } else {
-#ifdef DEBUG_ACCEL
-    assert(node->leftChild && node->rightChild);
-#endif
-    int nextLevel = level + 1;
-    trace(origin, inv, node->leftChild, /*hit,*/ isect, nextLevel);
-    trace(origin, inv, node->rightChild, /*hit,*/ isect, nextLevel);
-  }
-}
-
-// int BVH::intersect(const gvt::render::actor::Ray &ray, int from, float &t) {
-//   if (root) {
-//     int rid = trace(ray, root, from, t);
-//     return rid;
-//   }
-//   return -1;
-// }
-//
-// int BVH::trace(const gvt::render::actor::Ray &ray, const Node *node, int cid, float &t) {
-//
-//   float tlocal = std::numeric_limits<float>::max();
-//
-//   if (!(node->bbox.intersectDistance(ray, tlocal) && (tlocal > gvt::render::actor::Ray::RAY_EPSILON) && (tlocal <
-//   t))) {
-//     return -1;
-//   }
-//
-//   if (node->numInstances > 0) { // leaf node
-//     int start = node->instanceSetIdx;
-//     int end = start + node->numInstances;
-//     float best = t;
-//     int rid = -1;
-//     for (int i = start; i < end; ++i) {
-//       if (cid == instanceSetID[i]) continue;
-//       Box3D *ibbox = instanceSetBB[i];
-//       float tlocal;
-//       if (ibbox->intersectDistance(ray, tlocal) && (tlocal < best)) {
-//         best = tlocal;
-//         rid = instanceSetID[i];
-//       }
-//     }
-//     if (rid != -1) t = best;
-//     return rid;
-//   } else {
-//     int rid = trace(ray, node->leftChild, cid, t);
-//     int lid = trace(ray, node->rightChild, cid, t);
-//     if (lid != -1) return lid;
-//     return rid;
-//   }
-// }

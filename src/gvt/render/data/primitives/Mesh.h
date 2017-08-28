@@ -96,18 +96,30 @@ public:
   virtual void generateNormals();
 
   virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
+  //  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
+  //                                         const gvt::render::data::scene::Light *lsource,
+  //                                         const glm::vec3 areaLightPosition);
+  //
+  //  virtual gvt::render::data::Color shadeFace(const int face_id, const gvt::render::actor::Ray &r,
+  //                                             const glm::vec3 &normal, const gvt::render::data::scene::Light
+  //                                             *lsource);
+  //
+  //  virtual gvt::render::data::Color shadeFaceAreaLight(const int face_id, const gvt::render::actor::Ray &r,
+  //                                                      const glm::vec3 &normal,
+  //                                                      const gvt::render::data::scene::Light *lsource,
+  //                                                      const glm::vec3 areaLightPosition);
 
   void writeobj(std::string filename);
 
 public:
   gvt::render::data::primitives::Material *mat;
-  std::vector<glm::vec3> vertices;
-  std::vector<glm::vec3> mapuv;
-  std::vector<glm::vec3> normals;
-  std::vector<Face> faces;
-  std::vector<FaceToNormals> faces_to_normals;
-  std::vector<glm::vec3> face_normals;
-  std::vector<Material *> faces_to_materials;
+  gvt::core::Vector<glm::vec3> vertices;
+  gvt::core::Vector<glm::vec3> mapuv;
+  gvt::core::Vector<glm::vec3> normals;
+  gvt::core::Vector<Face> faces;
+  gvt::core::Vector<FaceToNormals> faces_to_normals;
+  gvt::core::Vector<glm::vec3> face_normals;
+  gvt::core::Vector<Material *> faces_to_materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;
 };

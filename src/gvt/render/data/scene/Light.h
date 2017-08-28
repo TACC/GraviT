@@ -32,6 +32,7 @@
 #define GVT_RENDER_DATA_SCENE_LIGHT_H
 
 #include <gvt/core/Math.h>
+#include <gvt/core/math/RandEngine.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
 
@@ -50,7 +51,7 @@ public:
   Light(const Light &orig);
   virtual ~Light();
 
-  virtual glm::vec3 contribution(const glm::vec3 &hitpoint,const glm::vec3 &samplePos) const;
+  virtual glm::vec3 contribution(const glm::vec3 &hitpoint, const glm::vec3 &samplePos) const;
 
   virtual gvt::render::data::primitives::Box3D getWorldBoundingBox() {
     gvt::render::data::primitives::Box3D bb(position, position);
@@ -66,7 +67,7 @@ public:
   AmbientLight(const AmbientLight &orig);
   virtual ~AmbientLight();
 
-  virtual glm::vec3 contribution(const glm::vec3 &hitpoint,const glm::vec3 &samplePos = glm::vec3()) const;
+  virtual glm::vec3 contribution(const glm::vec3 &hitpoint, const glm::vec3 &samplePos = glm::vec3()) const;
 
   glm::vec3 color;
 };
@@ -99,7 +100,7 @@ public:
   float LightHeight;
 
   glm::vec3 u, v, w;
-  RandEngine randEngine;
+  gvt::core::math::RandEngine randEngine;
 };
 }
 }

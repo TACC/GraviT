@@ -24,8 +24,8 @@
 #ifndef GVT_RENDER_ADAPTER_H
 #define GVT_RENDER_ADAPTER_H
 
-#include <gvt/core/DatabaseNode.h>
 #include <gvt/render/actor/ORays.h>
+#include <gvt/core/context/DatabaseNode.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
@@ -80,7 +80,6 @@ public:
 
   std::mutex _inqueue;
   std::mutex _outqueue;
-
 };
 
 } // render

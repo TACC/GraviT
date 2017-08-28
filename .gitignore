@@ -5,3 +5,4 @@ build*
 gravit.sublime*
 .DS_Store
 xcode
+.clang_complete

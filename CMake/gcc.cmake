@@ -6,6 +6,8 @@ SET(GVT_ARCH_FLAGS__SSE41 "-msse4.1")
 SET(GVT_ARCH_FLAGS__SSE42 "-msse4.2")
 SET(GVT_ARCH_FLAGS__AVX   "-mavx -fabi-version=6")
 SET(GVT_ARCH_FLAGS__AVX2  "-mf16c -mavx2 -mfma -mlzcnt -mabm -mbmi -mbmi2 -fabi-version=6")
+SET(GVT_ARCH_FLAGS__AVX512KNL "-mavx512f -mavx512pf -mavx512er -mavx512cd")
+SET(GVT_ARCH_FLAGS__AVX512SKX "-mavx512f -mavx512dq -mavx512cd -mavx512bw -mavx512vl")
 
 SET(CMAKE_CXX_COMPILER "g++")
 SET(CMAKE_C_COMPILER "gcc")
