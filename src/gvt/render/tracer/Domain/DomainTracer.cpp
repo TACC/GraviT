@@ -198,8 +198,11 @@ void DomainTracer::operator()() {
 inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
 
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
-  const int chunksize =
+  int chunksize =
       MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+
+  if (chunksize ==0) chunksize =4;
+
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -229,8 +232,9 @@ inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays
 
 inline void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
 
-  const int chunksize =
+  int chunksize =
       MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),

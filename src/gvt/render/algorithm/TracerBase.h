@@ -128,7 +128,7 @@ struct GVT_COMM {
       size_t chunksize =
           MAX(GVT_SIMD_WIDTH,
               partition_size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger()));
-      if(chunkSize == 0) chunkSize=4;
+
       static tbb::simple_partitioner ap;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
                         [&](tbb::blocked_range<size_t> chunk) {
@@ -303,8 +303,7 @@ public:
 
     size_t chunksize =
         MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
-   
-    if(chunksize == 0) chunksize =4;
+
 
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::auto_partitioner ap;
@@ -357,7 +356,6 @@ public:
     size_t chunksize = MAX(
         GVT_SIMD_WIDTH, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
 
-    if(chunksize == 0) chunksize =4;
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
     [&](tbb::blocked_range<size_t> chunk) {
