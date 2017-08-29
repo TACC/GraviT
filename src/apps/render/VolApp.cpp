@@ -38,7 +38,6 @@
 */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/mpi/Wrapper.h>
 #include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>

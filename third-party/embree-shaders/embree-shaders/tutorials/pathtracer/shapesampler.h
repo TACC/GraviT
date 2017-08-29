@@ -19,16 +19,16 @@
 /*! \file shapesampler.isph Implements sampling functions for different
  *  geometric shapes. */
 
-//inline float cos2sin(const float f) { return sqrt(max(0.f,1.f-f*f)); }
-//inline float sin2cos(const float f) { return sqrt(max(0.f,1.f-f*f)); }
+//inline float cos2sin(const float f) { return embree::sqrt(max(0.f,1.f-f*f)); }
+//inline float sin2cos(const float f) { return embree::sqrt(max(0.f,1.f-f*f)); }
 
 /*! Cosine weighted hemisphere sampling. Up direction is the z direction. */
 inline Sample3f cosineSampleHemisphere(const float u, const float v) {
   const float phi = 2.0f * (float(pi)) * u;
-  const float cosTheta = sqrt(v);
-  const float sinTheta = sqrt(1.0f - v);
-  return Sample3f(Vec3fa(cos(phi) * sinTheta, 
-                                  sin(phi) * sinTheta, 
+  const float cosTheta = embree::sqrt(v);
+  const float sinTheta = embree::sqrt(1.0f - v);
+  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta,
+                         embree::sin(phi) * sinTheta,
                                   cosTheta), 
                        cosTheta*(1.f/(float(pi))));
 }
@@ -45,18 +45,18 @@ inline Sample3f cosineSampleHemisphere(const float  u, const float  v, const Vec
 inline Sample3f powerCosineSampleHemisphere(const float u, const float v, const float _exp) 
 {
   const float phi = 2.0f * (float(pi)) * u;
-  const float cosTheta = pow(v,1.0f/(_exp+1.0f));
+  const float cosTheta = embree::pow(v,1.0f/(_exp+1.0f));
   const float sinTheta = cos2sin(cosTheta);
-  return Sample3f(Vec3fa(cos(phi) * sinTheta, 
-				   sin(phi) * sinTheta, 
+  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta,
+                         embree::sin(phi) * sinTheta,
 				   cosTheta), 
-                       (_exp+1.0f)*pow(cosTheta,_exp)*0.5f/(float(pi)));
+                       (_exp+1.0f)*embree::pow(cosTheta,_exp)*0.5f/(float(pi)));
 }
 
 /*! Computes the probability density for the power cosine sampling of the hemisphere. */
 inline float powerCosineSampleHemispherePDF(const Vec3fa& s, const float _exp) {
   if (s.z < 0.f) return 0.f;
-  return (_exp+1.0f)*pow(s.z,_exp)*0.5f/float(pi);
+  return (_exp+1.0f)*embree::pow(s.z,_exp)*0.5f/float(pi);
 }
 
 /*! Samples hemisphere with power cosine distribution. Up direction
@@ -75,14 +75,14 @@ inline Sample3f powerCosineSampleHemisphere(const float u, const float v, const 
  *  direction. */
 inline Sample3f UniformSampleCone(const float u, const float v, const float angle) {
   const float phi = (float)(2.0f * float(pi)) * u;
-  const float cosTheta = 1.0f - v*(1.0f - cos(angle));
+  const float cosTheta = 1.0f - v*(1.0f - embree::cos(angle));
   const float sinTheta = cos2sin(cosTheta);
-  return Sample3f(Vec3fa(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta), 1.0f/((float)(4.0f*float(pi))*sqr(sin(0.5f*angle))));
+  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta, embree::sin(phi) * sinTheta, cosTheta), 1.0f/((float)(4.0f*float(pi))*sqr(embree::sin(0.5f*angle))));
 }
 
 /*! Computes the probability density of spherical cone sampling. */
 inline float UniformSampleConePDF(const Vec3fa &s, const float angle) {
-  return select(s.z < cos(angle), 0.0f, 1.0f/((float)(4.0f*float(pi))*sqr(sin(0.5f*angle))));
+  return select(s.z < embree::cos(angle), 0.0f, 1.0f/((float)(4.0f*float(pi))*sqr(embree::sin(0.5f*angle))));
 }
 
 /*! Uniform sampling of spherical cone. Cone direction is provided as argument. */
@@ -93,11 +93,11 @@ inline Sample3f UniformSampleCone(const float u, const float v, const float angl
 
 /*! Computes the probability density of spherical cone sampling. */
 inline float UniformSampleConePDF(const Vec3fa &s, const float angle, const Vec3fa &N) {
-  // return make_select(dot(s,N) < cos(angle), 0.0f, 1.0f/((float)(4.0f*float(pi))*sqr(sin(0.5f*angle))));
-  if (dot(s,N) < cos(angle))
+  // return make_select(dot(s,N) < embree::cos(angle), 0.0f, 1.0f/((float)(4.0f*float(pi))*sqr(embree::sin(0.5f*angle))));
+  if (dot(s,N) < embree::cos(angle))
     return 0.f;
   else
-    return 1.0f/((float)(4.0f*float(pi))*sqr(sin(0.5f*angle)));
+    return 1.0f/((float)(4.0f*float(pi))*sqr(embree::sin(0.5f*angle)));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +106,7 @@ inline float UniformSampleConePDF(const Vec3fa &s, const float angle, const Vec3
 
 /*! Uniform sampling of triangle. */
 inline Vec3fa UniformSampleTriangle(const float u, const float v, const Vec3fa& A, const Vec3fa& B, const Vec3fa& C) {
-  const float su = sqrt(u);
+  const float su = embree::sqrt(u);
   return C + (1.0f-su)*(A-C) + (v*su)*(B-C);
 }
 
@@ -117,7 +117,7 @@ inline Vec3fa UniformSampleTriangle(const float u, const float v, const Vec3fa& 
 /*! Uniform sampling of disk. */
 inline Vec2f UniformSampleDisk(const Vec2f &sample, const float radius) 
 {
-  const float r = sqrt(sample.x);
+  const float r = embree::sqrt(sample.x);
   const float theta = (2.f*float(pi)) * sample.y;
-  return Vec2f(radius*r*cos(theta), radius*r*sin(theta));
+  return Vec2f(radius*r*embree::cos(theta), radius*r*embree::sin(theta));
 }

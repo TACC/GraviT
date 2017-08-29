@@ -259,7 +259,7 @@ void gvtPerspectiveCamera::generateRays() {
             ray.id = idx;
             ray.t_min = gvt::render::actor::Ray::RAY_EPSILON;
 #ifdef GVT_BUILD_VOLUME
-            ray.2 = 0.0; // volume rendering opacity variable
+            ray.w = 0.0; // volume rendering opacity variable
             ray.t = 0.0;
             ray.type = RAY_PRIMARY;
 #else
