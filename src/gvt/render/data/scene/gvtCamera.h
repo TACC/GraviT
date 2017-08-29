@@ -120,7 +120,7 @@ public:
   }
 
   /** Fill the ray data structure */
-  virtual void generateRays() = 0;
+  virtual void generateRays(bool volume = false) = 0;
 
   /** Set the field of view angle in degrees*/
   virtual void setFOV(const float fov) = 0;
@@ -165,7 +165,7 @@ public:
   void setFOV(const float fov);
 
   /** Fill the ray data structure */
-  virtual void generateRays();
+  virtual void generateRays(bool volume = false);
 
 protected:
   float field_of_view; //!< Angle subtended by the film plane height from eye_point

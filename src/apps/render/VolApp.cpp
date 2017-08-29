@@ -520,7 +520,7 @@ int main(int argc, char **argv) {
   gvt::render::data::scene::Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), imagefile.c_str());
 
   mycamera.AllocateCameraRays();
-  mycamera.generateRays();
+  mycamera.generateRays(true);
 
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {
@@ -532,7 +532,7 @@ int main(int argc, char **argv) {
     gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(mycamera.rays, myimage);
     for (int z = 0; z < 10; z++) {
       mycamera.AllocateCameraRays();
-      mycamera.generateRays();
+      mycamera.generateRays(true);
       myimage.clear();
       tracer();
     }
@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
 #endif
     for (int z = 0; z < 1; z++) {
       mycamera.AllocateCameraRays();
-      mycamera.generateRays();
+      mycamera.generateRays(true);
       myimage.clear();
       tracer();
     }
