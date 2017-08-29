@@ -85,10 +85,6 @@ template <size_t simd_width> struct RayPacketIntersection {
     RayVector::iterator rayit = ray_begin;
     for (i = 0; rayit != ray_end && i < simd_width; ++i, ++rayit) {
       Ray &ray = (*rayit);
-      if(ray.id == 51096) { 
-        gotcha = true;
-        igotcha = i;
-      }
       ox[i] = ray.origin[0];
       oy[i] = ray.origin[1];
       oz[i] = ray.origin[2];
@@ -209,7 +205,6 @@ template <size_t simd_width> struct RayPacketIntersection {
     for (size_t i = 0; i < simd_width; ++i)
       if (hit[i] == 1) return true;
 
-    gotcha = false;
     return false;
   }
 };
