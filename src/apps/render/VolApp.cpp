@@ -310,11 +310,17 @@ int main(int argc, char **argv) {
 
   // context initialization should go in gvt_Init but gvt_Init doesnt exist yet...
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  root += cntxt->createNode(
+          "threads", cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
+
+
   if (cntxt == NULL) {
     std::cout << "Something went wrong initializing the context" << std::endl;
     exit(0);
   }
-  gvt::core::DBNodeH root = cntxt->getRootNode();
+//  gvt::core::DBNodeH root = cntxt->getRootNode();
   if (MPI::COMM_WORLD.Get_rank() == 0) {
     cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
     cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
