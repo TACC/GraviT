@@ -245,10 +245,10 @@ void gvtPerspectiveCamera::generateRays(bool volume) {
     const float half_sample = samples * 0.5f;
     const size_t samples2 = samples * samples;
     const float contri = 1.f / (samples * samples);
-    const size_t chunksize =
+    size_t chunksize = 
             buffer_height / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4);
 
-    std::cout << "BUffer " << chunksize << std::endl;
+    if(chunksize == 0) chunksize = 4;
 
     static tbb::auto_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),

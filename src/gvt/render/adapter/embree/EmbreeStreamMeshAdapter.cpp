@@ -1011,11 +1011,12 @@ void EmbreeStreamMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt:
   this->begin = _begin;
   this->end = _end;
 
-  const size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
+  size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
 
-  const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
+  size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
                                                                                               // of rays to work
                                                                                               // on
+  if(workSize ==0) workSize=4;
 
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
