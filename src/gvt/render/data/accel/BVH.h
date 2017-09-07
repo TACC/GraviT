@@ -47,6 +47,10 @@ intersects rays against the BVH to determine traversal order through
 the data domains and the work scheduler uses this information as
 part of its evaluation process.
 */
+//#define GVT_BRUTEFORCE
+
+
+
 class BVH : public AbstractAccel {
 public:
   BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet);

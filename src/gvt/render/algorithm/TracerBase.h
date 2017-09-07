@@ -62,7 +62,7 @@
 // like this tbb::serial::parallel_for. Do this to get reasonable 
 // prints out of parallel for loop. Of course it doesent run in parallel
 // any more. 
-//#define TBB_PREVIEW_SERIAL_SUBSET 1
+#define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>
@@ -318,6 +318,53 @@ public:
 
       for (size_t i = 0; i < hits.size(); i++) {
         gvt::render::actor::Ray &r = *(raysit.begin() + i);
+        bool write_to_fb = false;
+        int target_queue = -1;
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+         if(r.depth & RAY_BOUNDARY){
+           if(hits[i].next != -1) {
+             r.origin = r.origin + r.direction *(hits[i].t * (1.0f+std::numeric_limits<float>::epsilon()));
+             target_queue = hits[i].next;
+             //local_queue[hits[i].next].push_back(r);
+             } else {
+               r.depth &= ~RAY_BOUNDARY;
+               r.depth |= RAY_EXTERNAL_BOUNDARY;
+               target_queue = -1;
+             }
+           }
+         // check types
+         if(r.type == RAY_PRIMARY) {
+           if((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
+             write_to_fb = true;
+             target_queue = -1;
+           } else if(r.depth & ~RAY_BOUNDARY) {
+             target_queue = domID;
+           }
+        } else if(r.type == RAY_SHADOW) {
+          if(r.depth & RAY_EXTERNAL_BOUNDARY) {
+            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+            colorBuf[r.id] += glm::vec4(r.color,r.w);
+          }else if(r.depth & RAY_BOUNDARY) {
+            r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
+            local_queue[hits[i].next].push_back(r);
+          }
+        } else if(r.type == RAY_AO) {
+          if(r.depth &(RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
+            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+            colorBuf[r.id] += glm::vec4(r.color,r.w);
+          } else if (r.depth & RAY_BOUNDARY) {
+            r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
+            local_queue[hits[i].next].push_back(r);
+          }
+        }
+        if(write_to_fb) {
+          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+          colorBuf[r.id] += glm::vec4(r.color,r.w);
+        }
+        if(target_queue != -1) {
+          local_queue[target_queue].push_back(r);
+        }
+#else
         if (hits[i].next != -1) {
           r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
           local_queue[hits[i].next].push_back(r);
@@ -325,6 +372,7 @@ public:
           tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
           colorBuf[r.id] += glm::vec4(r.color, r.w);
         }
+#endif
       }
 
       for (auto &q : local_queue) {

@@ -128,27 +128,37 @@ public:
     gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
     gvt::core::Map<int, std::set<std::string> > meshAvailbyMPI;// where meshes are by mpi node
     gvt::core::Map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
-    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
+    //for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
     for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
     // build location map, where meshes are by mpi node
+    std::cout << " datanodes.size " << dataNodes.size() << std::endl;
     for (size_t i = 0; i < dataNodes.size(); i++) {
       gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
+      std::cout << "  datanode " << i << " locations.size() " << locations.size() << std::endl;
       for (auto loc : locations) {
+          std::cout << "   datanode UUID " << dataNodes[i].UUID().toString() ;
+          std::cout << "   loc " << loc.value().toInteger() << std::endl;
         meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
       }
     }
     lastAssigned = meshAvailbyMPI.begin();
     // create a map of instances to mpi rank
+    std::cout << " instancenodes " << instancenodes.size() << std::endl;
     for (size_t i = 0; i < instancenodes.size(); i++) {
       mpiInstanceMap[i] = -1;
+      std::cout << "  instancenode " << i << " inst node mesh uuid " << instancenodes[i]["meshRef"].value().toUuid() << std::endl;
       if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
         gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
+        std::cout << "  map mpi rank to instance " << i << std::endl;
         // Instance to mpi-node Round robin assignment considering mesh availability
         auto startedAt = lastAssigned;
         do {
+            std::cout << "   number of meshes on node " << i << " " << lastAssigned->second.size() << std::endl;
           if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
             if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
               mpiInstanceMap[i] = lastAssigned->first;
+                std::cout << " instancenode " << i << " mpiInstanceMap " << mpiInstanceMap[i];
+                std::cout << " lastAssigned->first " << lastAssigned->first << std::endl;
               lastAssigned++;
               if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
               break;
@@ -184,7 +194,7 @@ public:
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
 
-    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+    tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
       acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
@@ -230,10 +240,12 @@ public:
 
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
+    std::cout << " trace the domains " << std::endl;
     clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
     t_filter.resume();
+    std::cout << rays.size() << " rays to trace " << std::endl;
     gc_filter.add(rays.size());
     FilterRaysLocally();
     t_filter.stop();

@@ -73,6 +73,8 @@ template <size_t simd_width> struct RayPacketIntersection {
   float dz[simd_width]; /**< Direction z component for all rays in packet */
   float t[simd_width];  /**< Intersection distance */
   int mask[simd_width]; /**< Ray packet mask 0 | disable ray, 1 | Ray enable */
+  bool gotcha = false;
+  int igotcha;
 
   /**
    * Creates ray packet of the first simd_width elements from list of rays starting at ray_begin.
@@ -85,13 +87,17 @@ template <size_t simd_width> struct RayPacketIntersection {
     RayVector::iterator rayit = ray_begin;
     for (i = 0; rayit != ray_end && i < simd_width; ++i, ++rayit) {
       Ray &ray = (*rayit);
+      if(ray.id == 130816) {
+        gotcha = true;
+        igotcha = i;
+      }
       ox[i] = ray.origin[0];
       oy[i] = ray.origin[1];
       oz[i] = ray.origin[2];
       dx[i] = 1.f / ray.direction[0];
       dy[i] = 1.f / ray.direction[1];
       dz[i] = 1.f / ray.direction[2];
-      t[i] = ray.t_max;
+      t[i] = (ray.type != Ray::PRIMARY_VOLUME) ? ray.t_max : -ray.t;
       mask[i] = 1;
     }
     for (; i < simd_width; ++i) {
@@ -191,9 +197,19 @@ template <size_t simd_width> struct RayPacketIntersection {
 #pragma simd
 #endif
     for (size_t i = 0; i < simd_width; ++i) {
-      hit[i] = (tfar[i] > tnear[i] && (!update || tnear[i] > gvt::render::actor::Ray::RAY_EPSILON) && t[i] > tnear[i])
+        if(t[i] > 0.) hit[i] = (tfar[i] > tnear[i] && (!update || tnear[i] > gvt::render::actor::Ray::RAY_EPSILON) && t[i] > tnear[i])
                    ? 1
                    : -1;
+        else 
+      hit[i] = (tfar[i] > tnear[i] && (!update || tnear[i] > gvt::render::actor::Ray::RAY_EPSILON) && -t[i] < tnear[i])
+                   ? 1
+                   : -1;
+    }
+    if(gotcha  ) { std::cout << " RayPacketIntersect: " ;
+        std::cout << hit[igotcha] << " " << tnear[igotcha] << " " << tfar[igotcha];
+        std::cout << " " << t[igotcha] << " : " << minx[igotcha] << " ";
+        std::cout << miny[igotcha] << " " << minz[igotcha] << " : ";
+        std::cout << maxx[igotcha]<< " " << maxy[igotcha] << " " << maxz[igotcha] << std::endl;
     }
 #ifndef __clang__
 #pragma simd
@@ -203,8 +219,12 @@ template <size_t simd_width> struct RayPacketIntersection {
     }
 
     for (size_t i = 0; i < simd_width; ++i)
-      if (hit[i] == 1) return true;
+      if (hit[i] == 1) {
+          gotcha = false;
+          return true;
+      }
 
+    gotcha = false;
     return false;
   }
 };

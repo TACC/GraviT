@@ -49,10 +49,11 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
 
   // this->instanceSet.swap(sortedInstanceSet);
   std::swap(this->instanceSet, sortedInstanceSet);
-
+  std::cout << " here we construct " << std::endl;
   for (auto &node : this->instanceSet) {
     instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
     instanceSetID.push_back(node["id"].value().toInteger());
+    std::cout << node["id"].value().toInteger() << std::endl;
   }
 }
 

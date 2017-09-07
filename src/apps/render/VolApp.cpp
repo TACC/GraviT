@@ -363,6 +363,7 @@ int main(int argc, char **argv) {
   // sharing the database node with the rest of the ranks. 
   int worldsize;
   worldsize = MPI::COMM_WORLD.Get_size();
+  std::cout << " worldsize " << worldsize <<  " domains " << volheader.numberofdomains<<std::endl;
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
@@ -396,7 +397,7 @@ int main(int argc, char **argv) {
       vol->SetSamplingRate(10.0);
       // try setting an isovalue
       float *isoval ;
-      int niso = 1;
+      int niso = 0;
       isoval = new float[niso];
       *isoval = 0.75;
       //vol->SetIsovalues(1,isoval);
@@ -434,6 +435,7 @@ int main(int argc, char **argv) {
       instnode["normi"] = (unsigned long long)normi;
       auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
       auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+      std::cout << il << " low " << ih << " high " << std::endl;
       gvt::render::data::primitives::Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
@@ -497,6 +499,10 @@ int main(int argc, char **argv) {
   //
   // use db to create structs needed by system
 
+#if 1
+  if(rank == 0) 
+  cntxt->database()->printTree(root.UUID(),10,std::cout);
+#endif
   // setup gvtCamera from database entries
   gvt::render::data::scene::gvtPerspectiveCamera mycamera;
   glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();

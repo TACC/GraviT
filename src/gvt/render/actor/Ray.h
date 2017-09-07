@@ -50,7 +50,9 @@ public:
   enum RayType {
     PRIMARY /**< Camera ray */,
     SHADOW /**< Ray that tests visibility from a light source to an intersection point */,
-    SECONDARY /**< All other rays */
+    SECONDARY /**< All other rays */,
+    PRIMARY_VOLUME
+
   };
 
   /**

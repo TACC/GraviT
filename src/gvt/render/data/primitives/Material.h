@@ -37,6 +37,7 @@
 
 //#include <cmath>
 //#include <gvt/render/data/DerivedTypes.h>
+//#include <gvt/render/data/primitives/Shade.h>
 
 namespace gvt {
 namespace render {

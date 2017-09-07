@@ -499,6 +499,7 @@ if (GVT_RENDER)
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
     endif (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
+
     if (GVT_RENDER_ADAPTER_OSPRAY)
 #        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
 #        if (OSPRAY_SRCDIR)
@@ -513,14 +514,20 @@ if (GVT_RENDER)
 
     endif (GVT_RENDER_ADAPTER_OSPRAY)
 
-    include_directories(${OptiX_INCLUDE})
-    include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
-
     if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
         find_package(embree 2.15.0 REQUIRED)
         include_directories(${EMBREE_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
     endif (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
+
+    include_directories(${OptiX_INCLUDE})
+    include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
+
+    #if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
+    #    find_package(embree 2.15.0 REQUIRED)
+    #    include_directories(${EMBREE_INCLUDE_DIRS})
+    #    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
+    #endif (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
 
     add_library(gvtRender STATIC ${GVT_RENDER_SRCS})
 
