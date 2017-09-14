@@ -207,6 +207,17 @@ template <typename Variant, typename Derived> struct context {
     return _d;
   }
 
+  static inline int specialkeywork(const std::string &str) {
+
+    const unsigned number_of_keywords = 4;
+    std::string special_name[] = { "Data", "Mesh", "location", "ptr" };
+
+    for (int i = 0; i < number_of_keywords; i++) {
+      if (str == special_name[i]) return i;
+    }
+    return -1;
+  }
+
   static inline void sync() {
 
     context &db = context::instance();
@@ -214,51 +225,87 @@ template <typename Variant, typename Derived> struct context {
     if (db.cntx_comm.size <= 1) return;
 
     context::children_vector d = getDirty((db.cntx_comm.rank == 0) ? -1 : db.cntx_comm.rank);
-    unsigned long *counter = new unsigned long[db.cntx_comm.size];
-    counter[db.cntx_comm.rank] = d.size();
-
-    unsigned long s = d.size();
-
-    MPI_Allgather(&s, 1, MPI_UNSIGNED_LONG, counter, 1, MPI_UNSIGNED_LONG, db.cntx_comm.comm);
 
     for (int i = 0; i < db.cntx_comm.size; ++i) {
-
-      unsigned char *buf;
-
       if (db.cntx_comm.rank == i && d.size() > 0) {
 
-        for (auto &n : d) {
+        for (anode<Variant> &c : d) {
 
-          n.get().id.resetDirty();
+          switch (specialkeywork(c.name)) {
+          case 0: {
+            std::cout << "Data found ...." << std::endl;
 
-          cntx::mpi::encode enc;
-          n.get().pack(enc);
-          size_t s = enc.size();
-          MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
-          MPI_Bcast(enc.getBuffer(), enc.size(), MPI_BYTE, i, db.cntx_comm.comm);
+            break;
+          }
 
-          MPI_Barrier(db.cntx_comm.comm);
+          case 1: {
+            std::cout << "Mesh found ...." << std::endl;
+            break;
+          }
+
+          case 2: {
+            std::cout << "Location found ...." << std::endl;
+            break;
+          }
+
+          case 3: {
+            std::cout << "ptr found ...." << std::endl;
+            break;
+          }
+          default:
+            break;
+          }
         }
-
       } else {
-        for (int nn = 0; nn < counter[i]; ++nn) {
-          size_t s;
-          MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
-          std::shared_ptr<cntx::mpi::decode::BYTE> buff((cntx::mpi::decode::BYTE *)malloc(s), free);
-
-          cntx::mpi::decode dec(buff, s);
-          MPI_Bcast(dec.buffer.get(), s, MPI_BYTE, i, db.cntx_comm.comm);
-
-          anode<Variant> n;
-          n.unpack(dec);
-          db._map[n.getid()] = n;
-          db._map[n.getid()].id.resetDirty();
-          if (n.unique) db._unique[n.name] = n.getid();
-
-          MPI_Barrier(db.cntx_comm.comm);
-        }
       }
     }
+
+    //    context::children_vector d = getDirty((db.cntx_comm.rank == 0) ? -1 : db.cntx_comm.rank);
+    //    unsigned long *counter = new unsigned long[db.cntx_comm.size];
+    //    counter[db.cntx_comm.rank] = d.size();
+    //
+    //    unsigned long s = d.size();
+    //
+    //    MPI_Allgather(&s, 1, MPI_UNSIGNED_LONG, counter, 1, MPI_UNSIGNED_LONG, db.cntx_comm.comm);
+    //
+    //    for (int i = 0; i < db.cntx_comm.size; ++i) {
+    //
+    //      unsigned char *buf;
+    //
+    //      if (db.cntx_comm.rank == i && d.size() > 0) {
+    //
+    //        for (auto &n : d) {
+    //
+    //          n.get().id.resetDirty();
+    //
+    //          cntx::mpi::encode enc;
+    //          n.get().pack(enc);
+    //          size_t s = enc.size();
+    //          MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
+    //          MPI_Bcast(enc.getBuffer(), enc.size(), MPI_BYTE, i, db.cntx_comm.comm);
+    //
+    //          MPI_Barrier(db.cntx_comm.comm);
+    //        }
+    //
+    //      } else {
+    //        for (int nn = 0; nn < counter[i]; ++nn) {
+    //          size_t s;
+    //          MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
+    //          std::shared_ptr<cntx::mpi::decode::BYTE> buff((cntx::mpi::decode::BYTE *)malloc(s), free);
+    //
+    //          cntx::mpi::decode dec(buff, s);
+    //          MPI_Bcast(dec.buffer.get(), s, MPI_BYTE, i, db.cntx_comm.comm);
+    //
+    //          anode<Variant> n;
+    //          n.unpack(dec);
+    //          db._map[n.getid()] = n;
+    //          db._map[n.getid()].id.resetDirty();
+    //          if (n.unique) db._unique[n.name] = n.getid();
+    //
+    //          MPI_Barrier(db.cntx_comm.comm);
+    //        }
+    //      }
+    //    }
   }
 
   static inline void blindsync() {

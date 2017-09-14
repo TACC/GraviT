@@ -19,6 +19,7 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
   static anode error_node;
   identifier id;
   std::string name;
+  std::string type;
   Variant v;
   identifier parent;
 
