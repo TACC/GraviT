@@ -7,31 +7,28 @@
 
 #include "mpi/decoder.h"
 #include "mpi/encoder.h"
+#include <climits>
 
 namespace cntx {
 namespace details {
 
 template <typename R> static constexpr R bitmask(unsigned int const onecount) {
-  return static_cast<R>(-(onecount != 0)) &
-         (static_cast<R>(-1) >> ((sizeof(R) * CHAR_BIT) - onecount));
+  return static_cast<R>(-(onecount != 0)) & (static_cast<R>(-1) >> ((sizeof(R) * CHAR_BIT) - onecount));
 }
 
 struct identifier {
 
   static const unsigned int shift = sizeof(std::size_t) * 4;
-  static const std::size_t identifier_filter =
-      bitmask<std::size_t>((sizeof(size_t) * CHAR_BIT) >> 1);
+  static const std::size_t identifier_filter = bitmask<std::size_t>((sizeof(size_t) * CHAR_BIT) >> 1);
   static const std::size_t dirty_bit = (1ul << 63);
   static const std::size_t id_filter = ~dirty_bit;
   static const std::size_t rank_filter = (~identifier_filter) ^ dirty_bit;
   static const std::size_t all_ranks = rank_filter;
-  static const std::size_t invalid_id =
-      bitmask<std::size_t>(sizeof(size_t) * CHAR_BIT);
+  static const std::size_t invalid_id = bitmask<std::size_t>(sizeof(size_t) * CHAR_BIT);
 
   size_t id;
 
-  identifier(const std::size_t r = rank_filter,
-             const std::size_t i = identifier_filter) {
+  identifier(const std::size_t r = rank_filter, const std::size_t i = identifier_filter) {
     setrank(r);
     setlid(i);
     // id = (r << shift) | i;
@@ -40,8 +37,7 @@ struct identifier {
   void setrank(const std::size_t rank) {
     std::size_t v = rank;
 
-    if (rank != all_ranks)
-      v = (rank << shift);
+    if (rank != all_ranks) v = (rank << shift);
     id = ((id & identifier_filter) | v);
   }
 
@@ -64,13 +60,9 @@ struct identifier {
 
   bool isInvalid() { return (id == invalid_id); }
 
-  int operator<(const identifier &other) const {
-    return getid() < other.getid();
-  }
+  int operator<(const identifier &other) const { return getid() < other.getid(); }
 
-  bool operator==(const identifier &other) const {
-    return getid() == other.getid();
-  }
+  bool operator==(const identifier &other) const { return getid() == other.getid(); }
 
   friend std::ostream &operator<<(std::ostream &os, const identifier &other) {
 

@@ -26,26 +26,22 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
 
   anode() : unique(false) {}
 
-  anode(const identifier &id, const std::string name = "",
-        const Variant v = Variant(false),
+  anode(const identifier &id, const std::string name = "", const Variant v = Variant(false),
         const identifier parent = identifier(), bool unique = false)
       : id(id), name(name), v(v), parent(parent), unique(unique) {
     this->id.setDirty();
   }
 
   template <typename T>
-  anode(const identifier &id, const std::string name = "", const T v = T(),
-        const identifier parent = identifier(), bool unique = false)
+  anode(const identifier &id, const std::string name = "", const T v = T(), const identifier parent = identifier(),
+        bool unique = false)
       : id(id), name(name), v(v), parent(parent), unique(unique) {
     this->id.setDirty();
   }
 
   ~anode() {}
 
-  anode(const anode &n)
-      : id(n.id), name(n.name), v(n.v), parent(n.parent), unique(n.unique) {
-    this->id.setDirty();
-  }
+  anode(const anode &n) : id(n.id), name(n.name), v(n.v), parent(n.parent), unique(n.unique) { this->id.setDirty(); }
 
   anode &operator=(anode const &other) {
     this->id = other.id;
@@ -85,8 +81,7 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
 
   friend std::ostream &operator<<(std::ostream &os, const anode &other) {
 
-    return (os << other.id << " " << other.getparent() << "[ " << other.name
-               << " ] = " << other.v);
+    return (os << other.id << " " << other.getparent() << "[ " << other.name << " ] = " << other.v);
   }
 
   void pack(cntx::mpi::encode &enc) {

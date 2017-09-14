@@ -13,11 +13,8 @@ template <typename... Ts> struct variant_max_type;
 
 template <typename T> struct variant_max_type<T> { using type = T; };
 
-template <typename T, typename U, typename... Ts>
-struct variant_max_type<T, U, Ts...> {
-  using type = typename variant_max_type<
-      typename std::conditional<(sizeof(U) <= sizeof(T)), T, U>::type,
-      Ts...>::type;
+template <typename T, typename U, typename... Ts> struct variant_max_type<T, U, Ts...> {
+  using type = typename variant_max_type<typename std::conditional<(sizeof(U) <= sizeof(T)), T, U>::type, Ts...>::type;
 };
 
 template <typename... Ts> struct variant_max_size {
@@ -42,16 +39,14 @@ template <typename U, typename T> struct tindex<U, T> {
 };
 
 template <typename U, typename T, typename... Ts> struct tindex<U, T, Ts...> {
-  enum {
-    value = std::is_same<U, T>::value ? sizeof...(Ts) : tindex<U, Ts...>::value
-  };
+  enum { value = std::is_same<U, T>::value ? sizeof...(Ts) : tindex<U, Ts...>::value };
 };
 
 template <typename T> struct is_shared_pointer {
   enum { value = false };
 };
 
-template <typename T> struct is_shared_pointer<std::shared_ptr<T>> {
+template <typename T> struct is_shared_pointer<std::shared_ptr<T> > {
   enum { value = true };
 };
 

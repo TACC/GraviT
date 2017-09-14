@@ -26,6 +26,7 @@
 
 
 #include <ostream>
+#include <atomic>
 #include <gvt/core/cntx/identifier.h>
 
 namespace gvt {
@@ -62,8 +63,9 @@ protected:
 
 private:
   static std::atomic<unsigned long> idinc;
+
   static unsigned long gen() {
-    return idinc++;
+    return (unsigned long) ( Uuid::idinc++);
   }
 
 //  static boost::uuids::random_generator gen;

@@ -27,14 +27,14 @@ template <typename Variant> struct anode {
   anode() : unique(false) {}
 
   anode(const identifier &id, const std::string name = "", const Variant v = Variant(false),
-       const identifier parent = identifier(), bool unique = false)
+        const identifier parent = identifier(), bool unique = false)
       : id(id), name(name), v(v), parent(parent), unique(unique) {
     this->id.setDirty();
   }
 
   template <typename T>
   anode(const identifier &id, const std::string name = "", const T v = T(), const identifier parent = identifier(),
-       bool unique = false)
+        bool unique = false)
       : id(id), name(name), v(v), parent(parent), unique(unique) {
     this->id.setDirty();
   }
@@ -59,7 +59,7 @@ template <typename Variant> struct anode {
     return *this;
   }
 
-//  template <typename T> operator T() { return  v.template to<T>(); }
+  //  template <typename T> operator T() { return  v.template to<T>(); }
 
   template <typename T> T to() { return v.template to<T>(); }
 

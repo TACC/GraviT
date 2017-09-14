@@ -121,10 +121,8 @@ int main(int argc, char **argv) {
 
   gvtInit(argc, argv);
   api2::gvtInit(argc,argv);
-
   cntx::rcontext &db = cntx::rcontext::instance();
-
-  db.printtree(std::cout);
+  db.printtreebyrank(std::cout);
 
   // create a cone mesh with a particular material
   {

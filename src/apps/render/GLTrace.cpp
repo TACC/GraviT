@@ -42,6 +42,7 @@
 
 #include <tbb/task_scheduler_init.h>
 #include <thread>
+#include <sys/time.h>
 
 #include "ConfigFileLoader.h"
 #include <gvt/core/Math.h>

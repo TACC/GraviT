@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <memory>
+#include <cstdint>
+#include <cstring>
 #include <string>
 #include <type_traits>
 

@@ -15,13 +15,9 @@ using node = cntx::anode<Variant>;
 struct rcontext : public cntx::context<Variant, rcontext> {
 
 public:
-  rcontext() : context<Variant, rcontext>() {
+  rcontext() : context<Variant, rcontext>() {}
 
-  }
-
-
-  anode<Variant> &create_children(anode<Variant> const &n,
-                                  const std::string &type) {
+  anode<Variant> &create_children(anode<Variant> const &n, const std::string &type) {
     std::size_t rank = n.getid().getrank();
 
     if (type == std::string("Camera")) {
