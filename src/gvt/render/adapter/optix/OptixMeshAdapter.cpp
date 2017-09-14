@@ -75,9 +75,9 @@ int3 *cudaCreateFacesToNormals(std::vector<gvt::render::data::primitives::Mesh::
   std::vector<int3> faces_to_normals;
   for (int i = 0; i < gvt_face_to_normals.size(); i++) {
 
-    const boost::tuple<int, int, int> &f = gvt_face_to_normals[i];
+    const std::tuple<int, int, int> &f = gvt_face_to_normals[i];
 
-    int3 v = make_int3(f.get<0>(), f.get<1>(), f.get<2>());
+    int3 v = make_int3(std::get<0>(f), std::get<1>(f), std::get<2>(f));
 
     faces_to_normals.push_back(v);
   }
@@ -115,9 +115,9 @@ int3 *cudaCreateFaces(std::vector<gvt::render::data::primitives::Mesh::Face> &gv
   std::vector<int3> faces;
   for (int i = 0; i < gvt_faces.size(); i++) {
 
-    const boost::tuple<int, int, int> &f = gvt_faces[i];
+    const booststd::tuple<int, int, int> &f = gvt_faces[i];
 
-    int3 v = make_int3(f.get<0>(), f.get<1>(), f.get<2>());
+    int3 v = make_int3(std::get<0>(f), std::get<1>(f), std::get<2>(f));
     faces.push_back(v);
   }
 

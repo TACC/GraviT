@@ -29,8 +29,6 @@
 #include <iostream>
 #include <limits>
 
-#include <boost/range/algorithm.hpp>
-
 using namespace gvt::render::data::accel;
 using namespace gvt::render::data::primitives;
 

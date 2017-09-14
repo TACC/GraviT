@@ -21,7 +21,6 @@
    GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
-#include <boost/timer/timer.hpp>
 
 #include <gvt/core/utils/timer.h>
 

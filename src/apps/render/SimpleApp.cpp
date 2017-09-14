@@ -36,6 +36,9 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
+
+#include <gvt/core/cntx/context.h>
+
 #include <set>
 #include <vector>
 
@@ -59,7 +62,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
 
 #include <iostream>
 
@@ -71,7 +73,11 @@
 #define USEAPI
 #ifdef USEAPI
 #include <gvt/render/api/api.h>
+#include <gvt/render/api2/api.h>
 #endif
+
+#include <gvt/render/cntx/rcontext.h>
+
 using namespace std;
 using namespace gvt::render;
 
@@ -114,6 +120,11 @@ int main(int argc, char **argv) {
   }
 
   gvtInit(argc, argv);
+  api2::gvtInit(argc,argv);
+
+  cntx::rcontext &db = cntx::rcontext::instance();
+
+  db.printtree(std::cout);
 
   // create a cone mesh with a particular material
   {
@@ -133,6 +144,10 @@ int main(int argc, char **argv) {
     addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
 
     finishMesh("conemesh");
+
+
+
+
 
 #else
     Material *m = new Material();

@@ -168,8 +168,7 @@ template <typename T> inline std::string to_string(T value) {
       std::exit(EXIT_FAILURE);                                                                                         \
     }                                                                                                                  \
   } while (false)
-  //   std::cerr << DBG_COLOR_RED << "ERROR:`" << DBG_COLOR_BLUE << #condition << DBG_COLOR_RED << ":"                  \
-  //             << DBG_COLOR_GRAY << message << DBG_COLOR_NORMAL << std::endl;                                         \
+
 
 #define GVT_ASSERT_BACKTRACE(condition, message)                                                                       \
   do {                                                                                                                 \

@@ -62,8 +62,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
-
 #include <gvt/core/comm/communicator/scomm.h>
 #include <gvt/render/tracer/Domain/DomainTracer.h>
 #include <gvt/render/tracer/Image/ImageTracer.h>

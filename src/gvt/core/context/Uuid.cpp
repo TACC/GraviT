@@ -26,7 +26,8 @@
 
 using namespace gvt::core;
 
-boost::uuids::random_generator Uuid::gen;
+//boost::uuids::random_generator Uuid::gen;
+std::atomic<unsigned long> Uuid::idinc;
 
 Uuid Uuid::null() {
   Uuid u;
@@ -36,6 +37,6 @@ Uuid Uuid::null() {
 
 namespace gvt {
 namespace core {
-std::ostream &operator<<(std::ostream &os, const Uuid &u) { return os << u.uuid; }
+std::ostream &operator<<(std::ostream &os, const Uuid &u) { return os << u.id; }
 }
 }

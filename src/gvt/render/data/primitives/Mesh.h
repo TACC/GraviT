@@ -37,8 +37,6 @@
 
 #include <vector>
 
-#include <boost/container/vector.hpp>
-#include <boost/tuple/tuple.hpp>
 
 namespace gvt {
 namespace render {
@@ -65,8 +63,8 @@ public:
 */
 class Mesh : public AbstractMesh {
 public:
-  typedef boost::tuple<int, int, int> Face;
-  typedef boost::tuple<int, int, int> FaceToNormals;
+  typedef std::tuple<int, int, int> Face;
+  typedef std::tuple<int, int, int> FaceToNormals;
 
   Mesh(gvt::render::data::primitives::Material *mat = NULL);
   Mesh(const Mesh &orig);

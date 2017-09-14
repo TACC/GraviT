@@ -24,11 +24,9 @@
 #ifndef GVT_CORE_UUID_H
 #define GVT_CORE_UUID_H
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #include <ostream>
+#include <gvt/core/cntx/identifier.h>
 
 namespace gvt {
 namespace core {
@@ -36,31 +34,39 @@ namespace core {
 /**
 * \sa CoreContext, Database, DatabaseNode
 */
-class Uuid {
+
+
+
+class Uuid : public cntx::details::identifier {
 public:
-  Uuid() : uuid(gen()) {}
+  Uuid() : identifier(all_ranks, gen()) {}
 
-  void nullify() { uuid = boost::uuids::nil_uuid(); }
+  void nullify() { this->id = invalid_id; }
 
-  bool isNull() const { return uuid == boost::uuids::nil_uuid(); }
+  bool isNull() const { return this->id == invalid_id; }
 
-  std::string toString() const { return boost::uuids::to_string(uuid); }
+  std::string toString() const { return std::to_string(getid()); }
 
-  bool operator==(const Uuid &u) const { return uuid == u.uuid; }
-  bool operator!=(const Uuid &u) const { return uuid != u.uuid; }
+  bool operator==(const Uuid &u) const { return getid() == u.getid(); }
+  bool operator!=(const Uuid &u) const { return getid() != u.getid(); }
 
-  bool operator>(const Uuid &u) const { return uuid > u.uuid; }
+  bool operator>(const Uuid &u) const { return getid() > u.getid(); }
 
-  bool operator<(const Uuid &u) const { return uuid < u.uuid; }
+  bool operator<(const Uuid &u) const { return getid() < u.getid(); }
 
   friend std::ostream &operator<<(std::ostream &, const Uuid &);
   static Uuid null();
 
 protected:
-  boost::uuids::uuid uuid;
+//  boost::uuids::uuid uuid;
 
 private:
-  static boost::uuids::random_generator gen;
+  static std::atomic<unsigned long> idinc;
+  static unsigned long gen() {
+    return idinc++;
+  }
+
+//  static boost::uuids::random_generator gen;
 };
 }
 }

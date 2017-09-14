@@ -105,8 +105,7 @@ static bool printHelp = true;
 gvt::render::algorithm::AbstractTrace *tracer;
 gvtPerspectiveCamera mycamera;
 Image *imageptr;
-// boost::timer::cpu_timer t_frame;
-// boost::timer::cpu_times lastFrameTime;
+
 
 #define MIN(a, b) ((a < b) ? (a) : (b))
 #define MAX(a, b) ((a > b) ? (a) : (b))
@@ -181,9 +180,6 @@ void PrintHelpAndSettings() {
     PrintHelpString(15, fontOffset, "h", "toggle Help");
 
     fontOffset += 15;
-    // PrintHelpString(15, fontOffset, "frame time", boost::timer::format(lastFrameTime).c_str());
-
-    // PrintHelpString(15, fontOffset, "frame time", lastFrameTime.format().c_str());
 
     glPopMatrix();
 

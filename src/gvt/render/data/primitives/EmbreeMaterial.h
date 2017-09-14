@@ -36,7 +36,6 @@
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/scene/Light.h>
 
-#include <boost/container/vector.hpp>
 #include <time.h>
 
 #include <embree-shaders/common/math/vec2.h>

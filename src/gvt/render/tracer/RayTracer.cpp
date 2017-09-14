@@ -42,7 +42,6 @@
 #endif
 #endif
 
-#include <boost/timer/timer.hpp>
 
 namespace gvt {
 namespace render {

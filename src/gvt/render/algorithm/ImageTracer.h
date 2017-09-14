@@ -59,7 +59,6 @@
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
 
-#include <boost/timer/timer.hpp>
 
 namespace gvt {
 namespace render {

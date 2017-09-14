@@ -6,7 +6,6 @@ pyGVT - Python wrapper for GraviT
 
 * Embree 2.15+
 * IceT
-* Boost 1.59+
 * GraviT
 * MPI
 

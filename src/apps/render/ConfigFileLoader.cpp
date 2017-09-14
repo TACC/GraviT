@@ -32,8 +32,6 @@
 
 #include <gvt/render/data/reader/ObjReader.h>
 
-#include <boost/regex.h>
-#include <boost/regex.hpp>
 #include <fstream>
 #include <gvt/core/Math.h>
 #include <gvt/render/RenderContext.h>

@@ -40,10 +40,6 @@
 #include <future>
 #include <thread>
 
-#include <boost/atomic.hpp>
-#include <boost/foreach.hpp>
-#include <boost/timer/timer.hpp>
-
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>
@@ -155,9 +151,9 @@ EmbreeStreamMeshAdapter::EmbreeStreamMeshAdapter(gvt::render::data::primitives::
   embTriangle *triangles = (embTriangle *)rtcMapBuffer(scene, geomId, RTC_INDEX_BUFFER);
   for (int i = 0; i < numTris; i++) {
     gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
-    triangles[i].v0 = f.get<0>();
-    triangles[i].v1 = f.get<1>();
-    triangles[i].v2 = f.get<2>();
+    triangles[i].v0 = std::get<0>(f);
+    triangles[i].v1 = std::get<1>(f);
+    triangles[i].v2 = std::get<2>(f);
   }
   rtcUnmapBuffer(scene, geomId, RTC_INDEX_BUFFER);
 
@@ -908,9 +904,9 @@ struct embreeStreamParallelTrace {
                                                                                           // to store
                                                                                           // `faces_to_normals`
                                                                                           // list
-                const glm::vec3 &a = mesh->normals[normals.get<1>()];
-                const glm::vec3 &b = mesh->normals[normals.get<2>()];
-                const glm::vec3 &c = mesh->normals[normals.get<0>()];
+                const glm::vec3 &a = mesh->normals[std::get<1>(normals)];
+                const glm::vec3 &b = mesh->normals[std::get<2>(normals)];
+                const glm::vec3 &c = mesh->normals[std::get<0>(normals)];
                 manualNormal = a * u + b * v + c * (1.0f - u - v);
                 manualNormal = glm::normalize((*normi) * manualNormal);
 #else

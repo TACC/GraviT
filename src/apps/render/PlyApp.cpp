@@ -62,7 +62,6 @@
 #include <gvt/render/data/scene/gvtCamera.h>
 
 #include "ParseCommandLine.h"
-#include <boost/range/algorithm.hpp>
 #include <gvt/render/data/reader/PlyReader.h>
 
 using namespace std;

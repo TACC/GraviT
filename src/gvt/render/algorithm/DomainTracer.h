@@ -57,8 +57,6 @@
 
 #include <gvt/core/utils/global_counter.h>
 
-#include <boost/foreach.hpp>
-
 #include <set>
 
 #define RAY_BUF_SIZE 10485760 // 10 MB per neighbor
