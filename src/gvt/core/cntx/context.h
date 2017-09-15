@@ -25,7 +25,7 @@ namespace cntx {
 template <typename Variant, typename Derived> struct context {
   typedef std::vector<std::reference_wrapper<anode<Variant> > > children_vector;
 
-  static std::shared_ptr<context> _singleton;
+  static context<Variant, Derived> *_singleton;
 
   struct idCompare {
     bool operator()(const identifier &lhs, const identifier &rhs) const { return lhs.getid() < rhs.getid(); }
@@ -58,16 +58,16 @@ template <typename Variant, typename Derived> struct context {
 
   static std::shared_ptr<Derived> singleton() {
     if (_singleton == nullptr) {
-      _singleton = std::make_shared<Derived>();
+      _singleton = new Derived();
     }
-    return std::static_pointer_cast<Derived>(_singleton);
+    return static_cast<Derived *>(_singleton);
   }
 
   static Derived &instance() {
     if (_singleton == nullptr) {
-      _singleton = std::make_shared<Derived>();
+      _singleton = new Derived();
     }
-    return *std::static_pointer_cast<Derived>(_singleton).get();
+    return *static_cast<Derived *>(_singleton);
   }
 
   static identifier rootid() { return instance()._root.getid(); }
@@ -367,6 +367,7 @@ template <typename Variant, typename Derived> struct context {
   }
 };
 
+template <typename V, typename D> cntx::context<V, D> *cntx::context<V, D>::_singleton = nullptr;
 } // namespace cntx
 
 #endif

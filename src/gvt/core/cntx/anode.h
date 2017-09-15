@@ -101,5 +101,8 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
     unique = dec.unpack<bool>();
   }
 };
+
+  template <typename V> cntx::anode<V> cntx::anode<V>::error_node = cntx::anode<V>();
+
 } // namespace cntx
 #endif // CONTEXT_DBNODE_H_H
