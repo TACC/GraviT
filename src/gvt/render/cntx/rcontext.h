@@ -92,6 +92,18 @@ public:
     }
     return _map[n.getid()];
   }
+
+
+
+  void addLocation(const cntx::node& n) {
+
+
+
+
+
+  }
+
+
 };
 
 } // namespace cntx

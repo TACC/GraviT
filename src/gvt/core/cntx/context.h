@@ -44,7 +44,6 @@ template <typename Variant, typename Derived> struct context {
     cntx_comm = mpi::MPIGroup(MPI_COMM_WORLD).duplicate();
 
     _root = createnode_allranks("Root", "Root", true);
-
     createnode_allranks("Data", "Data", true, _root.getid());
     createnode_allranks("Instances", "Instances", true, _root.getid());
     createnode_allranks("Lights", "Lights", true, _root.getid());
@@ -54,6 +53,10 @@ template <typename Variant, typename Derived> struct context {
     createnode_allranks("Film", "Film", true, getUnique("Films").getid());
     createnode_allranks("Schedulers", "Schedulers", true, _root.getid());
     createnode_allranks("Scheduler", "Scheduler", true, getUnique("Schedulers").getid());
+    createnode_allranks("DataLocality","DataLocality",true,_root.getid());
+    createnode("DataLoc",std::to_string(cntx_comm.rank),false,getUnique("DataLocality").getid());
+
+
   }
 
   static std::shared_ptr<Derived> singleton() {
@@ -259,53 +262,17 @@ template <typename Variant, typename Derived> struct context {
       } else {
       }
     }
+  }
 
-    //    context::children_vector d = getDirty((db.cntx_comm.rank == 0) ? -1 : db.cntx_comm.rank);
-    //    unsigned long *counter = new unsigned long[db.cntx_comm.size];
-    //    counter[db.cntx_comm.rank] = d.size();
-    //
-    //    unsigned long s = d.size();
-    //
-    //    MPI_Allgather(&s, 1, MPI_UNSIGNED_LONG, counter, 1, MPI_UNSIGNED_LONG, db.cntx_comm.comm);
-    //
-    //    for (int i = 0; i < db.cntx_comm.size; ++i) {
-    //
-    //      unsigned char *buf;
-    //
-    //      if (db.cntx_comm.rank == i && d.size() > 0) {
-    //
-    //        for (auto &n : d) {
-    //
-    //          n.get().id.resetDirty();
-    //
-    //          cntx::mpi::encode enc;
-    //          n.get().pack(enc);
-    //          size_t s = enc.size();
-    //          MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
-    //          MPI_Bcast(enc.getBuffer(), enc.size(), MPI_BYTE, i, db.cntx_comm.comm);
-    //
-    //          MPI_Barrier(db.cntx_comm.comm);
-    //        }
-    //
-    //      } else {
-    //        for (int nn = 0; nn < counter[i]; ++nn) {
-    //          size_t s;
-    //          MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
-    //          std::shared_ptr<cntx::mpi::decode::BYTE> buff((cntx::mpi::decode::BYTE *)malloc(s), free);
-    //
-    //          cntx::mpi::decode dec(buff, s);
-    //          MPI_Bcast(dec.buffer.get(), s, MPI_BYTE, i, db.cntx_comm.comm);
-    //
-    //          anode<Variant> n;
-    //          n.unpack(dec);
-    //          db._map[n.getid()] = n;
-    //          db._map[n.getid()].id.resetDirty();
-    //          if (n.unique) db._unique[n.name] = n.getid();
-    //
-    //          MPI_Barrier(db.cntx_comm.comm);
-    //        }
-    //      }
-    //    }
+
+  std::vector<cntx::details::identifier> getLocalityFor(const cntx::anode<Variant>& n) {
+
+    cntx::details::identifier id = n.getid();
+
+
+
+
+
   }
 
   static inline void blindsync() {
