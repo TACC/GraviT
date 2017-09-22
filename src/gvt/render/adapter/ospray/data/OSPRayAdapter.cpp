@@ -71,6 +71,8 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
         ospSetData(theOSPVolume,"slices",sliceData);
     }
     data->GetIsovalues(n_isovalues,isovalues);
+    std::cout << "ospadapter: width " << width << " height " << height ;
+    std::cout << " nslices nisos " << n_slices<< " " << n_isovalues << std::endl;
     if(n_isovalues != 0) {
         std::cout << "got isovalue " << n_isovalues << " "  << std::endl;
         dolights = true;
@@ -96,19 +98,20 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     spacing.y = volumespacing.y;
     spacing.z = volumespacing.z;
     ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
+    std::cout << "ospadapt: global origin: dimensions:spacing " << globalorigin <<":"<<volumedimensions<<":"<<volumespacing << std::endl;
     gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
     // as of now only two voxel types are supported by the ospray lib
     switch(vt){
         case gvt::render::data::primitives::Volume::FLOAT : ospSetString(theOSPVolume,"voxelType","float");
-                                                            int numberofsamples = counts.x*counts.y*counts.z;
-                                                            OSPData voldata = ospNewData(numberofsamples,OSP_FLOAT,(void*)data->GetSamples(),OSP_DATA_SHARED_BUFFER);
-                                                            ospCommit(voldata);
-                                                            ospSetObject(theOSPVolume,"voxelData",voldata);
-                                                            break;
+            int numberofsamples = counts.x*counts.y*counts.z;
+            OSPData voldata = ospNewData(numberofsamples,OSP_FLOAT,(void*)data->GetSamples(),OSP_DATA_SHARED_BUFFER);
+            ospCommit(voldata);
+            ospSetObject(theOSPVolume,"voxelData",voldata);
+        break;
         case gvt::render::data::primitives::Volume::UCHAR : ospSetString(theOSPVolume,"voxelType","uchar");
-                                                            break;
+        break;
         default : std::cerr << " error setting voxel type " << std::endl;
-                  break;
+        break;
     }
     ospSet1f(theOSPVolume,"samplingRate",data->GetSamplingRate());
     data->GetTransferFunction()->set();
@@ -158,7 +161,7 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
                 (out->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
                 (out->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
         }
-    } else { raycount = 0; }
+    } else { raycount = 0; std::cout << " no generated rays " << std::endl;}
     // now do the rl rays which may be terminated as indicated in their term variable.  
     moved_rays.resize(raycount + rl->GetCount());
     for(int i=raycount, ii=0; i <raycount + rl->GetCount();i++,ii++){
@@ -172,6 +175,7 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
         ray.color.r = rl->xr.r[ii];
         ray.color.g = rl->xr.g[ii];
         ray.color.b = rl->xr.b[ii];
+            std::cout << i << " " << rl->xr.r[i] << " " << rl->xr.g[i] << " " << rl->xr.b[i] << std::endl;
         ray.w = rl->xr.o[ii];
         ray.t = rl->xr.t[ii];
         ray.t_max = rl->xr.tMax[ii];
@@ -185,6 +189,7 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
             (rl->xr.term[ii] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
     }
 }
+// convert gravit to ospray rays format
 OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayList) { 
     OSPExternalRays out = ospNewExternalRays() ;
     out->Allocate(rayList.size());
@@ -266,6 +271,7 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
     // convert GVT RayVector into the OSPExternalRays used by ospray. 
     OSPExternalRays rl = GVT2OSPRays(rayList);
     // trace'em 
+    std::cout << "calling ospTraceRays " << rl->GetCount() << std::endl;
     OSPExternalRays out = ospTraceRays(theOSPRenderer,rl); // ospray trace
     // push everything from out and rl into moved_rays for sorting into houses
     OSP2GVTMoved_Rays(out,rl,moved_rays);

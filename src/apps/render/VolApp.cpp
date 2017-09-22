@@ -307,6 +307,8 @@ int main(int argc, char **argv) {
   MPI_Pcontrol(0);
   int rank = -1;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int worldsize;
+  worldsize = MPI::COMM_WORLD.Get_size();
 
   // context initialization should go in gvt_Init but gvt_Init doesnt exist yet...
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
@@ -361,11 +363,10 @@ int main(int argc, char **argv) {
   // provided there are more domains than ranks. If not then each rank will read at most
   // one domain. Either way the particular domain is responsible for creating and 
   // sharing the database node with the rest of the ranks. 
-  int worldsize;
-  worldsize = MPI::COMM_WORLD.Get_size();
   std::cout << " worldsize " << worldsize <<  " domains " << volheader.numberofdomains<<std::endl;
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
+        std::cout << "rank " << rank << " reading domain " << domain << std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
@@ -378,11 +379,12 @@ int main(int argc, char **argv) {
       // read transfer function. 
       tf->load(ctffile,otffile);
       // this value range is for small enzo data
-      tf->setValueRange(glm::vec2(0.0,65536.0));
+      //tf->setValueRange(glm::vec2(0.0,65536.0));
       //this value range is for large enzo data
       //tf->setValueRange(glm::vec2(0.0,1801.0));
       // this value range is for asteroid data
-      //tf->setValueRange(glm::vec2(0.0,1.0));
+      // and for the zgradient data
+      tf->setValueRange(glm::vec2(0.0,1.0));
       // this value range is for sphere data
       //tf->setValueRange(glm::vec2(0.866,85.74));
       // push the sample data into the volume and fill the other
@@ -394,7 +396,7 @@ int main(int argc, char **argv) {
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
-      vol->SetSamplingRate(10.0);
+      vol->SetSamplingRate(1.0);
       // try setting an isovalue
       float *isoval ;
       int niso = 0;
@@ -402,6 +404,7 @@ int main(int argc, char **argv) {
       *isoval = 0.75;
       //vol->SetIsovalues(1,isoval);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
+      std::cout << "min " << volbox->bounds_min << " max " << volbox->bounds_max << std::endl;
       // stuff it in the db
       VolumeNode["file"] = volumefile.c_str();
       VolumeNode["bbox"] = (unsigned long long)volbox;
@@ -435,7 +438,6 @@ int main(int argc, char **argv) {
       instnode["normi"] = (unsigned long long)normi;
       auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
       auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-      std::cout << il << " low " << ih << " high " << std::endl;
       gvt::render::data::primitives::Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
       instnode["bbox"] = (unsigned long long)ibox;
       instnode["centroid"] = ibox->centroid();
@@ -499,9 +501,9 @@ int main(int argc, char **argv) {
   //
   // use db to create structs needed by system
 
-#if 1
+#if 0
   if(rank == 0) 
-  cntxt->database()->printTree(root.UUID(),10,std::cout);
+  cntxt->database()->printTree(root.UUID(),3,std::cout);
 #endif
   // setup gvtCamera from database entries
   gvt::render::data::scene::gvtPerspectiveCamera mycamera;
@@ -527,6 +529,8 @@ int main(int argc, char **argv) {
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays(true);
+  std::cout << " Initial camera rays " << std::endl;
+  mycamera.dumpraystostdout();
 
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {

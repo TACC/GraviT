@@ -199,11 +199,12 @@ void gvtCameraBase::AllocateCameraRays() {
 
 void gvtCameraBase::dumpraystostdout() {
     int numrays = rays.size();
+    std::cout << " gvtCamera: rays x,y,origin,direction,rays.t_max,id,type"<< std::endl;
     for (int i = 0; i < numrays; i++) {
         std::cout << i % filmsize[0] << " " << i / filmsize[0] << " ";
         std::cout << rays[i].origin[0] << " " << rays[i].origin[1] << " " << rays[i].origin[2] << " ";
         std::cout << rays[i].direction[0] << " " << rays[i].direction[1] << " " << rays[i].direction[2] << " ";
-        std::cout << rays[i].t_max << " " << rays[i].id << " " << rays[i].type << std::endl;
+        std::cout << rays[i].t << " " << rays[i].id << " " << rays[i].type << std::endl;
     }
 };
 
@@ -276,10 +277,12 @@ void gvtPerspectiveCamera::generateRays(bool volume) {
               ray.t_min = gvt::render::actor::Ray::RAY_EPSILON;
               ray.origin = eye_point;
               ray.direction = glm::normalize(camera_space_ray_direction);
+              ray.t_max = FLT_MAX;
               if (volume) {
                 ray.w = 0.0; // volume rendering opacity variable
-                ray.t = 0.0;
-                ray.type = Ray::PRIMARY_VOLUME;
+                //ray.t = 0.0;
+                ray.t = ray.t_max;
+                ray.type = RAY_PRIMARY;
                 ray.depth = 0;
               } else {
                 ray.t = ray.t_max = FLT_MAX;

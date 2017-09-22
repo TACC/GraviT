@@ -103,11 +103,12 @@ public:
   // tracer. I have to pass argc and argv to the tracer so it can init ospray. 
   // Blech. Here is initialization via a static method.. ugly. 
   Tracer(int *argc, char **argv, gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : Tracer(rays, image) {
+      std::cout << "DT: constructor initializing ospray " << std::endl;
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(argc, argv);
   }
 #endif
   Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
-
+    std::cout << "DT: constructor calling Initialize " << std::endl;
     Initialize();
   }
 
@@ -123,42 +124,34 @@ public:
 
   virtual void Initialize() {
 
-    std::cout << "Entered here" << std::endl;
+    std::cout << "Initializing DomainTracer" << std::endl;
 
     gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
     gvt::core::Map<int, std::set<std::string> > meshAvailbyMPI;// where meshes are by mpi node
     gvt::core::Map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
-    //for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
     for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
     // build location map, where meshes are by mpi node
-    std::cout << " datanodes.size " << dataNodes.size() << std::endl;
+    std::cout << " DT: create map of mesh to rank " << std::endl;
     for (size_t i = 0; i < dataNodes.size(); i++) {
       gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
-      std::cout << "  datanode " << i << " locations.size() " << locations.size() << std::endl;
+      std::cout << "DT: datanode[" << i << "] has " << locations.size() << " locations"<< std::endl;
       for (auto loc : locations) {
-          std::cout << "   datanode UUID " << dataNodes[i].UUID().toString() ;
-          std::cout << "   loc " << loc.value().toInteger() << std::endl;
+        std::cout << "DT: adding mesh " << dataNodes[i].UUID().toString() << " to rank " << loc.value().toInteger() << " locations " << std::endl;
         meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
       }
     }
     lastAssigned = meshAvailbyMPI.begin();
     // create a map of instances to mpi rank
-    std::cout << " instancenodes " << instancenodes.size() << std::endl;
     for (size_t i = 0; i < instancenodes.size(); i++) {
       mpiInstanceMap[i] = -1;
-      std::cout << "  instancenode " << i << " inst node mesh uuid " << instancenodes[i]["meshRef"].value().toUuid() << std::endl;
       if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
         gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
-        std::cout << "  map mpi rank to instance " << i << std::endl;
         // Instance to mpi-node Round robin assignment considering mesh availability
         auto startedAt = lastAssigned;
         do {
-            std::cout << "   number of meshes on node " << i << " " << lastAssigned->second.size() << std::endl;
-          if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
+          if (lastAssigned->second.size() > 0) {//if mpi-node has no meshes, don't bother
             if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
               mpiInstanceMap[i] = lastAssigned->first;
-                std::cout << " instancenode " << i << " mpiInstanceMap " << mpiInstanceMap[i];
-                std::cout << " lastAssigned->first " << lastAssigned->first << std::endl;
               lastAssigned++;
               if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
               break;
@@ -182,15 +175,22 @@ public:
         } while (lastAssigned != startedAt);
       }
     }
+    std::cout << "DT: mpiInstanceMap.size() = " << mpiInstanceMap.size() << std::endl;
+    for(int index = 0; index < mpiInstanceMap.size(); index++) {
+        std::cout << "DT: instance " << index << " is on rank " << mpiInstanceMap[index] << std::endl;
+    }
+    std::cout << "DomainTracer initialization complete" << std::endl;
   }
 
   virtual ~Tracer() {}
 
   void shuffleDropRays(gvt::render::actor::RayVector &rays) {
 
+      std::cout <<  "DT:shuffleDropRays() " << std::endl;
     size_t chunksize =
         MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
 
+    std::cout << "DT:shuffleDropRays chunksize " << chunksize << std::endl;
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
 
@@ -201,10 +201,14 @@ public:
       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
       for (size_t i = 0; i < hits.size(); i++) {
         gvt::render::actor::Ray &r = *(raysit.begin() + i);
+       std::cout << "DT:shuffleDrop: ray.id= " << r.id << " hit.next " << hits[i].next << " hit.t " << hits[i].t << " ray.origin " << r.origin << " ray.direction " << r.direction <<  std::endl;
         if (hits[i].next != -1) {
           r.origin = r.origin + r.direction * (hits[i].t * 1.0f);
           const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
-          if (inRank) local_queue[hits[i].next].push_back(r);
+          if (inRank) {
+            std::cout << "place ray " << r.id << " in local_queue["<<hits[i].next<<"]"<<std::endl;
+            local_queue[hits[i].next].push_back(r);
+          }else{std::cout << "drop ray "<< r.id << std::endl; }
         }
       }
       for (auto &q : local_queue) {
@@ -240,12 +244,15 @@ public:
 
     gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
 
-    std::cout << " trace the domains " << std::endl;
+    std::cout << "DT:trace() trace the domains " << std::endl;
     clearBuffer();
     int adapterType = root["Schedule"]["adapter"].value().toInteger();
 
     t_filter.resume();
     std::cout << rays.size() << " rays to trace " << std::endl;
+    //for (int kk=0 ; kk<rays.size() ; kk++) {
+    //    std::cout << " DT: " << rays[kk] << std::endl;
+   // }
     gc_filter.add(rays.size());
     FilterRaysLocally();
     t_filter.stop();
@@ -274,9 +281,11 @@ public:
         t_sort.resume();
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+          std::cout << "DT: sorting inrank = " << inRank << " raycount " << q.second.size() << " instTargetCount " << instTargetCount << std::endl;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
+            std::cout << " DT: set instTarget to "<< instTarget << std::endl;
           }
         }
         t_sort.stop();
@@ -319,8 +328,9 @@ public:
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
             case gvt::render::adapter::Ospray:
               gvt::render::data::primitives::Volume *vol = dynamic_cast<gvt::render::data::primitives::Volume*> (mesh);
-              if(vol) 
-                adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(vol);
+              if(vol) {
+                  std::cout << "dom tracer building ospray adapter" << std::endl;
+                adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(vol);}
               else
                 adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(mesh);
               break;
@@ -345,6 +355,7 @@ public:
             t_trace.resume();
             gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
+            std::cout <<"dom trace calling adapt trace with inst target "<< instTarget << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
                            instMinvN[instTarget], lights);
             this->queue[instTarget].clear();

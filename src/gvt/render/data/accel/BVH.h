@@ -47,7 +47,7 @@ intersects rays against the BVH to determine traversal order through
 the data domains and the work scheduler uses this information as
 part of its evaluation process.
 */
-//#define GVT_BRUTEFORCE
+#define GVT_BRUTEFORCE
 
 
 
@@ -62,8 +62,7 @@ public:
   };
 
   template <size_t simd_width>
-  gvt::core::Vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
-                                   const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
+  gvt::core::Vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin, const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
 
     gvt::core::Vector<hit> ret((ray_end - ray_begin));
     size_t offset = 0;
@@ -77,14 +76,18 @@ public:
       gvt::render::actor::RayPacketIntersection<simd_width> rp(chead, ray_end);
 
 #ifdef GVT_BRUTEFORCE
+      std::cout << "BVH:intersect() scanning " << instanceSet.size() << " instances"<<std::endl;
       for (int i = 0; i < instanceSet.size(); i++) {
+          std::cout << "BVH:intersect() intersecting instance " << instanceSetID[i] << " from " << from <<std::endl;
         if (from == instanceSetID[i]) continue;
         int hit[simd_width];
         const primitives::Box3D &ibbox = *instanceSetBB[i];
+        std::cout << "BVH:intersect() calling rp.intersect"<<std::endl;
         rp.intersect(ibbox, hit, true);
         {
           for (int o = 0; o < simd_width; ++o) {
             if (hit[o] == 1 && rp.mask[o] == 1) {
+        //        std::cout << "BVH:intersect()  hit " << o << " instanceSetID " << instanceSetID[i] << " rp.t[o] " << rp.t[o] << std::endl;
               ret[offset + o].next = instanceSetID[i];
               ret[offset + o].t = rp.t[o];
             }
