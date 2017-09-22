@@ -35,3 +35,8 @@ python setup.py install
 python test.py
 display simple.ppm
 ```
+### Test example scripts
+
+```
+source test_examle_reader.sh
+```
