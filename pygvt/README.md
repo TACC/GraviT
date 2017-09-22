@@ -38,5 +38,5 @@ display simple.ppm
 ### Test example scripts
 
 ```
-source test_examle_reader.sh
+source test_example_reader.sh
 ```
