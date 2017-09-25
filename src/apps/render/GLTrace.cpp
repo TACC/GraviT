@@ -732,12 +732,12 @@ void Render() {
   // t_frame.start();
   switch (schedType) {
   case gvt::render::scheduler::Image: {
-    std::cout << "starting image scheduler" << std::endl;
+    // std::cout << "starting image scheduler" << std::endl;
     (*static_cast<gvt::render::algorithm::Tracer<ImageScheduler> *>(tracer))();
     break;
   }
   case gvt::render::scheduler::Domain: {
-    std::cout << "starting domain scheduler" << std::endl;
+    // std::cout << "starting domain scheduler" << std::endl;
     // *(gvt::render::algorithm::Tracer<DomainScheduler>* tracer)();
     (*static_cast<gvt::render::algorithm::Tracer<DomainScheduler> *>(tracer))();
     break;
@@ -1079,6 +1079,8 @@ int main(int argc, char *argv[]) {
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("up", ParseCommandLine::FLOAT, "Camera up vector", 3);
+  cmd.addoption("point-light", ParseCommandLine::FLOAT, "Point light position and color (px,py,pz,cx,cy,cz)", 6);
   cmd.addoption("file", ParseCommandLine::PATH, "Data path");
   cmd.addoption("simple", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("scene", ParseCommandLine::PATH, "Use scene file");
@@ -1218,6 +1220,18 @@ int main(int argc, char *argv[]) {
   if (cmd.isSet("look")) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("up")) {
+    gvt::core::Vector<float> up = cmd.getValue<float>("up");
+    camNode["upVector"] = glm::vec3(up[0], up[1], up[2]);
+  }
+
+  if (cmd.isSet("point-light")) {
+    gvt::core::DBNodeH lightNode = root["Lights"]["PointLight"];
+    gvt::core::Vector<float> light = cmd.getValue<float>("point-light");
+    lightNode["position"] = glm::vec3(light[0], light[1], light[2]);
+    lightNode["color"] = glm::vec3(light[3], light[4], light[5]);
   }
 
   width = root["Film"]["width"].value().toInteger();

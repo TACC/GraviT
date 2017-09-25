@@ -79,6 +79,7 @@ public:
 
   virtual void addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal = glm::vec3(), glm::vec3 texUV = glm::vec3());
   virtual void addVertex(glm::vec3 vertex);
+  virtual void addVertexColor(glm::vec3 color) { vertex_colors.push_back(color); }
   virtual void addNormal(glm::vec3 normal);
   virtual void addTexUV(glm::vec3 texUV);
   virtual void addFace(int v0, int v1, int v2);
@@ -107,12 +108,14 @@ public:
 public:
   gvt::render::data::primitives::Material *mat;
   gvt::core::Vector<glm::vec3> vertices;
+  gvt::core::Vector<glm::vec3> vertex_colors;
   gvt::core::Vector<glm::vec3> mapuv;
   gvt::core::Vector<glm::vec3> normals;
   gvt::core::Vector<Face> faces;
   gvt::core::Vector<FaceToNormals> faces_to_normals;
   gvt::core::Vector<glm::vec3> face_normals;
   gvt::core::Vector<Material *> faces_to_materials;
+  std::vector<Material *> materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;
 };
