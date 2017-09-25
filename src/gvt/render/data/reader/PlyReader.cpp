@@ -39,9 +39,9 @@ PlyProperty vert_props[] = {
   { "x", Float32, Float32, offsetof(PlyReader::Vertex, x), 0, 0, 0, 0 },
   { "y", Float32, Float32, offsetof(PlyReader::Vertex, y), 0, 0, 0, 0 },
   { "z", Float32, Float32, offsetof(PlyReader::Vertex, z), 0, 0, 0, 0 },
-  { "nx", Float32, Float32, offsetof(PlyReader::Vertex, nx), 0, 0, 0, 0 },
-  { "ny", Float32, Float32, offsetof(PlyReader::Vertex, ny), 0, 0, 0, 0 },
-  { "nz", Float32, Float32, offsetof(PlyReader::Vertex, nz), 0, 0, 0, 0 },
+  { "red", Uint8, Uint8, offsetof(PlyReader::Vertex, cx), 0, 0, 0, 0 },
+  { "green", Uint8, Uint8, offsetof(PlyReader::Vertex, cy), 0, 0, 0, 0 },
+  { "blue", Uint8, Uint8, offsetof(PlyReader::Vertex, cz), 0, 0, 0, 0 }
 };
 
 PlyProperty face_props[] = {
@@ -116,6 +116,7 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
     filepath = *file;
     myfile = fopen(filepath.c_str(), "r");
     in_ply = read_ply(myfile);
+    bool has_color = false; 
     for (i = 0; i < in_ply->num_elem_types; i++) {
       elem_name = setup_element_read_ply(in_ply, i, &elem_count);
       temp = elem_name;
@@ -125,6 +126,12 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
         setup_property_ply(in_ply, &vert_props[0]);
         setup_property_ply(in_ply, &vert_props[1]);
         setup_property_ply(in_ply, &vert_props[2]);
+        if (in_ply->elems[i]->nprops > 5) {
+          has_color = true;
+          setup_property_ply(in_ply, &vert_props[3]);
+          setup_property_ply(in_ply, &vert_props[4]);
+          setup_property_ply(in_ply, &vert_props[5]);
+        }
         for (j = 0; j < elem_count; j++) {
           vlist[j] = (Vertex *)malloc(sizeof(Vertex));
           get_element_ply(in_ply, (void *)vlist[j]);
@@ -142,7 +149,7 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
     close_ply(in_ply);
     // smoosh data into the mesh object
 
-    Material *m = new Material();
+    Material *m = has_color ? nullptr : new Material();
     Mesh *mesh = new Mesh(m);
     vert = vlist[0];
     xmin = vert->x;
@@ -161,6 +168,9 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
       ymax = MAX(vert->y, ymax);
       zmax = MAX(vert->z, zmax);
       mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
+      if (has_color) {
+        mesh->addVertexColor(glm::vec3(vert->cx / 255.f, vert->cy / 255.f, vert->cz / 255.f));
+      }
     }
     glm::vec3 lower(xmin, ymin, zmin);
     glm::vec3 upper(xmax, ymax, zmax);
