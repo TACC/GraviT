@@ -76,13 +76,13 @@ public:
       gvt::render::actor::RayPacketIntersection<simd_width> rp(chead, ray_end);
 
 #ifdef GVT_BRUTEFORCE
-      std::cout << "BVH:intersect() scanning " << instanceSet.size() << " instances"<<std::endl;
+     // std::cout << "BVH:intersect() scanning " << instanceSet.size() << " instances"<<std::endl;
       for (int i = 0; i < instanceSet.size(); i++) {
-          std::cout << "BVH:intersect() intersecting instance " << instanceSetID[i] << " from " << from <<std::endl;
+      //    std::cout << "BVH:intersect() intersecting instance " << instanceSetID[i] << " from " << from <<std::endl;
         if (from == instanceSetID[i]) continue;
         int hit[simd_width];
         const primitives::Box3D &ibbox = *instanceSetBB[i];
-        std::cout << "BVH:intersect() calling rp.intersect"<<std::endl;
+     //   std::cout << "BVH:intersect() calling rp.intersect"<<std::endl;
         rp.intersect(ibbox, hit, true);
         {
           for (int o = 0; o < simd_width; ++o) {

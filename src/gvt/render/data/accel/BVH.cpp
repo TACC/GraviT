@@ -40,7 +40,7 @@ using namespace gvt::render::data::primitives;
 // #define DEBUG_ACCEL
 
 BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(instanceSet), root(NULL) {
-  std::cout << "BVH: constructor" << std::endl;
+  //std::cout << "BVH: constructor" << std::endl;
   gvt::core::Vector<gvt::core::DBNodeH> sortedInstanceSet;
   root = build(sortedInstanceSet, 0, instanceSet.size(), 0);
 
@@ -53,7 +53,7 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   for (auto &node : this->instanceSet) {
     instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
     instanceSetID.push_back(node["id"].value().toInteger());
-    std::cout << "node id "<< node["id"].value().toInteger() << std::endl;
+    //std::cout << "node id "<< node["id"].value().toInteger() << std::endl;
   }
 }
 

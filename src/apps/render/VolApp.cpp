@@ -299,7 +299,6 @@ int main(int argc, char **argv) {
   if (!cmd.isSet("threads")) {
     tbb::task_scheduler_init init(std::thread::hardware_concurrency());
   } else {
-    std::cout << " setting " << cmd.get<int>("threads") << " threads " << std::endl;
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
 
@@ -363,10 +362,8 @@ int main(int argc, char **argv) {
   // provided there are more domains than ranks. If not then each rank will read at most
   // one domain. Either way the particular domain is responsible for creating and 
   // sharing the database node with the rest of the ranks. 
-  std::cout << " worldsize " << worldsize <<  " domains " << volheader.numberofdomains<<std::endl;
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
-        std::cout << "rank " << rank << " reading domain " << domain << std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
@@ -379,12 +376,12 @@ int main(int argc, char **argv) {
       // read transfer function. 
       tf->load(ctffile,otffile);
       // this value range is for small enzo data
-      //tf->setValueRange(glm::vec2(0.0,65536.0));
+      tf->setValueRange(glm::vec2(0.0,65536.0));
       //this value range is for large enzo data
       //tf->setValueRange(glm::vec2(0.0,1801.0));
       // this value range is for asteroid data
       // and for the zgradient data
-      tf->setValueRange(glm::vec2(0.0,1.0));
+      //tf->setValueRange(glm::vec2(0.0,1.0));
       // this value range is for sphere data
       //tf->setValueRange(glm::vec2(0.866,85.74));
       // push the sample data into the volume and fill the other
@@ -404,7 +401,6 @@ int main(int argc, char **argv) {
       *isoval = 0.75;
       //vol->SetIsovalues(1,isoval);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
-      std::cout << "min " << volbox->bounds_min << " max " << volbox->bounds_max << std::endl;
       // stuff it in the db
       VolumeNode["file"] = volumefile.c_str();
       VolumeNode["bbox"] = (unsigned long long)volbox;
@@ -529,8 +525,8 @@ int main(int argc, char **argv) {
 
   mycamera.AllocateCameraRays();
   mycamera.generateRays(true);
-  std::cout << " Initial camera rays " << std::endl;
-  mycamera.dumpraystostdout();
+  //std::cout << " Initial camera rays " << std::endl;
+  //mycamera.dumpraystostdout();
 
   int schedType = root["Schedule"]["type"].value().toInteger();
   switch (schedType) {

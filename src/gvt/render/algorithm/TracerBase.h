@@ -244,7 +244,6 @@ public:
   }
 
   void Initialize() {
-    std::cout << "TB: Initialize AbstractTrace" << std::endl;
     instancenodes = rootnode["Instances"].getChildren();
 
     int numInst = instancenodes.size();
@@ -281,7 +280,6 @@ public:
         lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
       }
     }
-    std::cout << "TB: AbstractTrace init complete" << std::endl;
   }
 
   void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
@@ -316,22 +314,19 @@ public:
 
       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
 
-      std::cout << " TB " << hits.size() << " ray hits " << std::endl;
       for (size_t i = 0; i < hits.size(); i++) {
         gvt::render::actor::Ray &r = *(raysit.begin() + i);
         bool write_to_fb = false;
         int target_queue = -1;
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
-        std::cout << " shuffle ray " << r.id << std::endl;
-         if(r.depth & RAY_BOUNDARY){
-         std::cout << " got ray boundary " << r.depth << std::endl;
+         if(r.depth & RAY_BOUNDARY){ 
+         // check to see if this ray hit anything in bvh
            if(hits[i].next != -1) {
-           std::cout << " push ray onto target_queue " << hits[i].next << std::endl;
+             r.depth &= ~RAY_BOUNDARY;
              r.origin = r.origin + r.direction *(hits[i].t * (1.0f+std::numeric_limits<float>::epsilon()));
              target_queue = hits[i].next;
-             local_queue[hits[i].next].push_back(r);
+             //local_queue[hits[i].next].push_back(r);
              } else {
-                 std::cout << " turn off ray_boundary bit and turn on ray_external_boundary" << std::endl;
                r.depth &= ~RAY_BOUNDARY;
                r.depth |= RAY_EXTERNAL_BOUNDARY;
                target_queue = -1;
@@ -339,17 +334,13 @@ public:
            }
          // check types
          if(r.type == RAY_PRIMARY) {
-             std::cout << " got primary ray " << std::endl;
            if((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
-               std::cout << " write to fb. r.depth = " << r.depth << std::endl;
              write_to_fb = true;
              target_queue = -1;
            } else if(r.depth & ~RAY_BOUNDARY) {
-               std::cout << " set target_queue to " << domID << std::endl;
              target_queue = domID;
            }
         } else if(r.type == RAY_SHADOW) {
-             std::cout << " got shadow ray " << std::endl;
           if(r.depth & RAY_EXTERNAL_BOUNDARY) {
             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
             colorBuf[r.id] += glm::vec4(r.color,r.w);
@@ -358,7 +349,6 @@ public:
             local_queue[hits[i].next].push_back(r);
           }
         } else if(r.type == RAY_AO) {
-             std::cout << " got AO ray " << std::endl;
           if(r.depth &(RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
             colorBuf[r.id] += glm::vec4(r.color,r.w);
@@ -368,7 +358,6 @@ public:
           }
         }
         if(write_to_fb) {
-            std::cout << "write to fb " << r.color << " " << r.w << std::endl;
           tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
           colorBuf[r.id] += glm::vec4(r.color,r.w);
         }

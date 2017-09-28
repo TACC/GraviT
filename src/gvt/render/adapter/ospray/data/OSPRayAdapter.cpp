@@ -71,8 +71,6 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
         ospSetData(theOSPVolume,"slices",sliceData);
     }
     data->GetIsovalues(n_isovalues,isovalues);
-    std::cout << "ospadapter: width " << width << " height " << height ;
-    std::cout << " nslices nisos " << n_slices<< " " << n_isovalues << std::endl;
     if(n_isovalues != 0) {
         std::cout << "got isovalue " << n_isovalues << " "  << std::endl;
         dolights = true;
@@ -98,7 +96,7 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data):Adapte
     spacing.y = volumespacing.y;
     spacing.z = volumespacing.z;
     ospSetVec3f(theOSPVolume,"gridSpacing",spacing);
-    std::cout << "ospadapt: global origin: dimensions:spacing " << globalorigin <<":"<<volumedimensions<<":"<<volumespacing << std::endl;
+    //std::cout << "ospadapt: global origin: dimensions:spacing " << globalorigin <<":"<<volumedimensions<<":"<<volumespacing << std::endl;
     gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
     // as of now only two voxel types are supported by the ospray lib
     switch(vt){
@@ -161,7 +159,7 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
                 (out->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
                 (out->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
         }
-    } else { raycount = 0; std::cout << " no generated rays " << std::endl;}
+    } else { raycount = 0; }
     // now do the rl rays which may be terminated as indicated in their term variable.  
     moved_rays.resize(raycount + rl->GetCount());
     for(int i=raycount, ii=0; i <raycount + rl->GetCount();i++,ii++){
@@ -175,7 +173,6 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
         ray.color.r = rl->xr.r[ii];
         ray.color.g = rl->xr.g[ii];
         ray.color.b = rl->xr.b[ii];
-            std::cout << i << " " << rl->xr.r[i] << " " << rl->xr.g[i] << " " << rl->xr.b[i] << std::endl;
         ray.w = rl->xr.o[ii];
         ray.t = rl->xr.t[ii];
         ray.t_max = rl->xr.tMax[ii];
@@ -210,7 +207,7 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
         out->xr.type[i] = rayList[i].type == RAY_PRIMARY ? EXTERNAL_RAY_PRIMARY :
             rayList[i].type == RAY_SHADOW ? EXTERNAL_RAY_SHADOW :
             rayList[i].type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
-        out->xr.term[i] = rayList[i].depth;
+        out->xr.term[i] = rayList[i].depth; // depth stored in extermal term variable
         // x and y are calculated from ray id and image dimensions. 
         out->xr.x[i] = rayList[i].id % width; 
         out->xr.y[i] = rayList[i].id / width; 
@@ -271,7 +268,6 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
     // convert GVT RayVector into the OSPExternalRays used by ospray. 
     OSPExternalRays rl = GVT2OSPRays(rayList);
     // trace'em 
-    std::cout << "calling ospTraceRays " << rl->GetCount() << std::endl;
     OSPExternalRays out = ospTraceRays(theOSPRenderer,rl); // ospray trace
     // push everything from out and rl into moved_rays for sorting into houses
     OSP2GVTMoved_Rays(out,rl,moved_rays);
