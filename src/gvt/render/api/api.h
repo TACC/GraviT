@@ -50,6 +50,14 @@ void gvtInit(int argc, char **argv);
 // void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
 //              std::string meshname);
 
+/* Reads ply files in a directory.
+ * \param[in] dirname Name of directory containing ply files.
+ * \param[in] dist True if multiple nodes are used.
+ * \param[out] world_bounds Min/Max coordinates for world bounds. bounds_min(x,y,z) and bounds_max(x,y,z).
+ */
+void readPly(const std::string dirname, bool dist, float *world_bounds);
+
+
 /* Creates a mesh with a unique name
  * \param Mesh unique name
  */

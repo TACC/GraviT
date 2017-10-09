@@ -13,6 +13,7 @@ from libcpp cimport bool
 
 cdef extern from "api.h":
   void _gvtInit"gvtInit"(int argc, char** argv)
+  void _readPly"readPly"(string dirname, bool dist, float* world_bounds)
   void _createMesh"createMesh"(string)
   void _addMeshVertices"addMeshVertices"(string name, unsigned &n, float *vertices)
   void _addMeshTriangles"addMeshTriangles"( string name,  unsigned &n,  unsigned *triangles)
@@ -62,6 +63,9 @@ def gvtInit():
   #   enc_arg = arg.encode('utf-8')
   #   argv[i] = ctypes.create_string_buffer(enc_arg)
   # _gvtInit(argc,argv)
+
+def readPly(str dirname, bool dist, np.ndarray[float, ndim=1, mode="c"] world_bounds):
+  _readPly(dirname.encode(), dist, <float*> world_bounds.data)
 
 def createMesh(str name):
   _createMesh(name.encode())

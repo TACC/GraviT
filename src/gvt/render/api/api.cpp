@@ -26,6 +26,7 @@ ACI-1339881 and ACI-1339840
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
+#include <gvt/render/data/reader/PlyReader.h>
 
 #include <string>
 
@@ -84,6 +85,66 @@ void gvtInit(int argc, char **argv) {
     // root node for renderer
     // cntxt->addToSync(cntxt->createNodeFromType("Schedule","Schedule",root.UUID()));
   }
+  cntxt->syncContext();
+}
+
+void readPly(const std::string dirname, bool dist, float *world_bounds) {
+  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+
+  gvt::core::DBNodeH root = cntxt->getRootNode();
+  // root += cntxt->createNode(
+  //     "threads", cmd.isSet("threads") ? (int)cmd.get<int>("threads") : (int)std::thread::hardware_concurrency());
+
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
+    cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
+  }
+
+  cntxt->syncContext();
+
+  gvt::core::DBNodeH dataNodes = root["Data"];
+  gvt::core::DBNodeH instNodes = root["Instances"];
+
+  gvt::render::data::domain::reader::PlyReader plyReader(dirname, dist);
+
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
+    Box3D bounds;
+
+    for (int k = 0; k < plyReader.getMeshes().size(); k++) {
+
+      // add instance
+      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
+      gvt::core::DBNodeH meshNode = dataNodes.getChildren()[k];
+      Box3D *mbox = (Box3D *)meshNode["bbox"].value().toULongLong();
+      instnode["id"] = k;
+      instnode["meshRef"] = meshNode.UUID();
+      auto m = new glm::mat4(1.f);
+      auto minv = new glm::mat4(1.f);
+      auto normi = new glm::mat3(1.f);
+      instnode["mat"] = (unsigned long long)m;
+      *minv = glm::inverse(*m);
+      instnode["matInv"] = (unsigned long long)minv;
+      *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
+      instnode["normi"] = (unsigned long long)normi;
+      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
+      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+      Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
+      instnode["bbox"] = (unsigned long long)ibox;
+      instnode["centroid"] = ibox->centroid();
+
+      bounds.merge(*ibox);
+
+      cntxt->addToSync(instnode);
+    }
+
+    world_bounds[0] = bounds.bounds_min[0];
+    world_bounds[1] = bounds.bounds_min[1];
+    world_bounds[2] = bounds.bounds_min[2];
+    world_bounds[3] = bounds.bounds_max[0];
+    world_bounds[4] = bounds.bounds_max[1];
+    world_bounds[5] = bounds.bounds_max[2];
+  }
+
   cntxt->syncContext();
 }
 
