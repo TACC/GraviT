@@ -106,7 +106,7 @@ struct bovheader {
     UINT,
     SHORT,
     UNKNOWN
-  } dfmt;
+  } dfmt,odfmt,idfmt;
   std::string variable;
   enum endian {
     BIG,
@@ -148,16 +148,16 @@ struct bovheader {
            }
         } else if(elems[0] == "DATA_FORMAT:") {
          if(elems[1] == "INT") { 
-           dfmt = INT;
+           idfmt = INT;
          } else if(elems[1] == "FLOAT") {
-           dfmt = FLOAT;
+           idfmt = FLOAT;
          } else if(elems[1] == "UINT") {
-           dfmt = UINT;
+           idfmt = UINT;
          } else if(elems[1] == "SHORT") {
-           dfmt = SHORT;
+           idfmt = SHORT;
          } else {
            cout << " BovReader: Unrecognized datatype " << endl;
-           dfmt = UNKNOWN;
+           idfmt = UNKNOWN;
          }
         } else if(elems[0] == "VARIABLE:" ) {
            variable = elems[1];
@@ -204,6 +204,8 @@ struct bovheader {
     origin[0] = (float)istart;
     origin[1] = (float)jstart;
     origin[2] = (float)kstart;
+    std::cout << istart << " " << jstart << " " <<kstart << std::endl;
+    std::cout << counts[0] << " " << counts[1] << " " << counts[2] << std::endl;
     myfile.open(datafile.c_str(), ios::in | ios::binary);
     if(!(myfile.good())) { 
       std::cout << " bad file open " << datafile.c_str() << std::endl;
@@ -213,7 +215,7 @@ struct bovheader {
     // make enough space for a single i vector. this should depend on type 
     // allocate enough space for samples
     samples = new float[counts[0]*counts[1]*counts[2]];
-    switch (dfmt) {
+    switch (idfmt) {
       case INT : {
         sample_bytes = sizeof(int);
         int *ibuffer = new int[counts[0]];
@@ -231,6 +233,7 @@ struct bovheader {
              samples[offset+i] = (float)ibuffer[i];
             }
           }
+        std::cout << "data " << samples[0] << std::endl;
         break;
       }
       case FLOAT : {
@@ -254,7 +257,7 @@ struct bovheader {
           break;
         }
       default: {
-                 std::cout << " messed up type " << dfmt << std::endl;
+                 std::cout << " messed up type " << idfmt << std::endl;
                  break;
                }
     }
@@ -262,7 +265,7 @@ struct bovheader {
     glm::vec3 lower(origin[0],origin[1],origin[2]);
     glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
     volbox = new gvt::render::data::primitives::Box3D(lower,upper);
-    dfmt = FLOAT;
+    odfmt = FLOAT;
     return samples;
   }
 };
@@ -281,6 +284,7 @@ int main(int argc, char **argv) {
 
   ParseCommandLine cmd("gvtVol");
 
+  cmd.addoption("upVector", ParseCommandLine::FLOAT, "upVector", 3);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
   cmd.addoption("volfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to Volume");
@@ -364,6 +368,7 @@ int main(int argc, char **argv) {
   // sharing the database node with the rest of the ranks. 
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
+        std::cout << " rank " << rank << " reading domain " << domain << std::endl;
       gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
         cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
@@ -371,6 +376,7 @@ int main(int argc, char **argv) {
         new gvt::render::data::primitives::Volume();
       // read volume file.
       float* sampledata = volheader.readdata(domain);
+      std::cout << "domain " << domain << " initial sample " << sampledata[0] << std::endl; 
       gvt::render::data::primitives::TransferFunction *tf = 
         new gvt::render::data::primitives::TransferFunction();
       // read transfer function. 
@@ -466,6 +472,11 @@ int main(int argc, char **argv) {
   if (cmd.isSet("eye")) {
     std::vector<float> eye = cmd.getValue<float>("eye");
     camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
+  }
+
+  if (cmd.isSet("upVector")) {
+    std::vector<float> upvec = cmd.getValue<float>("upVector");
+    camNode["upVector"] = glm::vec3(upvec[0], upvec[1], upvec[2]);
   }
 
   if (cmd.isSet("look")) {

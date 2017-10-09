@@ -184,6 +184,7 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
             (rl->xr.term[ii] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
             (rl->xr.term[ii] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
             (rl->xr.term[ii] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
+        //std::cout << "osp2gvt: ray "<<ray.id<<" color " << ray.color << " " <<ray.w << " type " << (ray.type) << " term " << (ray.depth) << " ospclr " << rl->xr.r[ii] << " " << rl->xr.g[ii]<< " " << rl->xr.b[ii]<<std::endl;
     }
 }
 // convert gravit to ospray rays format
@@ -266,10 +267,13 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
         ospCommit(theOSPRenderer);
     }
     // convert GVT RayVector into the OSPExternalRays used by ospray. 
+    std::cout << " ospadapter GVT -> osprays " << std::endl;
     OSPExternalRays rl = GVT2OSPRays(rayList);
     // trace'em 
+    std::cout << " ospadapter: ospTraceRays " << std::endl;
     OSPExternalRays out = ospTraceRays(theOSPRenderer,rl); // ospray trace
     // push everything from out and rl into moved_rays for sorting into houses
+    std::cout << " osprays -> GVT " << std::endl;
     OSP2GVTMoved_Rays(out,rl,moved_rays);
     // out and rl are no longer needed since they have been copied into moved_rays so 
     // whack 'em. 

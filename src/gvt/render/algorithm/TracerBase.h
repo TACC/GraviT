@@ -298,7 +298,16 @@ public:
    * to find out what instance they will hit next
    */
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
-
+    std::cout << "Ray_Primary " << std::bitset<8>(RAY_PRIMARY) << std::endl;
+    std::cout << "Ray_Shadow " << std::bitset<8>(RAY_SHADOW) << std::endl;
+    std::cout << "Ray_AO " << std::bitset<8>(RAY_AO) << std::endl;
+    std::cout << "Ray_EMPTY " << std::bitset<8>(RAY_EMPTY) << std::endl;
+    std::cout << "Ray_SURFACE" << std::bitset<8>(RAY_SURFACE) << std::endl;
+    std::cout << "Ray_OPAQUE" << std::bitset<8>(RAY_OPAQUE) << std::endl;
+    std::cout << "Ray_BOUNDARY" << std::bitset<8>(RAY_BOUNDARY) << std::endl;
+    std::cout << "Ray_TIMEOUT" << std::bitset<8>(RAY_TIMEOUT) << std::endl;
+    std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
+    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
     size_t chunksize =
         MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
 
@@ -313,12 +322,13 @@ public:
       acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
 
       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-
+      //std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
       for (size_t i = 0; i < hits.size(); i++) {
         gvt::render::actor::Ray &r = *(raysit.begin() + i);
         bool write_to_fb = false;
         int target_queue = -1;
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
+        //std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " << std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
          if(r.depth & RAY_BOUNDARY){ 
          // check to see if this ray hit anything in bvh
            if(hits[i].next != -1) {
@@ -332,6 +342,7 @@ public:
                target_queue = -1;
              }
            }
+        //std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " << std::bitset<8>(r.type) << std::endl;
          // check types
          if(r.type == RAY_PRIMARY) {
            if((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
@@ -359,6 +370,7 @@ public:
         }
         if(write_to_fb) {
           tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+          //std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
           colorBuf[r.id] += glm::vec4(r.color,r.w);
         }
         if(target_queue != -1) {
@@ -374,7 +386,6 @@ public:
         }
 #endif
       }
-
       for (auto &q : local_queue) {
 
         queue_mutex[q.first].lock();

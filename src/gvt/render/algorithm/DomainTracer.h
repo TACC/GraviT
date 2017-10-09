@@ -192,7 +192,7 @@ public:
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
     static tbb::simple_partitioner ap;
 
-    tbb::serial::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
       gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
       acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
@@ -202,7 +202,8 @@ public:
         if (hits[i].next != -1) {
           // move the origin to within 95% of the distance 
           // to the hit point of the domain. 
-          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+          //r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+          r.origin = r.origin + r.direction * (hits[i].t * (1.0f+std::numeric_limits<float>::epsilon()));
           const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
           if (inRank) {
             local_queue[hits[i].next].push_back(r);
@@ -283,7 +284,7 @@ public:
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
-           // std::cout << " DT: set instTarget to "<< instTarget << std::endl;
+            //std::cout << " DT: set instTarget to "<< instTarget << std::endl;
           }
         }
         t_sort.stop();
@@ -297,8 +298,10 @@ public:
           // 'getAdapterFromCache' functionality
           auto it = adapterCache.find(mesh);
           if (it != adapterCache.end()) {
+              std::cout << "found adapter in cache " << std::endl;
             adapter = it->second;
           } else {
+              std::cout << "no adapter in cache going to have to make one " << std::endl;
             adapter = 0;
           }
           if (!adapter) {
@@ -327,6 +330,7 @@ public:
             case gvt::render::adapter::Ospray:
               gvt::render::data::primitives::Volume *vol = dynamic_cast<gvt::render::data::primitives::Volume*> (mesh);
               if(vol) {
+                  std::cout << " building ospray vol adapter " << std::endl;
                 adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(vol);}
               else
                 adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(mesh);
@@ -352,6 +356,7 @@ public:
             t_trace.resume();
             gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
+            //std::cout << "DT:calling adapter->trace for instanceTarget " << instTarget << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
                            instMinvN[instTarget], lights);
             this->queue[instTarget].clear();
