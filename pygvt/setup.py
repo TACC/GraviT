@@ -57,7 +57,6 @@ if sys.platform == 'darwin':
     compile_args.append('-stdlib=libc++')
     mpi_mac="-mt"
 
-
 extensions = [
     Extension("gvt",["src/gvt/gvt.pyx"],
         include_dirs = [
@@ -72,15 +71,14 @@ extensions = [
             numpy.get_include()],
         libraries = [
         "gvtRender","gvtCore",
+        "plyloader",
         "IceTGL","IceTMPI","IceTCore",
         "embree",
         "boost_system"+mpi_mac,
         "mpi",
         "mpicxx",
         "irc",
-        "imf",
-
-
+        "imf"
         ],
         library_dirs = [
             embree_lib,
@@ -99,5 +97,5 @@ setup(
     cmdclass = {"build_ext": build_ext},
     version="1.0.0",
     ext_modules = extensions
-    #ext_modules = cythonize(extensions)
+    # ext_modules = cythonize(extensions)
 )

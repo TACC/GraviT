@@ -41,3 +41,13 @@ display bunny.ppm
 display wavelet.ppm
 display block0.ppm
 ```
+```
+Set GVT model directory. This is optional.
+export GVT_MODELS=/work/03378/hpark/maverick/gvtmodels
+
+source test_example_plyapp.sh
+display wavelet_color.ppm
+
+If GVT_MODELS is set, open enzocolor.ppm.
+display enzocolor.ppm
+```

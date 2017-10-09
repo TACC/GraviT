@@ -124,6 +124,9 @@ if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
   MESSAGE(SEND ERRORS "ply reader header not found")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
+add_library(plyloader ${PLYPATH}/ply.c)
+# install(FILES ${PLYPATH}/ply.h DESTINATION include/)
+
 #TODO best way to just include embre folder ?
 set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
 
@@ -429,7 +432,7 @@ endif(GVT_CORE)
 if (GVT_RENDER)
   set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS})
 
-  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS})
+  set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader plyloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS})
   include_directories(${TINYOBJPATH} ${PLYPATH})
 
   # find_package(Boost REQUIRED COMPONENTS system)
