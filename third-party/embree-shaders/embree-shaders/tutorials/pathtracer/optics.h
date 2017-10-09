@@ -43,7 +43,7 @@ inline Sample3f refract(const Vec3fa& V, const Vec3fa& N, const float eta,
 {
   const float k = 1.0f-eta*eta*(1.0f-cosi*cosi);
   if (k < 0.0f) { cost = 0.0f; return Sample3f(Vec3fa(0.f),0.0f); }
-  cost = sqrt(k);
+  cost = embree::sqrt(k);
   return Sample3f(eta*(cosi*N-V)-cost*N, sqr(eta));
 }
 
@@ -66,7 +66,7 @@ inline float fresnelDielectric(const float cosi, const float eta)
 {
   const float k = 1.0f-eta*eta*(1.0f-cosi*cosi);
   if (k < 0.0f) return 1.0f;
-  const float cost = sqrt(k);
+  const float cost = embree::sqrt(k);
   return fresnelDielectric(cosi, cost, eta);
 }
 
@@ -133,13 +133,13 @@ struct PowerCosineDistribution {
 };
 
 inline float eval(const PowerCosineDistribution &This, const float cosThetaH) {
-  return (This.exp+2) * (1.0f/(2.0f*(float(pi)))) * pow(abs(cosThetaH), This.exp);
+  return (This.exp+2) * (1.0f/(2.0f*(float(pi)))) * embree::pow(embree::abs(cosThetaH), This.exp);
 }
 
 #if defined(ISPC)
 
 inline float eval(const PowerCosineDistribution &This, const float cosThetaH) {
-  return (This.exp+2) * (1.0f/(2.0f*(float(pi)))) * pow(abs(cosThetaH), This.exp);
+  return (This.exp+2) * (1.0f/(2.0f*(float(pi)))) * embree::pow(embree::abs(cosThetaH), This.exp);
 }
 #endif
 
@@ -148,7 +148,7 @@ inline void sample(const PowerCosineDistribution& This, const Vec3fa& wo, const 
 {
   Sample3f wh = powerCosineSampleHemisphere(s.x,s.y,N,This.exp);
   Sample3f r = reflect_(wo,wh.v);
-  wi = Sample3f(r.v,wh.pdf/(4.0f*abs(dot(wo,wh.v))));
+  wi = Sample3f(r.v,wh.pdf/(4.0f*embree::abs(dot(wo,wh.v))));
 }
 
 /*! Samples the power cosine distribution. */
@@ -157,7 +157,7 @@ inline void sample(const PowerCosineDistribution& This, const Vec3fa& wo, const 
 {
   Sample3f wh = powerCosineSampleHemisphere(s.x,s.y,N,This.exp);
   Sample3f r = reflect_(wo,wh.v);
-  wi = Sample3f(r.v,wh.pdf/(4.0f*abs(dot(wo,wh.v))));
+  wi = Sample3f(r.v,wh.pdf/(4.0f*embree::abs(dot(wo,wh.v))));
 }
 #endif
 

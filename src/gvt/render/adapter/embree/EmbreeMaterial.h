@@ -199,7 +199,7 @@ struct Velvety {
 inline Vec3fa Velvety__eval(const Velvety *This, const Vec3fa &wo, const DifferentialGeometry &dg, const Vec3fa &wi) {
   const float cosThetaO = clamp(dot(wo, dg.Ns));
   const float cosThetaI = clamp(dot(wi, dg.Ns));
-  const float sinThetaO = sqrt(1.0f - cosThetaO * cosThetaO);
+  const float sinThetaO = embree::sqrt(1.0f - cosThetaO * cosThetaO);
   const float horizonScatter = powf(sinThetaO, This->f);
   return (horizonScatter * cosThetaI * float(one_over_pi)) * This->R;
 }
