@@ -47,6 +47,7 @@ export GVT_MODELS=/work/03378/hpark/maverick/gvtmodels
 
 source test_example_plyapp.sh
 display wavelet_color.ppm
+display EnzoPlyData.ppm
 
 If GVT_MODELS is set, open enzocolor.ppm.
 display enzocolor.ppm
