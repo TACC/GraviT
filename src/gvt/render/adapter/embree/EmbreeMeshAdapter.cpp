@@ -529,10 +529,41 @@ struct embreeParallelTrace {
               const glm::vec3 &normal = manualNormal;
 
               Material *mat;
-              if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]])
+
+              if (!mesh->vertex_colors.empty()) { // per-vertex color available, create material here
+                // Get vertex indexes
+                gvt::render::data::primitives::Mesh::Face face = mesh->faces[ray4.primID[pi]];
+
+                int v0 = face.get<0>();
+                int v1 = face.get<1>();
+                int v2 = face.get<2>();
+
+                // Get U V Coordinates
+
+                float u = ray4.u[pi];
+                float v = ray4.v[pi];
+
+                // Get color at each vertex
+                glm::vec3 c0 = mesh->vertex_colors[v0];
+                glm::vec3 c1 = mesh->vertex_colors[v1];
+                glm::vec3 c2 = mesh->vertex_colors[v2];
+                
+                // Interpolate colors
+                // given vertices v0, v1, v2, u and v are defined as
+                // u: v1-v0
+                // v: v2-v0
+                glm::vec3 ci = (c0 * (1.f - u - v)) + (c1 * u) + (c2 * v);
+
+                // Create Material
+                mat = new gvt::render::data::primitives::Material;
+                mat->type = LAMBERT;
+                mat->kd = ci;
+
+              } else if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray4.primID[pi]]) {
                 mat = mesh->faces_to_materials[ray4.primID[pi]];
-              else
+              } else {
                 mat = mesh->getMaterial();
+              }
 
               // reduce contribution of the color that the shadow rays get
               if (r.type == gvt::render::actor::Ray::SECONDARY) {
@@ -541,6 +572,11 @@ struct embreeParallelTrace {
               }
 
               generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
+
+              // In case we have per-vertex color information, destruct the material temporarily created
+              if (!mesh->vertex_colors.empty()) {
+                delete mat;
+              }
 
               int ndepth = r.depth - 1;
 

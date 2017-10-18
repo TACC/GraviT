@@ -1,0 +1,3 @@
+[submodule "third-party/icet"]
+	path = third-party/icet
+	url = https://gitlab.kitware.com/icet/icet.git

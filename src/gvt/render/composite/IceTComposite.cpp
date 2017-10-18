@@ -154,7 +154,7 @@ void IceTComposite::write(std::string filename) {
       // if (rgb[index + 0] == 0 || rgb[index + 1] == 0 || rgb[index + 2] == 0) std::cout
       // << ".";
       file << (unsigned char)(color_buffer_final[index + 0] * 255)
-           << (unsigned char)(color_buffer_final[index + 2] * 255)
+           << (unsigned char)(color_buffer_final[index + 1] * 255)
            << (unsigned char)(color_buffer_final[index + 2] * 255);
     }
   }

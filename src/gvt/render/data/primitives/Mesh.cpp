@@ -45,7 +45,12 @@ Mesh::Mesh(const Mesh &orig) {
   boundingBox = orig.boundingBox;
 }
 
-Mesh::~Mesh() { delete mat; }
+Mesh::~Mesh() {
+  delete mat;
+  for (auto &m : materials) {
+    delete m;
+  }
+}
 
 void Mesh::addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal, glm::vec3 texUV) {
   vertices.push_back(vertex);
