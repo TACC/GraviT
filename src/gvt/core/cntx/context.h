@@ -33,28 +33,30 @@ template <typename Variant, typename Derived> struct context {
 
   std::map<identifier, anode<Variant>, idCompare> _map;
   std::map<std::string, identifier> _unique;
+
+
   std::atomic<unsigned> _identifier_counter;
 
   anode<Variant> _root;
 
   cntx::mpi::MPIGroup cntx_comm;
 
-  context() {
+  context() : _identifier_counter(0) {
 
     cntx_comm = mpi::MPIGroup(MPI_COMM_WORLD).duplicate();
-
     _root = createnode_allranks("Root", "Root", true);
-    createnode_allranks("Data", "Data", true, _root.getid());
-    createnode_allranks("Instances", "Instances", true, _root.getid());
-    createnode_allranks("Lights", "Lights", true, _root.getid());
-    createnode_allranks("Cameras", "Cameras", true, _root.getid());
-    createnode_allranks("Camera", "Camera", true, getUnique("Cameras").getid());
-    createnode_allranks("Films", "Films", true, _root.getid());
-    createnode_allranks("Film", "Film", true, getUnique("Films").getid());
-    createnode_allranks("Schedulers", "Schedulers", true, _root.getid());
-    createnode_allranks("Scheduler", "Scheduler", true, getUnique("Schedulers").getid());
-    createnode_allranks("DataLocality","DataLocality",true,_root.getid());
-    createnode("DataLoc",std::to_string(cntx_comm.rank),false,getUnique("DataLocality").getid());
+    createnode_allranks("Data", "Data", true, _root);
+    createnode_allranks("Instances", "Instances", true, _root);
+    createnode_allranks("Lights", "Lights", true, _root);
+    createnode_allranks("Cameras", "Cameras", true, _root);
+    createnode_allranks("Camera", "Camera", true, getUnique("Cameras"));
+    createnode_allranks("Films", "Films", true, _root);
+    createnode_allranks("Film", "Film", true, getUnique("Films"));
+    createnode_allranks("Schedulers", "Schedulers", true, _root);
+    createnode_allranks("Scheduler", "Scheduler", true, getUnique("Schedulers"));
+    createnode_allranks("DataLocality","DataLocality",true,_root);
+
+//    createnode("DataLoc",std::to_string(cntx_comm.rank),false,getUnique("DataLocality").getid());
 
 
   }
@@ -78,7 +80,9 @@ template <typename Variant, typename Derived> struct context {
   static anode<Variant> &root() { return instance()._root; }
 
   anode<Variant> &createnode(const std::string type = "node", const std::string name = "", bool const &unique = false,
-                             identifier const &parent = identifier()) {
+                             anode<Variant> const &parent = identifier()) {
+
+    std::cout << "Creating " << name << std::endl;
 
     if (unique) {
       if (_unique.find(name) != _unique.end())
@@ -87,9 +91,11 @@ template <typename Variant, typename Derived> struct context {
 
     cntx::anode<Variant> n;
     if (!unique)
-      n = anode<Variant>(identifier(cntx_comm.rank, _identifier_counter++), type, name, parent);
-    else
-      n = anode<Variant>(identifier(cntx_comm.rank, _identifier_counter++), name, name, parent);
+      n = anode<Variant>(identifier(cntx_comm.rank, _identifier_counter++), type, name, parent.getid());
+    else {
+
+      n = anode<Variant>(identifier(cntx_comm.rank, _identifier_counter++), name, name, parent.getid());
+    }
 
     n.unique = unique;
     _map[n.getid()] = n;
@@ -102,7 +108,7 @@ template <typename Variant, typename Derived> struct context {
   }
 
   anode<Variant> &createnode_allranks(const std::string type, const std::string name = "", bool const &unique = false,
-                                      identifier const &parent = identifier()) {
+                                      anode<Variant> const &parent = identifier()) {
 
     if (unique) {
       if (_unique.find(name) != _unique.end())
@@ -110,10 +116,13 @@ template <typename Variant, typename Derived> struct context {
     }
 
     cntx::anode<Variant> n;
+
     if (!unique)
-      n = anode<Variant>(identifier(identifier::all_ranks, _identifier_counter++), type, name, parent);
-    else
-      n = anode<Variant>(identifier(identifier::all_ranks, _identifier_counter++), name, name, parent);
+      n = anode<Variant>(identifier(identifier::all_ranks, _identifier_counter++), type, name, parent.getid());
+    else {
+      getUniqueIdentifier();
+      n = anode<Variant>(identifier(identifier::all_ranks, _identifier_counter++), name, name, parent.getid());
+    }
 
     n.unique = unique;
     _map[n.getid()] = n;
@@ -134,7 +143,17 @@ template <typename Variant, typename Derived> struct context {
     return os;
   }
 
-  void printtree(std::ostream &os, children_vector const &v = children_vector(), const unsigned depth = 0) {
+  void printdb() {
+
+    for(const auto &p : _map) {
+
+      std::cout << p.second << std::endl;
+
+    }
+
+  }
+
+  virtual void printtree(std::ostream &os, children_vector const &v = children_vector(), const unsigned depth = 0) {
 
     int rank = context::instance().cntx_comm.rank;
 
@@ -156,8 +175,14 @@ template <typename Variant, typename Derived> struct context {
     for (auto &c : v) {
       os << "[" << rank << "] ";
       for (int i = 0; i < depth - 1; i++) os << ".";
-      os << c << std::endl;
-      printtree(os, getChildren(c), depth + 1);
+
+      auto children = getChildren(c);
+
+      os << c << " {{ " << children.size() << " }} " << std::endl;
+
+
+
+      printtree(os, children, depth + 1);
     }
   }
 
@@ -173,12 +198,25 @@ template <typename Variant, typename Derived> struct context {
 
   inline std::vector<std::reference_wrapper<anode<Variant> > > getChildren(const anode<Variant> &n) {
     std::vector<std::reference_wrapper<anode<Variant> > > c;
+
+
     for (auto &kv : _map) {
+
       if (kv.second.getparent() == n.getid()) {
         c.push_back(std::ref(kv.second));
       }
+
     }
+
     return c;
+  }
+
+
+  inline unsigned getUniqueIdentifier() {
+    unsigned nid =0 ;
+    MPI_Allreduce(&_identifier_counter, &nid,1,MPI_UNSIGNED,MPI_MAX,cntx_comm.comm);
+    _identifier_counter = ++nid;
+    return _identifier_counter;
   }
 
   inline anode<Variant> &getUnique(const std::string name) {
@@ -186,6 +224,8 @@ template <typename Variant, typename Derived> struct context {
     if (_unique.find(name) != _unique.end()) {
       return _map[_unique[name]];
     }
+
+    std::cout << "not found" << std::endl;
 
     return anode<Variant>::error_node;
   }

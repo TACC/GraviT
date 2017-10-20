@@ -101,6 +101,7 @@ pack_basic(long);
 pack_basic(long long);
 pack_basic(unsigned long);
 pack_basic(unsigned long long);
+pack_basic(std::nullptr_t);
 
 pack_function_signature(std::string) {
   pack<std::size_t>(v.length());

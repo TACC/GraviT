@@ -74,7 +74,11 @@ struct identifier {
   void unpack(cntx::mpi::decode &dec) { id = dec.unpack<size_t>(); }
 };
 } // namespace details
+
+
 namespace mpi {
+
+
 pack_function_signature(details::identifier) { v.pack(*this); }
 
 unpack_function_signature(details::identifier) {

@@ -62,7 +62,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-
 #include <iostream>
 
 #ifdef __USE_TAU
@@ -89,8 +88,11 @@ void test_bvh(gvtPerspectiveCamera &camera);
 
 int main(int argc, char **argv) {
 
-  ParseCommandLine cmd("gvtSimple");
+  // gvtInit(argc, argv);
+  api2::gvtInit(argc, argv);
+  cntx::rcontext &db = cntx::rcontext::instance();
 
+  ParseCommandLine cmd("gvtSimple");
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
@@ -115,15 +117,85 @@ int main(int argc, char **argv) {
   tbb::task_scheduler_init *init;
   if (!cmd.isSet("threads")) {
     init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+    db.getUnique("threads") = std::thread::hardware_concurrency();
   } else {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+    db.getUnique("threads") = cmd.get<int>("threads");
   }
 
-  gvtInit(argc, argv);
-  api2::gvtInit(argc,argv);
-  cntx::rcontext &db = cntx::rcontext::instance();
+  if (db.cntx_comm.rank % 2 == 0) {
+    std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
+                                  0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
+
+    std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
+    float kd[] = { 1.f, 1.f, 1.f };
+
+    api2::createMesh("conemesh");
+    api2::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
+    api2::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
+    api2::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
+    api2::finishMesh("conemesh");
+  }
+  if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
+    std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
+
+                                  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
+
+                                  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
+
+                                  -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5,
+
+                                  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5,
+
+                                  -0.5, -0.5, 0.5,  -0.5, 0.5,  0.5,  -0.5, -0.5, -0.5, -0.5, 0.5,  -0.5
+
+    };
+
+    std::vector<unsigned> faces = {
+      1,  2,  3,  1,  3,  4,  17, 19, 20, 17, 20, 18, 6,  5,  8,  6,  8,  7,
+      23, 21, 22, 23, 22, 24, 10, 9,  11, 10, 11, 12, 13, 15, 16, 13, 16, 14,
+
+    };
+    float kd[] = { 1.f, 1.f, 1.f };
+
+    api2::createMesh("cubemesh");
+    api2::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
+    api2::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
+    api2::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
+    api2::finishMesh("cubemesh");
+  }
+
+  db.blindsync();
+
+  if (db.cntx_comm.rank == 0) {
+    // create a NxM grid of alternating cones / cubes, offset using i and j
+    int instId = 0;
+    int ii[2] = { -2, 3 }; // i range
+    int jj[2] = { -2, 3 }; // j range
+    for (int i = ii[0]; i < ii[1]; i++) {
+      for (int j = jj[0]; j < jj[1]; j++) {
+        auto m = new glm::mat4(1.f);
+        *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
+        *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
+        string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
+        string instanceName = "inst" + std::to_string(instId);
+
+        auto &mi = (*m);
+
+        float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                       mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+
+        api2::addInstance(instanceMeshname, mf);
+
+        // addInstance(instanceName, instanceMeshname, instId, m);
+        instId++;
+      }
+    }
+  }
+  db.blindsync();
   db.printtreebyrank(std::cout);
 
+#if 0
   // create a cone mesh with a particular material
   {
 
@@ -142,10 +214,6 @@ int main(int argc, char **argv) {
     addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
 
     finishMesh("conemesh");
-
-
-
-
 
 #else
     Material *m = new Material();
@@ -448,5 +516,8 @@ int main(int argc, char **argv) {
   // ren->render();
   // ren->WriteImage();
 
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+#endif
+
+  //  if (MPI::COMM_WORLD.Get_size() > 1)
+  MPI_Finalize();
 }

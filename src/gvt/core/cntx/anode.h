@@ -81,7 +81,6 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
   std::string getname() const { return name; }
 
   friend std::ostream &operator<<(std::ostream &os, const anode &other) {
-
     return (os << other.id << " " << other.getparent() << "[ " << other.name << " ] = " << other.v);
   }
 

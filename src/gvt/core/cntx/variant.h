@@ -166,12 +166,20 @@ private:
   }
 
   template <typename U> void _unpack(cntx::mpi::decode &dec, TypeNumber<0> = TypeNumber<0>()) {
-
     if (is<U>()) (*this) = dec.unpack<U>();
   }
 
   template <typename U, typename... Us>
-  void _unpack(cntx::mpi::decode &dec, TypeNumber<sizeof...(Us)> = TypeNumber<sizeof...(Us)>()) {
+  void _unpack(cntx::mpi::decode &dec, TypeNumber<sizeof...(Us)> TPS = TypeNumber<sizeof...(Us)>()) {
+
+    if(is<std::vector<int>>()) {
+
+      std::cout << "Ok Vector detected" << std::endl;
+      dec.unpack<U>();
+      std::cout << "Error above" << std::endl;
+      return;
+    }
+
     if (is<U>()) {
       (*this) = dec.unpack<U>();
     } else {

@@ -14,9 +14,11 @@
 namespace cntx {
 
 typedef details::variant<bool, int, float, double, unsigned, unsigned long, glm::vec3, std::string,
+
                          std::shared_ptr<glm::mat3>, std::shared_ptr<glm::mat4>,
-                         std::shared_ptr<gvt::render::data::primitives::Mesh>,
-                         std::shared_ptr<gvt::render::data::primitives::Box3D>, std::nullptr_t, identifier>
+                         std::shared_ptr<gvt::render::data::primitives::Box3D>,
+                         std::shared_ptr<gvt::render::data::primitives::Mesh>, std::shared_ptr<std::vector<int> >,
+                         identifier, std::nullptr_t>
     Variant;
 
 namespace mpi {
@@ -69,8 +71,47 @@ unpack_function_signature(std::shared_ptr<glm::mat4>) {
   return mptr;
 }
 
+pack_function_signature(std::shared_ptr<gvt::render::data::primitives::Box3D>) {
+  pack<glm::vec3>(v->bounds_min);
+  pack<glm::vec3>(v->bounds_max);
+}
+
+unpack_function_signature(std::shared_ptr<gvt::render::data::primitives::Box3D>) {
+  gvt::render::data::primitives::Box3D bb;
+  bb.bounds_min = unpack<glm::vec3>();
+  bb.bounds_max = unpack<glm::vec3>();
+  return std::make_shared<gvt::render::data::primitives::Box3D>(bb);
+}
+
+  pack_function_signature( std::shared_ptr<std::vector<int> >){
+
+    pack<size_t>(v->size());
+    std::cout << "Pack " << v->size() << " ";
+    for(int i =0 ; i < v->size(); i++) {
+      std::cout << ".";
+      pack<int>( (*v.get())[i]);
+    }
+    std::cout << std::endl;
+  }
+
+  unpack_function_signature( std::shared_ptr<std::vector<int> >){
+
+    size_t size = unpack<size_t>();
+    std::shared_ptr<std::vector<int>> v = std::make_shared<std::vector<int>>();;
+    std::cout << "Unpack ";
+    for(int i =0 ; i < size; i++) {
+      std::cout << ".";
+      v->push_back(unpack<int>());
+    }
+    std::cout << std::endl;
+    return v;
+  }
+
 pack_function_signature(std::shared_ptr<gvt::render::data::primitives::Mesh>) {
 
+  pack<std::nullptr_t>(nullptr);
+
+#if 0
   pack<bool>(v == nullptr);
   if (v != nullptr) {
 
@@ -89,7 +130,7 @@ pack_function_signature(std::shared_ptr<gvt::render::data::primitives::Mesh>) {
 
     pack<glm::vec3>(&mesh.vertices[0], mesh.vertices.size() * sizeof(glm::vec3));
   }
-
+#endif
   //    pack<float>(v[0]);
   //    pack<float>(v[1]);
   //    pack<float>(v[2]);
@@ -101,13 +142,24 @@ unpack_function_signature(std::shared_ptr<gvt::render::data::primitives::Mesh>) 
   //    v[1] = unpack<float>();
   //    v[2] = unpack<float>();
   //    return v;
-
+#if 0
   std::shared_ptr<gvt::render::data::primitives::Mesh> mesh = std::make_shared<gvt::render::data::primitives::Mesh>();
+#endif
 
-  return mesh;
+  return nullptr;
 }
 
 } // namespace mpi
+
+namespace details {
+
+inline std::ostream &operator<<(std::ostream &os, const std::shared_ptr<gvt::render::data::primitives::Box3D> &other) {
+  return (os << other->bounds_min << " x " << other->bounds_max);
+}
+
+
+
+} // namespace details
 
 } // namespace cntx
 

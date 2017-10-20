@@ -5,6 +5,8 @@
 #ifndef CONTEXT_UTILS_H
 #define CONTEXT_UTILS_H
 
+#include <vector>
+
 namespace cntx {
 
 namespace details {
@@ -50,7 +52,19 @@ template <typename T> struct is_shared_pointer<std::shared_ptr<T> > {
   enum { value = true };
 };
 
+  inline std::ostream &operator<<(std::ostream &os, const std::shared_ptr<std::vector<int>> &other) {
+
+    std::vector<int>& vec = *other.get();
+    os << " { ";
+    for(auto& v : vec) os << v << " ";
+    os << " } ";
+    return os;
+  }
+
 } // namespace details
+
+
+
 } // namespace cntx
 
 #endif // CONTEXT_UTILS_H

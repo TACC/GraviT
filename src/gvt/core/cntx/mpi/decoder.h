@@ -39,6 +39,21 @@ struct decode {
                              std::string(typeid(T).name()) + " node defined. ");
   };
 
+  template <typename T> inline std::shared_ptr<T> unpack(const size_t& size) {
+    if( size % sizeof(T) !=0) {
+      throw std::runtime_error("Encode size does not match");
+    }
+
+    std::cout << "Here" << std::endl;
+      std::shared_ptr<T> dst(new T[size / sizeof(T)]);
+      T* buf = &offset<T>(current_buffer_offset);
+      current_buffer_offset += size;
+      memcpy(dst.get(),buf,size);
+      return dst;
+//    throw std::runtime_error("Buffer unpacking of " +
+//                             std::string(typeid(T).name()) + " node defined. ");
+  };
+
   std::size_t remaining() const {
     return current_buffer_size - current_buffer_offset;
   }
@@ -68,6 +83,7 @@ unpack_basic(long);
 unpack_basic(long long);
 unpack_basic(unsigned long);
 unpack_basic(unsigned long long);
+unpack_basic(std::nullptr_t);
 
 unpack_function_signature(std::string) {
   std::size_t size = unpack<std::size_t>();   \

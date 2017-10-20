@@ -18,10 +18,12 @@ public:
   rcontext() : context<Variant, rcontext>() {}
 
   anode<Variant> &create_children(anode<Variant> const &n, const std::string &type) {
+
     std::size_t rank = n.getid().getrank();
 
     if (type == std::string("Camera")) {
       identifier tid = identifier(rank, _identifier_counter++);
+
       _map[tid] = anode<Variant>(tid, std::string("focus"), identifier(), n.getid());
       tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("eyePoint"), identifier(), n.getid());
@@ -46,13 +48,14 @@ public:
       _map[tid] = anode<Variant>(tid, std::string("outputPath"), identifier(), n.getid());
     } else if (type == std::string("Mesh")) {
       identifier tid = identifier(rank, _identifier_counter++);
-      _map[tid] = anode<Variant>(tid, std::string("file"), identifier(), n.getid());
+      _map[tid] = anode<Variant>(tid, std::string("file"), nullptr, n.getid());
       tid = identifier(rank, _identifier_counter++);
-      _map[tid] = anode<Variant>(tid, std::string("ptr"), identifier(), n.getid());
+      _map[tid] = anode<Variant>(tid, std::string("ptr"), nullptr, n.getid());
       tid = identifier(rank, _identifier_counter++);
-      _map[tid] = anode<Variant>(tid, std::string("bbox"), identifier(), n.getid());
+      _map[tid] = anode<Variant>(tid, std::string("bbox"), nullptr, n.getid());
       tid = identifier(rank, _identifier_counter++);
-      _map[tid] = anode<Variant>(tid, std::string("Locations"), identifier(), n.getid());
+      _map[tid] = anode<Variant>(tid, std::string("Locations"), nullptr, n.getid());
+
     } else if (type == std::string("Instance")) {
       identifier tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("id"), identifier(), n.getid());
@@ -92,18 +95,49 @@ public:
     }
     return _map[n.getid()];
   }
+#if 0
+    void printtree(std::ostream &os, children_vector const &v = children_vector(), const unsigned depth = 0) {
+
+    int rank = context::instance().cntx_comm.rank;
+
+    if (depth == 0) {
+      os << "DB Unique names .... ======================" << std::endl;
+
+      for (auto &n : _unique) {
+        os << n.first << ",";
+      }
+
+      os << std::endl;
+      os << "Database print =======================" << std::endl;
+      printtree(os, getChildren(_root), depth + 1);
+      return;
+    }
+
+    if (v.empty()) return;
+
+    for (auto &c : v) {
+      os << "[" << rank << "] ";
+      for (int i = 0; i < depth - 1; i++) os << ".";
+
+      auto children = getChildren(c);
+
+
+      if(c.get().name == "bbox") {
+      }
+      if(c.get().v.is<std::shared_ptr<gvt::render::data::primitives::Box3D>>()) {
+        os << "BBOX " << c.get().v.to<std::shared_ptr<gvt::render::data::primitives::Box3D>>() << std::endl;
+      }
+
+      os << c << " {{ " << children.size() << " }} " <<std::endl;
 
 
 
-  void addLocation(const cntx::node& n) {
-
-
-
-
-
+      printtree(os, children, depth + 1);
+    }
   }
+#endif
 
-
+  void addLocation(const cntx::node &n) {}
 };
 
 } // namespace cntx
