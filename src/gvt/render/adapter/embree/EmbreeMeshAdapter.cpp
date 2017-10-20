@@ -534,9 +534,9 @@ struct embreeParallelTrace {
                 // Get vertex indexes
                 gvt::render::data::primitives::Mesh::Face face = mesh->faces[ray4.primID[pi]];
 
-                int v0 = face.get<0>();
-                int v1 = face.get<1>();
-                int v2 = face.get<2>();
+                int v0 = std::get<0>(face);
+                int v1 = std::get<1>(face);
+                int v2 = std::get<2>(face);
 
                 // Get U V Coordinates
 

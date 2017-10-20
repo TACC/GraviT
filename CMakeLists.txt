@@ -213,6 +213,18 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
         src/gvt/core/cntx/anode.h
         src/gvt/core/cntx/utils.h
         src/gvt/core/cntx/variant.h
+
+
+        src/gvt/core/math/RandEngine.h
+        src/gvt/core/data/Transform.h
+        src/gvt/schedule/SchedulerBase.h
+        src/gvt/utils/global_counter.h
+        src/gvt/utils/timer.h
+        src/gvt/core/Actor.h
+        src/gvt/core/Debug.h
+        src/gvt/core/Math.h
+        src/gvt/core/Types.h
+
         )
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}

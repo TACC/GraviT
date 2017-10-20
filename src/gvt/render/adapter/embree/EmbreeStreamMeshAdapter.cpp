@@ -321,8 +321,8 @@ struct embreeStreamParallelTrace {
         ray[i].mask = -1;
         ray[i].time = gvt::render::actor::Ray::RAY_EPSILON;
       } else {
-        ray[i].tnear = (float)(1e100f);
-        ray[i].tfar = (float)(-1e100f);
+        ray[i].tnear = (float)(FLT_MAX);
+        ray[i].tfar = (float)(-FLT_MAX);
       }
     }
   }
@@ -367,8 +367,8 @@ struct embreeStreamParallelTrace {
           RTCRayN_time(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = gvt::render::actor::Ray::RAY_EPSILON;
 
         } else {
-          RTCRayN_tnear(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(1e100f);
-          RTCRayN_tfar(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(-1e100f);
+          RTCRayN_tnear(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(FLT_MAX);
+          RTCRayN_tfar(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(-FLT_MAX);
         }
         ++offset;
       }
@@ -962,9 +962,9 @@ struct embreeStreamParallelTrace {
                 // Get vertex indexes
                 gvt::render::data::primitives::Mesh::Face face = mesh->faces[ray1M[pi].primID];
 
-                int v0 = face.get<0>();
-                int v1 = face.get<1>();
-                int v2 = face.get<2>();
+                int v0 = std::get<0>(face);
+                int v1 = std::get<1>(face);
+                int v2 = std::get<2>(face);
 
                 // Get U V Coordinates
 
