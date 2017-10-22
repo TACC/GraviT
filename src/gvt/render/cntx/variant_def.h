@@ -86,24 +86,18 @@ unpack_function_signature(std::shared_ptr<gvt::render::data::primitives::Box3D>)
   pack_function_signature( std::shared_ptr<std::vector<int> >){
 
     pack<size_t>(v->size());
-    std::cout << "Pack " << v->size() << " ";
     for(int i =0 ; i < v->size(); i++) {
-      std::cout << ".";
       pack<int>( (*v.get())[i]);
     }
-    std::cout << std::endl;
   }
 
   unpack_function_signature( std::shared_ptr<std::vector<int> >){
 
     size_t size = unpack<size_t>();
     std::shared_ptr<std::vector<int>> v = std::make_shared<std::vector<int>>();;
-    std::cout << "Unpack ";
     for(int i =0 ; i < size; i++) {
-      std::cout << ".";
       v->push_back(unpack<int>());
     }
-    std::cout << std::endl;
     return v;
   }
 

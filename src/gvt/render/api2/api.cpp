@@ -283,18 +283,15 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
 
-void addInstance(std::string name, const float *am) {
+void addInstance(std::string instancename, std::string meshname, const float *am) {
 
   cntx::rcontext &db = cntx::rcontext::instance();
 
+  cntx::node &ameshnode = db.getUnique(meshname);
 
-  cntx::node &ameshnode = db.getUnique(name);
+  cntx::node &inode = db.createnode("Instance", instancename, true, db.getUnique("Instances").getid());
 
-
-
-  cntx::node &inode =
-      db.createnode("Instance", "Instance" + std::to_string(db.cntx_comm.rank) + std::to_string(db._identifier_counter),
-                    false, db.getUnique("Instances").getid());
+  // db.printtree(std::cout);
 
   std::shared_ptr<gvt::render::data::primitives::Box3D> mbox = getChildByName(ameshnode, "bbox");
 

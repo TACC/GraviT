@@ -16,6 +16,7 @@
 #include <map>
 #include <memory>
 
+#include <set>
 #include <stdio.h>
 #include <tuple>
 #include <vector>
@@ -23,6 +24,9 @@
 namespace cntx {
 
 template <typename Variant, typename Derived> struct context {
+
+  typedef anode<Variant> cnode;
+
   typedef std::vector<std::reference_wrapper<anode<Variant> > > children_vector;
 
   static context<Variant, Derived> *_singleton;
@@ -33,7 +37,6 @@ template <typename Variant, typename Derived> struct context {
 
   std::map<identifier, anode<Variant>, idCompare> _map;
   std::map<std::string, identifier> _unique;
-
 
   std::atomic<unsigned> _identifier_counter;
 
@@ -54,11 +57,9 @@ template <typename Variant, typename Derived> struct context {
     createnode_allranks("Film", "Film", true, getUnique("Films"));
     createnode_allranks("Schedulers", "Schedulers", true, _root);
     createnode_allranks("Scheduler", "Scheduler", true, getUnique("Schedulers"));
-    createnode_allranks("DataLocality","DataLocality",true,_root);
+    createnode_allranks("DataLocality", "DataLocality", true, _root);
 
-//    createnode("DataLoc",std::to_string(cntx_comm.rank),false,getUnique("DataLocality").getid());
-
-
+    //    createnode("DataLoc",std::to_string(cntx_comm.rank),false,getUnique("DataLocality").getid());
   }
 
   static std::shared_ptr<Derived> singleton() {
@@ -81,8 +82,6 @@ template <typename Variant, typename Derived> struct context {
 
   anode<Variant> &createnode(const std::string type = "node", const std::string name = "", bool const &unique = false,
                              anode<Variant> const &parent = identifier()) {
-
-    std::cout << "Creating " << name << std::endl;
 
     if (unique) {
       if (_unique.find(name) != _unique.end())
@@ -145,12 +144,10 @@ template <typename Variant, typename Derived> struct context {
 
   void printdb() {
 
-    for(const auto &p : _map) {
+    for (const auto &p : _map) {
 
       std::cout << p.second << std::endl;
-
     }
-
   }
 
   virtual void printtree(std::ostream &os, children_vector const &v = children_vector(), const unsigned depth = 0) {
@@ -180,8 +177,6 @@ template <typename Variant, typename Derived> struct context {
 
       os << c << " {{ " << children.size() << " }} " << std::endl;
 
-
-
       printtree(os, children, depth + 1);
     }
   }
@@ -199,33 +194,30 @@ template <typename Variant, typename Derived> struct context {
   inline std::vector<std::reference_wrapper<anode<Variant> > > getChildren(const anode<Variant> &n) {
     std::vector<std::reference_wrapper<anode<Variant> > > c;
 
-
     for (auto &kv : _map) {
 
       if (kv.second.getparent() == n.getid()) {
         c.push_back(std::ref(kv.second));
       }
-
     }
 
     return c;
   }
 
-
   inline unsigned getUniqueIdentifier() {
-    unsigned nid =0 ;
-    MPI_Allreduce(&_identifier_counter, &nid,1,MPI_UNSIGNED,MPI_MAX,cntx_comm.comm);
+    unsigned nid = 0;
+    MPI_Allreduce(&_identifier_counter, &nid, 1, MPI_UNSIGNED, MPI_MAX, cntx_comm.comm);
     _identifier_counter = ++nid;
     return _identifier_counter;
   }
+
+  inline unsigned nextIdentifier() { return _identifier_counter++; }
 
   inline anode<Variant> &getUnique(const std::string name) {
 
     if (_unique.find(name) != _unique.end()) {
       return _map[_unique[name]];
     }
-
-    std::cout << "not found" << std::endl;
 
     return anode<Variant>::error_node;
   }
@@ -241,78 +233,139 @@ template <typename Variant, typename Derived> struct context {
 
   static inline std::vector<std::reference_wrapper<anode<Variant> > > getDirty(int all = -1) {
     std::vector<std::reference_wrapper<anode<Variant> > > _d;
+
     for (auto &kv : context::instance()._map) {
       if (kv.second.id.isDirty() && (all == -1 || kv.second.id.getrank() == all) &&
           !(kv.first == context::instance().rootid())) {
         _d.push_back(kv.second);
       }
     }
+
     return _d;
   }
 
-  static inline int specialkeywork(const std::string &str) {
-
-    const unsigned number_of_keywords = 4;
-    std::string special_name[] = { "Data", "Mesh", "location", "ptr" };
-
-    for (int i = 0; i < number_of_keywords; i++) {
-      if (str == special_name[i]) return i;
+  static inline void replaceNodeID(const identifier oid, const identifier nid) {
+    context &db = context::instance();
+    auto n = db._map[oid];
+    for (auto &v : db.getChildren(n)) {
+      v.get().setparent(nid);
     }
-    return -1;
+
+    n.setid(nid);
+    n.id.setDirty();
+    db._map.erase(oid);
+    db._map[nid] = n;
+    db._unique[n.name] = n.id;
   }
 
-  static inline void sync() {
+  static inline void recursiveChildReplace(anode<Variant> &v) {
+    context &db = context::instance();
+    replaceNodeID(v.getid(), identifier(identifier::all_ranks, db.nextIdentifier()));
+    for (auto &rn : db.getChildren(v)) {
+      cnode &n = rn.get();
+      recursiveChildReplace(n);
+    }
+  }
 
+  static inline size_t countChildrenRecursively(anode<Variant> &v) {
+    context &db = context::instance();
+    size_t count = 0;
+    for (auto &rn : db.getChildren(v)) {
+      cnode n = rn.get();
+      count = countChildrenRecursively(n);
+    }
+    return count + 1;
+  }
+
+  static inline context::children_vector gatherChildrenRecursively(anode<Variant> &v) {
+    context &db = context::instance();
+    context::children_vector c;
+    for (auto &rn : db.getChildren(v)) {
+      // c.push_back(rn);
+      context::children_vector r = gatherChildrenRecursively(rn.get());
+      c.insert(c.end(), r.begin(), r.end());
+    }
+    c.push_back(v);
+    return c;
+  }
+
+  static inline void sendString(const std::string &s, const unsigned &root) {
+    context &db = context::instance();
+    unsigned size = s.length();
+    char *str = new char[size];
+    memcpy(str, s.c_str(), size);
+    MPI_Bcast(&size, 1, MPI_UNSIGNED, root, db.cntx_comm.comm);
+    MPI_Bcast(str, s.length(), MPI_CHAR, root, db.cntx_comm.comm);
+    delete[] str;
+  }
+
+  static inline std::string receiveString(const unsigned &root) {
+    context &db = context::instance();
+    unsigned size = 0;
+    MPI_Bcast(&size, 1, MPI_UNSIGNED, root, db.cntx_comm.comm);
+    char *str = new char[size];
+    MPI_Bcast(str, size, MPI_CHAR, root, db.cntx_comm.comm);
+    std::string s(str, size);
+    delete[] str;
+    return s;
+  }
+
+  static inline void garantyUnique() {
     context &db = context::instance();
 
     if (db.cntx_comm.size <= 1) return;
 
-    context::children_vector d = getDirty((db.cntx_comm.rank == 0) ? -1 : db.cntx_comm.rank);
-
-    for (int i = 0; i < db.cntx_comm.size; ++i) {
-      if (db.cntx_comm.rank == i && d.size() > 0) {
-
-        for (anode<Variant> &c : d) {
-
-          switch (specialkeywork(c.name)) {
-          case 0: {
-            std::cout << "Data found ...." << std::endl;
-
-            break;
-          }
-
-          case 1: {
-            std::cout << "Mesh found ...." << std::endl;
-            break;
-          }
-
-          case 2: {
-            std::cout << "Location found ...." << std::endl;
-            break;
-          }
-
-          case 3: {
-            std::cout << "ptr found ...." << std::endl;
-            break;
-          }
-          default:
-            break;
-          }
-        }
-      } else {
+    unsigned long *unique_counter = new unsigned long[db.cntx_comm.size];
+    std::set<identifier> _unique_first;
+    std::set<std::string> _unique;
+    std::set<std::string> visited;
+    for (auto &v : db._unique) {
+      auto &n = v.second;
+      if (n.isDirty() && !v.second.isGlobal()) {
+        _unique_first.insert(v.second);
+        _unique.insert(v.first);
       }
     }
+
+    unsigned long s = _unique_first.size();
+    MPI_Allgather(&s, 1, MPI_UNSIGNED_LONG, unique_counter, 1, MPI_UNSIGNED_LONG, db.cntx_comm.comm);
+
+    for (int i = 0; i < db.cntx_comm.size; ++i) {
+      if (db.cntx_comm.rank == i) {
+        for (auto &s : _unique) {
+          // Coodinate new identity
+
+          unsigned id = db.getUniqueIdentifier();
+          sendString(s, i);
+          if (visited.find(s) == visited.end()) {
+            replaceNodeID(db._unique[s], identifier(identifier::all_ranks, id));
+            recursiveChildReplace(db._map[db._unique[s]]);
+          } else {
+          }
+
+          visited.insert(s);
+        }
+      } else {
+
+        for (int uu = 0; uu < unique_counter[i]; uu++) {
+          unsigned id = db.getUniqueIdentifier();
+          std::string s = receiveString(i);
+          if (db._unique.find(s) != db._unique.end() && visited.find(s) == visited.end()) {
+            replaceNodeID(db._unique[s], identifier(identifier::all_ranks, id));
+            recursiveChildReplace(db._map[db._unique[s]]);
+          } else {
+          }
+          visited.insert(s);
+        }
+      }
+      MPI_Barrier(db.cntx_comm.comm);
+    }
+    return;
   }
 
-
-  std::vector<cntx::details::identifier> getLocalityFor(const cntx::anode<Variant>& n) {
-
-    cntx::details::identifier id = n.getid();
-
-
-
-
-
+  static inline void sync() {
+    garantyUnique();
+    blindsync();
   }
 
   static inline void blindsync() {
@@ -321,7 +374,7 @@ template <typename Variant, typename Derived> struct context {
 
     if (db.cntx_comm.size <= 1) return;
 
-    context::children_vector d = getDirty((db.cntx_comm.rank == 0) ? -1 : db.cntx_comm.rank);
+    context::children_vector d = getDirty(-1);
     unsigned long *counter = new unsigned long[db.cntx_comm.size];
     counter[db.cntx_comm.rank] = d.size();
 
@@ -336,9 +389,7 @@ template <typename Variant, typename Derived> struct context {
       if (db.cntx_comm.rank == i && d.size() > 0) {
 
         for (auto &n : d) {
-
           n.get().id.resetDirty();
-
           cntx::mpi::encode enc;
           n.get().pack(enc);
           size_t s = enc.size();
@@ -349,20 +400,23 @@ template <typename Variant, typename Derived> struct context {
         }
 
       } else {
+
         for (int nn = 0; nn < counter[i]; ++nn) {
           size_t s;
           MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
           std::shared_ptr<cntx::mpi::decode::BYTE> buff((cntx::mpi::decode::BYTE *)malloc(s), free);
-
           cntx::mpi::decode dec(buff, s);
           MPI_Bcast(dec.buffer.get(), s, MPI_BYTE, i, db.cntx_comm.comm);
-
           anode<Variant> n;
           n.unpack(dec);
+
+          if (db._map.find(n.getid()) != db._map.end() && n.v.isPointer()) {
+            n.v = db._map[n.getid()].v;
+          }
+
           db._map[n.getid()] = n;
           db._map[n.getid()].id.resetDirty();
           if (n.unique) db._unique[n.name] = n.getid();
-
           MPI_Barrier(db.cntx_comm.comm);
         }
       }

@@ -59,6 +59,7 @@ struct identifier {
   static std::size_t allranks() { return all_ranks >> 32; }
 
   bool isInvalid() { return (id == invalid_id); }
+  bool isGlobal() { return ((id & rank_filter) == all_ranks); }
 
   int operator<(const identifier &other) const { return getid() < other.getid(); }
 
@@ -66,7 +67,7 @@ struct identifier {
 
   friend std::ostream &operator<<(std::ostream &os, const identifier &other) {
 
-    return (os << std::hex << "{ " << other.getid() << " }" << std::dec);
+    return (os << std::hex << "{ " << other.id << " }" << std::dec);
   }
 
   void pack(cntx::mpi::encode &enc) const { enc.pack<size_t>(id); }
@@ -75,9 +76,7 @@ struct identifier {
 };
 } // namespace details
 
-
 namespace mpi {
-
 
 pack_function_signature(details::identifier) { v.pack(*this); }
 

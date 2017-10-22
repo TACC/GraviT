@@ -165,35 +165,43 @@ int main(int argc, char **argv) {
     api2::finishMesh("cubemesh");
   }
 
-  db.blindsync();
+  // db.printtreebyrank(std::cout);
 
-  if (db.cntx_comm.rank == 0) {
-    // create a NxM grid of alternating cones / cubes, offset using i and j
-    int instId = 0;
-    int ii[2] = { -2, 3 }; // i range
-    int jj[2] = { -2, 3 }; // j range
-    for (int i = ii[0]; i < ii[1]; i++) {
-      for (int j = jj[0]; j < jj[1]; j++) {
-        auto m = new glm::mat4(1.f);
-        *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
-        *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
-        string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
-        string instanceName = "inst" + std::to_string(instId);
+  db.sync();
 
-        auto &mi = (*m);
+  // db.printtreebyrank(std::cout);
 
-        float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                       mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+  //  if(db.cntx_comm.rank == 0) {
+  //    db.printdb();
+  //  }
 
-        api2::addInstance(instanceMeshname, mf);
+#if 1
+  // if (db.cntx_comm.rank == 0) {
+  // create a NxM grid of alternating cones / cubes, offset using i and j
+  int instId = 0;
+  int ii[2] = { -2, 3 }; // i range
+  int jj[2] = { -2, 3 }; // j range
+  for (int i = ii[0]; i < ii[1]; i++) {
+    for (int j = jj[0]; j < jj[1]; j++) {
+      auto m = new glm::mat4(1.f);
+      *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
+      *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
+      string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
+      string instanceName = "inst" + std::to_string(instId);
 
-        // addInstance(instanceName, instanceMeshname, instId, m);
-        instId++;
-      }
+      auto &mi = (*m);
+
+      float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                     mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+
+      api2::addInstance(instanceName, instanceMeshname, mf);
+      instId++;
     }
   }
-  db.blindsync();
+  //}
+  db.sync();
   db.printtreebyrank(std::cout);
+#endif
 
 #if 0
   // create a cone mesh with a particular material

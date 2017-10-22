@@ -71,6 +71,8 @@ template <typename... Ts> struct variant {
 
   template <typename U> bool is(void) const { return tid == tindex<U, Ts...>::value; }
 
+  bool isPointer() { return _isPointer<Ts...>(); }
+
   variant() {}
 
   void pack(cntx::mpi::encode &enc) {
@@ -154,6 +156,16 @@ private:
     return os << to<U>();
   }
 
+  template <typename U> bool _isPointer(TypeNumber<0> = TypeNumber<0>()) { return is_shared_pointer<U>::value; }
+
+  template <typename U, typename... Us> bool _isPointer(TypeNumber<sizeof...(Us)> = TypeNumber<sizeof...(Us)>()) {
+    if (is<U>()) {
+      return is_shared_pointer<U>::value;
+    } else {
+      return _isPointer<Us...>(TypeNumber<sizeof...(Us) - 1>());
+    }
+  }
+
   template <typename U> void _pack(cntx::mpi::encode &enc, TypeNumber<0> = TypeNumber<0>()) { enc.pack<U>(to<U>()); }
 
   template <typename U, typename... Us>
@@ -172,7 +184,7 @@ private:
   template <typename U, typename... Us>
   void _unpack(cntx::mpi::decode &dec, TypeNumber<sizeof...(Us)> TPS = TypeNumber<sizeof...(Us)>()) {
 
-    if(is<std::vector<int>>()) {
+    if (is<std::vector<int> >()) {
 
       std::cout << "Ok Vector detected" << std::endl;
       dec.unpack<U>();

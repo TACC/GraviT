@@ -95,7 +95,7 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
 
-void addInstance(std::string name, const float *m);
+void addInstance(std::string instname, std::string meshname, const float *m);
 
 /* add a point light to the render context
  * \param name the name of the light

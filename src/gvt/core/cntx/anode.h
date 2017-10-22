@@ -71,6 +71,7 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
   identifier &getid() { return this->id; }
 
   identifier &getparent() { return this->parent; }
+  void setparent(identifier const &id) { this->parent = id; }
 
   identifier getid() const { return this->id; }
 
@@ -101,7 +102,7 @@ template <typename Variant = cntx::details::variant<bool> > struct anode {
   }
 };
 
-  template <typename V> cntx::anode<V> cntx::anode<V>::error_node = cntx::anode<V>();
+template <typename V> cntx::anode<V> cntx::anode<V>::error_node = cntx::anode<V>();
 
 } // namespace cntx
 #endif // CONTEXT_DBNODE_H_H
