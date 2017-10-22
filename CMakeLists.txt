@@ -329,7 +329,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
         src/gvt/render/api/api.cpp
         src/gvt/render/api2/api.cpp
 
-        src/gvt/render/cntx/rcontext.cpp
         )
 
 if (GVT_RENDER_ADAPTER_MANTA)

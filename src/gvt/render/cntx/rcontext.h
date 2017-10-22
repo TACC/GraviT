@@ -23,7 +23,6 @@ public:
 
     if (type == std::string("Camera")) {
       identifier tid = identifier(rank, _identifier_counter++);
-
       _map[tid] = anode<Variant>(tid, std::string("focus"), identifier(), n.getid());
       tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("eyePoint"), identifier(), n.getid());
