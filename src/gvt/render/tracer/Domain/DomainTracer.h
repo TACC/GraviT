@@ -46,7 +46,7 @@ namespace render {
 class DomainTracer : public gvt::render::RayTracer {
 private:
 protected:
-  gvt::core::Map<int, std::set<int> > remote;  /**< Maps instances ids to their remote nodes */
+  gvt::core::Map<int, unsigned > remote;  /**< Maps instances ids to their remote nodes */
   gvt::core::Map<int, bool> instances_in_node; /**< Determines if an instance (mesh) is available in the current node */
 
   std::shared_ptr<comm::vote::vote> v;        /**< Voting procedure */
@@ -131,7 +131,7 @@ public:
    * @param  i        Instance internal id
    * @return          Remote node id
    */
-  inline int pickNode(const int &i) { return *remote[i].begin(); }
+  inline int pickNode(const int &i) { return remote[i]; }
 
   /**
    * \brief Static method that allows the voting procedure to invoke the schedule isDone

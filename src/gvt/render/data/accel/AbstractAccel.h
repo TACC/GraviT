@@ -28,7 +28,7 @@
 #ifndef GVT_RENDER_DATA_ACCEL_ABSTRACT_ACCEL_H
 #define GVT_RENDER_DATA_ACCEL_ABSTRACT_ACCEL_H
 
-#include <gvt/core/context/CoreContext.h>
+#include <gvt/render/cntx/rcontext.h>
 
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/primitives/BBox.h>
@@ -44,12 +44,14 @@ namespace accel {
 /// abstract base class for acceleration structures
 class AbstractAccel {
 public:
-  AbstractAccel(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : instanceSet(instanceSet) {}
+  AbstractAccel(cntx::rcontext::children_vector &instanceSet) : instanceSet(instanceSet) {}
 
   virtual ~AbstractAccel() {}
 
 protected:
-  gvt::core::Vector<gvt::core::DBNodeH> instanceSet;
+
+  cntx::rcontext::children_vector instanceSet;
+
 };
 }
 }

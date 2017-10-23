@@ -48,7 +48,10 @@ template <typename... Ts> struct variant {
   template <typename U, typename = typename std::enable_if<check<U, Ts...>::value>::type>
   variant &operator=(const U &value) {
     safe_alloc(value);
+
     tid = tindex<U, Ts...>::value;
+
+
     return *this;
   }
 

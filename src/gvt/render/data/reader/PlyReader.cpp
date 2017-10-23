@@ -22,7 +22,8 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-#include <gvt/render/RenderContext.h>
+#include <gvt/render/api2/api.h>
+#include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/data/reader/PlyReader.h>
 
 #include <fstream>
@@ -66,14 +67,14 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
   std::string temp;
   std::string filename, filepath;
 
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-  if (cntxt == NULL) {
-    std::cout << "Something went wrong initializing the context" << std::endl;
-    exit(0);
-  }
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH dataNodes = root["Data"];
-  gvt::core::DBNodeH instNodes = root["Instances"];
+  auto &db = cntx::rcontext::instance();
+
+  //  gvt::core::DBNodeH root = cntxt->getRootNode();
+  //  gvt::core::DBNodeH dataNodes = root["Data"];
+  //  gvt::core::DBNodeH instNodes = root["Instances"];
+
+  auto &dataNodes = db.getUnique("Data");
+  auto &instNodes = db.getUnique("Instance");
 
   // Enzo isosurface...
   if (!file_exists(rootdir.c_str())) {
@@ -102,21 +103,14 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
       continue;
 #endif
 
-// if all ranks read all ply blocks, one has to create the db node which is then broadcasted.
-// if not, since each block will be loaded by only one mpi, this mpi rank will create the db node
-#ifndef DOMAIN_PER_NODE
-    if (MPI::COMM_WORLD.Get_rank() == 0)
-#endif
-      gvt::core::DBNodeH PlyMeshNode = cntxt->addToSync(cntxt->createNodeFromType("Mesh", *file, dataNodes.UUID()));
+    std::string meshname = "Mesh" + std::to_string(k);
 
-#ifndef DOMAIN_PER_NODE
-    cntxt->syncContext();
-    gvt::core::DBNodeH PlyMeshNode = dataNodes.getChildren()[k];
-#endif
+    api2::createMesh(meshname);
+
     filepath = *file;
     myfile = fopen(filepath.c_str(), "r");
     in_ply = read_ply(myfile);
-    bool has_color = false; 
+    bool has_color = false;
     for (i = 0; i < in_ply->num_elem_types; i++) {
       elem_name = setup_element_read_ply(in_ply, i, &elem_count);
       temp = elem_name;
@@ -147,58 +141,41 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
       }
     }
     close_ply(in_ply);
-    // smoosh data into the mesh object
 
     Material *m = has_color ? nullptr : new Material();
-    Mesh *mesh = new Mesh(m);
-    vert = vlist[0];
-    xmin = vert->x;
-    ymin = vert->y;
-    zmin = vert->z;
-    xmax = vert->x;
-    ymax = vert->y;
-    zmax = vert->z;
+    std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>(m);
 
-    for (i = 0; i < nverts; i++) {
-      vert = vlist[i];
-      xmin = MIN(vert->x, xmin);
-      ymin = MIN(vert->y, ymin);
-      zmin = MIN(vert->z, zmin);
-      xmax = MAX(vert->x, xmax);
-      ymax = MAX(vert->y, ymax);
-      zmax = MAX(vert->z, zmax);
-      mesh->addVertex(glm::vec3(vert->x, vert->y, vert->z));
+    std::shared_ptr<float> vtx(new float[nverts * 3], std::default_delete<float[]>());
+    std::shared_ptr<float> color(new float[nverts * 3], std::default_delete<float[]>());
+    std::shared_ptr<unsigned> fc(new unsigned[nverts * 3], std::default_delete<unsigned[]>());
+
+    float *avtx = vtx.get();
+    float *acolor = color.get();
+    unsigned *afc = fc.get();
+
+    for (int i = 0; i < nverts; i++) {
+      avtx[i * 3 + 0] = vlist[i]->x;
+      avtx[i * 3 + 1] = vlist[i]->y;
+      avtx[i * 3 + 2] = vlist[i]->z;
+
       if (has_color) {
-        mesh->addVertexColor(glm::vec3(vert->cx / 255.f, vert->cy / 255.f, vert->cz / 255.f));
+        acolor[i * 3 + 0] = float(vlist[i]->cx) / 255.f;
+        acolor[i * 3 + 0] = float(vlist[i]->cy) / 255.f;
+        acolor[i * 3 + 0] = float(vlist[i]->cz) / 255.f;
       }
     }
-    glm::vec3 lower(xmin, ymin, zmin);
-    glm::vec3 upper(xmax, ymax, zmax);
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-    // add faces to mesh
-    for (i = 0; i < nfaces; i++) {
-      face = flist[i];
-      mesh->addFace(face->verts[0] + 1, face->verts[1] + 1, face->verts[2] + 1);
+
+    for (int f = 0; f < nverts; f++) {
+      afc[i * 3 + 0] = flist[i]->verts[0];
+      afc[i * 3 + 1] = flist[i]->verts[1];
+      afc[i * 3 + 2] = flist[i]->verts[2];
     }
-    mesh->generateNormals();
 
-    PlyMeshNode["file"] = string(filepath);
-    PlyMeshNode["bbox"] = (unsigned long long)meshbbox;
-    PlyMeshNode["ptr"] = (unsigned long long)mesh;
-    gvt::core::DBNodeH loc;
-    if (!dist)
-      loc = cntxt->createNode("rank", MPI::COMM_WORLD.Get_rank());
-    else {
-      loc = cntxt->createNode("rank", (int)(k % MPI::COMM_WORLD.Get_size()));
-    }
-    PlyMeshNode["Locations"] += loc;
-
-    cntxt->addToSync(PlyMeshNode);
-
-    meshes.push_back(mesh);
+    api2::addMeshVertices(meshname, nverts, avtx);
+    api2::addMeshTriangles(meshname, nfaces, afc);
+    if (has_color) api2::addMeshVertexColor(meshname, nverts, acolor);
+    api2::finishMesh(meshname);
   }
-
-  cntxt->syncContext();
 }
 
 PlyReader::~PlyReader() {}

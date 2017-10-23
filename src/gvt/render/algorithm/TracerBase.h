@@ -34,14 +34,12 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
-#include <gvt/render/RenderContext.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
 
 #include <gvt/render/composite/composite.h>
-
 
 #include <algorithm>
 #include <numeric>
@@ -115,7 +113,7 @@ struct GVT_COMM {
       if (source == rank) continue;
       const size_t chunksize =
           MAX(GVT_SIMD_WIDTH,
-              partition_size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger()));
+              partition_size / (cntx::rcontext::instance().getUnique("threads").to<int>() * 4));
       static tbb::simple_partitioner ap;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
                         [&](tbb::blocked_range<size_t> chunk) {
@@ -151,80 +149,86 @@ public:
   ///! Define mpi communication world
   GVT_COMM mpi;
 
-  gvt::render::actor::RayVector &rays;    ///< Rays to trace
-  gvt::render::data::scene::Image &image; ///< Final image buffer
-  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
-  gvt::core::DBNodeH rootnode;
-  gvt::core::Vector<gvt::core::DBNodeH> instancenodes;
-  gvt::core::Map<int, gvt::render::data::primitives::Mesh *> meshRef;
-  gvt::core::Map<int, glm::mat4 *> instM;
-  gvt::core::Map<int, glm::mat4 *> instMinv;
-  gvt::core::Map<int, glm::mat3 *> instMinvN;
-  gvt::core::Vector<gvt::render::data::scene::Light *> lights;
+  // Just a ppointer to the database so that we don't have to keep going
+  cntx::rcontext &db;
+  std::string camname;
+  std::string filmname;
+  std::string schedulername;
 
-  gvt::render::data::accel::AbstractAccel *acceleration;
+  gvt::render::actor::RayVector &rays; ///< Rays to trace
+  std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera;
+  std::shared_ptr<gvt::render::data::scene::Image> image; ///< Final image buffer
+
+  gvt::core::Map<int, std::shared_ptr<gvt::render::data::primitives::Mesh> > meshRef;
+  gvt::core::Map<int, std::shared_ptr<glm::mat4> > instM;
+  gvt::core::Map<int, std::shared_ptr<glm::mat4> > instMinv;
+  gvt::core::Map<int, std::shared_ptr<glm::mat3> > instMinvN;
+  gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > lights;
+
+  std::shared_ptr<gvt::render::data::accel::AbstractAccel> acceleration;
 
   int width;
   int height;
 
   float sample_ratio;
 
-  tbb::mutex *queue_mutex;                                  // array of mutexes - one per instance
+  // array of mutexes - one per instance
   gvt::core::Map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
-  tbb::mutex *colorBuf_mutex;                               ///< buffer for color accumulation
+
+  // TODO: Change the pointers into a smart pointer semantic
+  // NOTE: Just not doing that now for time constrainst.
+
+  tbb::mutex *queue_mutex;
+  tbb::mutex *colorBuf_mutex; ///< buffer for color accumulation
   glm::vec4 *colorBuf;
 
   gvt::render::composite::composite img;
   bool require_composite;
 
-  AbstractTrace(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image)
-      : rays(rays), image(image) {
+  AbstractTrace(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
+                std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+                std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
+      : camera(camera), rays(camera->rays), image(image), db(cntx::rcontext::instance()), camname(camname),
+        filmname(filmname), schedulername(schedulername) {
 
-    rootnode = cntxt.getRootNode();
+    width = db.getChild(db.getUnique(filmname), "width");
+    height = db.getChild(db.getUnique(filmname), "height");
 
-    width = rootnode["Film"]["width"].value().toInteger();
-    height = rootnode["Film"]["height"].value().toInteger();
-
-    sample_ratio = 1.f;
+    sample_ratio = db.getChild(db.getUnique(camname), "rayMaxSamples");
 
     require_composite = false;
-    colorBuf = new glm::vec4[width * height];
     require_composite = img.initIceT();
-
-    // TODO: alim: this queue is on the number of domains in the dataset
-    // if this is on the number of domains, then it will be equivalent to the
-    // number
-    // of instances in the database
-
+    // NOTE : Replaced by smat pointer
+    // colorBuf = new glm::vec4[width * height];
     Initialize();
   }
 
   void resetBufferSize(const size_t &w, const size_t &h) {
     width = w;
     height = h;
-    if (colorBuf != nullptr) {
-      delete[] colorBuf;
-      delete[] colorBuf_mutex;
-    }
-    colorBuf_mutex = new tbb::mutex[width];
-    colorBuf = new glm::vec4[width * height];
+
+    // Create buffers using smart pointers
+    _colorBuf_mutex = std::shared_ptr < tbb::mutex > (new tbb::mutex[width], std::default_delete<tbb::mutex[]>());
+    _colorBuf = std::shared_ptr<glm::vec4>(new glm::vec4[width * height], std::default_delete<glm::vec4[]>());
+
+    // Alias buffers
+
+    colorBuf_mutex = _colorBuf_mutex.get();
+    colorBuf = _colorBuf.get();
+
     // std::cout << "Resized buffer" << std::endl;
   }
 
   virtual void resetInstances() {
 
-    if (acceleration) delete acceleration;
+    // Replace by smart pointer semantics
+    // if (acceleration) delete acceleration;
+    // if (queue_mutex) delete[] queue_mutex;
 
-    if (queue_mutex) delete[] queue_mutex;
     meshRef.clear();
     instM.clear();
     instMinv.clear();
     instMinvN.clear();
-
-    for (auto &l : lights) {
-      delete l;
-    }
-
     lights.clear();
 
     Initialize();
@@ -232,40 +236,50 @@ public:
 
   void Initialize() {
 
-    instancenodes = rootnode["Instances"].getChildren();
+    // TODO: Get all instances
 
-    int numInst = instancenodes.size();
+    // instancenodes = rootnode["Instances"].getChildren();
 
-    queue_mutex = new tbb::mutex[numInst];
-    colorBuf_mutex = new tbb::mutex[width];
+    auto inst = db.getChildren(db.getUnique("Instances"));
+    const size_t numInst = inst.size();
 
-    acceleration = new gvt::render::data::accel::BVH(instancenodes);
+    _queue_mutex = std::shared_ptr<tbb::mutex>(new tbb::mutex[numInst], std::default_delete< tbb::mutex[] > ());
 
-    for (int i = 0; i < instancenodes.size(); i++) {
-      meshRef[i] =
-          (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
-      instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
-      instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
-      instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
+    resetBufferSize(width, height);
+
+    acceleration = std::make_shared<gvt::render::data::accel::BVH>(inst);
+
+    // TODO :
+    for (int i = 0; i < inst.size(); i++) {
+
+      auto &n = inst[i].get();
+
+      meshRef[i] = db.getChild(n, "ptr");
+      instM[i] = db.getChild(n, "mat");
+      instMinv[i] = db.getChild(n, "matInv");
+      instMinvN[i] = db.getChild(n, "normi");
     }
 
-    auto lightNodes = rootnode["Lights"].getChildren();
+    auto lightNodes = db.getChildren(db.getUnique("Lights"));
 
     lights.reserve(2);
     for (auto lightNode : lightNodes) {
-      auto color = lightNode["color"].value().tovec3();
 
-      if (lightNode.name() == std::string("PointLight")) {
-        auto pos = lightNode["position"].value().tovec3();
-        lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-      } else if (lightNode.name() == std::string("AmbientLight")) {
-        lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-      } else if (lightNode.name() == std::string("AreaLight")) {
-        auto pos = lightNode["position"].value().tovec3();
-        auto normal = lightNode["normal"].value().tovec3();
-        auto width = lightNode["width"].value().toFloat();
-        auto height = lightNode["height"].value().toFloat();
-        lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+      auto &light = lightNode.get();
+
+      glm::vec3 color = db.getChild(light, "color");
+
+      if (light.type == std::string("PointLight")) {
+        glm::vec3 pos = db.getChild(light, "PointLight");
+        lights.push_back(std::make_shared<gvt::render::data::scene::PointLight>(pos, color));
+      } else if (light.type == std::string("AmbientLight")) {
+        lights.push_back(std::make_shared<gvt::render::data::scene::AmbientLight>(color));
+      } else if (light.type == std::string("AreaLight")) {
+        glm::vec3 pos = db.getChild(light, "position");
+        glm::vec3 normal = db.getChild(light, "normal");
+        auto width = db.getChild(light, "width");
+        auto height = db.getChild(light, "height");
+        lights.push_back(std::make_shared<gvt::render::data::scene::AreaLight>(pos, color, normal, width, height));
       }
     }
   }
@@ -287,9 +301,8 @@ public:
    */
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
-    const size_t chunksize =
-        MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
-    gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
+    const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<int>() * 4));
+    gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
     static tbb::auto_partitioner ap;
 
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -338,15 +351,28 @@ public:
 
     const size_t size = width * height;
     const size_t chunksize = MAX(
-        GVT_SIMD_WIDTH, size / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<int>() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
                       [&](tbb::blocked_range<size_t> chunk) {
-                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image.Add(i, final[i]);
+                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image->Add(i, final[i]);
                       },
                       ap);
     if (require_composite) delete[] final;
   }
+
+private:
+  // NOTE: Creating smart pointer so that I don't have to delete them later.
+  // NOTE: Not necessary, just don't want to manage memory manually
+
+  std::shared_ptr<tbb::mutex> _queue_mutex;
+  std::shared_ptr<tbb::mutex> _colorBuf_mutex;
+  std::shared_ptr<glm::vec4> _colorBuf;
+
+protected:
+  /// caches meshes that are converted into the adapter's format
+  gvt::core::Map<std::shared_ptr<gvt::render::data::primitives::Mesh>, std::shared_ptr<gvt::render::Adapter> >
+      adapterCache;
 };
 
 /// Generic Tracer interface for a base scheduling strategy with static inner
@@ -362,7 +388,10 @@ public:
  */
 template <class BSCHEDULER> class Tracer : public AbstractTrace {
 public:
-  Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {}
+  Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
+         std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+         std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
+      : AbstractTrace(camera, image, camname, filmname, schedulername) {}
 
   virtual ~Tracer() {}
 };
@@ -383,12 +412,15 @@ public:
 template <template <typename> class BSCHEDULER, class ISCHEDULER>
 class Tracer<BSCHEDULER<ISCHEDULER> > : public AbstractTrace {
 public:
-  Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {}
+  Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
+         std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+         std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
+      : AbstractTrace(camera, image, camname, filmname, schedulername) {}
 
   virtual ~Tracer() {}
 };
-}
-}
-}
+} // namespace algorithm
+} // namespace render
+} // namespace gvt
 
 #endif /* GVT_RENDER_ALGORITHM_TRACER_BASE_H */

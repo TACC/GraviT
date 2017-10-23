@@ -87,6 +87,16 @@ void addMeshMaterial(const std::string name, const unsigned mattype, const float
 void addMeshMaterials(const std::string name, const unsigned n, const unsigned *mattype, const float *kd,
                       const float *ks, const float *alpha);
 
+
+/**
+ * Add color to vertex
+ *
+ * @param name Name of the mesh
+ * @param n Number of vertex
+ * @param kd Color 3 * float per vertex (rgb)
+ */
+void addMeshVertexColor(const std::string name, const unsigned n, const float *kd);
+
 /**
  * each mesh needs one or more instance.
  * Insert an instance for a particular named mesh. The instance
@@ -197,7 +207,7 @@ void render(std::string name);
 
 void writeimage(std::string name, std::string output = "");
 
-void addRenderer(std::string name, int adapter, int schedule);
+void addRenderer(std::string name, int adapter, int schedule,  std::string const& Camera = "Camera", std::string const& Film = "Film");
 
 /**
  * modify a renderer in the context, if it exists
@@ -205,6 +215,6 @@ void addRenderer(std::string name, int adapter, int schedule);
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void modifyRenderer(std::string name, int adapter, int schedule);
+void modifyRenderer(std::string name, int adapter, int schedule, std::string const& Camera = "Camera", std::string const& Film = "Film");
 } // namespace api2
 #endif // GVT_RENDER_API_H

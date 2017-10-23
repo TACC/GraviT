@@ -49,7 +49,7 @@ part of its evaluation process.
 */
 class BVH : public AbstractAccel {
 public:
-  BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet);
+  BVH(cntx::rcontext::children_vector &instanceSet);
   ~BVH();
 
   struct hit {
@@ -141,9 +141,11 @@ private:
 
   struct CentroidLessThan {
     CentroidLessThan(float splitPoint, int splitAxis) : splitPoint(splitPoint), splitAxis(splitAxis) {}
-    bool operator()(const gvt::core::DBNodeH inst) const {
-      gvt::core::DBNodeH i2 = inst;
-      glm::vec3 centroid = i2["centroid"].value().tovec3();
+    bool operator()(const cntx::rcontext::cnode& inst) const {
+//      gvt::core::DBNodeH i2 = inst;
+      glm::vec3 centroid = cntx::rcontext::instance().getChild(inst,"centroid");
+
+          //i2["centroid"].value().tovec3();
       return (centroid[splitAxis] < splitPoint);
     }
 
@@ -152,11 +154,11 @@ private:
   };
 
 private:
-  Node *build(gvt::core::Vector<gvt::core::DBNodeH> &sortedDomainSet, int start, int end, int level);
+  Node *build(cntx::rcontext::children_vector &sortedDomainSet, int start, int end, int level);
 
   float findSplitPoint(int splitAxis, int start, int end);
 
-  gvt::core::Vector<gvt::render::data::primitives::Box3D *> instanceSetBB;
+  gvt::core::Vector<std::shared_ptr<gvt::render::data::primitives::Box3D>> instanceSetBB;
   gvt::core::Vector<int> instanceSetID;
 
 private:

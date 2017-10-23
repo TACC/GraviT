@@ -183,17 +183,12 @@ include_directories(${GVT_SRC_DIR})
 
 set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
         src/gvt/core/Actor.h
-        src/gvt/core/context/CoreContext.h
         src/gvt/core/data/Transform.h
-        src/gvt/core/context/Database.h
-        src/gvt/core/context/DatabaseNode.h
         src/gvt/core/Debug.h
         src/gvt/core/math/RandEngine.h
         src/gvt/core/Math.h
         src/gvt/core/schedule/SchedulerBase.h
         src/gvt/core/Types.h
-        src/gvt/core/context/Uuid.h
-        src/gvt/core/context/Variant.h
 
         src/gvt/core/comm/comm.h
         src/gvt/core/comm/communicator.h
@@ -228,12 +223,6 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
         )
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
-        src/gvt/core/context/CoreContext.cpp
-        src/gvt/core/context/Database.cpp
-        src/gvt/core/context/DatabaseNode.cpp
-        src/gvt/core/context/Uuid.cpp
-        src/gvt/core/context/Variant.cpp
-
         src/gvt/core/comm/communicator.cpp
         src/gvt/core/comm/communicator/acomm.cpp
         src/gvt/core/comm/communicator/scomm.cpp
@@ -305,7 +294,7 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
 
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
         src/gvt/render/actor/Ray.cpp
-        src/gvt/render/RenderContext.cpp
+
         src/gvt/render/Renderer.cpp
         src/gvt/render/data/reader/ObjReader.cpp
         src/gvt/render/data/reader/PlyReader.cpp
@@ -326,7 +315,6 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
         src/gvt/render/tracer/Domain/DomainTracer.cpp
         src/gvt/render/tracer/Domain/Messages/SendRayList.cpp
 
-        src/gvt/render/api/api.cpp
         src/gvt/render/api2/api.cpp
 
         )

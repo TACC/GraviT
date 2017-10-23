@@ -37,8 +37,11 @@ using namespace gvt::render::data::primitives;
 
 // #define DEBUG_ACCEL
 
-BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(instanceSet), root(NULL) {
-  gvt::core::Vector<gvt::core::DBNodeH> sortedInstanceSet;
+BVH::BVH(cntx::rcontext::children_vector &instanceSet) : AbstractAccel(instanceSet), root(NULL) {
+
+  cntx::rcontext& db = cntx::rcontext::instance();
+
+  cntx::rcontext::children_vector sortedInstanceSet;
   root = build(sortedInstanceSet, 0, instanceSet.size(), 0);
 
 #ifdef DEBUG_ACCEL
@@ -49,8 +52,10 @@ BVH::BVH(gvt::core::Vector<gvt::core::DBNodeH> &instanceSet) : AbstractAccel(ins
   std::swap(this->instanceSet, sortedInstanceSet);
 
   for (auto &node : this->instanceSet) {
-    instanceSetBB.push_back((Box3D *)node["bbox"].value().toULongLong());
-    instanceSetID.push_back(node["id"].value().toInteger());
+    instanceSetBB.push_back(db.getChild(node.get(),"bbox"));
+    instanceSetID.push_back(db.getChild(node.get(),"id"));
+
+    //instanceSetID.push_back(node["id"].value().toInteger());
   }
 }
 
@@ -62,7 +67,9 @@ BVH::~BVH() {
   }
 }
 
-BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, int start, int end, int level) {
+BVH::Node *BVH::build(cntx::rcontext::children_vector &sortedInstanceSet, int start, int end, int level) {
+  cntx::rcontext& db = cntx::rcontext::instance();
+
   Node *node = new Node();
 
   // TODO: better way to manange memory allocation?
@@ -71,7 +78,7 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
   // evaluate bounds
   Box3D bbox;
   for (int i = start; i < end; ++i) {
-    Box3D *tmpbb = (Box3D *)instanceSet[i]["bbox"].value().toULongLong();
+    Box3D *tmpbb = (db.getChild(instanceSet[i].get(),"bbox")).to<std::shared_ptr<Box3D>>().get();
     bbox.merge(*tmpbb);
   }
 
@@ -122,8 +129,9 @@ BVH::Node *BVH::build(gvt::core::Vector<gvt::core::DBNodeH> &sortedInstanceSet, 
 #endif
 
   // partition domains into two subsets
-  gvt::core::DBNodeH *instanceBound =
+  auto* instanceBound =
       std::partition(&instanceSet[start], &instanceSet[end - 1] + 1, CentroidLessThan(splitPoint, splitAxis));
+
   int splitIdx = instanceBound - &instanceSet[0];
 
   if (splitIdx == start || splitIdx == end) {
@@ -159,12 +167,14 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
   // choose split point based on SAH
   // SAH cost = c_t + (p_l * c_l) + (p_r * c_r)
   // for now, do exhaustive searches on both edges of all bounding boxes
+  auto& db = cntx::rcontext::instance();
+
   float minCost = std::numeric_limits<float>::max();
   float splitPoint;
 
   for (int i = start; i < end; ++i) {
 
-    Box3D &refBbox = *(Box3D *)instanceSet[i]["bbox"].value().toULongLong();
+    Box3D &refBbox = *(db.getChild(instanceSet[i].get(),"bbox").to<std::shared_ptr<Box3D>>().get());
 
     for (int e = 0; e < 2; ++e) {
 
@@ -176,7 +186,8 @@ float BVH::findSplitPoint(int splitAxis, int start, int end) {
       int leftCount = 0;
 
       for (int j = start; j < end; ++j) {
-        Box3D &bbox = *(Box3D *)instanceSet[j]["bbox"].value().toULongLong();
+        Box3D &bbox = *(db.getChild(instanceSet[j].get(),"bbox").to<std::shared_ptr<Box3D>>().get());
+
         if (bbox.centroid()[splitAxis] < edge) {
           ++leftCount;
           leftBox.merge(bbox);

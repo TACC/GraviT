@@ -30,8 +30,6 @@
  */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/context/Variant.h>
-#include <gvt/render/RenderContext.h>
 #include <gvt/render/Renderer.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -71,7 +69,6 @@
 #include "ParseCommandLine.h"
 #define USEAPI
 #ifdef USEAPI
-#include <gvt/render/api/api.h>
 #include <gvt/render/api2/api.h>
 #endif
 
@@ -207,7 +204,6 @@ int main(int argc, char **argv) {
     gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
     lcolor = glm::vec3(color[0], color[1], color[2]);
   }
-  std::cerr << "add point light" << std::endl;
 
   api2::addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
 
@@ -230,7 +226,6 @@ int main(int argc, char **argv) {
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
-  std::cerr << " add Camera " << std::endl;
   api2::addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
             jitterWindowSize);
   // film bits..
@@ -247,7 +242,6 @@ int main(int argc, char **argv) {
     gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     outputpath = output[0];
   }
-  std::cerr << " add film " << std::endl;
   api2::addFilm(filmname, width, height, outputpath);
 
 
@@ -255,7 +249,6 @@ int main(int argc, char **argv) {
 
 
   // render bits (schedule and adapter)
-  std::cerr << "render bits" << std::endl;
   string rendername("Enzoschedule");
   int schedtype;
   int adaptertype;
@@ -298,16 +291,13 @@ int main(int argc, char **argv) {
     std::cerr << "unknown adapter, " << adapter << ", specified." << std::endl;
     exit(1);
   }
-  std::cerr << "simplsApp: database setup complete - adding renderer" << std::endl;
 
-
-  api2::addRenderer(rendername, adaptertype, schedtype);
-
+  api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
+  db.printtreebyrank(std::cout);
   db.sync();
+  api2::render(rendername);
 
 #if 0
-
-  render(rendername);
   writeimage(rendername);
   // gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
   // ren->render();

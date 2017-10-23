@@ -9,6 +9,8 @@
 #include "mpi/encoder.h"
 #include "mpi/mpigroup.h"
 
+#include <gvt/core/tracer/tracer.h>
+
 #include <atomic>
 #include <climits>
 #include <functional>
@@ -34,6 +36,8 @@ template <typename Variant, typename Derived> struct context {
   struct idCompare {
     bool operator()(const identifier &lhs, const identifier &rhs) const { return lhs.getid() < rhs.getid(); }
   };
+
+  std::shared_ptr<gvt::core::Scheduler> tracer = nullptr;
 
   std::map<identifier, anode<Variant>, idCompare> _map;
   std::map<std::string, identifier> _unique;

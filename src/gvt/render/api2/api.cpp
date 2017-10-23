@@ -18,10 +18,8 @@ ACI-1339881 and ACI-1339840
 ======================================================================================= */
 
 // API functions
-#include <cassert.h>
+#include <cassert>
 #include <gvt/core/Math.h>
-#include <gvt/core/context/Variant.h>
-#include <gvt/render/RenderContext.h>
 #include <gvt/render/Renderer.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
@@ -60,13 +58,6 @@ void gvtInit(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  }
-  // initialize the context and a few other things.
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-  if (cntxt == NULL) // context creation failed
-  {
-    GVT_ERR_MESSAGE("gvtInit: context init failed");
-    exit(0);
   }
 
   cntx::node &root = cntx::rcontext::instance().root();
@@ -204,6 +195,17 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
   }
 }
 
+
+void addMeshVertexColor(const std::string name, const unsigned n, const float *kd) {
+
+  cntx::rcontext &db = cntx::rcontext::instance();
+  std::shared_ptr<gvt::render::data::primitives::Mesh> m = getChildByName(db.getUnique(name), "ptr");
+
+  for(int i=0; i <n ; i++) {
+    m->addVertexColor(glm::vec3(kd[i*3+0],kd[i*3+1],kd[i*3+2]));
+  }
+}
+
 /**
  * each mesh needs one or more instance.
  * Insert an instance for a particular named mesh. The instance
@@ -327,7 +329,8 @@ void addCamera(string name, const float *pos, const float *focus, const float *u
   cntx::rcontext &db = cntx::rcontext::instance();
   auto& c = db.createnode("Camera",name,true,db.getUnique("Cameras"));
   db.getChild(c,"eyePoint") = glm::make_vec3(pos);
-  db.getChild(c,"upVector") = glm::make_vec3(focus);
+  db.getChild(c,"focus") = glm::make_vec3(focus);
+  db.getChild(c,"upVector") = glm::make_vec3(up);
   db.getChild(c,"fov") = fov;
   db.getChild(c,"rayMaxDepth") = depth;
   db.getChild(c,"raySamples") = samples;
@@ -354,7 +357,8 @@ void modifyCamera(string name, const float *pos, const float *focus, const float
     return;
   }
   db.getChild(c,"eyePoint") = glm::make_vec3(pos);
-  db.getChild(c,"upVector") = glm::make_vec3(focus);
+  db.getChild(c,"focus") = glm::make_vec3(focus);
+  db.getChild(c,"upVector") = glm::make_vec3(up);
   db.getChild(c,"fov") = fov;
   db.getChild(c,"rayMaxDepth") = depth;
   db.getChild(c,"raySamples") = samples;
@@ -376,7 +380,8 @@ void modifyCamera(string name, const float *pos, const float *focus, const float
     return;
   }
   db.getChild(c,"eyePoint") = glm::make_vec3(pos);
-  db.getChild(c,"upVector") = glm::make_vec3(focus);
+  db.getChild(c,"focus") = glm::make_vec3(focus);
+  db.getChild(c,"upVector") = glm::make_vec3(up);
   db.getChild(c,"fov") = fov;
 }
 
@@ -410,15 +415,7 @@ void modifyFilm(string name, int w, int h, string path) {
   db.getChild(f,"outputPath") = path;
 }
 
-void render(std::string name) {
-    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
-    ren->render();
-}
 
-void writeimage(std::string name, std::string output) {
-    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
-    ren->WriteImage();
-}
 
 /**
  * add a renderer to the context
@@ -426,11 +423,13 @@ void writeimage(std::string name, std::string output) {
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void addRenderer(string name, int adapter, int schedule) {
+void addRenderer(string name, int adapter, int schedule, std::string const& Camera, std::string const& Film) {
   cntx::rcontext &db = cntx::rcontext::instance();
   auto& s = db.createnode("Scheduler",name,true,db.getUnique("Schedulers"));
   db.getChild(s,"type") = schedule;
   db.getChild(s,"adapter") = adapter;
+  db.getChild(s,"camera") = Camera;
+  db.getChild(s,"film") = Film;
 }
 
 /**
@@ -439,11 +438,25 @@ void addRenderer(string name, int adapter, int schedule) {
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void modifyRenderer(string name, int adapter, int schedule) {
+void modifyRenderer(string name, int adapter, int schedule, std::string const& Camera, std::string const& Film) {
   cntx::rcontext &db = cntx::rcontext::instance();
   auto& s = db.getUnique(name);
   if(s.getid().isInvalid()) return;
   db.getChild(s,"type") = schedule;
   db.getChild(s,"adapter") = adapter;
+  db.getChild(s,"camera") = Camera;
+  db.getChild(s,"film") = Film;
+
 }
+
+void render(std::string name) {
+    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+    ren->render(name);
+}
+
+void writeimage(std::string name, std::string output) {
+    gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
+    ren->WriteImage(name);
+}
+
 } // namespace api2

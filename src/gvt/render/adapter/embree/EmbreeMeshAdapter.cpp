@@ -25,7 +25,6 @@
 #define TBB_PREVIEW_STATIC_PARTITIONER 1
 
 #include "gvt/render/adapter/embree/EmbreeMeshAdapter.h"
-#include "gvt/render/RenderContext.h"
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 #include <gvt/render/actor/Ray.h>
@@ -46,6 +45,7 @@
 #include <tbb/parallel_for_each.h>
 #include <tbb/partitioner.h>
 #include <tbb/tick_count.h>
+#include <gvt/render/cntx/rcontext.h>
 
 #if defined(GVT_AVX_TARGET)
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT8
@@ -121,7 +121,7 @@ static void error_handler(const RTCError code, const char *str = nullptr) {
   exit(1);
 }
 
-EmbreeMeshAdapter::EmbreeMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
+EmbreeMeshAdapter::EmbreeMeshAdapter(std::shared_ptr<gvt::render::data::primitives::Mesh> mesh) : Adapter(mesh) {
   GVT_ASSERT(mesh, "EmbreeMeshAdapter: mesh pointer in the database is null");
   mesh->generateNormals();
 
@@ -203,7 +203,7 @@ struct embreeParallelTrace {
   /**
    * Stored transformation matrix in the current instance
    */
-  const gvt::core::Vector<gvt::render::data::scene::Light *> &lights;
+  const gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights;
 
   /**
    * Count the number of rays processed by the current trace() call.
@@ -233,11 +233,11 @@ struct embreeParallelTrace {
   embreeParallelTrace(gvt::render::adapter::embree::data::EmbreeMeshAdapter *adapter,
                       gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                       const size_t workSize, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                      gvt::core::Vector<gvt::render::data::scene::Light *> &lights,
-                      gvt::render::data::primitives::Mesh *mesh, std::atomic<size_t> &counter, const size_t begin,
+                      gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> >&lights,
+                      std::shared_ptr<gvt::render::data::primitives::Mesh> mesh, std::atomic<size_t> &counter, const size_t begin,
                       const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
-        lights(lights), counter(counter), begin(begin), end(end), mesh(mesh) {}
+        lights(lights), counter(counter), begin(begin), end(end), mesh(mesh.get()) {}
   /**
    * Convert a set of rays from a vector into a GVT_EMBREE_PACKET_TYPE ray packet.
    *
@@ -318,7 +318,7 @@ struct embreeParallelTrace {
                           gvt::render::data::primitives::Material *material, unsigned int *randSeed,
                           gvt::render::actor::RayVector &shadowRays) {
 
-    for (gvt::render::data::scene::Light *light : lights) {
+    for (std::shared_ptr<gvt::render::data::scene::Light> light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
 
       // Try to ensure that the shadow ray is on the correct side of the
@@ -329,12 +329,12 @@ struct embreeParallelTrace {
       gvt::render::data::Color c;
       glm::vec3 lightPos;
       if (light->LightT == gvt::render::data::scene::Light::Area) {
-        lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
+        lightPos = ((gvt::render::data::scene::AreaLight *)light.get())->GetPosition(randSeed);
       } else {
         lightPos = light->position;
       }
 
-      if (!gvt::render::data::primitives::Shade(material, r, normal, light, lightPos, c)) continue;
+      if (!gvt::render::data::primitives::Shade(material, r, normal, light.get(), lightPos, c)) continue;
 
       const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON * 16;
       const float t_shadow = multiplier * r.t;
@@ -621,8 +621,11 @@ struct embreeParallelTrace {
 
 void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                               glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                              gvt::core::Vector<gvt::render::data::scene::Light *> &lights, size_t _begin,
+                              gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights, size_t _begin,
                               size_t _end) {
+
+
+  cntx::rcontext& db = cntx::rcontext::instance();
 
   global_scene = rtcDeviceNewScene(device, RTC_SCENE_STATIC, GVT_EMBREE_ALGORITHM);
   unsigned instID = rtcNewInstance(global_scene, scene);
@@ -638,7 +641,7 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
   this->begin = _begin;
   this->end = _end;
 
-  const size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
+  const size_t numThreads = db.getUnique("threads");//gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
   const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
                                                                                               // of rays to work
                                                                                               // on
