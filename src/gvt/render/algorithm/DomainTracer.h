@@ -139,7 +139,7 @@ public:
   void shuffleDropRays(gvt::render::actor::RayVector &rays) {
 
     const size_t chunksize =
-        MAX(4096, rays.size() / ( db.getUnique("threads").to<int>() * 4));
+        MAX(4096, rays.size() / ( db.getUnique("threads").to<unsigned>() * 4));
 
 
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());

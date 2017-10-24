@@ -105,7 +105,7 @@ void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
 
   const int chunksize =
       MAX(GVT_SIMD_WIDTH,
-          ray_chunk / (cntx::rcontext::instance().getUnique("threads").to<int>() * 4));
+          ray_chunk / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::simple_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin() + ray_start,
@@ -139,7 +139,7 @@ void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
 void ImageTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
 
   const int chunksize =
-      MAX(4096, rays.size() / (cntx::rcontext::instance().getUnique("threads").to<int>() * 4));
+      MAX(4096, rays.size() / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::simple_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),

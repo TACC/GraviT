@@ -113,7 +113,7 @@ struct GVT_COMM {
       if (source == rank) continue;
       const size_t chunksize =
           MAX(GVT_SIMD_WIDTH,
-              partition_size / (cntx::rcontext::instance().getUnique("threads").to<int>() * 4));
+              partition_size / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
       static tbb::simple_partitioner ap;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
                         [&](tbb::blocked_range<size_t> chunk) {
@@ -194,7 +194,7 @@ public:
     width = db.getChild(db.getUnique(filmname), "width");
     height = db.getChild(db.getUnique(filmname), "height");
 
-    sample_ratio = db.getChild(db.getUnique(camname), "rayMaxSamples");
+    sample_ratio = db.getChild(db.getUnique(camname), "raySamples");
 
     require_composite = false;
     require_composite = img.initIceT();
@@ -301,7 +301,7 @@ public:
    */
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
-    const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<int>() * 4));
+    const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
     static tbb::auto_partitioner ap;
 
@@ -351,7 +351,7 @@ public:
 
     const size_t size = width * height;
     const size_t chunksize = MAX(
-        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<int>() * 4));
+        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<unsigned>() * 4));
     static tbb::simple_partitioner ap;
     tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
                       [&](tbb::blocked_range<size_t> chunk) {

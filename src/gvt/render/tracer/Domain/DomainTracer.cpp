@@ -240,7 +240,7 @@ inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays
   auto& db = cntx::rcontext::instance();
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   const int chunksize =
-      MAX(4096, rays.size() / (db.getUnique("threads").to<int>() * 4));
+      MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -274,7 +274,7 @@ inline void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const
   auto& db =  cntx::rcontext::instance();
 
   const int chunksize =
-      MAX(4096, rays.size() / (db.getUnique("threads").to<int>() * 4));
+      MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),

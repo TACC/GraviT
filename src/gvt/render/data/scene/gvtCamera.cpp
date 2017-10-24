@@ -192,6 +192,8 @@ gvtPerspectiveCamera::gvtPerspectiveCamera(const gvtPerspectiveCamera &cam) : gv
 }
 gvtPerspectiveCamera::~gvtPerspectiveCamera() {}
 // gvt::render::actor::RayVector gvtPerspectiveCamera::generateRays() {
+
+
 void gvtPerspectiveCamera::generateRays() {
   gvt::core::time::timer t(true, "generate camera rays");
   // Generate rays direction in camera space and transform to world space.
@@ -220,7 +222,7 @@ void gvtPerspectiveCamera::generateRays() {
   // for (j = 0; j < buffer_height; j++)
   //   for (i = 0; i < buffer_width; i++) {
   const size_t chunksize =
-      buffer_height / (cntx::rcontext::instance().getUnique("threads").to<int>() * 4);
+      buffer_height / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4);
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(0, buffer_height, chunksize),
                     [&](tbb::blocked_range<size_t> &chunk) {
