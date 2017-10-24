@@ -47,6 +47,8 @@ intersects rays against the BVH to determine traversal order through
 the data domains and the work scheduler uses this information as
 part of its evaluation process.
 */
+
+
 class BVH : public AbstractAccel {
 public:
   BVH(cntx::rcontext::children_vector &instanceSet);
@@ -61,8 +63,12 @@ public:
   gvt::core::Vector<hit> intersect(const gvt::render::actor::RayVector::iterator &ray_begin,
                                    const gvt::render::actor::RayVector::iterator &ray_end, const int from) {
 
+
+
     gvt::core::Vector<hit> ret((ray_end - ray_begin));
     size_t offset = 0;
+
+
 #ifndef GVT_BRUTEFORCE
     Node *stack[instanceSet.size() * 2];
     Node **stackptr = stack;

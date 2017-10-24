@@ -122,11 +122,6 @@ public:
     gvt::core::time::timer t_sort(false, "image tracer: select :");
     gvt::core::time::timer t_adapter(false, "image tracer: adapter :");
     gvt::core::time::timer t_filter(false, "image tracer: filter :");
-
-    //    gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-
-    //    GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
-
     int adapterType = db.getChild(db.getUnique(schedulername),"adapter");
         //root["Schedule"]["adapter"].value().toInteger();
 

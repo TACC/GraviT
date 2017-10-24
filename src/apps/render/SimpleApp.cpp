@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
     db.getUnique("threads") = std::thread::hardware_concurrency();
   } else {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
-    db.getUnique("threads") = cmd.get<int>("threads");
+    db.getUnique("threads") = unsigned(cmd.get<int>("threads"));
   }
 
   if (db.cntx_comm.rank % 2 == 0) {
@@ -293,9 +293,9 @@ int main(int argc, char **argv) {
   }
 
   api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
-  db.printtreebyrank(std::cout);
   db.sync();
   api2::render(rendername);
+  api2::writeimage(rendername,"simple");
 
 #if 0
   writeimage(rendername);
@@ -305,6 +305,5 @@ int main(int argc, char **argv) {
 
 #endif
 
-  db.printtreebyrank(std::cout);
   MPI_Finalize();
 }

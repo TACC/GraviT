@@ -194,7 +194,7 @@ public:
     width = db.getChild(db.getUnique(filmname), "width");
     height = db.getChild(db.getUnique(filmname), "height");
 
-    sample_ratio = db.getChild(db.getUnique(camname), "raySamples");
+    // sample_ratio = db.getChild(db.getUnique(camname), "raySamples");
 
     require_composite = false;
     require_composite = img.initIceT();
@@ -245,6 +245,8 @@ public:
 
     _queue_mutex = std::shared_ptr<tbb::mutex>(new tbb::mutex[numInst], std::default_delete< tbb::mutex[] > ());
 
+    queue_mutex = _queue_mutex.get();
+
     resetBufferSize(width, height);
 
     acceleration = std::make_shared<gvt::render::data::accel::BVH>(inst);
@@ -254,9 +256,9 @@ public:
 
       auto &n = inst[i].get();
 
-      meshRef[i] = db.getChild(n, "ptr");
+      meshRef[i] = db.getChild(db.deRef(db.getChild(n,"meshRef")), "ptr");
       instM[i] = db.getChild(n, "mat");
-      instMinv[i] = db.getChild(n, "matInv");
+      instMinv[i] = db.getChild(n, "matinv");
       instMinvN[i] = db.getChild(n, "normi");
     }
 
@@ -301,13 +303,13 @@ public:
    */
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
 
+
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
     static tbb::auto_partitioner ap;
 
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
-
                         gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
                             acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
 
@@ -323,9 +325,7 @@ public:
                             colorBuf[r.id] += glm::vec4(r.color, r.w);
                           }
                         }
-
                         for (auto &q : local_queue) {
-
                           queue_mutex[q.first].lock();
                           queue[q.first].insert(queue[q.first].end(),
                                                 std::make_move_iterator(local_queue[q.first].begin()),
@@ -334,7 +334,6 @@ public:
                         }
                       },
                       ap);
-
     rays.clear();
   }
 

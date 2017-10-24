@@ -51,9 +51,10 @@ BVH::BVH(cntx::rcontext::children_vector &instanceSet) : AbstractAccel(instanceS
   // this->instanceSet.swap(sortedInstanceSet);
   std::swap(this->instanceSet, sortedInstanceSet);
 
+  size_t count = 0;
   for (auto &node : this->instanceSet) {
     instanceSetBB.push_back(db.getChild(node.get(),"bbox"));
-    instanceSetID.push_back(db.getChild(node.get(),"id"));
+    instanceSetID.push_back(count++);
 
     //instanceSetID.push_back(node["id"].value().toInteger());
   }

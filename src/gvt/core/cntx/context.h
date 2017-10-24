@@ -84,6 +84,11 @@ template <typename Variant, typename Derived> struct context {
 
   static anode<Variant> &root() { return instance()._root; }
 
+  static anode<Variant> &deRef(const identifier &id) {
+    if(instance()._map.find(id) == instance()._map.end()) throw std::runtime_error("[Error] : identifier does not exist in database");
+    return instance()._map[id];
+  }
+
   anode<Variant> &createnode(const std::string type = "node", const std::string name = "", bool const &unique = false,
                              anode<Variant> const &parent = identifier()) {
 

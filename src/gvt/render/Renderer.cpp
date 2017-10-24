@@ -127,7 +127,7 @@ void gvtRenderer::reload(std::string const& name) {
   }
   }
 
-  db.tracer = tracer;
+  //db.tracer = tracer;
 
 }
 

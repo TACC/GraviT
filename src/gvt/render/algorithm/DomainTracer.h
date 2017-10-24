@@ -115,13 +115,13 @@ public:
 
     for (auto &rn : data) {
       auto &m = rn.get();
-      lastAssigned[rn.get()] = 0;
+      lastAssigned[rn.get().getid()] = 0;
     }
 
     unsigned icount = 0;
     for (auto &ri : inst) {
       auto &i = ri.get();
-      auto &m = db._map[db.getChild(i, "meshRef")];
+      auto &m = db.deRef(db.getChild(i,"meshRef"));
 
       if (db.getChild(m, "ptr") != nullptr)
         mpiInstanceMap[icount] = db.cntx_comm.rank;
