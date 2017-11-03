@@ -48,7 +48,6 @@ the data domains and the work scheduler uses this information as
 part of its evaluation process.
 */
 
-
 class BVH : public AbstractAccel {
 public:
   BVH(cntx::rcontext::children_vector &instanceSet);

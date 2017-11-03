@@ -217,9 +217,12 @@ public:
           moved_rays.reserve(this->queue[instTarget].size() * 10);
           adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                          instMinvN[instTarget].get(), lights);
+          unsigned  count = 0;
+          for(auto& r : moved_rays) {
+              if(r.type == gvt::render::actor::Ray::SHADOW) count++;
+          }
 
           this->queue[instTarget].clear();
-
           t_trace.stop();
         }
 

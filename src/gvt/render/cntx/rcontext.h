@@ -75,6 +75,9 @@ public:
       _map[tid] = anode<Variant>(tid, std::string("position"), identifier(), n.getid());
       tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("color"), identifier(), n.getid());
+      tid = identifier(rank, _identifier_counter++);
+      _map[tid] = anode<Variant>(tid, std::string("type"), identifier(), n.getid());
+      _map[tid] = type;
     } else if (type == std::string("AreaLight")) {
       identifier tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("position"), identifier(), n.getid());
@@ -86,6 +89,9 @@ public:
       _map[tid] = anode<Variant>(tid, std::string("height"), identifier(), n.getid());
       tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("width"), identifier(), n.getid());
+      tid = identifier(rank, _identifier_counter++);
+      _map[tid] = anode<Variant>(tid, std::string("type"), identifier(), n.getid());
+      _map[tid] = type;
     } else if (type == std::string("Scheduler")) {
       identifier tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("type"), identifier(), n.getid());

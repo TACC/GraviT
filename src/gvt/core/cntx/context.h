@@ -184,7 +184,7 @@ template <typename Variant, typename Derived> struct context {
 
       auto children = getChildren(c);
 
-      os << c << " {{ " << children.size() << " }} " << std::endl;
+      os << c << std::endl;//<< " {{ " << children.size() << " }} " << std::endl;
 
       printtree(os, children, depth + 1);
     }

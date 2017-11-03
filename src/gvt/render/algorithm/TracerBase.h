@@ -264,19 +264,18 @@ public:
 
     auto lightNodes = db.getChildren(db.getUnique("Lights"));
 
-    lights.reserve(2);
+
+    lights.reserve(lightNodes.size());
     for (auto lightNode : lightNodes) {
-
       auto &light = lightNode.get();
-
       glm::vec3 color = db.getChild(light, "color");
-
-      if (light.type == std::string("PointLight")) {
-        glm::vec3 pos = db.getChild(light, "PointLight");
+      std::string type = db.getChild(light, "type");
+      if (type == std::string("PointLight")) {
+        glm::vec3 pos = db.getChild(light, "position");
         lights.push_back(std::make_shared<gvt::render::data::scene::PointLight>(pos, color));
-      } else if (light.type == std::string("AmbientLight")) {
+      } else if (type == std::string("AmbientLight")) {
         lights.push_back(std::make_shared<gvt::render::data::scene::AmbientLight>(color));
-      } else if (light.type == std::string("AreaLight")) {
+      } else if (type == std::string("AreaLight")) {
         glm::vec3 pos = db.getChild(light, "position");
         glm::vec3 normal = db.getChild(light, "normal");
         auto width = db.getChild(light, "width");
@@ -284,6 +283,7 @@ public:
         lights.push_back(std::make_shared<gvt::render::data::scene::AreaLight>(pos, color, normal, width, height));
       }
     }
+
   }
 
   void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
@@ -306,6 +306,9 @@ public:
 
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
+
+    std::atomic<unsigned> count; count = 0;
+
     static tbb::auto_partitioner ap;
 
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -316,6 +319,9 @@ public:
                         gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
 
                         for (size_t i = 0; i < hits.size(); i++) {
+
+                          if(hits[i].next != -1) count++;
+
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
                             r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
@@ -326,6 +332,7 @@ public:
                           }
                         }
                         for (auto &q : local_queue) {
+//                          count += local_queue[q.first].size();
                           queue_mutex[q.first].lock();
                           queue[q.first].insert(queue[q.first].end(),
                                                 std::make_move_iterator(local_queue[q.first].begin()),
@@ -334,6 +341,7 @@ public:
                         }
                       },
                       ap);
+
     rays.clear();
   }
 

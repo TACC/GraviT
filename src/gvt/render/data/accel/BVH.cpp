@@ -32,6 +32,8 @@
 using namespace gvt::render::data::accel;
 using namespace gvt::render::data::primitives;
 
+
+
 #define TRAVERSAL_COST 0.5 // TODO: best value?
 #define LEAF_SIZE 1        // TODO: best value?
 
