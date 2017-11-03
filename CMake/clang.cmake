@@ -5,7 +5,7 @@ SET(GVT_ARCH_FLAGS__SSSE3 "-mssse3")
 SET(GVT_ARCH_FLAGS__SSE41 "-msse4.1")
 SET(GVT_ARCH_FLAGS__SSE42 "-msse4.2")
 SET(GVT_ARCH_FLAGS__AVX   "-mavx")
-SET(GVT_ARCH_FLAGS__AVX2  "-mf16c -mavx2 -mfma -mlzcnt -mabm -mbmi -mbmi2 -fabi-version=6")
+SET(GVT_ARCH_FLAGS__AVX2  "-mf16c -mavx2 -mfma -mlzcnt  -mbmi -mbmi2")
 SET(GVT_ARCH_FLAGS__AVX512KNL "-march=knl")
 SET(GVT_ARCH_FLAGS__AVX512SKX "-march=skx")
 
