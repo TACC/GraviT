@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
       *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
       *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
       string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
-      string instanceName = "inst" + std::to_string(instId);
+      string instanceName = std::to_string(instId);
 
       auto &mi = (*m);
 

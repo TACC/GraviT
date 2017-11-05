@@ -29,6 +29,8 @@
 #include <iostream>
 #include <limits>
 
+#include <string>
+
 using namespace gvt::render::data::accel;
 using namespace gvt::render::data::primitives;
 
@@ -43,6 +45,11 @@ BVH::BVH(cntx::rcontext::children_vector &instanceSet) : AbstractAccel(instanceS
 
   cntx::rcontext& db = cntx::rcontext::instance();
 
+  size_t count = 0;
+  for (auto &node : this->instanceSet) {
+    db.getChild(node.get(),"id") = count++;
+  }
+
   cntx::rcontext::children_vector sortedInstanceSet;
   root = build(sortedInstanceSet, 0, instanceSet.size(), 0);
 
@@ -53,12 +60,10 @@ BVH::BVH(cntx::rcontext::children_vector &instanceSet) : AbstractAccel(instanceS
   // this->instanceSet.swap(sortedInstanceSet);
   std::swap(this->instanceSet, sortedInstanceSet);
 
-  size_t count = 0;
   for (auto &node : this->instanceSet) {
     instanceSetBB.push_back(db.getChild(node.get(),"bbox"));
-    instanceSetID.push_back(count++);
-
-    //instanceSetID.push_back(node["id"].value().toInteger());
+    size_t id = db.getChild(node.get(),"id");
+    instanceSetID.push_back(id);
   }
 }
 
