@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
       *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
       *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
       string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
-      string instanceName = std::to_string(instId);
+      string instanceName = "inst" + std::to_string(instId);
 
       auto &mi = (*m);
 
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
     adapter = "optix";
   }
   if (adapter.compare("embree") == 0) {
-    std::cerr << " embree adapter " << std::endl;
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
     adaptertype = gvt::render::adapter::Embree;
 #else
@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
     exit(1);
 #endif
   } else if (adapter.compare("manta") == 0) {
-    std::cerr << " manta adapter " << std::endl;
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
     adaptertype = gvt::render::adapter::Manta;
 #else

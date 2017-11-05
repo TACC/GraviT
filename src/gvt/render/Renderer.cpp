@@ -104,7 +104,8 @@ void gvtRenderer::reload(std::string const& name) {
   camera->setSamples(db.getChild(cam,"raySamples"));
   camera->setJitterWindowSize((float)db.getChild(cam,"jitterWindowSize"));
   camera->lookAt(cameraposition, focus, up);
-  std::cout << "fov" << std::endl;
+  camera->setFOV((float)db.getChild(cam,"fov"));
+
   camera->setFilmsize(db.getChild(fil,"width"),db.getChild(fil,"height"));
 
   // image plane setup.
