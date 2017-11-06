@@ -38,8 +38,9 @@
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
+#include <gvt/render/data/scene/gvtCamera.h>
 
-#include <gvt/render/composite/composite.h>
+#include <gvt/render/composite/ImageComposite.h>
 
 #include <algorithm>
 #include <numeric>
@@ -157,7 +158,7 @@ public:
 
   gvt::render::actor::RayVector &rays; ///< Rays to trace
   std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera;
-  std::shared_ptr<gvt::render::data::scene::Image> image; ///< Final image buffer
+  std::shared_ptr<gvt::render::composite::ImageComposite> image; ///< Final image buffer
 
   gvt::core::Map<size_t, std::shared_ptr<gvt::render::data::primitives::Mesh> > meshRef;
   gvt::core::Map<size_t, std::shared_ptr<glm::mat4> > instM;
@@ -182,11 +183,11 @@ public:
   tbb::mutex *colorBuf_mutex; ///< buffer for color accumulation
   glm::vec4 *colorBuf;
 
-  gvt::render::composite::composite img;
+//  gvt::render::composite::composite img;
   bool require_composite;
 
   AbstractTrace(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
-                std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+                std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
                 std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : camera(camera), rays(camera->rays), image(image), db(cntx::rcontext::instance()), camname(camname),
         filmname(filmname), schedulername(schedulername) {
@@ -196,8 +197,8 @@ public:
 
     // sample_ratio = db.getChild(db.getUnique(camname), "raySamples");
 
-    require_composite = false;
-    require_composite = img.initIceT();
+//    require_composite = false;
+//    require_composite = img.initIceT();
     // NOTE : Replaced by smat pointer
     // colorBuf = new glm::vec4[width * height];
     Initialize();
@@ -209,12 +210,12 @@ public:
 
     // Create buffers using smart pointers
     _colorBuf_mutex = std::shared_ptr < tbb::mutex > (new tbb::mutex[width], std::default_delete<tbb::mutex[]>());
-    _colorBuf = std::shared_ptr<glm::vec4>(new glm::vec4[width * height], std::default_delete<glm::vec4[]>());
+//    _colorBuf = std::shared_ptr<glm::vec4>(new glm::vec4[width * height], std::default_delete<glm::vec4[]>());
 
     // Alias buffers
 
     colorBuf_mutex = _colorBuf_mutex.get();
-    colorBuf = _colorBuf.get();
+//    colorBuf = _colorBuf.get();
 
     // std::cout << "Resized buffer" << std::endl;
   }
@@ -324,7 +325,7 @@ public:
                             local_queue[hits[i].next].push_back(r);
                           } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
                             tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-                            colorBuf[r.id] += glm::vec4(r.color, r.w);
+                            image->localAdd(r.id, r.color * r.w, 1.f, r.t);
                           }
                         }
                         for (auto &q : local_queue) {
@@ -343,24 +344,24 @@ public:
   inline bool SendRays() { GVT_ASSERT_BACKTRACE(0, "Not supported"); }
 
   inline void gatherFramebuffers(int rays_traced) {
-
-    glm::vec4 *final;
-
-    if (require_composite)
-      final = img.execute(colorBuf, width, height);
-    else
-      final = colorBuf;
-
-    const size_t size = width * height;
-    const size_t chunksize = MAX(
-        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<unsigned>() * 4));
-    static tbb::simple_partitioner ap;
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
-                      [&](tbb::blocked_range<size_t> chunk) {
-                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image->Add(i, final[i]);
-                      },
-                      ap);
-    if (require_composite) delete[] final;
+    image->composite();
+//    glm::vec4 *final;
+//
+//    if (require_composite)
+//      final = img.execute(colorBuf, width, height);
+//    else
+//      final = colorBuf;
+//
+//    const size_t size = width * height;
+//    const size_t chunksize = MAX(
+//        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<unsigned>() * 4));
+//    static tbb::simple_partitioner ap;
+//    tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+//                      [&](tbb::blocked_range<size_t> chunk) {
+//                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image->Add(i, final[i]);
+//                      },
+//                      ap);
+//    if (require_composite) delete[] final;
   }
 
 private:
@@ -369,7 +370,7 @@ private:
 
   std::shared_ptr<tbb::mutex> _queue_mutex;
   std::shared_ptr<tbb::mutex> _colorBuf_mutex;
-  std::shared_ptr<glm::vec4> _colorBuf;
+//  std::shared_ptr<glm::vec4> _colorBuf;
 
 protected:
   /// caches meshes that are converted into the adapter's format
@@ -391,7 +392,7 @@ protected:
 template <class BSCHEDULER> class Tracer : public AbstractTrace {
 public:
   Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
-         std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+         std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {}
 
@@ -415,7 +416,7 @@ template <template <typename> class BSCHEDULER, class ISCHEDULER>
 class Tracer<BSCHEDULER<ISCHEDULER> > : public AbstractTrace {
 public:
   Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
-         std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+         std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {}
 

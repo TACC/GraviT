@@ -84,7 +84,7 @@ public:
 
 
   Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
-         std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+         std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {
     int ray_portion = rays.size() / mpi.world_size;

@@ -29,7 +29,9 @@
 #include <gvt/core/utils/timer.h>
 namespace gvt {
 namespace render {
-ImageTracer::ImageTracer() : gvt::render::RayTracer() {
+ImageTracer::ImageTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+                         std::shared_ptr<gvt::render::composite::ImageComposite> img)
+    : gvt::render::RayTracer(cam, img) {
   queue_mutex = new std::mutex[meshRef.size()];
   for (auto &m : meshRef) {
     queue[m.first] = gvt::render::actor::RayVector();
@@ -64,10 +66,17 @@ void ImageTracer::operator()() {
   cam->AllocateCameraRays();
   cam->generateRays();
   t_camera.stop();
+
+
+  std::cout << "Generated rays" << std::endl;
+
   t_filter.resume();
   processRaysAndDrop(cam->rays);
   t_filter.stop();
   gvt::render::actor::RayVector returned_rays;
+
+  std::cout << "Procesed rays" << std::endl;
+
   do {
     int target = -1;
     int amount = 0;
@@ -98,15 +107,20 @@ void ImageTracer::operator()() {
 
 void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
 
+  std::cout << "Yeap" << std::endl;
+
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
+
   const unsigned ray_chunk = rays.size() / comm.lastid();
   const unsigned ray_start = ray_chunk * comm.id();
   const unsigned ray_end = ray_chunk * (comm.id() + 1);
 
   const int chunksize =
-      MAX(GVT_SIMD_WIDTH,
-          ray_chunk / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
+      MAX(GVT_SIMD_WIDTH, ray_chunk / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
+
+
+
   static tbb::simple_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin() + ray_start,
                                                                                 rays.begin() + ray_end, chunksize),
@@ -138,8 +152,7 @@ void ImageTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
 
 void ImageTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
 
-  const int chunksize =
-      MAX(4096, rays.size() / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
+  const int chunksize = MAX(4096, rays.size() / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::simple_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -180,5 +193,5 @@ bool ImageTracer::isDone() {
   return true;
 }
 bool ImageTracer::hasWork() { return !isDone(); }
-}
-}
+} // namespace render
+} // namespace gvt

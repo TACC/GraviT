@@ -79,24 +79,26 @@ protected:
   std::shared_ptr<gvt::render::composite::ImageComposite> img;  /**< Image compositing class **/
   std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam; /**< Camera class */
   std::shared_ptr<gvt::render::data::accel::BVH> bvh;           /**< Current global BVH structure */
-  //gvt::render::RenderContext *cntxt;                            /**< Current render context */
+  // gvt::render::RenderContext *cntxt;                            /**< Current render context */
 
   // Scheduling
   std::mutex *queue_mutex = nullptr;                        /**< Multi thread queue protectiob */
   gvt::core::Map<int, gvt::render::actor::RayVector> queue; /**< Ray queue for each instance in the scene */
 
   // Caching
-  gvt::core::Map<int, std::shared_ptr<gvt::render::data::primitives::Mesh>> meshRef; /**< Map mesh internal id to pointer in memory */
-  gvt::core::Map<int, std::shared_ptr<glm::mat4>> instM;                             /**< Mesh instance matrix model map */
-  gvt::core::Map<int, std::shared_ptr<glm::mat4>> instMinv;                          /**< Mesh instance inverse matrix model map */
-  gvt::core::Map<int, std::shared_ptr<glm::mat3>> instMinvN;                  /**< Mesh instance inverse matrix model map (3x3)*/
-  gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light>> lights; /**< Scene lights */
+  gvt::core::Map<int, std::shared_ptr<gvt::render::data::primitives::Mesh> > meshRef; /**< Map mesh internal id to
+                                                                                         pointer in memory */
+  gvt::core::Map<int, std::shared_ptr<glm::mat4> > instM;     /**< Mesh instance matrix model map */
+  gvt::core::Map<int, std::shared_ptr<glm::mat4> > instMinv;  /**< Mesh instance inverse matrix model map */
+  gvt::core::Map<int, std::shared_ptr<glm::mat3> > instMinvN; /**< Mesh instance inverse matrix model map (3x3)*/
+  gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > lights; /**< Scene lights */
   gvt::core::Map<gvt::render::data::primitives::Mesh *, std::shared_ptr<gvt::render::Adapter> >
       adapterCache /**< Tracer adapter cache */;
   int adapterType; /**< Current adapter type */
 
 public:
-  RayTracer();
+  RayTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+            std::shared_ptr<gvt::render::composite::ImageComposite> img);
   ~RayTracer();
   /**
    * \brief Scheduler implementation
@@ -201,7 +203,7 @@ public:
    */
   virtual std::shared_ptr<gvt::render::composite::ImageComposite> getComposite() { return img; }
 };
-};
-};
+}; // namespace render
+}; // namespace gvt
 
 #endif /*GVT_RENDER_RAYTRACER*/

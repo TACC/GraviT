@@ -32,6 +32,10 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/algorithm/Tracers.h>
+#include <gvt/render/tracer/Domain/DomainTracer.h>
+#include <gvt/render/tracer/Image/ImageTracer.h>
+#include <gvt/render/tracer/RayTracer.h>
+
 
 #include <memory>
 
@@ -44,7 +48,6 @@ namespace render {
 */
 class gvtRenderer {
 public:
-  //static void CreateRenderer();
   ~gvtRenderer();
   static gvtRenderer *instance();
   void reload(std::string const &name = "Scheduler");
@@ -54,19 +57,13 @@ public:
 protected:
   gvtRenderer(); // constructor
   static gvtRenderer *__singleton;
-//  RenderContext *ctx;
   std::shared_ptr<data::scene::gvtPerspectiveCamera> camera;
-  std::shared_ptr<data::scene::Image> myimage;
-  std::shared_ptr<algorithm::AbstractTrace> tracer;
-//  gvt::core::DBNodeH rootnode;
-//  gvt::core::DBNodeH datanode;
-//  gvt::core::DBNodeH instancesnode;
-//  gvt::core::DBNodeH lightsnode;
-//  gvt::core::DBNodeH cameranode;
-//  gvt::core::DBNodeH filmnode;
+  std::shared_ptr<gvt::render::composite::ImageComposite> myimage;
+
+  std::shared_ptr<algorithm::AbstractTrace> tracersync;
+  std::shared_ptr<gvt::render::RayTracer> tracerasync;
 
   std::string current_scheduler;
-
 };
 }
 }

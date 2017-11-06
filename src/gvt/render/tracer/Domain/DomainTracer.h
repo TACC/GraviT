@@ -46,14 +46,15 @@ namespace render {
 class DomainTracer : public gvt::render::RayTracer {
 private:
 protected:
-  gvt::core::Map<int, unsigned > remote;  /**< Maps instances ids to their remote nodes */
+  gvt::core::Map<int, unsigned> remote;        /**< Maps instances ids to their remote nodes */
   gvt::core::Map<int, bool> instances_in_node; /**< Determines if an instance (mesh) is available in the current node */
 
   std::shared_ptr<comm::vote::vote> v;        /**< Voting procedure */
   volatile bool _GlobalFrameFinished = false; /**< Communicates the result of the voting to the scheduler */
 
 public:
-  DomainTracer();
+  DomainTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+               std::shared_ptr<gvt::render::composite::ImageComposite> img);
   ~DomainTracer();
   /**
    * \brief Domain decomposition implementatiom
@@ -150,7 +151,7 @@ public:
   /**
    * \brief Allows the static voting procedure to set the communication flag to the scheduler
    * \param v Value of the voting result (true if all agree that the work is finished)
-  */
+   */
   void inline setGlobalFrameFinished(bool v) { _GlobalFrameFinished = v; }
   /**
    * Get the current agreement value for all the nodes
@@ -159,7 +160,7 @@ public:
    */
   bool inline getGlobalFrameFinished() { return _GlobalFrameFinished; }
 };
-};
-};
+}; // namespace render
+}; // namespace gvt
 
 #endif /*GVT_RENDER_DOMAINTRACER*/

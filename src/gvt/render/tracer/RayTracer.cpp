@@ -23,8 +23,8 @@
    ======================================================================================= */
 
 #include <cassert>
-#include <gvt/render/tracer/RayTracer.h>
 #include <gvt/render/cntx/rcontext.h>
+#include <gvt/render/tracer/RayTracer.h>
 #if 0
 #ifdef GVT_RENDER_ADAPTER_EMBREE
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
@@ -43,15 +43,16 @@
 #endif
 #endif
 
-
 namespace gvt {
 namespace render {
 
-RayTracer::RayTracer() /*: cntxt(gvt::render::RenderContext::instance())*/ {
-  resetCamera();
-  resetFilm();
-  resetBVH();
-};
+RayTracer::RayTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+                     std::shared_ptr<gvt::render::composite::ImageComposite> img)
+    : cam(cam), img(img){
+        //  resetCamera();
+        //  resetFilm();
+        resetBVH();
+      };
 
 RayTracer::~RayTracer(){};
 
@@ -81,6 +82,7 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
   std::shared_ptr<gvt::render::Adapter> adapter;
 
   std::shared_ptr<gvt::render::data::primitives::Mesh> mesh = meshRef[instTarget];
+
   auto it = adapterCache.find(mesh.get());
 
   if (it != adapterCache.end()) {
@@ -125,65 +127,60 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
   GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
   {
     moved_rays.reserve(toprocess.size() * 10);
-    adapter->trace(toprocess, moved_rays, instM[instTarget].get(), instMinv[instTarget].get(), instMinvN[instTarget].get(), lights);
+    adapter->trace(toprocess, moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
+                   instMinvN[instTarget].get(), lights);
     toprocess.clear();
   }
 }
 
 float *RayTracer::getImageBuffer() { return img->composite(); };
 
-
 void RayTracer::resetCamera() {
-//  assert(cntxt != nullptr);
-//  cam = std::make_shared<gvt::render::data::scene::gvtPerspectiveCamera>();
-//
-//
-//  gvt::core::DBNodeH root = cntxt->getRootNode();
-//  gvt::core::DBNodeH camNode = root["Camera"];
-//  gvt::core::DBNodeH filmNode = root["Film"];
-//  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
-//  glm::vec3 focus = camNode["focus"].value().tovec3();
-//  float fov = camNode["fov"].value().toFloat();
-//  glm::vec3 up = camNode["upVector"].value().tovec3();
-//  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
-//  int raySamples = camNode["raySamples"].value().toInteger();
-//
-//  auto& db = cntx::rcontext::instance();
-//
-//
-//  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
-//  glm::vec3 focus = camNode["focus"].value().tovec3();
-//  float fov = camNode["fov"].value().toFloat();
-//  glm::vec3 up = camNode["upVector"].value().tovec3();
-//  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
-//  int raySamples = camNode["raySamples"].value().toInteger();
-//
-//
-//  cam->lookAt(cameraposition, focus, up);
-//  cam->setMaxDepth(rayMaxDepth);
-//  cam->setSamples(raySamples);
-//  cam->setFOV(fov);
-//  cam->setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
+  //  assert(cntxt != nullptr);
+  //  cam = std::make_shared<gvt::render::data::scene::gvtPerspectiveCamera>();
+  //
+  //
+  //  gvt::core::DBNodeH root = cntxt->getRootNode();
+  //  gvt::core::DBNodeH camNode = root["Camera"];
+  //  gvt::core::DBNodeH filmNode = root["Film"];
+  //  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  //  glm::vec3 focus = camNode["focus"].value().tovec3();
+  //  float fov = camNode["fov"].value().toFloat();
+  //  glm::vec3 up = camNode["upVector"].value().tovec3();
+  //  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  //  int raySamples = camNode["raySamples"].value().toInteger();
+  //
+  //  auto& db = cntx::rcontext::instance();
+  //
+  //
+  //  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  //  glm::vec3 focus = camNode["focus"].value().tovec3();
+  //  float fov = camNode["fov"].value().toFloat();
+  //  glm::vec3 up = camNode["upVector"].value().tovec3();
+  //  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  //  int raySamples = camNode["raySamples"].value().toInteger();
+  //
+  //
+  //  cam->lookAt(cameraposition, focus, up);
+  //  cam->setMaxDepth(rayMaxDepth);
+  //  cam->setSamples(raySamples);
+  //  cam->setFOV(fov);
+  //  cam->setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 }
 
 void RayTracer::resetFilm() {
-//  assert(cntxt != nullptr);
-//  img = std::make_shared<gvt::render::composite::IceTComposite>();
-//  gvt::core::DBNodeH root = cntxt->getRootNode();
-//  gvt::core::DBNodeH filmNode = root["Film"];
-//  img = std::make_shared<gvt::render::composite::IceTComposite>(filmNode["width"].value().toInteger(),
-//                                                                filmNode["height"].value().toInteger());
+  //  assert(cntxt != nullptr);
+  //  img = std::make_shared<gvt::render::composite::IceTComposite>();
+  //  gvt::core::DBNodeH root = cntxt->getRootNode();
+  //  gvt::core::DBNodeH filmNode = root["Film"];
+  //  img = std::make_shared<gvt::render::composite::IceTComposite>(filmNode["width"].value().toInteger(),
+  //                                                                filmNode["height"].value().toInteger());
 }
 
 void RayTracer::resetBVH() {
-  auto& db = cntx::rcontext::instance();
+  auto &db = cntx::rcontext::instance();
 
   cntx::rcontext::children_vector instancenodes = db.getChildren(db.getUnique("Instances"));
-
-  //gvt::core::Vector<gvt::core::DBNodeH> instancenodes = rootnode["Instances"].getChildren();
-  //adapterType = rootnode["Schedule"]["adapter"].value().toInteger();
-
-
   int numInst = instancenodes.size();
   meshRef.clear();
   instM.clear();
@@ -193,33 +190,30 @@ void RayTracer::resetBVH() {
 
   bvh = std::make_shared<gvt::render::data::accel::BVH>(instancenodes);
 
-  for (int i = 0; i < instancenodes.size(); i++) {
-    meshRef[i] = db.getChild(db.getChild(db.getUnique(instancenodes[i].get().name),"meshRef"),"ptr");
+  queue_mutex = new std::mutex[bvh->instanceSet.size()];
 
-        //(gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
-    instM[i] = db.getChild(instancenodes[i].get(),"mat");
-        //(glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
-    instMinv[i] =  db.getChild(instancenodes[i].get(),"matInv");
-    //(glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
-    instMinvN[i] =  db.getChild(instancenodes[i].get(),"normi");
-    //(glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
+  for (auto &nref : bvh->instanceSet) {
+    auto &n = nref.get();
+    size_t id = db.getChild(n, "id");
+    meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr");
+    instM[id] = db.getChild(n, "mat");
+    instMinv[id] = db.getChild(n, "matinv");
+    instMinvN[id] = db.getChild(n, "normi");
   }
 
   auto lightNodes = db.getChildren(db.getUnique("Lights"));
 
-  lights.reserve(2);
+  lights.reserve(lightNodes.size());
   for (auto lightNode : lightNodes) {
-
     auto &light = lightNode.get();
-
     glm::vec3 color = db.getChild(light, "color");
-
-    if (light.type == std::string("PointLight")) {
-      glm::vec3 pos = db.getChild(light, "PointLight");
+    std::string type = db.getChild(light, "type");
+    if (type == std::string("PointLight")) {
+      glm::vec3 pos = db.getChild(light, "position");
       lights.push_back(std::make_shared<gvt::render::data::scene::PointLight>(pos, color));
-    } else if (light.type == std::string("AmbientLight")) {
+    } else if (type == std::string("AmbientLight")) {
       lights.push_back(std::make_shared<gvt::render::data::scene::AmbientLight>(color));
-    } else if (light.type == std::string("AreaLight")) {
+    } else if (type == std::string("AreaLight")) {
       glm::vec3 pos = db.getChild(light, "position");
       glm::vec3 normal = db.getChild(light, "normal");
       auto width = db.getChild(light, "width");
@@ -227,6 +221,8 @@ void RayTracer::resetBVH() {
       lights.push_back(std::make_shared<gvt::render::data::scene::AreaLight>(pos, color, normal, width, height));
     }
   }
+
+  std::cout << "Reseted BVH" << std::endl;
 }
-}
-}
+} // namespace render
+} // namespace gvt

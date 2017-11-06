@@ -90,7 +90,7 @@ public:
   gvt::core::Map<int, int> mpiInstanceMap;
 
   Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
-         std::shared_ptr<gvt::render::data::scene::Image> image, std::string const &camname = "Camera",
+         std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {
 
@@ -105,39 +105,15 @@ public:
   }
 
   virtual void Initialize() {
-
     auto inst = db.getChildren(db.getUnique("Instances"));
     auto data = db.getChildren(db.getUnique("Data"));
-
-    // gvt::core::Map<int, std::set<cntx::identifier> > meshAvailbyMPI; // where meshes are by mpi node
-    //   gvt::core::Map<int, std::set<cntx::identifier> >::iterator lastAssigned; // instance-node round-robin assigment
     gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
-    //    gvt::core::Map<size_t, std::string > name;
-
     for (auto &rn : data) {
       auto &m = rn.get();
       lastAssigned[rn.get().getid()] = 0;
     }
 
     unsigned icount = 0;
-
-//    db.printtreebyrank(std::cout, inst,1);
-//    for (auto &ri : inst) {
-//      auto &i = ri.get();
-//      auto &m = db.deRef(db.getChild(i, "meshRef"));
-//      std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
-//
-//      for (int mpin = 0; mpin < db.cntx_comm.size; mpin++) {
-//        if (db.cntx_comm.rank == mpin) {
-//          std::cout << (size_t)db.getChild(i, "id") << ":" << db.cntx_comm.rank << " [ ";
-//          for (auto &l : loc) {
-//            std::cout << l << ", ";
-//          }
-//          std::cout << "]" << std::endl << std::flush;
-//        }
-//        MPI_Barrier(db.cntx_comm.comm);
-//      }
-//    }
 
     for (auto &ri : inst) {
       auto &i = ri.get();
@@ -147,14 +123,6 @@ public:
       mpiInstanceMap[id] = loc[lastAssigned[m.getid()] % loc.size()];
       lastAssigned[m.getid()]++;
     }
-
-//    for (int i = 0; i < db.cntx_comm.size; i++) {
-//      if (db.cntx_comm.rank == i)
-//        for (auto &l : mpiInstanceMap) {
-//          std::cout << "[ " << i << " ] " << l.first << ":" << l.second << std::endl;
-//        }
-//      MPI_Barrier(db.cntx_comm.comm);
-//    }
   }
 
   virtual ~Tracer() {}
