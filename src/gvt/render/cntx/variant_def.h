@@ -57,16 +57,18 @@ unpack_function_signature(std::shared_ptr<glm::mat3>) {
 pack_function_signature(std::shared_ptr<glm::mat4>) {
 
   float *m = glm::value_ptr(*v.get());
-
-  for (int i = 0; i < 12; i++) pack<float>(m[i]);
+  for (int i = 0; i < 16; i++) {
+    pack<float>(m[i]);
+  }
 }
 
 unpack_function_signature(std::shared_ptr<glm::mat4>) {
 
   std::shared_ptr<glm::mat4> mptr = std::make_shared<glm::mat4>(1.f);
   float *m = glm::value_ptr(*mptr.get());
-
-  for (int i = 0; i < 12; i++) m[i] = unpack<float>();
+  for (int i = 0; i < 16; i++) {
+    m[i] = unpack<float>();
+  }
 
   return mptr;
 }
@@ -83,23 +85,24 @@ unpack_function_signature(std::shared_ptr<gvt::render::data::primitives::Box3D>)
   return std::make_shared<gvt::render::data::primitives::Box3D>(bb);
 }
 
-  pack_function_signature( std::shared_ptr<std::vector<int> >){
+pack_function_signature(std::shared_ptr<std::vector<int> >) {
 
-    pack<size_t>(v->size());
-    for(int i =0 ; i < v->size(); i++) {
-      pack<int>( (*v.get())[i]);
-    }
+  pack<size_t>(v->size());
+  for (int i = 0; i < v->size(); i++) {
+    pack<int>((*v.get())[i]);
   }
+}
 
-  unpack_function_signature( std::shared_ptr<std::vector<int> >){
+unpack_function_signature(std::shared_ptr<std::vector<int> >) {
 
-    size_t size = unpack<size_t>();
-    std::shared_ptr<std::vector<int>> v = std::make_shared<std::vector<int>>();;
-    for(int i =0 ; i < size; i++) {
-      v->push_back(unpack<int>());
-    }
-    return v;
+  size_t size = unpack<size_t>();
+  std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
+  ;
+  for (int i = 0; i < size; i++) {
+    v->push_back(unpack<int>());
   }
+  return v;
+}
 
 pack_function_signature(std::shared_ptr<gvt::render::data::primitives::Mesh>) {
 
@@ -150,8 +153,6 @@ namespace details {
 inline std::ostream &operator<<(std::ostream &os, const std::shared_ptr<gvt::render::data::primitives::Box3D> &other) {
   return (os << other->bounds_min << " x " << other->bounds_max);
 }
-
-
 
 } // namespace details
 

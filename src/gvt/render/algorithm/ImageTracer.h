@@ -134,7 +134,7 @@ public:
 
     gvt::render::actor::RayVector moved_rays;
     int instTarget = -1, instTargetCount = 0;
-    for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
+    for (gvt::core::Map<size_t, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
          ++q) {
       if (q->second.size() > (size_t)instTargetCount) {
         instTargetCount = q->second.size();
@@ -150,7 +150,7 @@ public:
 
       t_sort.resume();
 
-      for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
+      for (gvt::core::Map<size_t, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
            ++q) {
         if (q->second.size() > (size_t)instTargetCount) {
           instTargetCount = q->second.size();

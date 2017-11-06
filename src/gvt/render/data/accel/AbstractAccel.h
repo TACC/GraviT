@@ -48,7 +48,7 @@ public:
 
   virtual ~AbstractAccel() {}
 
-protected:
+//protected:
 
   cntx::rcontext::children_vector instanceSet;
 

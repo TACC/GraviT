@@ -162,11 +162,13 @@ int main(int argc, char **argv) {
     api2::finishMesh("cubemesh");
   }
 
-  // db.printtreebyrank(std::cout);
+//
 
   db.sync();
+  //db.printtreebyrank(std::cout);
 
-  // if (db.cntx_comm.rank == 0) {
+
+  if (db.cntx_comm.rank == 0) {
   // create a NxM grid of alternating cones / cubes, offset using i and j
   int instId = 0;
   int ii[2] = { -2, 3 }; // i range
@@ -188,8 +190,9 @@ int main(int argc, char **argv) {
       instId++;
     }
   }
-  //}
+  }
 
+  db.sync();
 
   auto lpos = glm::vec3(1.0, 0.0, -1.0);
   auto lcolor = glm::vec3(1.0, 1.0, 1.0);
@@ -206,6 +209,7 @@ int main(int argc, char **argv) {
   }
 
   api2::addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
+  db.sync();
 
 
   // camera bits..
@@ -228,6 +232,8 @@ int main(int argc, char **argv) {
   string camname = "conecam";
   api2::addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
             jitterWindowSize);
+
+  db.sync();
   // film bits..
   string filmname = "conefilm";
   int width = (int)512;
@@ -245,6 +251,7 @@ int main(int argc, char **argv) {
   api2::addFilm(filmname, width, height, outputpath);
 
 
+//  db.printtreebyrank(std::cout);
   db.sync();
 
 
@@ -294,6 +301,7 @@ int main(int argc, char **argv) {
 
   api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   db.sync();
+
   api2::render(rendername);
   api2::writeimage(rendername,"simple");
 

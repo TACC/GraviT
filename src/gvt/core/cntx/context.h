@@ -217,7 +217,7 @@ template <typename Variant, typename Derived> struct context {
     unsigned nid = 0;
     MPI_Allreduce(&_identifier_counter, &nid, 1, MPI_UNSIGNED, MPI_MAX, cntx_comm.comm);
     _identifier_counter = ++nid;
-    return _identifier_counter;
+    return _identifier_counter++;
   }
 
   inline unsigned nextIdentifier() { return _identifier_counter++; }
@@ -253,7 +253,8 @@ template <typename Variant, typename Derived> struct context {
     return _d;
   }
 
-  static inline void replaceNodeID(const identifier oid, const identifier nid) {
+  static inline void replaceNodeID(identifier oid,  identifier nid) {
+
     context &db = context::instance();
     auto n = db._map[oid];
     for (auto &v : db.getChildren(n)) {
@@ -261,19 +262,21 @@ template <typename Variant, typename Derived> struct context {
     }
 
     n.setid(nid);
-    n.id.setDirty();
-    db._map.erase(oid);
-    db._map[nid] = n;
-    db._unique[n.name] = n.id;
+    n.getid().setDirty();
+    db._map.erase(db._map.find(oid));
+    db._map[n.getid()] = n;
+    db._unique[n.name] = n.getid();
+
   }
 
-  static inline void recursiveChildReplace(anode<Variant> &v) {
+  static inline void recursiveChildReplace(anode<Variant> &v, unsigned id = 0) {
     context &db = context::instance();
-    replaceNodeID(v.getid(), identifier(identifier::all_ranks, db.nextIdentifier()));
+    identifier nid = identifier(identifier::all_ranks, (id != 0) ? id : db.nextIdentifier());
     for (auto &rn : db.getChildren(v)) {
       cnode &n = rn.get();
       recursiveChildReplace(n);
     }
+    replaceNodeID(v.getid(), nid);
   }
 
   static inline size_t countChildrenRecursively(anode<Variant> &v) {
@@ -324,6 +327,8 @@ template <typename Variant, typename Derived> struct context {
 
     if (db.cntx_comm.size <= 1) return;
 
+    MPI_Barrier(db.cntx_comm.comm);
+
     unsigned long *unique_counter = new unsigned long[db.cntx_comm.size];
     std::set<identifier> _unique_first;
     std::set<std::string> _unique;
@@ -336,34 +341,34 @@ template <typename Variant, typename Derived> struct context {
       }
     }
 
+    MPI_Barrier(db.cntx_comm.comm);
+
     unsigned long s = _unique_first.size();
     MPI_Allgather(&s, 1, MPI_UNSIGNED_LONG, unique_counter, 1, MPI_UNSIGNED_LONG, db.cntx_comm.comm);
 
     for (int i = 0; i < db.cntx_comm.size; ++i) {
       if (db.cntx_comm.rank == i) {
         for (auto &s : _unique) {
-          // Coodinate new identity
-
           unsigned id = db.getUniqueIdentifier();
           sendString(s, i);
           if (visited.find(s) == visited.end()) {
-            replaceNodeID(db._unique[s], identifier(identifier::all_ranks, id));
-            recursiveChildReplace(db._map[db._unique[s]]);
+            recursiveChildReplace(db._map[db._unique[s]], id);
           } else {
           }
 
+
+          db.getUniqueIdentifier();
           visited.insert(s);
         }
       } else {
-
         for (int uu = 0; uu < unique_counter[i]; uu++) {
           unsigned id = db.getUniqueIdentifier();
           std::string s = receiveString(i);
           if (db._unique.find(s) != db._unique.end() && visited.find(s) == visited.end()) {
-            replaceNodeID(db._unique[s], identifier(identifier::all_ranks, id));
-            recursiveChildReplace(db._map[db._unique[s]]);
+            recursiveChildReplace(db._map[db._unique[s]], id);
           } else {
           }
+          db.getUniqueIdentifier();
           visited.insert(s);
         }
       }
@@ -397,14 +402,15 @@ template <typename Variant, typename Derived> struct context {
 
       if (db.cntx_comm.rank == i && d.size() > 0) {
 
-        for (auto &n : d) {
-          n.get().id.resetDirty();
+        for (auto rn : d) {
+
+          auto& n = rn.get();
+          n.id.resetDirty();
           cntx::mpi::encode enc;
-          n.get().pack(enc);
+          n.pack(enc);
           size_t s = enc.size();
           MPI_Bcast(&s, 1, MPI_UNSIGNED_LONG, i, db.cntx_comm.comm);
           MPI_Bcast(enc.getBuffer(), enc.size(), MPI_BYTE, i, db.cntx_comm.comm);
-
           MPI_Barrier(db.cntx_comm.comm);
         }
 
@@ -419,12 +425,26 @@ template <typename Variant, typename Derived> struct context {
           anode<Variant> n;
           n.unpack(dec);
 
-          if (db._map.find(n.getid()) != db._map.end() && n.v.isPointer()) {
-            n.v = db._map[n.getid()].v;
-          }
+          n.id.resetDirty();
 
+          if (db._map.find(n.getid()) != db._map.end()) {
+
+             if(n.name == std::string("Locations")) {
+              std::shared_ptr<std::vector<int>> vec = n;
+              std::vector<int>& cv = *vec;
+              std::shared_ptr<std::vector<int>> lvec = db._map[n.getid()];
+              std::vector<int>& lcv = *lvec;
+
+              cv.insert(cv.end(),lcv.begin(), lcv.end());
+              std::sort(cv.begin(),cv.end());
+              cv.erase(std::unique(cv.begin(),cv.end()),cv.end());
+
+              if(db.cntx_comm.rank > i) n.id.setDirty();
+            } else if (n.name == std::string("ptr")) {
+              n.v = db._map[n.getid()].v;
+            }
+          }
           db._map[n.getid()] = n;
-          db._map[n.getid()].id.resetDirty();
           if (n.unique) db._unique[n.name] = n.getid();
           MPI_Barrier(db.cntx_comm.comm);
         }

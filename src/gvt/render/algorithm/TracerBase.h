@@ -159,10 +159,10 @@ public:
   std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera;
   std::shared_ptr<gvt::render::data::scene::Image> image; ///< Final image buffer
 
-  gvt::core::Map<int, std::shared_ptr<gvt::render::data::primitives::Mesh> > meshRef;
-  gvt::core::Map<int, std::shared_ptr<glm::mat4> > instM;
-  gvt::core::Map<int, std::shared_ptr<glm::mat4> > instMinv;
-  gvt::core::Map<int, std::shared_ptr<glm::mat3> > instMinvN;
+  gvt::core::Map<size_t, std::shared_ptr<gvt::render::data::primitives::Mesh> > meshRef;
+  gvt::core::Map<size_t, std::shared_ptr<glm::mat4> > instM;
+  gvt::core::Map<size_t, std::shared_ptr<glm::mat4> > instMinv;
+  gvt::core::Map<size_t, std::shared_ptr<glm::mat3> > instMinvN;
   gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > lights;
 
   std::shared_ptr<gvt::render::data::accel::AbstractAccel> acceleration;
@@ -173,7 +173,7 @@ public:
   float sample_ratio;
 
   // array of mutexes - one per instance
-  gvt::core::Map<int, gvt::render::actor::RayVector> queue; ///< Node rays working
+  gvt::core::Map<size_t, gvt::render::actor::RayVector> queue; ///< Node rays working
 
   // TODO: Change the pointers into a smart pointer semantic
   // NOTE: Just not doing that now for time constrainst.
@@ -251,15 +251,14 @@ public:
 
     acceleration = std::make_shared<gvt::render::data::accel::BVH>(inst);
 
-    // TODO :
-    for (int i = 0; i < inst.size(); i++) {
 
-      auto &n = inst[i].get();
-
-      meshRef[i] = db.getChild(db.deRef(db.getChild(n,"meshRef")), "ptr");
-      instM[i] = db.getChild(n, "mat");
-      instMinv[i] = db.getChild(n, "matinv");
-      instMinvN[i] = db.getChild(n, "normi");
+    for(auto& nref : acceleration->instanceSet) {
+      auto &n = nref.get();
+      size_t id = db.getChild(n, "id");
+      meshRef[id] = db.getChild(db.deRef(db.getChild(n,"meshRef")), "ptr");
+      instM[id] = db.getChild(n, "mat");
+      instMinv[id] = db.getChild(n, "matinv");
+      instMinvN[id] = db.getChild(n, "normi");
     }
 
     auto lightNodes = db.getChildren(db.getUnique("Lights"));
@@ -307,7 +306,6 @@ public:
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
 
-    std::atomic<unsigned> count; count = 0;
 
     static tbb::auto_partitioner ap;
 
@@ -320,8 +318,6 @@ public:
 
                         for (size_t i = 0; i < hits.size(); i++) {
 
-                          if(hits[i].next != -1) count++;
-
                           gvt::render::actor::Ray &r = *(raysit.begin() + i);
                           if (hits[i].next != -1) {
                             r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
@@ -332,7 +328,6 @@ public:
                           }
                         }
                         for (auto &q : local_queue) {
-//                          count += local_queue[q.first].size();
                           queue_mutex[q.first].lock();
                           queue[q.first].insert(queue[q.first].end(),
                                                 std::make_move_iterator(local_queue[q.first].begin()),

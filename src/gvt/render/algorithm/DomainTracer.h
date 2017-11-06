@@ -112,6 +112,7 @@ public:
     // gvt::core::Map<int, std::set<cntx::identifier> > meshAvailbyMPI; // where meshes are by mpi node
     //   gvt::core::Map<int, std::set<cntx::identifier> >::iterator lastAssigned; // instance-node round-robin assigment
     gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
+    //    gvt::core::Map<size_t, std::string > name;
 
     for (auto &rn : data) {
       auto &m = rn.get();
@@ -119,28 +120,48 @@ public:
     }
 
     unsigned icount = 0;
+
+//    db.printtreebyrank(std::cout, inst,1);
+//    for (auto &ri : inst) {
+//      auto &i = ri.get();
+//      auto &m = db.deRef(db.getChild(i, "meshRef"));
+//      std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
+//
+//      for (int mpin = 0; mpin < db.cntx_comm.size; mpin++) {
+//        if (db.cntx_comm.rank == mpin) {
+//          std::cout << (size_t)db.getChild(i, "id") << ":" << db.cntx_comm.rank << " [ ";
+//          for (auto &l : loc) {
+//            std::cout << l << ", ";
+//          }
+//          std::cout << "]" << std::endl << std::flush;
+//        }
+//        MPI_Barrier(db.cntx_comm.comm);
+//      }
+//    }
+
     for (auto &ri : inst) {
       auto &i = ri.get();
-      auto &m = db.deRef(db.getChild(i,"meshRef"));
-
-      if (db.getChild(m, "ptr") != nullptr)
-        mpiInstanceMap[icount] = db.cntx_comm.rank;
-      else {
-        std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
-
-        mpiInstanceMap[icount] = loc[lastAssigned[m.getid()] % loc.size()]; lastAssigned[m.getid()]++;
-      }
-      icount++;
+      auto &m = db.deRef(db.getChild(i, "meshRef"));
+      size_t id = db.getChild(i, "id");
+      std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
+      mpiInstanceMap[id] = loc[lastAssigned[m.getid()] % loc.size()];
+      lastAssigned[m.getid()]++;
     }
+
+//    for (int i = 0; i < db.cntx_comm.size; i++) {
+//      if (db.cntx_comm.rank == i)
+//        for (auto &l : mpiInstanceMap) {
+//          std::cout << "[ " << i << " ] " << l.first << ":" << l.second << std::endl;
+//        }
+//      MPI_Barrier(db.cntx_comm.comm);
+//    }
   }
 
   virtual ~Tracer() {}
 
   void shuffleDropRays(gvt::render::actor::RayVector &rays) {
 
-    const size_t chunksize =
-        MAX(4096, rays.size() / ( db.getUnique("threads").to<unsigned>() * 4));
-
+    const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
 
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
     static tbb::simple_partitioner ap;
@@ -193,9 +214,8 @@ public:
     gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
     gvt::util::global_counter gc_sent("Number of rays sent :");
 
-
     clearBuffer();
-    int adapterType = db.getChild(db.getUnique(schedulername),"adapter");
+    int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
 
     t_filter.resume();
     gc_filter.add(rays.size());
@@ -226,7 +246,6 @@ public:
         t_sort.resume();
 
         for (auto &q : queue) {
-
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
@@ -236,8 +255,10 @@ public:
         t_sort.stop();
 
         if (instTarget >= 0) {
+
           t_adapter.resume();
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
+
           std::shared_ptr<gvt::render::data::primitives::Mesh> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -271,7 +292,8 @@ public:
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
             case gvt::render::adapter::Heterogeneous:
-              adapter = std::make_shared<gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter>(mesh.get());
+              adapter =
+                  std::make_shared<gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter>(mesh.get());
               break;
 #endif
             default:
@@ -286,13 +308,14 @@ public:
 
           {
             t_trace.resume();
+
             gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
+
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 
             this->queue[instTarget].clear();
-
             t_trace.stop();
           }
 
