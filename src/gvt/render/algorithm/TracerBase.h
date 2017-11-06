@@ -286,7 +286,7 @@ public:
 
   }
 
-  void clearBuffer() { std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height); }
+  void clearBuffer() { image->reset(); /*std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height);*/ }
 
   // clang-format off
   virtual ~AbstractTrace() {};

@@ -57,9 +57,9 @@ void DomainTracer::Done(bool T) {
   }
 }
 
-DomainTracer::DomainTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+DomainTracer::DomainTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
                            std::shared_ptr<gvt::render::composite::ImageComposite> img)
-    : gvt::render::RayTracer(cam, img) {
+    : gvt::render::RayTracer(name, cam, img) {
   RegisterMessage<gvt::comm::EmptyMessage>();
   RegisterMessage<gvt::comm::SendRayList>();
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();

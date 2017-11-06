@@ -41,7 +41,7 @@ class ImageTracer : public gvt::render::RayTracer {
 private:
 protected:
 public:
-  ImageTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+  ImageTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
               std::shared_ptr<gvt::render::composite::ImageComposite> img);
   ~ImageTracer();
 

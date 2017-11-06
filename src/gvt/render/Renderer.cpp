@@ -116,21 +116,21 @@ void gvtRenderer::reload(std::string const &name) {
   switch (db.getChild(ren, "type").to<int>()) {
   case scheduler::Image: {
     tracersync = std::make_shared<algorithm::Tracer<schedule::ImageScheduler> >(camera, myimage, cam, fil, name);
-    tracerasync = nullptr;
+    db.tracer = tracerasync = nullptr;
     break;
   }
   case scheduler::Domain: {
     tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
-    tracerasync = nullptr;
+    db.tracer = tracerasync = nullptr;
     break;
   }
   case scheduler::AsyncDomain: {
-    tracerasync = std::make_shared<gvt::render::DomainTracer>(camera,myimage);
+    db.tracer = tracerasync = std::make_shared<gvt::render::DomainTracer>(name,camera,myimage);
     tracersync = nullptr;
     break;
   }
   case scheduler::AsyncImage: {
-    tracerasync = std::make_shared<gvt::render::ImageTracer>(camera,myimage);
+    db.tracer = tracerasync = std::make_shared<gvt::render::ImageTracer>(name,camera,myimage);
         //std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
     tracersync = nullptr;
     break;

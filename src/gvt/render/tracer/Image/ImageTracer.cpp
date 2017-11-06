@@ -29,9 +29,9 @@
 #include <gvt/core/utils/timer.h>
 namespace gvt {
 namespace render {
-ImageTracer::ImageTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+ImageTracer::ImageTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
                          std::shared_ptr<gvt::render::composite::ImageComposite> img)
-    : gvt::render::RayTracer(cam, img) {
+    : gvt::render::RayTracer(name, cam, img) {
   queue_mutex = new std::mutex[meshRef.size()];
   for (auto &m : meshRef) {
     queue[m.first] = gvt::render::actor::RayVector();

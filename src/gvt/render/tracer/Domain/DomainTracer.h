@@ -53,7 +53,7 @@ protected:
   volatile bool _GlobalFrameFinished = false; /**< Communicates the result of the voting to the scheduler */
 
 public:
-  DomainTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+  DomainTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
                std::shared_ptr<gvt::render::composite::ImageComposite> img);
   ~DomainTracer();
   /**

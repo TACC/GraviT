@@ -46,11 +46,11 @@
 namespace gvt {
 namespace render {
 
-RayTracer::RayTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+RayTracer::RayTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
                      std::shared_ptr<gvt::render::composite::ImageComposite> img)
     : cam(cam), img(img){
-        //  resetCamera();
-        //  resetFilm();
+        auto &db = cntx::rcontext::instance();
+        adapterType = db.getChild(db.getUnique(name),"adapter");
         resetBVH();
       };
 
@@ -221,8 +221,6 @@ void RayTracer::resetBVH() {
       lights.push_back(std::make_shared<gvt::render::data::scene::AreaLight>(pos, color, normal, width, height));
     }
   }
-
-  std::cout << "Reseted BVH" << std::endl;
 }
 } // namespace render
 } // namespace gvt

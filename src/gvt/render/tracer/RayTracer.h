@@ -97,7 +97,7 @@ protected:
   int adapterType; /**< Current adapter type */
 
 public:
-  RayTracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+  RayTracer(const std::string& name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
             std::shared_ptr<gvt::render::composite::ImageComposite> img);
   ~RayTracer();
   /**
