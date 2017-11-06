@@ -55,6 +55,7 @@ gvtRenderer::gvtRenderer() {
   camera->setFilmsize(filmnode["width"].value().toInteger(),filmnode["height"].value().toInteger());
   // image plane setup. 
   myimage = new data::scene::Image(camera->getFilmSizeWidth(),camera->getFilmSizeHeight(),filmnode["outputPath"].value().toString());
+  std::cout << " film output file " << filmnode["outputPath"].value().toString() << std::endl;
   // allocate rays (needed by tracer constructor)
   camera->AllocateCameraRays();
   camera->generateRays();
@@ -65,7 +66,14 @@ gvtRenderer::gvtRenderer() {
       break;
     }
     case scheduler::Domain: {
+      if(rootnode["Schedule"]["adapter"].value().toInteger() == gvt::render::adapter::Ospray) { 
+          int numargs = 1;
+          char **arguments = NULL;
+          gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(&numargs,arguments);
       tracer = new algorithm::Tracer<schedule::DomainScheduler>(camera->rays,*myimage);
+      } else {
+      tracer = new algorithm::Tracer<schedule::DomainScheduler>(camera->rays,*myimage);
+      }
       break;
     }
     default: {

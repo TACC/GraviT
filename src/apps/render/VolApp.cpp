@@ -70,6 +70,10 @@
 #include <stdlib.h>
 
 #include "ParseCommandLine.h"
+#define USEAPI
+#ifdef USEAPI
+#include <gvt/render/api/api.h>
+#endif
 
 using namespace std;
 
@@ -306,6 +310,15 @@ int main(int argc, char **argv) {
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
 
+#ifdef USEAPI
+  // API initialization
+  gvtInit(argc,argv);
+  int rank,worldsize;
+  // get rank and world size for use downstream
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
+#else
+  // this preprocessor block does what gvtInit does
   MPI_Init(&argc, &argv);
   MPI_Pcontrol(0);
   int rank = -1;
@@ -331,11 +344,14 @@ int main(int argc, char **argv) {
     cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
   }
   cntxt->syncContext();
-
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
+#endif
 
-  std::string filename, filepath, volumefile,otffile,ctffile,imagefile;
+
+  // read volume information and initialize gravit volume object
+  // transfer functions are associated with the volume
+  std::string filename, filepath, volumefile,otffile,ctffile,imagefile,volnodename;
   volumefile = cmd.get<std::string>("volfile");
   ctffile = cmd.get<std::string>("ctffile");
   otffile = cmd.get<std::string>("otffile");
@@ -369,45 +385,46 @@ int main(int argc, char **argv) {
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
         std::cout << " rank " << rank << " reading domain " << domain << std::endl;
-      gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
-        cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       // create a volume object which is similar to a mesh object
       gvt::render::data::primitives::Volume *vol = 
         new gvt::render::data::primitives::Volume();
       // read volume file.
       float* sampledata = volheader.readdata(domain);
-      std::cout << "domain " << domain << " initial sample " << sampledata[0] << std::endl; 
       gvt::render::data::primitives::TransferFunction *tf = 
         new gvt::render::data::primitives::TransferFunction();
       // read transfer function. 
       tf->load(ctffile,otffile);
       // this value range is for small enzo data
       tf->setValueRange(glm::vec2(0.0,65536.0));
-      //this value range is for large enzo data
-      //tf->setValueRange(glm::vec2(0.0,1801.0));
-      // this value range is for asteroid data
-      // and for the zgradient data
-      //tf->setValueRange(glm::vec2(0.0,1.0));
-      // this value range is for sphere data
-      //tf->setValueRange(glm::vec2(0.866,85.74));
-      // push the sample data into the volume and fill the other
       // required values in the volume.
       vol->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
       vol->SetSamples(sampledata);
       vol->SetTransferFunction(tf);
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
+      float deltas[3] = {1.0,1.0,1.0};
+      float samplingrate = 1.0;
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
-      vol->SetSamplingRate(1.0);
-      // try setting an isovalue
-      float *isoval ;
-      int niso = 0;
-      isoval = new float[niso];
-      *isoval = 0.75;
-      //vol->SetIsovalues(1,isoval);
+      vol->SetSamplingRate(samplingrate);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
       // stuff it in the db
+#ifdef USEAPI
+      // create a mesh object, add it to the db 
+      // but we need a unique name for each actual mesh. 
+      // for now add the domain number to the volumefile name. 
+      // It will work.. trust me... 
+      std::cout << "create volume and add samples " << volnodename << std::endl;
+      volnodename = volumefile + std::to_string(domain);
+      createVolume(volnodename);
+      addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
+      addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
+
+    }
+  }
+#else
+      gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
+        cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
       VolumeNode["file"] = volumefile.c_str();
       VolumeNode["bbox"] = (unsigned long long)volbox;
       VolumeNode["ptr"] = (unsigned long long)vol;
@@ -419,9 +436,21 @@ int main(int argc, char **argv) {
     }
   }
     cntxt->syncContext();
+#endif
       // add instances by looping through the domains again. It is enough for rank 0 to do this. It gets synced in the end. 
   if(MPI::COMM_WORLD.Get_rank()==0) {
     for(int domain=0;domain < volheader.numberofdomains; domain++) {
+#ifdef USEAPI
+      volnodename = volumefile + std::to_string(domain);
+      auto m = new glm::mat4(1.f);
+      auto &mi = (*m);
+
+              float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                                         mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+      addInstance(volnodename, mf);
+    }
+  }
+#else
       gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
       gvt::core::DBNodeH VolumeNode = dataNodes.getChildren()[domain];
       gvt::render::data::primitives::Box3D *mbox = 
@@ -447,10 +476,73 @@ int main(int argc, char **argv) {
     }
   }
   cntxt->syncContext();
+#endif
 
   // add lights, camera, and film to the database all nodes do this.
   // again some default stuff loaded in. Not entirely required in this
   // instance but get in tha habbit of putting it there anyway.
+#ifdef USEAPI
+  // not sure I need a light but what the heck. 
+  auto lpos = glm::vec3(0.,0.,1.);
+  auto lcolor = glm::vec3(100.,100.,500.);
+  string lightname = "mylight";
+  addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
+  // camera time
+  auto eye = glm::vec3(127.5,127.5,1024.);
+  if (cmd.isSet("eye")) {
+    std::vector<float> cameye = cmd.getValue<float>("eye");
+    eye = glm::vec3(cameye[0], cameye[1], cameye[2]);
+  }
+  auto focus = glm::vec3(127.5,127.5,0.0);
+  if (cmd.isSet("look")) {
+    std::vector<float> foc = cmd.getValue<float>("look");
+    focus = glm::vec3(foc[0], foc[1], foc[2]);
+  }
+  auto upVector = glm::vec3(0.,1.,0.);
+  if (cmd.isSet("upVector")) {
+    std::vector<float> upvec = cmd.getValue<float>("upVector");
+    upVector = glm::vec3(upvec[0], upvec[1], upvec[2]);
+  }
+  float fov = (float)(30.0*M_PI/180.0);
+  int rayMaxDepth = (int)1;
+  int raySamples = (int)1;
+  float jitterWindowSize = (float)0.5;
+  string camname = "conecam";
+  std::cout << "add camera " << camname << std::endl;
+  addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
+  // film
+  string filmname = "conefilm";
+  std::cout << "add film " << filmname << std::endl;
+  int width = 100;
+  int height = 100;
+  if (cmd.isSet("wsize")) {
+    std::vector<int> wsize = cmd.getValue<int>("wsize");
+    width = wsize[0];
+    height = wsize[1];
+  }
+  string outputpath = "volapptest";
+  if(cmd.isSet("imagefile")) {
+    outputpath = cmd.get<std::string>("imagefile");
+  } 
+  addFilm(filmname,width,height,outputpath);
+  // render bits (schedule and adapter)
+  string rendername("VolumeRenderer");
+  int schedtype;
+  int adaptertype;
+  // right now only the domain schedule works for volume rendering
+  schedtype = gvt::render::scheduler::Domain;
+  // and it only works with the ospray adapter.
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+  adaptertype = gvt::render::adapter::Ospray;
+#elif
+  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
+#endif
+  std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
+  addRenderer(rendername,adaptertype,schedtype);
+  render(rendername);
+  writeimage(rendername);
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+#else
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
   gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
   lightNode["position"] = glm::vec3(0.0, 0.0, 1.0);
@@ -578,5 +670,6 @@ int main(int argc, char **argv) {
 
   myimage.Write();
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+#endif
 }
 

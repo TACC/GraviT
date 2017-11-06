@@ -108,6 +108,25 @@ void createMesh(const std::string name) {
   cntxt->addToSync(ameshnode);
 }
 
+void createVolume(const std::string name) {
+
+    gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+    gvt::core::DBNodeH root = cntxt->getRootNode();
+    gvt::core::DBNodeH dataNodes = root["Data"];
+    GVT_ASSERT(!dataNodes.getChildByName(name.c_str()).isValid(), "Volume Name is not unique : " << name);
+    // creating a mesh database node here to hold the volume
+    gvt::core::DBNodeH avolnode = cntxt->createNodeFromType("Mesh",name.c_str(),dataNodes.UUID());
+    avolnode["file"] = name.c_str();
+    gvt::render::data::primitives::Volume *v = new gvt::render::data::primitives::Volume();
+    avolnode["bbox"] = reinterpret_cast<unsigned long long>(v->getBoundingBox());
+    avolnode["ptr"] = reinterpret_cast<unsigned long long>(v);
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    gvt::core::DBNodeH loc = cntxt->createNode("rank",rank);
+    avolnode["Locations"] += loc;
+    cntxt->addToSync(avolnode);
+}
+
 gvt::core::DBNodeH getChildByName(gvt::core::DBNodeH dataNodes, std::string name) {
   gvt::core::Vector<gvt::core::DBNodeH> kids = dataNodes.getChildren();
   gvt::core::DBNodeH Node;
@@ -125,6 +144,43 @@ void printChildName(gvt::core::DBNodeH dataNodes) {
   }
 }
 
+void addVolumeTransferFunctions(const std::string name, const std::string colortfname, const std::string opacitytfname,float low,float high) {
+    gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+    // get the data node.
+    gvt::core::DBNodeH root = cntxt->getRootNode();
+    gvt::core::DBNodeH dataNodes = root["Data"];
+    gvt::core::DBNodeH avolnode = getChildByName(dataNodes,name);
+    GVT_ASSERT(avolnode.isValid(), "(AddSamples) Mesh name is not unique : " << name);
+    gvt::render::data::primitives::Volume *v = 
+        reinterpret_cast<gvt::render::data::primitives::Volume *>(avolnode["ptr"].value().toULongLong());
+    gvt::render::data::primitives::TransferFunction *tf =
+        new gvt::render::data::primitives::TransferFunction();
+    tf->load(colortfname,opacitytfname);
+    tf->setValueRange(glm::vec2(low,high));
+    v->SetTransferFunction(tf);
+}
+void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate) {
+
+    gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+    // get the data node.
+    gvt::core::DBNodeH root = cntxt->getRootNode();
+    gvt::core::DBNodeH dataNodes = root["Data"];
+
+    gvt::core::DBNodeH avolnode = getChildByName(dataNodes,name);
+    GVT_ASSERT(avolnode.isValid(), "(AddSamples) Mesh name is not unique : " << name);
+    gvt::render::data::primitives::Volume *v = 
+        reinterpret_cast<gvt::render::data::primitives::Volume *>(avolnode["ptr"].value().toULongLong());
+    v->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
+    v->SetSamples(samples);
+    v->SetCounts(counts[0],counts[1],counts[2]);
+    v->SetOrigin(origin[0],origin[1],origin[2]);
+    v->SetDeltas(deltas[0],deltas[1],deltas[2]);
+    v->SetSamplingRate(samplingrate);
+    glm::vec3 lower(origin[0],origin[1],origin[2]);
+    glm::vec3 upper = lower +glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
+    gvt::render::data::primitives::Box3D *volbox = new gvt::render::data::primitives::Box3D(lower,upper);
+    avolnode["bbox"] = reinterpret_cast<unsigned long long>(volbox);
+}
 void addMeshVertices(const std::string name, const unsigned &n, const float *vertices) {
 
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
