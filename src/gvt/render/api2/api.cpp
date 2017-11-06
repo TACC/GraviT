@@ -53,7 +53,7 @@ namespace api2 {
 void gvtInit(int argc, char **argv) {
   int initialized, rank;
 
-  gvt::comm::scomm::init(argc,argv);
+//  gvt::comm::scomm::init(argc,argv);
 
   MPI_Initialized(&initialized);
   if (!initialized) {

@@ -294,6 +294,9 @@ int main(int argc, char **argv) {
   api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   db.sync();
 
+
+  std::cout << "All synced" << std::endl;
+
   api2::render(rendername);
   api2::writeimage(rendername,"simple");
 

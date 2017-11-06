@@ -36,9 +36,6 @@ namespace render {
 
 bool DomainTracer::areWeDone() {
   std::shared_ptr<gvt::comm::communicator> comm = gvt::comm::communicator::singleton();
-
-  // gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
-
   std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntx::rcontext::instance().tracer);
   if (!tracer || tracer->getGlobalFrameFinished()) return false;
   bool ret = tracer->isDone();
@@ -51,13 +48,11 @@ void DomainTracer::Done(bool T) {
   std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntx::rcontext::instance().tracer);
   if (!tracer) return;
   if (T) {
-    // std::lock_guard<std::mutex> _lock(tracer->_queue._protect);
-    // tracer->_queue._queue.clear();
     tracer->setGlobalFrameFinished(true);
   }
 }
 
-DomainTracer::DomainTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+DomainTracer::DomainTracer(const std::string &name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
                            std::shared_ptr<gvt::render::composite::ImageComposite> img)
     : gvt::render::RayTracer(name, cam, img) {
   RegisterMessage<gvt::comm::EmptyMessage>();
@@ -94,59 +89,6 @@ DomainTracer::DomainTracer(const std::string& name,std::shared_ptr<gvt::render::
     instances_in_node[id] = (remote[id] == db.cntx_comm.rank);
     lastAssigned[m.getid()]++;
   }
-
-//  gvt::core::Map<std::string, std::set<int> > remote_location;
-//
-//  gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
-//
-//  cntx::rcontext::children_vector data = db.getChildren(db.getUnique("Data"));
-//
-//  for (auto &rn : data) {
-//    auto &m = rn.get();
-//    lastAssigned[rn.get()] = 0;
-//  }
-//
-//  cntx::rcontext::children_vector instancenodes = db.getChildren(db.getUnique("Instances"));
-//
-//  unsigned icount = 0;
-//  for (auto &ri : instancenodes) {
-//    auto &i = ri.get();
-//    auto &m = db._map[db.getChild(i, "meshRef")];
-//
-//    if (db.getChild(m, "ptr") != nullptr) {
-//      instances_in_node[i] = true;
-//      remote[icount] = db.cntx_comm.rank;
-//    } else {
-//      instances_in_node[i] = false;
-//      std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
-//      remote[icount] = loc[lastAssigned[m.getid()] % loc.size()];
-//      lastAssigned[m.getid()]++;
-//    }
-//    icount++;
-//  }
-
-#if 0
-  gvt::core::DBNodeH rootnode = cntxt->getRootNode();
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
-  // build location map, where meshes are by mpi node
-  for (size_t i = 0; i < dataNodes.size(); i++) {
-    gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
-    for (auto loc : locations) {
-      remote_location[dataNodes[i].UUID().toString()].insert(loc.value().toInteger());
-    }
-  }
-
-  gvt::core::Vector<gvt::core::DBNodeH> instancenodes = rootnode["Instances"].getChildren();
-  for (int i = 0; i < instancenodes.size(); i++) {
-    std::string UUID = instancenodes[i]["meshRef"].deRef().UUID().toString();
-    if (remote_location[UUID].find(comm.id()) != remote_location[UUID].end()) {
-      instances_in_node[i] = true;
-    } else {
-      instances_in_node[i] = false;
-      remote[i] = remote_location[UUID];
-    }
-  }
-#endif
 }
 
 DomainTracer::~DomainTracer() {
@@ -156,7 +98,8 @@ DomainTracer::~DomainTracer() {
 
 void DomainTracer::resetBVH() {
   RayTracer::resetBVH();
-  if (queue_mutex != nullptr) delete[] queue_mutex;
+  //  if (queue_mutex != nullptr) delete[] queue_mutex;
+
   for (auto &m : meshRef) {
     queue[m.first] = gvt::render::actor::RayVector();
     queue[m.first].reserve(8192);
@@ -182,11 +125,15 @@ void DomainTracer::operator()() {
   gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
   gvt::util::global_counter gc_sent("Number of rays sent :");
 
-  img->reset();
-  t_camera.resume();
-  cam->AllocateCameraRays();
-  cam->generateRays();
-  t_camera.stop();
+
+
+//  img->reset();
+//  t_camera.resume();
+//  cam->AllocateCameraRays();
+//  cam->generateRays();
+//  t_camera.stop();
+
+
   t_filter.resume();
   gc_filter.add(cam->rays.size());
   processRaysAndDrop(cam->rays);
@@ -206,6 +153,9 @@ void DomainTracer::operator()() {
     t_select.stop();
 
     if (target != -1) {
+
+      std::cout << "Has target : " << target << std::endl;
+
       gvt::render::actor::RayVector tmp;
 
       queue_mutex[target].lock();
@@ -221,9 +171,7 @@ void DomainTracer::operator()() {
       gc_shuffle.add(returned_rays.size());
       processRays(returned_rays, target);
       t_shuffle.stop();
-    }
-
-    if (target == -1) {
+    } else {
       t_send.resume();
       for (auto &q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
