@@ -70,7 +70,7 @@
 #include <stdlib.h>
 
 #include "ParseCommandLine.h"
-#define USEAPI
+//#define USEAPI
 #ifdef USEAPI
 #include <gvt/render/api/api.h>
 #endif

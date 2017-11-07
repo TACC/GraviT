@@ -327,14 +327,21 @@ public:
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
-            case gvt::render::adapter::Ospray:
-              gvt::render::data::primitives::Volume *vol = dynamic_cast<gvt::render::data::primitives::Volume*> (mesh);
-              if(vol) {
-                  std::cout << " building ospray vol adapter " << std::endl;
-                adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(vol);}
-              else
+            case gvt::render::adapter::Ospray: {
+
+
+              //TODO: The data is not getting here as mesh, need to see why.
+
+              gvt::render::data::primitives::Volume *vol = (gvt::render::data::primitives::Volume*) (mesh);
+              if (vol) {
+                std::cout << " building ospray vol adapter " << std::endl;
+                adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(vol);
+              } else if (mesh) {
+                std::cout << " building ospray mesh adapter " << std::endl;
                 adapter = new gvt::render::adapter::ospray::data::OSPRayAdapter(mesh);
+              }
               break;
+            }
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
