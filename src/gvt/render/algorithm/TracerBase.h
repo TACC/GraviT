@@ -34,11 +34,11 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
+#include <gvt/render/actor/ORays.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Image.h>
-#include <gvt/render/actor/ORays.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
 #include <gvt/render/composite/ImageComposite.h>
@@ -53,9 +53,9 @@
 
 // uncomment this to restrict tbb to serial operation
 // must also add "serial" to tbb::parallel_for
-// like this tbb::serial::parallel_for. Do this to get reasonable 
+// like this tbb::serial::parallel_for. Do this to get reasonable
 // prints out of parallel for loop. Of course it doesent run in parallel
-// any more. 
+// any more.
 #define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
@@ -120,8 +120,7 @@ struct GVT_COMM {
     for (int source = 0; source < world_size; ++source) {
       if (source == rank) continue;
       const size_t chunksize =
-          MAX(GVT_SIMD_WIDTH,
-              partition_size / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
+          MAX(GVT_SIMD_WIDTH, partition_size / (cntx::rcontext::instance().getUnique("threads").to<unsigned>() * 4));
       static tbb::simple_partitioner ap;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, partition_size, chunksize),
                         [&](tbb::blocked_range<size_t> chunk) {
@@ -177,6 +176,7 @@ public:
 
   int width;
   int height;
+  int adapterType;
 
   float sample_ratio;
 
@@ -188,9 +188,9 @@ public:
 
   tbb::mutex *queue_mutex;
   tbb::mutex *colorBuf_mutex; ///< buffer for color accumulation
-  glm::vec4 *colorBuf;
+                              //  glm::vec4 *colorBuf;
 
-//  gvt::render::composite::composite img;
+  //  gvt::render::composite::composite img;
   bool require_composite;
 
   AbstractTrace(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
@@ -204,8 +204,8 @@ public:
 
     // sample_ratio = db.getChild(db.getUnique(camname), "raySamples");
 
-//    require_composite = false;
-//    require_composite = img.initIceT();
+    //    require_composite = false;
+    //    require_composite = img.initIceT();
     // NOTE : Replaced by smat pointer
     // colorBuf = new glm::vec4[width * height];
     Initialize();
@@ -216,13 +216,13 @@ public:
     height = h;
 
     // Create buffers using smart pointers
-    _colorBuf_mutex = std::shared_ptr < tbb::mutex > (new tbb::mutex[width], std::default_delete<tbb::mutex[]>());
-//    _colorBuf = std::shared_ptr<glm::vec4>(new glm::vec4[width * height], std::default_delete<glm::vec4[]>());
+    _colorBuf_mutex = std::shared_ptr<tbb::mutex>(new tbb::mutex[width], std::default_delete<tbb::mutex[]>());
+    //    _colorBuf = std::shared_ptr<glm::vec4>(new glm::vec4[width * height], std::default_delete<glm::vec4[]>());
 
     // Alias buffers
 
     colorBuf_mutex = _colorBuf_mutex.get();
-//    colorBuf = _colorBuf.get();
+    //    colorBuf = _colorBuf.get();
 
     // std::cout << "Resized buffer" << std::endl;
   }
@@ -251,7 +251,7 @@ public:
     auto inst = db.getChildren(db.getUnique("Instances"));
     const size_t numInst = inst.size();
 
-    _queue_mutex = std::shared_ptr<tbb::mutex>(new tbb::mutex[numInst], std::default_delete< tbb::mutex[] > ());
+    _queue_mutex = std::shared_ptr<tbb::mutex>(new tbb::mutex[numInst], std::default_delete<tbb::mutex[]>());
 
     queue_mutex = _queue_mutex.get();
 
@@ -259,15 +259,18 @@ public:
 
     acceleration = std::make_shared<gvt::render::data::accel::BVH>(inst);
 
-
-    for(auto& nref : acceleration->instanceSet) {
+    for (auto &nref : acceleration->instanceSet) {
       auto &n = nref.get();
       size_t id = db.getChild(n, "id");
 
-      if(db.getChild(db.deRef(db.getChild(n,"meshRef")), "ptr").v.is<std::shared_ptr<gvt::render::data::primitives::Mesh>>()) {
-        meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr").to<std::shared_ptr<gvt::render::data::primitives::Mesh>>();
-      } else if(db.getChild(db.deRef(db.getChild(n,"meshRef")), "ptr").v.is<std::shared_ptr<gvt::render::data::primitives::Volume>>()) {
-        meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr").to<std::shared_ptr<gvt::render::data::primitives::Volume>>();
+      if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+              .v.is<std::shared_ptr<gvt::render::data::primitives::Mesh> >()) {
+        meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+                          .to<std::shared_ptr<gvt::render::data::primitives::Mesh> >();
+      } else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+                     .v.is<std::shared_ptr<gvt::render::data::primitives::Volume> >()) {
+        meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+                          .to<std::shared_ptr<gvt::render::data::primitives::Volume> >();
       } else {
         meshRef[id] = nullptr;
       }
@@ -277,7 +280,6 @@ public:
     }
 
     auto lightNodes = db.getChildren(db.getUnique("Lights"));
-
 
     lights.reserve(lightNodes.size());
     for (auto lightNode : lightNodes) {
@@ -297,7 +299,6 @@ public:
         lights.push_back(std::make_shared<gvt::render::data::scene::AreaLight>(pos, color, normal, width, height));
       }
     }
-
   }
 
   void clearBuffer() { image->reset(); /*std::memset(colorBuf, 0, sizeof(glm::vec4) * width * height);*/ }
@@ -327,93 +328,97 @@ public:
     std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
     std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
 
-
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
 
-
     static tbb::auto_partitioner ap;
 
-    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
-                      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
-                        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-                            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
+    tbb::parallel_for(
+        tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+        [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+          gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+              acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
 
-      gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-      //std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
-      for (size_t i = 0; i < hits.size(); i++) {
-        gvt::render::actor::Ray &r = *(raysit.begin() + i);
-        bool write_to_fb = false;
-        int target_queue = -1;
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
-        //std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " << std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
-         if(r.depth & RAY_BOUNDARY){ 
-         // check to see if this ray hit anything in bvh
-           if(hits[i].next != -1) {
-             r.depth &= ~RAY_BOUNDARY;
-             r.origin = r.origin + r.direction *(hits[i].t * (1.0f+std::numeric_limits<float>::epsilon()));
-             target_queue = hits[i].next;
-             //local_queue[hits[i].next].push_back(r);
-             } else {
-               r.depth &= ~RAY_BOUNDARY;
-               r.depth |= RAY_EXTERNAL_BOUNDARY;
-               target_queue = -1;
-             }
-           }
-        //std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " << std::bitset<8>(r.type) << std::endl;
-         // check types
-         if(r.type == RAY_PRIMARY) {
-           if((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
-             write_to_fb = true;
-             target_queue = -1;
-           } else if(r.depth & ~RAY_BOUNDARY) {
-             target_queue = domID;
-           }
-        } else if(r.type == RAY_SHADOW) {
-          if(r.depth & RAY_EXTERNAL_BOUNDARY) {
-            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-            colorBuf[r.id] += glm::vec4(r.color,r.w);
-          }else if(r.depth & RAY_BOUNDARY) {
-            r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
-            local_queue[hits[i].next].push_back(r);
+          gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+          // std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
+          for (size_t i = 0; i < hits.size(); i++) {
+            gvt::render::actor::Ray &r = *(raysit.begin() + i);
+            bool write_to_fb = false;
+            int target_queue = -1;
+            //#ifdef GVT_RENDER_ADAPTER_OSPRAY
+            if (adapterType == gvt::render::adapter::Ospray) {
+              // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
+              // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
+              if (r.depth & RAY_BOUNDARY) {
+                // check to see if this ray hit anything in bvh
+                if (hits[i].next != -1) {
+                  r.depth &= ~RAY_BOUNDARY;
+                  r.origin = r.origin + r.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
+                  target_queue = hits[i].next;
+                  // local_queue[hits[i].next].push_back(r);
+                } else {
+                  r.depth &= ~RAY_BOUNDARY;
+                  r.depth |= RAY_EXTERNAL_BOUNDARY;
+                  target_queue = -1;
+                }
+              }
+              // std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type "
+              // << std::bitset<8>(r.type) << std::endl; check types
+              if (r.type == RAY_PRIMARY) {
+                if ((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
+                  write_to_fb = true;
+                  target_queue = -1;
+                } else if (r.depth & ~RAY_BOUNDARY) {
+                  target_queue = domID;
+                }
+              } else if (r.type == RAY_SHADOW) {
+                if (r.depth & RAY_EXTERNAL_BOUNDARY) {
+                  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                  // colorBuf[r.id] += glm::vec4(r.color, r.w);
+                  image->localAdd(r.id, r.color * r.w, 1.f, r.t);
+                } else if (r.depth & RAY_BOUNDARY) {
+                  r.origin = r.origin + r.direction * (hits[i].t * 1.00f);
+                  local_queue[hits[i].next].push_back(r);
+                }
+              } else if (r.type == RAY_AO) {
+                if (r.depth & (RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
+                  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                  //                colorBuf[r.id] += glm::vec4(r.color, r.w);
+                  image->localAdd(r.id, r.color * r.w, 1.f, r.t);
+                } else if (r.depth & RAY_BOUNDARY) {
+                  r.origin = r.origin + r.direction * (hits[i].t * 1.00f);
+                  local_queue[hits[i].next].push_back(r);
+                }
+              }
+              if (write_to_fb) {
+                tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                // std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
+                // colorBuf[r.id] += glm::vec4(r.color, r.w);
+                image->localAdd(r.id, r.color * r.w, 1.f, r.t);
+              }
+              if (target_queue != -1) {
+                local_queue[target_queue].push_back(r);
+              }
+            } else {
+              if (hits[i].next != -1) {
+                r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+                local_queue[hits[i].next].push_back(r);
+              } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
+                tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                // colorBuf[r.id] += glm::vec4(r.color, r.w);
+                image->localAdd(r.id, r.color * r.w, 1.f, r.t);
+              }
+            }
           }
-        } else if(r.type == RAY_AO) {
-          if(r.depth &(RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
-            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-            colorBuf[r.id] += glm::vec4(r.color,r.w);
-          } else if (r.depth & RAY_BOUNDARY) {
-            r.origin = r.origin + r.direction *(hits[i].t * 1.00f);
-            local_queue[hits[i].next].push_back(r);
-          }
-        }
-        if(write_to_fb) {
-          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-          //std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
-          colorBuf[r.id] += glm::vec4(r.color,r.w);
-        }
-        if(target_queue != -1) {
-          local_queue[target_queue].push_back(r);
-        }
-#else
-        if (hits[i].next != -1) {
-          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
-          local_queue[hits[i].next].push_back(r);
-        } else if(r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color)>0) {
-          tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
-          colorBuf[r.id] += glm::vec4(r.color, r.w);
-        }
-#endif
-      }
-      for (auto &q : local_queue) {
+          for (auto &q : local_queue) {
 
-        queue_mutex[q.first].lock();
-        queue[q.first].insert(queue[q.first].end(),
-        std::make_move_iterator(local_queue[q.first].begin()),
-        std::make_move_iterator(local_queue[q.first].end()));
-        queue_mutex[q.first].unlock();
-      }
-    },
-  ap);
+            queue_mutex[q.first].lock();
+            queue[q.first].insert(queue[q.first].end(), std::make_move_iterator(local_queue[q.first].begin()),
+                                  std::make_move_iterator(local_queue[q.first].end()));
+            queue_mutex[q.first].unlock();
+          }
+        },
+        ap);
 
     rays.clear();
   }
@@ -422,23 +427,23 @@ public:
 
   inline void gatherFramebuffers(int rays_traced) {
     image->composite();
-//    glm::vec4 *final;
-//
-//    if (require_composite)
-//      final = img.execute(colorBuf, width, height);
-//    else
-//      final = colorBuf;
-//
-//    const size_t size = width * height;
-//    const size_t chunksize = MAX(
-//        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<unsigned>() * 4));
-//    static tbb::simple_partitioner ap;
-//    tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
-//                      [&](tbb::blocked_range<size_t> chunk) {
-//                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image->Add(i, final[i]);
-//                      },
-//                      ap);
-//    if (require_composite) delete[] final;
+    //    glm::vec4 *final;
+    //
+    //    if (require_composite)
+    //      final = img.execute(colorBuf, width, height);
+    //    else
+    //      final = colorBuf;
+    //
+    //    const size_t size = width * height;
+    //    const size_t chunksize = MAX(
+    //        GVT_SIMD_WIDTH, size / (db.getUnique("threads").to<unsigned>() * 4));
+    //    static tbb::simple_partitioner ap;
+    //    tbb::parallel_for(tbb::blocked_range<size_t>(0, size, chunksize),
+    //                      [&](tbb::blocked_range<size_t> chunk) {
+    //                        for (size_t i = chunk.begin(); i < chunk.end(); i++) image->Add(i, final[i]);
+    //                      },
+    //                      ap);
+    //    if (require_composite) delete[] final;
   }
 
 private:
@@ -447,7 +452,7 @@ private:
 
   std::shared_ptr<tbb::mutex> _queue_mutex;
   std::shared_ptr<tbb::mutex> _colorBuf_mutex;
-//  std::shared_ptr<glm::vec4> _colorBuf;
+  //  std::shared_ptr<glm::vec4> _colorBuf;
 
 protected:
   /// caches meshes that are converted into the adapter's format

@@ -376,11 +376,10 @@ endif (GVT_RENDER_ADAPTER_EMBREE)
 if (GVT_RENDER_ADAPTER_OSPRAY)
     add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
     set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-            src/gvt/render/adapter/ospray/data/OSPRayAdapter.h
-            src/gvt/render/adapter/ospray/Wrapper.h
+            src/gvt/render/adapter/ospray/OSPRayAdapter.h
             )
     set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-            src/gvt/render/adapter/ospray/data/OSPRayAdapter.cpp
+            src/gvt/render/adapter/ospray/OSPRayAdapter.cpp
             )
     if (GVT_VOLUME)
         add_definitions(-DGVT_BUILD_VOLUME)

@@ -56,7 +56,7 @@
 #endif
 
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
-#include <gvt/render/adapter/ospray/Wrapper.h>
+#include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
@@ -126,7 +126,7 @@ public:
     gvt::core::time::timer t_sort(false, "image tracer: select :");
     gvt::core::time::timer t_adapter(false, "image tracer: adapter :");
     gvt::core::time::timer t_filter(false, "image tracer: filter :");
-    int adapterType = db.getChild(db.getUnique(schedulername),"adapter");
+    adapterType = db.getChild(db.getUnique(schedulername),"adapter");
         //root["Schedule"]["adapter"].value().toInteger();
 
     clearBuffer();
@@ -200,7 +200,11 @@ public:
             adapter = std::make_shared<gvt::render::adapter::optix::data::OptixMeshAdapter>(mesh.get());
             break;
 #endif
-
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+          case gvt::render::adapter::Ospray:
+            adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
+            break;
+#endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
           case gvt::render::adapter::Heterogeneous:
             adapter = std::make_shared<gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter>(mesh);

@@ -52,7 +52,7 @@
 #include <thread>
 
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
-#include <gvt/render/adapter/ospray/Wrapper.h>
+#include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>

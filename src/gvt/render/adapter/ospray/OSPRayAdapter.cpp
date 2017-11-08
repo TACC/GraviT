@@ -22,7 +22,7 @@ GraviT is funded in part by the US National Science Foundation under awards ACI-
 ACI-1339881 and ACI-1339840
 ======================================================================================= */
 #define TBB_PREVIEW_STATIC_PARTITIONER 1
-#include "gvt/render/adapter/ospray/data/OSPRayAdapter.h"
+#include "OSPRayAdapter.h"
 
 using namespace gvt::render::adapter::ospray::data;
 
