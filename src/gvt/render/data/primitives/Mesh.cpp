@@ -45,7 +45,12 @@ Mesh::Mesh(const Mesh &orig) {
   boundingBox = orig.boundingBox;
 }
 
-Mesh::~Mesh() { delete mat; }
+Mesh::~Mesh() {
+  delete mat;
+  for (auto &m : materials) {
+    delete m;
+  }
+}
 
 void Mesh::addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal, glm::vec3 texUV) {
   vertices.push_back(vertex);
@@ -111,9 +116,9 @@ void Mesh::generateNormals() {
   for (int i = 0; i < normals.size(); ++i) normals[i] = glm::vec3(0.0f, 0.0f, 0.0f);
 
   for (int i = 0; i < faces.size(); ++i) {
-    int I = faces[i].get<0>();
-    int J = faces[i].get<1>();
-    int K = faces[i].get<2>();
+    int I = std::get<0>(faces[i]);
+    int J = std::get<1>(faces[i]);
+    int K = std::get<2>(faces[i]);
     glm::vec3 const &a = vertices[I];
     glm::vec3 const &b = vertices[J];
     glm::vec3 const &c = vertices[K];
@@ -197,7 +202,7 @@ void Mesh::writeobj(std::string filename) {
     for (auto &vn : normals) file << "vn " << vn[0] << " " << vn[1] << " " << vn[2] << std::endl;
 
     file << "#vertices " << faces.size() << std::endl;
-    for (auto &f : faces) file << "f " << f.get<0>() + 1 << " " << f.get<1>() + 1 << " " << f.get<2>() + 1 << std::endl;
+    for (auto &f : faces) file << "f " << std::get<0>(f) + 1 << " " << std::get<1>(f) + 1 << " " << std::get<2>(f) + 1 << std::endl;
     file.close();
   }
 }

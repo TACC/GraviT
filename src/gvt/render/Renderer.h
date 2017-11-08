@@ -24,12 +24,17 @@
 #ifndef GVT_RENDER_RENDERER_H
 #define GVT_RENDER_RENDERER_H
 
-#include <gvt/core/context/Variant.h>
-#include <gvt/render/RenderContext.h>
+#include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 #include <gvt/render/algorithm/Tracers.h>
+#include <gvt/render/tracer/Domain/DomainTracer.h>
+#include <gvt/render/tracer/Image/ImageTracer.h>
+#include <gvt/render/tracer/RayTracer.h>
+
+
+#include <memory>
 
 namespace gvt {
 namespace render {
@@ -40,26 +45,22 @@ namespace render {
 */
 class gvtRenderer {
 public:
-  //static void CreateRenderer();
   ~gvtRenderer();
   static gvtRenderer *instance();
-  void render();
-  void WriteImage();
+  void reload(std::string const &name = "Scheduler");
+  void render(std::string const &name = "Scheduler");
+  void WriteImage(std::string const &name = "Film");
 
 protected:
   gvtRenderer(); // constructor
   static gvtRenderer *__singleton;
-  RenderContext *ctx;
-  data::scene::gvtPerspectiveCamera *camera;
-  data::scene::Image *myimage;
-  algorithm::AbstractTrace *tracer;
-  gvt::core::DBNodeH rootnode;
-  gvt::core::DBNodeH datanode;
-  gvt::core::DBNodeH instancesnode;
-  gvt::core::DBNodeH lightsnode;
-  gvt::core::DBNodeH cameranode;
-  gvt::core::DBNodeH filmnode;
-  
+  std::shared_ptr<data::scene::gvtPerspectiveCamera> camera;
+  std::shared_ptr<gvt::render::composite::ImageComposite> myimage;
+
+  std::shared_ptr<algorithm::AbstractTrace> tracersync;
+  std::shared_ptr<gvt::render::RayTracer> tracerasync;
+
+  std::string current_scheduler;
 };
 }
 }

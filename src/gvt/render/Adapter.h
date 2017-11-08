@@ -25,7 +25,6 @@
 #define GVT_RENDER_ADAPTER_H
 
 #include <gvt/render/actor/ORays.h>
-#include <gvt/core/context/DatabaseNode.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
@@ -46,21 +45,26 @@ protected:
   /**
    * Data node (ex: Mesh, Volume)
    */
-  gvt::render::data::primitives::Mesh *mesh;
-#ifdef GVT_BUILD_VOLUME
-  gvt::render::data::primitives::Volume *volume;
-#endif
-  gvt::render::data::primitives::Data *data;
+  std::shared_ptr<gvt::render::data::primitives::Data> data;
+//  std::gvt::render::data::primitives::Mesh *mesh;
+//#ifdef GVT_BUILD_VOLUME
+//  gvt::render::data::primitives::Volume *volume;
+//#endif
+//  gvt::render::data::primitives::Data *data;
 
 public:
   /**
    * Construct an adapter with a given data node
    */
-  Adapter(gvt::render::data::primitives::Data *data ) : data(data) {}; 
-  Adapter(gvt::render::data::primitives::Mesh *mesh ) : mesh(mesh) {}
-#ifdef GVT_BUILD_VOLUME
-  Adapter(gvt::render::data::primitives::Volume *volume) : volume(volume) {}
-#endif
+//  Adapter(std::shared_ptr<gvt::render::data::primitives::Mesh> mesh) : mesh(mesh) {}
+//  Adapter(gvt::render::data::primitives::Data *data ) : data(data) {};
+//  Adapter(gvt::render::data::primitives::Mesh *mesh ) : mesh(mesh) {}
+//#ifdef GVT_BUILD_VOLUME
+//  Adapter(gvt::render::data::primitives::Volume *volume) : volume(volume) {}
+//#endif
+
+  Adapter(std::shared_ptr<gvt::render::data::primitives::Data> data) : data(data) {}
+
 
   /**
    * Destroy the adapter
@@ -75,7 +79,7 @@ public:
    * \param instNode instance db node containing dataRef and transforms
    */
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
-                     glm::mat4 *minv, glm::mat3 *, std::vector<gvt::render::data::scene::Light *> &lights,
+                     glm::mat4 *minv, glm::mat3 *, std::vector<std::shared_ptr<gvt::render::data::scene::Light>> &lights,
                      size_t begin = 0, size_t end = 0) = 0;
 
   std::mutex _inqueue;

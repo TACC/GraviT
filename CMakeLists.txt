@@ -189,17 +189,12 @@ include_directories(${GVT_SRC_DIR})
 
 set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
         src/gvt/core/Actor.h
-        src/gvt/core/context/CoreContext.h
         src/gvt/core/data/Transform.h
-        src/gvt/core/context/Database.h
-        src/gvt/core/context/DatabaseNode.h
         src/gvt/core/Debug.h
         src/gvt/core/math/RandEngine.h
         src/gvt/core/Math.h
         src/gvt/core/schedule/SchedulerBase.h
         src/gvt/core/Types.h
-        src/gvt/core/context/Uuid.h
-        src/gvt/core/context/Variant.h
 
         src/gvt/core/comm/comm.h
         src/gvt/core/comm/communicator.h
@@ -210,15 +205,30 @@ set(GVT_CORE_HDRS ${GVT_CORE_HDRS}
         src/gvt/core/composite/Composite.h
 
         src/gvt/core/tracer/tracer.h
+
+        src/gvt/core/cntx/context.h
+        src/gvt/core/cntx/identifier.h
+        src/gvt/core/cntx/mpi/decoder.h
+        src/gvt/core/cntx/mpi/encoder.h
+        src/gvt/core/cntx/mpi/mpigroup.h
+        src/gvt/core/cntx/anode.h
+        src/gvt/core/cntx/utils.h
+        src/gvt/core/cntx/variant.h
+
+
+        src/gvt/core/math/RandEngine.h
+        src/gvt/core/data/Transform.h
+        src/gvt/schedule/SchedulerBase.h
+        src/gvt/utils/global_counter.h
+        src/gvt/utils/timer.h
+        src/gvt/core/Actor.h
+        src/gvt/core/Debug.h
+        src/gvt/core/Math.h
+        src/gvt/core/Types.h
+
         )
 
 set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
-        src/gvt/core/context/CoreContext.cpp
-        src/gvt/core/context/Database.cpp
-        src/gvt/core/context/DatabaseNode.cpp
-        src/gvt/core/context/Uuid.cpp
-        src/gvt/core/context/Variant.cpp
-
         src/gvt/core/comm/communicator.cpp
         src/gvt/core/comm/communicator/acomm.cpp
         src/gvt/core/comm/communicator/scomm.cpp
@@ -226,13 +236,15 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
         src/gvt/core/comm/vote/vote.cpp
 
         src/gvt/core/tracer/tracer.cpp
+
+
         )
 
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-        src/gvt/render/actor/ORays.h
-        src/gvt/render/actor/smem.h
         src/gvt/render/api/api.h
+        src/gvt/render/api2/api.h
+
         src/gvt/render/actor/Ray.h
         src/gvt/render/algorithm/DomainTracer.h
         src/gvt/render/algorithm/HybridTracer.h
@@ -248,10 +260,8 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
         src/gvt/render/data/Primitives.h
         src/gvt/render/data/primitives/BBox.h
         src/gvt/render/data/primitives/Material.h
-        src/gvt/render/data/primitives/Mesh.h
-        #src/gvt/render/data/primitives/Volume.h
-        #src/gvt/render/data/primitives/TransferFunction.h
         src/gvt/render/data/primitives/Shade.h
+        src/gvt/render/data/primitives/Mesh.h
         src/gvt/render/data/scene/gvtCamera.h
         src/gvt/render/data/scene/CameraConfig.h
         src/gvt/render/data/scene/ColorAccumulator.h
@@ -274,28 +284,29 @@ set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
         src/gvt/render/composite/composite.h
         src/gvt/render/Schedulers.h
         src/gvt/render/Types.h
+
+
         src/gvt/render/composite/IceTComposite.h
         src/gvt/render/composite/ImageComposite.h
         src/gvt/render/tracer/RayTracer.h
         src/gvt/render/tracer/Image/ImageTracer.h
         src/gvt/render/tracer/Domain/DomainTracer.cpp
         src/gvt/render/tracer/Domain/Messages/SendRayList.h
+
+        src/gvt/render/cntx/rcontext.h
+        src/gvt/render/cntx/variant_def.h
         )
 
 
 set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
         src/gvt/render/actor/Ray.cpp
-        src/gvt/render/actor/ORays.cpp
-        src/gvt/render/actor/smem.cpp
-        src/gvt/render/RenderContext.cpp
+
         src/gvt/render/Renderer.cpp
         src/gvt/render/data/reader/ObjReader.cpp
         src/gvt/render/data/reader/PlyReader.cpp
         src/gvt/render/data/primitives/BBox.cpp
         src/gvt/render/data/primitives/Material.cpp
         src/gvt/render/data/primitives/Mesh.cpp
-        # src/gvt/render/data/primitives/Volume.cpp
-        #src/gvt/render/data/primitives/TransferFunction.cpp
         src/gvt/render/data/scene/gvtCamera.cpp
         src/gvt/render/data/scene/ColorAccumulator.cpp
         src/gvt/render/data/scene/Image.cpp
@@ -310,7 +321,8 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
         src/gvt/render/tracer/Domain/DomainTracer.cpp
         src/gvt/render/tracer/Domain/Messages/SendRayList.cpp
 
-        src/gvt/render/api/api.cpp
+        src/gvt/render/api2/api.cpp
+
         )
 
 if (GVT_RENDER_ADAPTER_MANTA)
@@ -429,10 +441,7 @@ endif (GVT_RENDER_ADAPTER_EMBREE AND GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
 if (GVT_CORE)
-    find_package(Boost REQUIRED COMPONENTS system)
-    include_directories(${Boost_INCLUDE_DIRS})
-
-    set(GVT_CORE_LIBS ${LIBS} ${Boost_LIBRARIES} ${TBB_LIBRARIES})
+    set(GVT_CORE_LIBS ${LIBS} ${TBB_LIBRARIES})
     message(STATUS ${TBB_LIBRARIES})
     add_library(gvtCore STATIC
             ${GVT_CORE_SRCS}
@@ -467,7 +476,7 @@ if (GVT_RENDER)
 
     # find_package(Boost REQUIRED COMPONENTS system)
     # include_directories(${Boost_INCLUDE_DIRS})
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${Boost_LIBRARIES} ${GVT_CORE_LIBS})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${GVT_CORE_LIBS})
 
     if (GVT_RENDER_ADAPTER_MANTA)
         find_package(Manta REQUIRED)
@@ -495,7 +504,7 @@ if (GVT_RENDER)
         #cuda_compile(GVT_RENDER_CUDA_OBJS ${GVT_RENDER_CUDA_HDRS} ${GVT_RENDER_CUDA_SRCS})
         CUDA_ADD_LIBRARY(gvtCudaOptix ${GVT_RENDER_CUDA_SRCS} OPTIONS ${CUDA_NVCC_FLAGS})
 
-        set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} ${GVT_RENDER_CUDA_OBJS})
+        set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS} ${GVT_RENDER_CUDA_OBJS} src/gvt/render/data/primitives/Data.h)
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
     endif (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 

@@ -17,36 +17,15 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-#ifndef GVT_RENDER_API_H
-#define GVT_RENDER_API_H
-// API functions
-// #include <gvt/core/Math.h>
-// #include <gvt/core/context/Variant.h>
-// #include <gvt/render/RenderContext.h>
-// #include <gvt/render/Schedulers.h>
-// #include <gvt/render/Types.h>
-// #include <gvt/render/data/Domains.h>
+#ifndef GVT_RENDER_API2_H
+#define GVT_RENDER_API2_H
+
 #include <string>
+#include <thread>
 
-// #include <tbb/task_scheduler_init.h>
-// #include <thread>
-//
-// #ifdef GVT_RENDER_ADAPTER_EMBREE
-// #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
-// #endif
-//
-// #ifdef GVT_RENDER_ADAPTER_MANTA
-// #include <gvt/render/adapter/manta/MantaMeshAdapter.h>
-// #endif
-//
-// #ifdef GVT_RENDER_ADAPTER_OPTIX
-// #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
-// #endif
+namespace api2 {
 
-// using namespace std;
-// using namespace gvt::render::data::primitives;
-
-void gvtInit(int argc, char **argv);
+void gvtInit(int argc, char **argv, unsigned int threads = std::thread::hardware_concurrency());
 // void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
 //              std::string meshname);
 
@@ -130,7 +109,18 @@ void addMeshMaterials(const std::string name, const unsigned n, const unsigned *
  * \param samplingrate the number of samples per cell used to integrate
  */
 void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate);
-/* each mesh needs one or more instance.
+
+/**
+ * Add color to vertex
+ *
+ * @param name Name of the mesh
+ * @param n Number of vertex
+ * @param kd Color 3 * float per vertex (rgb)
+ */
+void addMeshVertexColor(const std::string name, const unsigned n, const float *kd);
+
+/**
+ * each mesh needs one or more instance.
  * Insert an instance for a particular named mesh. The instance
  * contains the transformation matrix information needed to locate
  * the mesh correctly in world space
@@ -138,16 +128,18 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
  * \param instId id of this instance
  * \param m transformation matrix that moves and scales instance*/
 
-void addInstance(std::string name, const float *m);
+void addInstance(std::string instname, std::string meshname, const float *m);
 
-/* add a point light to the render context
+/**
+ * add a point light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
  */
 void addPointLight(std::string name, const float *pos, const float *color);
 
-/* add an area light to the render context
+/**
+ * add an area light to the render context
  * \param name the name of the light
  * \param pos the light location in world coordinates
  * \param color the light color as RGB float
@@ -156,18 +148,24 @@ void addPointLight(std::string name, const float *pos, const float *color);
  * \param h the area light height
  */
 void addAreaLight(std::string name, const float *pos, const float *color, const float *n, float w, float h);
-/* modify an existing light position and/or color. This works for PointLight and AreaLight objects. If the light does
+
+/**
+ * modify an existing light position and/or color. This works for PointLight and AreaLight objects. If the light does
  * not exist, this method has no effect. An error message will be printed if compiled with debugging. \param name the
  * name of the light \param pos the new light positon \param color the new light color
  */
 void modifyLight(std::string name, const float *pos, const float *color);
-/* modify an existing light position, color, normal, height and/or width. Calling this on a PointLight will make it an
+
+/**
+ * modify an existing light position, color, normal, height and/or width. Calling this on a PointLight will make it an
  * AreaLight. If the light does not exist, this method has no effect. An error message will be printed if compiled with
  * debugging. \param name the name of the light \param pos the new light positon \param color the new light color \param
  * n the new normal \param w the new width \param h the new height
  */
 void modifyLight(std::string name, const float *pos, const float *color, const float *n, float w, float h);
-/* add a camera to the scene
+
+/**
+ * add a camera to the scene
  * \param name the camera name
  * \param pos the camera position
  * \param focus the focus direction of the camera
@@ -180,7 +178,8 @@ void modifyLight(std::string name, const float *pos, const float *color, const f
 void addCamera(std::string name, const float *pos, const float *focus, const float *up, float fov, int depth,
                int samples, float jitter);
 
-/* modify the given camera, if it exists
+/**
+ * modify the given camera, if it exists
  * \param name the camera name
  * \param pos the camera position
  * \param focus the focus direction of the camera
@@ -192,7 +191,9 @@ void addCamera(std::string name, const float *pos, const float *focus, const flo
  */
 void modifyCamera(std::string name, const float *pos, const float *focus, const float *up, float fov, int depth,
                   int samples, float jitter);
-/* modify the given camera, if it exists
+
+/**
+ * modify the given camera, if it exists
  * \param name the camera name
  * \param pos the camera position
  * \param focus the focus direction of the camera
@@ -200,32 +201,42 @@ void modifyCamera(std::string name, const float *pos, const float *focus, const 
  * \param fov the camera field of view in radians
  */
 void modifyCamera(std::string name, const float *pos, const float *focus, const float *up, float fov);
-/* add a film object to the context
+
+/**
+ * add a film object to the context
  * \param w the image width
  * \param h the image height
  * \param path the path for the image file
  */
 void addFilm(std::string name, int w, int h, std::string path);
-/* modify film object, if it exists
+
+/**
+ * modify film object, if it exists
  * \param w the image width
  * \param h the image height
  * \param path the path for the image file
  */
 void modifyFilm(std::string name, int w, int h, std::string path);
-/* add a renderer to the context
+
+/**
+ * add a renderer to the context
  * \param name the renderer name
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
 
 void render(std::string name);
+
 void writeimage(std::string name, std::string output = "");
 
-void addRenderer(std::string name, int adapter, int schedule);
-/* modify a renderer in the context, if it exists
+void addRenderer(std::string name, int adapter, int schedule,  std::string const& Camera = "Camera", std::string const& Film = "Film");
+
+/**
+ * modify a renderer in the context, if it exists
  * \param name the renderer name
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void modifyRenderer(std::string name, int adapter, int schedule);
+void modifyRenderer(std::string name, int adapter, int schedule, std::string const& Camera = "Camera", std::string const& Film = "Film");
+} // namespace api2
 #endif // GVT_RENDER_API_H

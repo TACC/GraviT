@@ -29,14 +29,14 @@
 #include <gvt/core/comm/communicator.h>
 #include <gvt/core/utils/global_counter.h>
 #include <gvt/core/utils/timer.h>
+#include <gvt/render/cntx/rcontext.h>
 
 namespace gvt {
 namespace render {
 
 bool DomainTracer::areWeDone() {
   std::shared_ptr<gvt::comm::communicator> comm = gvt::comm::communicator::singleton();
-  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
-  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntxt.tracer());
+  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntx::rcontext::instance().tracer);
   if (!tracer || tracer->getGlobalFrameFinished()) return false;
   bool ret = tracer->isDone();
   return ret;
@@ -44,21 +44,24 @@ bool DomainTracer::areWeDone() {
 
 void DomainTracer::Done(bool T) {
   std::shared_ptr<gvt::comm::communicator> comm = gvt::comm::communicator::singleton();
-  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
-  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntxt.tracer());
+  //  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
+  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntx::rcontext::instance().tracer);
   if (!tracer) return;
   if (T) {
-    // std::lock_guard<std::mutex> _lock(tracer->_queue._protect);
-    // tracer->_queue._queue.clear();
     tracer->setGlobalFrameFinished(true);
   }
 }
-DomainTracer::DomainTracer() : gvt::render::RayTracer() {
+
+DomainTracer::DomainTracer(const std::string &name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+                           std::shared_ptr<gvt::render::composite::ImageComposite> img)
+    : gvt::render::RayTracer(name, cam, img) {
   RegisterMessage<gvt::comm::EmptyMessage>();
   RegisterMessage<gvt::comm::SendRayList>();
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   v = std::make_shared<comm::vote::vote>(DomainTracer::areWeDone, DomainTracer::Done);
   comm.setVote(v);
+
+  auto &db = cntx::rcontext::instance();
 
   queue_mutex = new std::mutex[meshRef.size()];
   for (auto &m : meshRef) {
@@ -66,26 +69,25 @@ DomainTracer::DomainTracer() : gvt::render::RayTracer() {
   }
 
   instances_in_node.clear();
-  gvt::core::Map<std::string, std::set<int> > remote_location;
-  gvt::core::DBNodeH rootnode = cntxt->getRootNode();
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
-  // build location map, where meshes are by mpi node
-  for (size_t i = 0; i < dataNodes.size(); i++) {
-    gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
-    for (auto loc : locations) {
-      remote_location[dataNodes[i].UUID().toString()].insert(loc.value().toInteger());
-    }
+
+  auto inst = db.getChildren(db.getUnique("Instances"));
+  auto data = db.getChildren(db.getUnique("Data"));
+  gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
+  for (auto &rn : data) {
+    auto &m = rn.get();
+    lastAssigned[rn.get().getid()] = 0;
   }
 
-  gvt::core::Vector<gvt::core::DBNodeH> instancenodes = rootnode["Instances"].getChildren();
-  for (int i = 0; i < instancenodes.size(); i++) {
-    std::string UUID = instancenodes[i]["meshRef"].deRef().UUID().toString();
-    if (remote_location[UUID].find(comm.id()) != remote_location[UUID].end()) {
-      instances_in_node[i] = true;
-    } else {
-      instances_in_node[i] = false;
-      remote[i] = remote_location[UUID];
-    }
+  unsigned icount = 0;
+
+  for (auto &ri : inst) {
+    auto &i = ri.get();
+    auto &m = db.deRef(db.getChild(i, "meshRef"));
+    size_t id = db.getChild(i, "id");
+    std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
+    remote[id] = loc[lastAssigned[m.getid()] % loc.size()];
+    instances_in_node[id] = (remote[id] == db.cntx_comm.rank);
+    lastAssigned[m.getid()]++;
   }
 }
 
@@ -96,7 +98,8 @@ DomainTracer::~DomainTracer() {
 
 void DomainTracer::resetBVH() {
   RayTracer::resetBVH();
-  if (queue_mutex != nullptr) delete[] queue_mutex;
+  //  if (queue_mutex != nullptr) delete[] queue_mutex;
+
   for (auto &m : meshRef) {
     queue[m.first] = gvt::render::actor::RayVector();
     queue[m.first].reserve(8192);
@@ -122,11 +125,15 @@ void DomainTracer::operator()() {
   gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
   gvt::util::global_counter gc_sent("Number of rays sent :");
 
-  img->reset();
-  t_camera.resume();
-  cam->AllocateCameraRays();
-  cam->generateRays();
-  t_camera.stop();
+
+
+//  img->reset();
+//  t_camera.resume();
+//  cam->AllocateCameraRays();
+//  cam->generateRays();
+//  t_camera.stop();
+
+
   t_filter.resume();
   gc_filter.add(cam->rays.size());
   processRaysAndDrop(cam->rays);
@@ -161,9 +168,7 @@ void DomainTracer::operator()() {
       gc_shuffle.add(returned_rays.size());
       processRays(returned_rays, target);
       t_shuffle.stop();
-    }
-
-    if (target == -1) {
+    } else {
       t_send.resume();
       for (auto &q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
@@ -196,13 +201,9 @@ void DomainTracer::operator()() {
 }
 
 inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
-
+  auto &db = cntx::rcontext::instance();
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
-  int chunksize =
-      MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
-
-  if (chunksize ==0) chunksize =4;
-
+  const int chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -232,9 +233,9 @@ inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays
 
 inline void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
 
-  int chunksize =
-      MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+  auto &db = cntx::rcontext::instance();
 
+  const int chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -282,5 +283,5 @@ bool DomainTracer::isDone() {
   return true;
 }
 bool DomainTracer::hasWork() { return !_GlobalFrameFinished; }
-}
-}
+} // namespace render
+} // namespace gvt

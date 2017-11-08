@@ -27,8 +27,8 @@ inline Sample3f cosineSampleHemisphere(const float u, const float v) {
   const float phi = 2.0f * (float(pi)) * u;
   const float cosTheta = embree::sqrt(v);
   const float sinTheta = embree::sqrt(1.0f - v);
-  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta,
-                         embree::sin(phi) * sinTheta,
+  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta, 
+                                  embree::sin(phi) * sinTheta, 
                                   cosTheta), 
                        cosTheta*(1.f/(float(pi))));
 }
@@ -47,8 +47,8 @@ inline Sample3f powerCosineSampleHemisphere(const float u, const float v, const 
   const float phi = 2.0f * (float(pi)) * u;
   const float cosTheta = embree::pow(v,1.0f/(_exp+1.0f));
   const float sinTheta = cos2sin(cosTheta);
-  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta,
-                         embree::sin(phi) * sinTheta,
+  return Sample3f(Vec3fa(embree::cos(phi) * sinTheta, 
+				   embree::sin(phi) * sinTheta, 
 				   cosTheta), 
                        (_exp+1.0f)*embree::pow(cosTheta,_exp)*0.5f/(float(pi)));
 }

@@ -63,8 +63,6 @@
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
 
-#include <boost/timer/timer.hpp>
-
 namespace gvt {
 namespace render {
 namespace algorithm {
@@ -87,10 +85,12 @@ public:
   // ray range [used when mpi is enabled]
   size_t rays_start, rays_end;
 
-  // caches meshes that are converted into the adapter's format
-  gvt::core::Map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
 
-  Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
+
+  Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
+         std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
+         std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
+      : AbstractTrace(camera, image, camname, filmname, schedulername) {
     int ray_portion = rays.size() / mpi.world_size;
     rays_start = mpi.rank * ray_portion;
     rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size()
@@ -99,25 +99,18 @@ public:
 
   void resetInstances() {
     AbstractTrace::resetInstances();
-    for (auto a : adapterCache) {
-      delete a.second;
-    }
     adapterCache.clear();
   }
 
   // organize the rays into queues
   // if using mpi, only keep the rays for the current rank
   inline void FilterRaysLocally() {
-    auto nullNode = gvt::core::DBNodeH(); // temporary workaround until shuffleRays is fully replaced
-
     if (mpi) {
-
       gvt::render::actor::RayVector lrays;
       lrays.assign(rays.begin() + rays_start, rays.begin() + rays_end);
       rays.clear();
       shuffleRays(lrays, -1);
     } else {
-
       shuffleRays(rays, -1);
     }
   }
@@ -133,11 +126,8 @@ public:
     gvt::core::time::timer t_sort(false, "image tracer: select :");
     gvt::core::time::timer t_adapter(false, "image tracer: adapter :");
     gvt::core::time::timer t_filter(false, "image tracer: filter :");
-
-    gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-
-    GVT_ASSERT((instancenodes.size() > 0), "image scheduler: instance list is null");
-    int adapterType = root["Schedule"]["adapter"].value().toInteger();
+    int adapterType = db.getChild(db.getUnique(schedulername),"adapter");
+        //root["Schedule"]["adapter"].value().toInteger();
 
     clearBuffer();
 
@@ -148,7 +138,7 @@ public:
 
     gvt::render::actor::RayVector moved_rays;
     int instTarget = -1, instTargetCount = 0;
-    for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
+    for (gvt::core::Map<size_t, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
          ++q) {
       if (q->second.size() > (size_t)instTargetCount) {
         instTargetCount = q->second.size();
@@ -164,7 +154,7 @@ public:
 
       t_sort.resume();
 
-      for (gvt::core::Map<int, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
+      for (gvt::core::Map<size_t, gvt::render::actor::RayVector>::iterator q = this->queue.begin(); q != this->queue.end();
            ++q) {
         if (q->second.size() > (size_t)instTargetCount) {
           instTargetCount = q->second.size();
@@ -175,10 +165,9 @@ public:
 
       if (instTarget >= 0) {
         t_adapter.resume();
-        gvt::render::Adapter *adapter = 0;
-        // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
+        std::shared_ptr<gvt::render::Adapter> adapter = nullptr;
 
-        gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
+        std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
         // TODO: Make cache generic needs to accept any kind of adpater
 
         // 'getAdapterFromCache' functionality
@@ -193,28 +182,28 @@ public:
           switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
           case gvt::render::adapter::Embree:
-            adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+            adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeMeshAdapter>(mesh);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
           case gvt::render::adapter::EmbreeStream:
-            adapter = new gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter(mesh);
+            adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter>(mesh);
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
           case gvt::render::adapter::Manta:
-            adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
+            adapter = std::make_shared<gvt::render::adapter::manta::data::MantaMeshAdapter>(mesh.get());
             break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
           case gvt::render::adapter::Optix:
-            adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+            adapter = std::make_shared<gvt::render::adapter::optix::data::OptixMeshAdapter>(mesh.get());
             break;
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
           case gvt::render::adapter::Heterogeneous:
-            adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+            adapter = std::make_shared<gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter>(mesh);
             break;
 #endif
           default:
@@ -230,11 +219,14 @@ public:
         {
           t_trace.resume();
           moved_rays.reserve(this->queue[instTarget].size() * 10);
-          adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
-                         instMinvN[instTarget], lights);
+          adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
+                         instMinvN[instTarget].get(), lights);
+          unsigned  count = 0;
+          for(auto& r : moved_rays) {
+              if(r.type == gvt::render::actor::Ray::SHADOW) count++;
+          }
 
           this->queue[instTarget].clear();
-
           t_trace.stop();
         }
 
@@ -257,7 +249,7 @@ public:
     t_diff = t_frame - t_all;
   }
 };
-}
-}
-}
+} // namespace algorithm
+} // namespace render
+} // namespace gvt
 #endif /* GVT_RENDER_ALGORITHM_IMAGE_TRACER_H */

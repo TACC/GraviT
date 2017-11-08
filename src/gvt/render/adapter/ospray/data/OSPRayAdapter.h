@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include "gvt/render/Adapter.h"
-#include <gvt/render/RenderContext.h>
+#include <gvt/render/cntx/rcontext.h>
 #include "ospray/ospray.h"
 #include "ospray/OSPExternalRays.h"
 //#include "ospray/ExternalAPI.h"
@@ -42,9 +42,7 @@ public:
   /** 
    * Construct the OSPRayAdapter. 
    */
-  OSPRayAdapter(gvt::render::data::primitives::Data*);
-  OSPRayAdapter(gvt::render::data::primitives::Mesh*);
-  OSPRayAdapter(gvt::render::data::primitives::Volume*);
+  OSPRayAdapter(std::shared_ptr<gvt::render::data::primitives::Data> data,int w, int h);
   OSPVolume GetTheOSPVolume() {return theOSPVolume;}
   OSPModel GetTheOSPModel() {return theOSPModel;}
   ~OSPRayAdapter();
@@ -52,8 +50,8 @@ public:
   OSPExternalRays GVT2OSPRays(gvt::render::actor::RayVector &rayList);
   void OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl, gvt::render::actor::RayVector &moved_rays);
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
-            glm::mat4 *minv, glm::mat3 *normi, std::vector<gvt::render::data::scene::Light *> &lights,
-                  size_t begin = 0, size_t end = 0);
+                     glm::mat4 *minv, glm::mat3 *normi, gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights,
+                     size_t begin = 0, size_t end = 0);
 
 protected:
   /**

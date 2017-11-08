@@ -44,10 +44,6 @@
 #include <atomic>
 #include <thread>
 
-#include <boost/atomic.hpp>
-#include <boost/foreach.hpp>
-#include <boost/timer/timer.hpp>
-#include <boost/tuple/tuple.hpp>
 
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
@@ -104,13 +100,13 @@ MantaMeshAdapter::MantaMeshAdapter(gvt::render::data::primitives::Mesh *mesh)
     mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
     mantaMesh->texture_indices.push_back(Manta::Mesh::kNoTextureIndex);
     // vertex indices
-    mantaMesh->vertex_indices.push_back(boost::get<0>(f));
-    mantaMesh->vertex_indices.push_back(boost::get<1>(f));
-    mantaMesh->vertex_indices.push_back(boost::get<2>(f));
+    mantaMesh->vertex_indices.push_back(std::get<0>(f));
+    mantaMesh->vertex_indices.push_back(std::get<1>(f));
+    mantaMesh->vertex_indices.push_back(std::get<2>(f));
     // normal indices
-    mantaMesh->normal_indices.push_back(boost::get<0>(f));
-    mantaMesh->normal_indices.push_back(boost::get<1>(f));
-    mantaMesh->normal_indices.push_back(boost::get<2>(f));
+    mantaMesh->normal_indices.push_back(std::get<0>(f));
+    mantaMesh->normal_indices.push_back(std::get<1>(f));
+    mantaMesh->normal_indices.push_back(std::get<2>(f));
     mantaMesh->face_material.push_back(0);
     // triangle objects (to be deleted inside Manta)
     mantaMesh->addTriangle(new Manta::KenslerShirleyTriangle());

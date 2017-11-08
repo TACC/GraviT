@@ -6,7 +6,6 @@ pyGVT - Python wrapper for GraviT
 
 * Embree 2.15+
 * IceT
-* Boost 1.59+
 * GraviT
 * MPI
 
@@ -34,4 +33,10 @@ python setup.py install
 ```
 python test.py
 display simple.ppm
+```
+```
+source test_example_reader.sh
+display bunny.ppm
+display wavelet.ppm
+display block0.ppm
 ```

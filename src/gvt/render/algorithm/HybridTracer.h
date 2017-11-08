@@ -37,7 +37,6 @@
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
-#include <boost/foreach.hpp>
 
 #include <mpi.h>
 
@@ -185,16 +184,16 @@ public:
         // domTarget, dom, this->colorBuf, ray_counter, domain_counter))();
         {
           moved_rays.reserve(this->queue[domTarget].size() * 10);
-          boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
+//          boost::timer::auto_cpu_timer t("Tracing domain rays %t\n");
           dom->trace(this->queue[domTarget], moved_rays);
           this->queue[domTarget].clear();
         }
 
-        boost::atomic<int> current_ray(0);
+//        boost::atomic<int> current_ray(0);
         size_t workload = std::max(
             (size_t)1, (size_t)(moved_rays.size() / (gvt::core::schedule::asyncExec::instance()->numThreads * 2)));
         {
-          boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
+//          boost::timer::auto_cpu_timer t("Scheduling rays %t\n");
           for (int rc = 0; rc < gvt::core::schedule::asyncExec::instance()->numThreads; ++rc) {
             gvt::core::schedule::asyncExec::instance()->run_task(
                 processRayVector(this, moved_rays, current_ray, moved_rays.size(), workload, dom));

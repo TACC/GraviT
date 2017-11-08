@@ -17,14 +17,14 @@ except KeyError:
    sys.exit(1)
 
 
-try:
-   os.environ["Boost_DIR"]
-   boost_inc = os.environ["Boost_DIR"] + "/include"
-   boost_lib = os.environ["Boost_DIR"] + ("/lib" if os.path.exists(os.environ["Boost_DIR"]+"/lib") else "/lib64")
-
-except KeyError:
-   print("Please set the environment variable Boost_DIR")
-   sys.exit(1)
+# try:
+#    os.environ["Boost_DIR"]
+#    boost_inc = os.environ["Boost_DIR"] + "/include"
+#    boost_lib = os.environ["Boost_DIR"] + ("/lib" if os.path.exists(os.environ["Boost_DIR"]+"/lib") else "/lib64")
+#
+# except KeyError:
+#    print("Please set the environment variable Boost_DIR")
+#    sys.exit(1)
 
 
 try:
@@ -62,7 +62,7 @@ extensions = [
     Extension("gvt",["src/gvt/gvt.pyx"],
         include_dirs = [
             embree_inc,
-            boost_inc,
+            # boost_inc,
             gvt_inc,
             mpi_inc,
             # os.environ["embree_DIR"] + "/include",
@@ -74,7 +74,7 @@ extensions = [
         "gvtRender","gvtCore",
         "IceTGL","IceTMPI","IceTCore",
         "embree",
-        "boost_system"+mpi_mac,
+        # "boost_system"+mpi_mac,
         "mpi",
         "mpicxx",
         "irc",

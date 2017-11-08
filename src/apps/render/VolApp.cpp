@@ -38,7 +38,10 @@
 */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/render/RenderContext.h>
+//#include <gvt/render/RenderContext.h>
+
+#include <gvt/render/cntx/rcontext.h>
+
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
@@ -57,8 +60,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
-
 #include <iostream>
 #include <fstream>
 #include <ios>
@@ -70,9 +71,9 @@
 #include <stdlib.h>
 
 #include "ParseCommandLine.h"
-//#define USEAPI
+#define USEAPI
 #ifdef USEAPI
-#include <gvt/render/api/api.h>
+#include <gvt/render/api2/api.h>
 #endif
 
 using namespace std;
@@ -312,7 +313,11 @@ int main(int argc, char **argv) {
 
 #ifdef USEAPI
   // API initialization
-  gvtInit(argc,argv);
+  if (!cmd.isSet("threads")) {
+    api2::gvtInit(argc,argv);
+  } else {
+    api2::gvtInit(argc,argv,cmd.get<int>("threads"));
+  }
   int rank,worldsize;
   // get rank and world size for use downstream
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -385,11 +390,12 @@ int main(int argc, char **argv) {
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
         std::cout << " rank " << rank << " reading domain " << domain << std::endl;
+#if 0
       // create a volume object which is similar to a mesh object
-      gvt::render::data::primitives::Volume *vol = 
-        new gvt::render::data::primitives::Volume();
+      std::shared_ptr<gvt::render::data::primitives::Volume> vol =
+        std::make_shared<gvt::render::data::primitives::Volume>();
       // read volume file.
-      float* sampledata = volheader.readdata(domain);
+
       gvt::render::data::primitives::TransferFunction *tf = 
         new gvt::render::data::primitives::TransferFunction();
       // read transfer function. 
@@ -402,12 +408,15 @@ int main(int argc, char **argv) {
       vol->SetTransferFunction(tf);
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
-      float deltas[3] = {1.0,1.0,1.0};
-      float samplingrate = 1.0;
+
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
       vol->SetSamplingRate(samplingrate);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
+#endif
+      float* sampledata = volheader.readdata(domain);
+      float deltas[3] = {1.0,1.0,1.0};
+      float samplingrate = 1.0;
       // stuff it in the db
 #ifdef USEAPI
       // create a mesh object, add it to the db 
@@ -416,9 +425,9 @@ int main(int argc, char **argv) {
       // It will work.. trust me... 
       std::cout << "create volume and add samples " << volnodename << std::endl;
       volnodename = volumefile + std::to_string(domain);
-      createVolume(volnodename);
-      addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
-      addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
+      api2::createVolume(volnodename);
+      api2::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
+      api2::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
 
     }
   }
@@ -444,10 +453,10 @@ int main(int argc, char **argv) {
       volnodename = volumefile + std::to_string(domain);
       auto m = new glm::mat4(1.f);
       auto &mi = (*m);
-
-              float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+      float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
                                          mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-      addInstance(volnodename, mf);
+      api2::addInstance(std::string("inst") + std::to_string(domain),volnodename, mf);
+
     }
   }
 #else
@@ -486,7 +495,7 @@ int main(int argc, char **argv) {
   auto lpos = glm::vec3(0.,0.,1.);
   auto lcolor = glm::vec3(100.,100.,500.);
   string lightname = "mylight";
-  addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
+  api2::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
   // camera time
   auto eye = glm::vec3(127.5,127.5,1024.);
   if (cmd.isSet("eye")) {
@@ -509,7 +518,7 @@ int main(int argc, char **argv) {
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
   std::cout << "add camera " << camname << std::endl;
-  addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
+  api2::addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
   // film
   string filmname = "conefilm";
   std::cout << "add film " << filmname << std::endl;
@@ -524,7 +533,7 @@ int main(int argc, char **argv) {
   if(cmd.isSet("imagefile")) {
     outputpath = cmd.get<std::string>("imagefile");
   } 
-  addFilm(filmname,width,height,outputpath);
+  api2::addFilm(filmname,width,height,outputpath);
   // render bits (schedule and adapter)
   string rendername("VolumeRenderer");
   int schedtype;
@@ -538,9 +547,10 @@ int main(int argc, char **argv) {
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
-  addRenderer(rendername,adaptertype,schedtype);
-  render(rendername);
-  writeimage(rendername);
+  api2::addRenderer(rendername,adaptertype,schedtype,camname,filmname);
+  std::cout << "Calling render" << std::endl;
+  api2::render(rendername);
+  api2::writeimage(rendername);
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 #else
   gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());

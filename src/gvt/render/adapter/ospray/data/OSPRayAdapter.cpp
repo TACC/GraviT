@@ -23,20 +23,19 @@ ACI-1339881 and ACI-1339840
 ======================================================================================= */
 #define TBB_PREVIEW_STATIC_PARTITIONER 1
 #include "gvt/render/adapter/ospray/data/OSPRayAdapter.h"
-#include "gvt/core/context/CoreContext.h"
 
 using namespace gvt::render::adapter::ospray::data;
 
 bool OSPRayAdapter::init = false;
 
 // constructor for data (not implemented)
-OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Data *data) : Adapter(data) {
-  theOSPRenderer = ospNewRenderer("ptracer");
-}
+//OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Data *data) : Adapter(data) {
+//  theOSPRenderer = ospNewRenderer("ptracer");
+//}
 // constructor for mesh data (not implemented)
-OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data) : Adapter(data) {
-  theOSPRenderer = ospNewRenderer("ptracer");
-}
+//OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data) : Adapter(data) {
+//  theOSPRenderer = ospNewRenderer("ptracer");
+//}
 /***
  * following the function of the other adapters all this one does is map the data
  * in the GVT volume to ospray datatypes. If we are doing this right then this is
@@ -45,19 +44,25 @@ OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Mesh *data) : Adapte
  * ospray volume object. The adapter needs to maintain a pointer to an ospray model
  * object.
  */
-OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Volume *data) : Adapter(data) {
+OSPRayAdapter::OSPRayAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d, int w, int h) : Adapter(d) {
+
+  std::shared_ptr<gvt::render::data::primitives::Volume> data = std::dynamic_pointer_cast<gvt::render::data::primitives::Volume>(d);
+
+  GVT_ASSERT(data,"Is not a volume");
+
   int n_slices, n_isovalues;
   glm::vec4 *slices;
   glm::vec3 globalorigin;
   glm::vec3 volumedimensions;
   glm::vec3 volumespacing;
   float *isovalues;
-  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-  gvt::core::DBNodeH root = cntxt->getRootNode();
+//  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
+//  gvt::core::DBNodeH root = cntxt->getRootNode();
 
-  width = root["Film"]["width"].value().toInteger();
-  height = root["Film"]["height"].value().toInteger();
+  cntx::rcontext &db = cntx::rcontext::instance();
 
+  width =w; // (db.getChild(db.getUnique("Film"),"width").to<int>());
+  height = h; // db.getChild(db.getUnique("Film"),"height").to<int>();
   theOSPRenderer = ospNewRenderer("ptracer");
   // build the ospray volume from the data in the GraviT volume
   theOSPVolume = ospNewVolume("shared_structured_volume");
@@ -240,8 +245,13 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
 // surfaces and/or slices are used. Still, a light vector is passed. It
 // may be empty.
 void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
-                          glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                          std::vector<gvt::render::data::scene::Light *> &lights, size_t begin, size_t end) {
+                               glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
+                               gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights, size_t _begin,
+                               size_t _end){
+
+
+  std::cout << " aaaaa " << std::endl;
+
   // lights
   // todo sort point and area lights. For now assume point light.
   // gravit stores light position and color. ospray uses direction instead.
@@ -254,9 +264,9 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
   // dont need to deal with them. If however there is some geometry
   // then dolights will be true and we will process the lights.
   if (dolights) {
-    gvt::render::data::scene::Light lgt;
-    for (gvt::render::data::scene::Light *lgt : lights) {
-      glm::vec3 pos = lgt->position;
+//    gvt::render::data::scene::Light lgt;
+    for (std::shared_ptr<gvt::render::data::scene::Light> light : lights) {
+      glm::vec3 pos = light->position;
       float d = 1 / sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
       lghtptr[0] = -pos[0] * d;
       lghtptr[1] = -pos[1] * d;
