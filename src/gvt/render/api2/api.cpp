@@ -122,7 +122,7 @@ void finishMesh(const std::string name, const bool compute_normal) {
   bbnode = std::make_shared<gvt::render::data::primitives::Box3D>(*m->getBoundingBox());
   std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
   v->push_back(db.cntx_comm.rank);
-  getChildByName(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
+  db.getChild(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
 }
 
 /**
@@ -476,24 +476,8 @@ void createVolume(const std::string name) {
   db.getChild(db.getUnique(name), "ptr") = std::make_shared<gvt::render::data::primitives::Volume>();
   std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
   v->push_back(db.cntx_comm.rank);
-  getChildByName(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
-  //
+  db.getChild(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
 
-//  gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
-//  gvt::core::DBNodeH root = cntxt->getRootNode();
-//  gvt::core::DBNodeH dataNodes = root["Data"];
-//  GVT_ASSERT(!dataNodes.getChildByName(name.c_str()).isValid(), "Volume Name is not unique : " << name);
-//  // creating a mesh database node here to hold the volume
-//  gvt::core::DBNodeH avolnode = cntxt->createNodeFromType("Mesh",name.c_str(),dataNodes.UUID());
-//  avolnode["file"] = name.c_str();
-//  gvt::render::data::primitives::Volume *v = new gvt::render::data::primitives::Volume();
-//  avolnode["bbox"] = reinterpret_cast<unsigned long long>(v->getBoundingBox());
-//  avolnode["ptr"] = reinterpret_cast<unsigned long long>(v);
-//  int rank;
-//  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-//  gvt::core::DBNodeH loc = cntxt->createNode("rank",rank);
-//  avolnode["Locations"] += loc;
-//  cntxt->addToSync(avolnode);
 }
 
 void addVolumeTransferFunctions(const std::string name, const std::string colortfname, const std::string opacitytfname,float low,float high) {
@@ -515,7 +499,7 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetDeltas(deltas[0],deltas[1],deltas[2]);
   v->SetSamplingRate(samplingrate);
   glm::vec3 lower(origin[0],origin[1],origin[2]);
-  glm::vec3 upper = lower +glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
+  glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
 }
 

@@ -71,7 +71,8 @@
 #include <stdlib.h>
 
 #include "ParseCommandLine.h"
-#define USEAPI
+#include <gvt/render/api2/api.h>
+//#define USEAPI
 #ifdef USEAPI
 #include <gvt/render/api2/api.h>
 #endif
@@ -274,6 +275,7 @@ struct bovheader {
     return samples;
   }
 };
+
 // determine if file is a directory
 bool isdir(const char *path) {
   struct stat buf;
@@ -285,6 +287,7 @@ bool file_exists(const char *path) {
   struct stat buf;
   return(stat(path, &buf) == 0);
 }
+
 int main(int argc, char **argv) {
 
   ParseCommandLine cmd("gvtVol");
@@ -311,7 +314,7 @@ int main(int argc, char **argv) {
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
 
-#ifdef USEAPI
+//#ifdef USEAPI
   // API initialization
   if (!cmd.isSet("threads")) {
     api2::gvtInit(argc,argv);
@@ -322,15 +325,16 @@ int main(int argc, char **argv) {
   // get rank and world size for use downstream
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
-#else
+//#else
   // this preprocessor block does what gvtInit does
-  MPI_Init(&argc, &argv);
-  MPI_Pcontrol(0);
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  int worldsize;
-  worldsize = MPI::COMM_WORLD.Get_size();
+//  MPI_Init(&argc, &argv);
+//  MPI_Pcontrol(0);
+//  int rank = -1;
+//  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+//  int worldsize;
+//  worldsize = MPI::COMM_WORLD.Get_size();
 
+#if 0
   // context initialization should go in gvt_Init but gvt_Init doesnt exist yet...
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
 
@@ -353,6 +357,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH instNodes = root["Instances"];
 #endif
 
+  cntx::rcontext &db = cntx::rcontext::instance();
 
   // read volume information and initialize gravit volume object
   // transfer functions are associated with the volume
@@ -390,15 +395,13 @@ int main(int argc, char **argv) {
   for(int domain =0; domain < volheader.numberofdomains; domain++) {
     if(domain%worldsize == rank){ // read this domain 
         std::cout << " rank " << rank << " reading domain " << domain << std::endl;
-#if 0
-      // create a volume object which is similar to a mesh object
-      std::shared_ptr<gvt::render::data::primitives::Volume> vol =
-        std::make_shared<gvt::render::data::primitives::Volume>();
+      gvt::render::data::primitives::Volume *vol =
+        new gvt::render::data::primitives::Volume();
       // read volume file.
-
-      gvt::render::data::primitives::TransferFunction *tf = 
+      float* sampledata = volheader.readdata(domain);
+      gvt::render::data::primitives::TransferFunction *tf =
         new gvt::render::data::primitives::TransferFunction();
-      // read transfer function. 
+      // read transfer function.
       tf->load(ctffile,otffile);
       // this value range is for small enzo data
       tf->setValueRange(glm::vec2(0.0,65536.0));
@@ -408,15 +411,14 @@ int main(int argc, char **argv) {
       vol->SetTransferFunction(tf);
       vol->SetCounts(volheader.counts[0],volheader.counts[1],volheader.counts[2]);
       vol->SetOrigin(volheader.origin[0],volheader.origin[1],volheader.origin[2]);
-
+      float deltas[3] = {1.0,1.0,1.0};
+      float samplingrate = 1.0;
       glm::vec3 dels = {1.0,1.0,1.0};
       vol->SetDeltas(dels.x,dels.y,dels.z);
       vol->SetSamplingRate(samplingrate);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
-#endif
-      float* sampledata = volheader.readdata(domain);
-      float deltas[3] = {1.0,1.0,1.0};
-      float samplingrate = 1.0;
+
+
       // stuff it in the db
 #ifdef USEAPI
       // create a mesh object, add it to the db 
@@ -424,28 +426,31 @@ int main(int argc, char **argv) {
       // for now add the domain number to the volumefile name. 
       // It will work.. trust me... 
       std::cout << "create volume and add samples " << volnodename << std::endl;
+      float* sampledata = volheader.readdata(domain);
+      std::cout << volheader.volbox->bounds_min << " x " << volheader.volbox->bounds_max << std::endl;
+      float deltas[3] = {1.0,1.0,1.0};
+      float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
       api2::createVolume(volnodename);
       api2::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
       api2::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
-
-    }
-  }
 #else
-      gvt::core::DBNodeH VolumeNode = cntxt->addToSync(
-        cntxt->createNodeFromType("Mesh",volumefile.c_str(),dataNodes.UUID()));
-      VolumeNode["file"] = volumefile.c_str();
-      VolumeNode["bbox"] = (unsigned long long)volbox;
-      VolumeNode["ptr"] = (unsigned long long)vol;
-
-      gvt::core::DBNodeH loc = cntxt->createNode("rank",MPI::COMM_WORLD.Get_rank());
-      VolumeNode["Locations"] += loc;
-      // not sure if I need this call or not based on the way VolumeNode was created.
-      cntxt->addToSync(VolumeNode);
+      volnodename = volumefile + std::to_string(domain);
+      auto& volumenode = db.createnode("Volume",volnodename,true,db.getUnique("Data"));
+      db.getChild(volumenode,"file") = volumefile;
+      db.getChild(volumenode,"bbox") = std::shared_ptr<gvt::render::data::primitives::Box3D>(volbox);
+      db.getChild(volumenode,"ptr") = std::shared_ptr<gvt::render::data::primitives::Volume>(vol);
+      std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
+      v->push_back(db.cntx_comm.rank);
+      db.getChild(volumenode, "Locations") = v; // db.cntx_comm.rank;
+      std::cout << "Finished " << std::endl;
+#endif
     }
   }
-    cntxt->syncContext();
-#endif
+  db.sync();
+
+  db.printtreebyrank(std::cout);
+
       // add instances by looping through the domains again. It is enough for rank 0 to do this. It gets synced in the end. 
   if(MPI::COMM_WORLD.Get_rank()==0) {
     for(int domain=0;domain < volheader.numberofdomains; domain++) {
@@ -460,31 +465,27 @@ int main(int argc, char **argv) {
     }
   }
 #else
-      gvt::core::DBNodeH instnode = cntxt->createNodeFromType("Instance", "inst", instNodes.UUID());
-      gvt::core::DBNodeH VolumeNode = dataNodes.getChildren()[domain];
-      gvt::render::data::primitives::Box3D *mbox = 
-        (gvt::render::data::primitives::Box3D *)VolumeNode["bbox"].value().toULongLong();
-      instnode["id"] = domain;
-      instnode["meshRef"] = VolumeNode.UUID();
-      // we dont transform or use instancing in this example 
-      // We load the identity matrix transformations anyway. 
-      auto m = new glm::mat4(1.f);
-      auto minv = new glm::mat4(1.f);
-      auto normi = new glm::mat3(1.f);
-      instnode["mat"] = (unsigned long long)m;
-      *minv = glm::inverse(*m);
-      instnode["matInv"] = (unsigned long long)minv;
-      *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
-      instnode["normi"] = (unsigned long long)normi;
-      auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
-      auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-      gvt::render::data::primitives::Box3D *ibox = new gvt::render::data::primitives::Box3D(il, ih);
-      instnode["bbox"] = (unsigned long long)ibox;
-      instnode["centroid"] = ibox->centroid();
-      cntxt->addToSync(instnode);
+
+
+
+      auto& instance = db.createnode("Instance", std::string("inst") + std::to_string(domain),true,db.getUnique("Instances"));
+      auto& volumenode = db.getChildren(db.getUnique("Data"))[domain].get();
+      db.getChild(instance,"meshRef") = volumenode.getid();
+      db.getChild(instance,"mat") = std::make_shared<glm::mat4>(1.f);
+      db.getChild(instance,"matinv") = std::make_shared<glm::mat4>(1.f);
+      db.getChild(instance,"normi") = std::make_shared<glm::mat3>(1.f);
+      db.getChild(instance,"mat") = std::make_shared<glm::mat4>(1.f);
+      std::cout << "Getting bbox" << std::endl;
+      std::shared_ptr<gvt::render::data::primitives::Box3D> bbox = db.getChild(volumenode,"bbox");
+      db.getChild(instance,"bbox") = bbox;
+
+      std::cout << "Getting bbox centroid"  << std::endl;
+
+      db.getChild(instance,"centroid") = bbox->centroid();
+
     }
   }
-  cntxt->syncContext();
+
 #endif
 
   // add lights, camera, and film to the database all nodes do this.
@@ -546,140 +547,123 @@ int main(int argc, char **argv) {
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
+  db.sync();
+
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
   api2::addRenderer(rendername,adaptertype,schedtype,camname,filmname);
   std::cout << "Calling render" << std::endl;
+  db.sync();
+  db.printtreebyrank(std::cout);
   api2::render(rendername);
   api2::writeimage(rendername);
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#else
-  gvt::core::DBNodeH lightNodes = cntxt->createNodeFromType("Lights", "Lights", root.UUID());
-  gvt::core::DBNodeH lightNode = cntxt->createNodeFromType("PointLight", "conelight", lightNodes.UUID());
-  lightNode["position"] = glm::vec3(0.0, 0.0, 1.0);
-  lightNode["color"] = glm::vec3(100.0, 100.0, 500.0);
-  // camera. this stuff is required. No camera no image.
-  gvt::core::DBNodeH camNode = cntxt->createNodeFromType("Camera", "conecam", root.UUID());
-  camNode["eyePoint"] = glm::vec3(127.5,127.5,1024);
-  camNode["focus"] = glm::vec3(127.5, 127.5, 0.0);
-  camNode["upVector"] = glm::vec3(0.0,1.0, 0.0);
-  camNode["fov"] = (float)(30.0 * M_PI / 180.0);
-  camNode["rayMaxDepth"] = (int)1;
-  camNode["raySamples"] = (int)1;
-  // film
-  gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "conefilm", root.UUID());
-  filmNode["width"] = 100;
-  filmNode["height"] = 100;
+#endif
 
-  // override some defaults...
+  auto lpos = glm::vec3(0.0, 0.0, 1.0);
+  auto lcolor = glm::vec3(100.0, 100.0, 500.0);
+
+  string lightname = "conelight";
+
+  if (cmd.isSet("lpos")) {
+    gvt::core::Vector<float> pos = cmd.getValue<float>("lpos");
+    lpos = glm::vec3(pos[0], pos[1], pos[2]);
+  }
+  if (cmd.isSet("lcolor")) {
+    gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
+    lcolor = glm::vec3(color[0], color[1], color[2]);
+  }
+
+  // camera bits..
+  auto eye = glm::vec3(127.5,127.5,1024);
   if (cmd.isSet("eye")) {
-    std::vector<float> eye = cmd.getValue<float>("eye");
-    camNode["eyePoint"] = glm::vec3(eye[0], eye[1], eye[2]);
+    gvt::core::Vector<float> cameye = cmd.getValue<float>("eye");
+    eye = glm::vec3(cameye[0], cameye[1], cameye[2]);
   }
-
-  if (cmd.isSet("upVector")) {
-    std::vector<float> upvec = cmd.getValue<float>("upVector");
-    camNode["upVector"] = glm::vec3(upvec[0], upvec[1], upvec[2]);
-  }
-
+  auto focus = glm::vec3(127.5, 127.5, 0.0);;
   if (cmd.isSet("look")) {
-    std::vector<float> eye = cmd.getValue<float>("look");
-    camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
+    gvt::core::Vector<float> foc = cmd.getValue<float>("look");
+    focus = glm::vec3(foc[0], foc[1], foc[2]);
   }
+  auto upVector = glm::vec3(0.0, 1.0, 0.0);
+  float fov = (float)(30.0 * M_PI / 180.0);
+
+  int rayMaxDepth = (int)1;
+  int raySamples = (int)1;
+  float jitterWindowSize = (float)0.5;
+
+  string camname = "conecam";
+  auto& camnode = db.createnode("Camera",camname,true,db.getUnique("Cameras"));
+  db.getChild(camnode,"eyePoint") = eye;
+  db.getChild(camnode,"focus") = focus;
+  db.getChild(camnode,"upVector") = upVector;
+  db.getChild(camnode,"fov") = fov;
+  db.getChild(camnode,"rayMaxDepth") = rayMaxDepth;
+  db.getChild(camnode,"raySamples") = raySamples;
+  db.getChild(camnode,"jitterWindowSize") = jitterWindowSize;
+
+
+  db.sync();
+  // film bits..
+  string filmname = "conefilm";
+  int width = (int)512;
+  int height = (int)512;
   if (cmd.isSet("wsize")) {
-    std::vector<int> wsize = cmd.getValue<int>("wsize");
-    filmNode["width"] = wsize[0];
-    filmNode["height"] = wsize[1];
+    gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
+    width = wsize[0];
+    height = wsize[1];
+  }
+  string outputpath = "VolumeRender";
+  if (cmd.isSet("output")) {
+    gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
+    outputpath = output[0];
   }
 
-  gvt::core::DBNodeH schedNode = cntxt->createNodeFromType("Schedule", "Enzosched", root.UUID());
+  auto& f = db.createnode("Film",filmname,true,db.getUnique("Films"));
+  db.getChild(f,"width") = width;
+  db.getChild(f,"height") = height;
+  db.getChild(f,"outputPath") = outputpath;
+
+  db.sync();
+
+
+  // render bits (schedule and adapter)
+  string rendername("VolumeRender");
+  int schedtype;
+  int adaptertype;
   if (cmd.isSet("domain"))
-    schedNode["type"] = gvt::render::scheduler::Domain;
+    schedtype = gvt::render::scheduler::Domain;
   else
-    schedNode["type"] = gvt::render::scheduler::Image;
+    schedtype = gvt::render::scheduler::Image;
 
-  // at this point application only works with ospray adapter
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
-  int adapterType = gvt::render::adapter::Ospray;
-#elif
-  GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
-#endif
+  string adapter("embree");
 
-  schedNode["adapter"] = adapterType;
+  adaptertype =  gvt::render::adapter::Ospray;
 
-  // end db setup
-  //
-  // use db to create structs needed by system
-
-#if 0
-  if(rank == 0) 
-  cntxt->database()->printTree(root.UUID(),3,std::cout);
-#endif
-  // setup gvtCamera from database entries
-  gvt::render::data::scene::gvtPerspectiveCamera mycamera;
-  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
-  glm::vec3 focus = camNode["focus"].value().tovec3();
-  float fov = camNode["fov"].value().toFloat();
-  glm::vec3 up = camNode["upVector"].value().tovec3();
-  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
-  int raySamples = camNode["raySamples"].value().toInteger();
-  mycamera.lookAt(cameraposition, focus, up);
-  mycamera.setMaxDepth(rayMaxDepth);
-  mycamera.setSamples(raySamples);
-  mycamera.setFOV(fov);
-  mycamera.setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
-
-  // setup image from database sizes
-  if(cmd.isSet("imagefile")) {
-    imagefile = cmd.get<std::string>("imagefile");
-  } else {
-    imagefile = string("volapptest");
-  }
-  gvt::render::data::scene::Image myimage(mycamera.getFilmSizeWidth(), mycamera.getFilmSizeHeight(), imagefile.c_str());
-
-  mycamera.AllocateCameraRays();
-  mycamera.generateRays(true);
-  //std::cout << " Initial camera rays " << std::endl;
-  //mycamera.dumpraystostdout();
-
-  int schedType = root["Schedule"]["type"].value().toInteger();
-  switch (schedType) {
-  case gvt::render::scheduler::Image: {
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
-    // todo fix image scheduler to use ospray
-    //gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(&argc,argv,mycamera.rays, myimage);
-#endif
-    gvt::render::algorithm::Tracer<gvt::render::schedule::ImageScheduler> tracer(mycamera.rays, myimage);
-    for (int z = 0; z < 10; z++) {
-      mycamera.AllocateCameraRays();
-      mycamera.generateRays(true);
-      myimage.clear();
-      tracer();
-    }
-    break;
-  }
-  case gvt::render::scheduler::Domain: {
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
-    gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(&argc,argv,mycamera.rays, myimage);
-#elif
-    gvt::render::algorithm::Tracer<gvt::render::schedule::DomainScheduler> tracer(mycamera.rays, myimage);
-#endif
-    for (int z = 0; z < 1; z++) {
-      mycamera.AllocateCameraRays();
-      mycamera.generateRays(true);
-      myimage.clear();
-      tracer();
-    }
-    break;
-    //break;
-  }
-  default: {
-    std::cout << "unknown schedule type provided: " << schedType << std::endl;
-    break;
-  }
+  if (cmd.isSet("manta")) {
+    adaptertype =  gvt::render::adapter::Manta;
+  } else if (cmd.isSet("optix")) {
+    adaptertype =  gvt::render::adapter::Optix;
+  } else if (cmd.isSet("volume")) {
+    adaptertype =  gvt::render::adapter::Ospray;
+  } else if (cmd.isSet("ospray")) {
+    adaptertype =  gvt::render::adapter::Ospray;
+  } else if (cmd.isSet("embree")) {
+    adaptertype =  gvt::render::adapter::Ospray;
   }
 
-  myimage.Write();
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#endif
+
+  //api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
+  auto& s = db.createnode("Scheduler",rendername,true,db.getUnique("Schedulers"));
+  db.getChild(s,"type") = schedtype;
+  db.getChild(s,"adapter") = adaptertype;
+  db.getChild(s,"camera") = camname;
+  db.getChild(s,"film") = filmname;
+
+  db.sync();
+  db.printtreebyrank(std::cout);
+  api2::render(rendername);
+  api2::writeimage(rendername,"simple");
+
+
 }
 

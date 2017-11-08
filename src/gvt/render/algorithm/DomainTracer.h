@@ -50,11 +50,11 @@
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
-#include <gvt/render/adapter/ospray/OSPRayAdapter.h>
-#endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
+#endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
 
 #include <gvt/core/utils/global_counter.h>
@@ -92,17 +92,6 @@ public:
 
   gvt::core::Map<int, int> mpiInstanceMap;
 
-  //#ifdef GVT_RENDER_ADAPTER_OSPRAY
-  //    // here is a bit of ugly. ospray needs the command line args for initialization.
-  //    // all the engine hooks belong in the adapter. The adapter is created in the
-  //    // tracer. I have to pass argc and argv to the tracer so it can init ospray.
-  //    // Blech. Here is initialization via a static method.. ugly.
-  //    Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : Tracer(rays, image) {
-  //        //std::cout << "DT: constructor initializing ospray " << std::endl;
-  //        gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(argc, argv);
-  //    }
-  //#endif
-
   Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
          std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
@@ -121,7 +110,6 @@ public:
   virtual void Initialize() {
     auto inst = db.getChildren(db.getUnique("Instances"));
     auto data = db.getChildren(db.getUnique("Data"));
-
     gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
     for (auto &rn : data) {
       auto &m = rn.get();
@@ -149,33 +137,31 @@ public:
     static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
     static tbb::simple_partitioner ap;
 
-    tbb::parallel_for(
-        tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
-        [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
-          gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-              acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
-          gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-          for (size_t i = 0; i < hits.size(); i++) {
-            gvt::render::actor::Ray &r = *(raysit.begin() + i);
-            if (hits[i].next != -1) {
-              // move the origin to within 95% of the distance
-              // to the hit point of the domain.
-              // r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
-              r.origin = r.origin + r.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
-              const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
-              if (inRank) {
-                local_queue[hits[i].next].push_back(r);
-              } // else{std::cout << "drop ray "<< r.id << std::endl; }
-            }
-          }
-          for (auto &q : local_queue) {
-            queue_mutex[q.first].lock();
-            queue[q.first].insert(queue[q.first].end(), std::make_move_iterator(local_queue[q.first].begin()),
-                                  std::make_move_iterator(local_queue[q.first].end()));
-            queue_mutex[q.first].unlock();
-          }
-        },
-        ap);
+    tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+                      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+
+                        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+                            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
+                        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+                        for (size_t i = 0; i < hits.size(); i++) {
+                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+                          if (hits[i].next != -1) {
+                            r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+                            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
+                            if (inRank) local_queue[hits[i].next].push_back(r);
+                          }
+                        }
+
+                        for (auto &q : local_queue) {
+                          queue_mutex[q.first].lock();
+                          queue[q.first].insert(queue[q.first].end(),
+                                                std::make_move_iterator(local_queue[q.first].begin()),
+                                                std::make_move_iterator(local_queue[q.first].end()));
+                          queue_mutex[q.first].unlock();
+                        }
+                      },
+                      ap);
+
     rays.clear();
   }
 
@@ -200,7 +186,7 @@ public:
     gvt::util::global_counter gc_sent("Number of rays sent :");
 
     clearBuffer();
-    adapterType = db.getChild(db.getUnique(schedulername), "adapter");
+    int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
 
     t_filter.resume();
     gc_filter.add(rays.size());
@@ -229,14 +215,12 @@ public:
         instTargetCount = 0;
 
         t_sort.resume();
+
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
-          // std::cout << "DT: sorting inrank = " << inRank << " raycount " << q.second.size() << " instTargetCount " <<
-          // instTargetCount << std::endl;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
-            // std::cout << " DT: set instTarget to "<< instTarget << std::endl;
           }
         }
         t_sort.stop();
@@ -281,7 +265,6 @@ public:
               adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
               break;
 #endif
-
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
             case gvt::render::adapter::Heterogeneous:
               adapter =
@@ -443,6 +426,7 @@ public:
           gvt::render::actor::Ray ray = (q.second)[r];
           send_buf_ptr[n] += ray.pack(send_buf[n] + send_buf_ptr[n]);
         }
+        // to_del.push_back(q->first);
         q.second.clear();
       }
     }
