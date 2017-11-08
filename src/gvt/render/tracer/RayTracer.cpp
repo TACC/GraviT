@@ -46,13 +46,16 @@
 namespace gvt {
 namespace render {
 
-RayTracer::RayTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+RayTracer::RayTracer(const std::string &name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
                      std::shared_ptr<gvt::render::composite::ImageComposite> img)
-    : cam(cam), img(img){
-        auto &db = cntx::rcontext::instance();
-        adapterType = db.getChild(db.getUnique(name),"adapter");
-        resetBVH();
-      };
+    : cam(cam), img(img) {
+  auto &db = cntx::rcontext::instance();
+  adapterType = db.getChild(db.getUnique(name), "adapter");
+  std::string filmname = db.getChild(db.getUnique(name), "film");
+  width = db.getChild(db.getUnique(filmname), "width");
+  height = db.getChild(db.getUnique(filmname), "height");
+  resetBVH();
+};
 
 RayTracer::~RayTracer(){};
 
@@ -81,7 +84,7 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
                             gvt::render::actor::RayVector &moved_rays) {
   std::shared_ptr<gvt::render::Adapter> adapter;
 
-  std::shared_ptr<gvt::render::data::primitives::Mesh> mesh = meshRef[instTarget];
+  std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
   auto it = adapterCache.find(mesh.get());
 
@@ -103,6 +106,12 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
       adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter>(mesh);
       break;
 #endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+    case gvt::render::adapter::Ospray:
+      adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
+      break;
+#endif
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
     case gvt::render::adapter::Manta:
       adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
@@ -195,7 +204,18 @@ void RayTracer::resetBVH() {
   for (auto &nref : bvh->instanceSet) {
     auto &n = nref.get();
     size_t id = db.getChild(n, "id");
-    meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr");
+    //meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr");
+    if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+        .v.is<std::shared_ptr<gvt::render::data::primitives::Mesh> >()) {
+      meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+          .to<std::shared_ptr<gvt::render::data::primitives::Mesh> >();
+    } else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+        .v.is<std::shared_ptr<gvt::render::data::primitives::Volume> >()) {
+      meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+          .to<std::shared_ptr<gvt::render::data::primitives::Volume> >();
+    } else {
+      meshRef[id] = nullptr;
+    }
     instM[id] = db.getChild(n, "mat");
     instMinv[id] = db.getChild(n, "matinv");
     instMinvN[id] = db.getChild(n, "normi");

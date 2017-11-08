@@ -55,6 +55,9 @@
 #ifdef GVT_RENDER_ADAPTER_OPTIX
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#include <gvt/render/adapter/ospray/OSPRayAdapter.h>
+#endif
 
 namespace gvt {
 namespace render {
@@ -86,15 +89,17 @@ protected:
   gvt::core::Map<int, gvt::render::actor::RayVector> queue; /**< Ray queue for each instance in the scene */
 
   // Caching
-  gvt::core::Map<int, std::shared_ptr<gvt::render::data::primitives::Mesh> > meshRef; /**< Map mesh internal id to
+  gvt::core::Map<int, std::shared_ptr<gvt::render::data::primitives::Data> > meshRef; /**< Map mesh internal id to
                                                                                          pointer in memory */
   gvt::core::Map<int, std::shared_ptr<glm::mat4> > instM;     /**< Mesh instance matrix model map */
   gvt::core::Map<int, std::shared_ptr<glm::mat4> > instMinv;  /**< Mesh instance inverse matrix model map */
   gvt::core::Map<int, std::shared_ptr<glm::mat3> > instMinvN; /**< Mesh instance inverse matrix model map (3x3)*/
   gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > lights; /**< Scene lights */
-  gvt::core::Map<gvt::render::data::primitives::Mesh *, std::shared_ptr<gvt::render::Adapter> >
+  gvt::core::Map<gvt::render::data::primitives::Data *, std::shared_ptr<gvt::render::Adapter> >
       adapterCache /**< Tracer adapter cache */;
   int adapterType; /**< Current adapter type */
+
+  int width, height;
 
 public:
   RayTracer(const std::string& name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,

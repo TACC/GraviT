@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
 
   api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   db.sync();
-  db.printtreebyrank(std::cout);
+//  db.printtreebyrank(std::cout);
   api2::render(rendername);
   api2::writeimage(rendername,"simple");
 

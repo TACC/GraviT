@@ -56,7 +56,7 @@
 // like this tbb::serial::parallel_for. Do this to get reasonable
 // prints out of parallel for loop. Of course it doesent run in parallel
 // any more.
-#define TBB_PREVIEW_SERIAL_SUBSET 1
+//#define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>

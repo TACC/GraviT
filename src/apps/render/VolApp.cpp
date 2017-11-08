@@ -299,8 +299,8 @@ int main(int argc, char **argv) {
   cmd.addoption("imagefile", ParseCommandLine::PATH , "image file name");
   cmd.addoption("ctffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to color transfer function");
   cmd.addoption("otffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to opacity transfer function");
-  cmd.addoption("image", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "schedule", 0);
+  cmd.addoption("adomain", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
 
@@ -538,7 +538,12 @@ int main(int argc, char **argv) {
   int schedtype;
   int adaptertype;
   // right now only the domain schedule works for volume rendering
-  schedtype = gvt::render::scheduler::Domain;
+  //schedtype = gvt::render::scheduler::AsyncDomain;
+  if (cmd.isSet("adomain"))
+    schedtype = gvt::render::scheduler::AsyncDomain;
+  else
+    schedtype = gvt::render::scheduler::Domain;
+
   // and it only works with the ospray adapter.
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
   adaptertype = gvt::render::adapter::Ospray;

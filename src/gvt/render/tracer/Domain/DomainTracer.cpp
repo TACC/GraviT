@@ -125,15 +125,6 @@ void DomainTracer::operator()() {
   gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
   gvt::util::global_counter gc_sent("Number of rays sent :");
 
-
-
-//  img->reset();
-//  t_camera.resume();
-//  cam->AllocateCameraRays();
-//  cam->generateRays();
-//  t_camera.stop();
-
-
   t_filter.resume();
   gc_filter.add(cam->rays.size());
   processRaysAndDrop(cam->rays);
@@ -238,31 +229,97 @@ inline void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const
   const int chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
-  tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
-                    [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+  tbb::parallel_for(
+      tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 
-                      gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-                          acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), src);
+        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), src);
 
-                      gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-                      for (size_t i = 0; i < hits.size(); i++) {
-                        gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                        if (hits[i].next != -1) {
-                          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
-                          local_queue[hits[i].next].push_back(r);
-                        } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
-                          img->localAdd(r.id, r.color * r.w, 1.f, r.t);
-                        }
-                      }
-                      for (auto &q : local_queue) {
-                        queue_mutex[q.first].lock();
-                        queue[q.first].insert(queue[q.first].end(),
-                                              std::make_move_iterator(local_queue[q.first].begin()),
-                                              std::make_move_iterator(local_queue[q.first].end()));
-                        queue_mutex[q.first].unlock();
-                      }
-                    },
-                    ap);
+        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+        for (size_t i = 0; i < hits.size(); i++) {
+          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+          //                        if (hits[i].next != -1) {
+          //                          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+          //                          local_queue[hits[i].next].push_back(r);
+          //                        } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
+          //                          img->localAdd(r.id, r.color * r.w, 1.f, r.t);
+          //                        }
+          bool write_to_fb = false;
+          int target_queue = -1;
+          //#ifdef GVT_RENDER_ADAPTER_OSPRAY
+          if (adapterType == gvt::render::adapter::Ospray) {
+            // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
+            // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
+            if (r.depth & RAY_BOUNDARY) {
+              // check to see if this ray hit anything in bvh
+              if (hits[i].next != -1) {
+                r.depth &= ~RAY_BOUNDARY;
+                r.origin = r.origin + r.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
+                target_queue = hits[i].next;
+                // local_queue[hits[i].next].push_back(r);
+              } else {
+                r.depth &= ~RAY_BOUNDARY;
+                r.depth |= RAY_EXTERNAL_BOUNDARY;
+                target_queue = -1;
+              }
+            }
+            // std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type "
+            // << std::bitset<8>(r.type) << std::endl; check types
+            if (r.type == RAY_PRIMARY) {
+              if ((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
+                write_to_fb = true;
+                target_queue = -1;
+              } else if (r.depth & ~RAY_BOUNDARY) {
+                target_queue = src;
+              }
+            } else if (r.type == RAY_SHADOW) {
+              if (r.depth & RAY_EXTERNAL_BOUNDARY) {
+                //                              tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                // colorBuf[r.id] += glm::vec4(r.color, r.w);
+                img->localAdd(r.id, r.color * r.w, 1.f, r.t);
+              } else if (r.depth & RAY_BOUNDARY) {
+                r.origin = r.origin + r.direction * (hits[i].t * 1.00f);
+                local_queue[hits[i].next].push_back(r);
+              }
+            } else if (r.type == RAY_AO) {
+              if (r.depth & (RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
+                //                              tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                //                colorBuf[r.id] += glm::vec4(r.color, r.w);
+                img->localAdd(r.id, r.color * r.w, 1.f, r.t);
+              } else if (r.depth & RAY_BOUNDARY) {
+                r.origin = r.origin + r.direction * (hits[i].t * 1.00f);
+                local_queue[hits[i].next].push_back(r);
+              }
+            }
+            if (write_to_fb) {
+              //                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              // std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
+              // colorBuf[r.id] += glm::vec4(r.color, r.w);
+              img->localAdd(r.id, r.color * r.w, 1.f, r.t);
+            }
+            if (target_queue != -1) {
+              local_queue[target_queue].push_back(r);
+            }
+          } else {
+            if (hits[i].next != -1) {
+              r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+              local_queue[hits[i].next].push_back(r);
+            } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
+              //                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              // colorBuf[r.id] += glm::vec4(r.color, r.w);
+              img->localAdd(r.id, r.color * r.w, 1.f, r.t);
+            }
+          }
+        }
+        for (auto &q : local_queue) {
+          queue_mutex[q.first].lock();
+          queue[q.first].insert(queue[q.first].end(), std::make_move_iterator(local_queue[q.first].begin()),
+                                std::make_move_iterator(local_queue[q.first].end()));
+          queue_mutex[q.first].unlock();
+        }
+      },
+      ap);
 
   rays.clear();
 }

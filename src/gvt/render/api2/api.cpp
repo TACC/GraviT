@@ -53,6 +53,8 @@ namespace api2 {
 void gvtInit(int argc, char **argv, unsigned int threads) {
   int initialized, rank;
 
+  gvt::comm::scomm::init(argc,argv);
+
   MPI_Initialized(&initialized);
   if (!initialized) {
     MPI_Init(NULL, NULL);
@@ -68,6 +70,8 @@ void gvtInit(int argc, char **argv, unsigned int threads) {
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(&argc, argv);
 #endif
+
+
 
 
 }
