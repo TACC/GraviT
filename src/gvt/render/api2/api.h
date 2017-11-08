@@ -229,7 +229,7 @@ void render(std::string name);
 
 void writeimage(std::string name, std::string output = "");
 
-void addRenderer(std::string name, int adapter, int schedule,  std::string const& Camera = "Camera", std::string const& Film = "Film");
+void addRenderer(std::string name, int adapter, int schedule,  std::string const& Camera = "Camera", std::string const& Film = "Film", bool volume = false);
 
 /**
  * modify a renderer in the context, if it exists

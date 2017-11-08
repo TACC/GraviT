@@ -61,6 +61,7 @@ protected:
   std::shared_ptr<gvt::render::RayTracer> tracerasync;
 
   std::string current_scheduler;
+  bool volume;
 };
 }
 }

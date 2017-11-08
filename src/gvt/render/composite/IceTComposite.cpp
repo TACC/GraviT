@@ -115,14 +115,11 @@ void IceTComposite::localAdd(size_t x, size_t y, const glm::vec3 &color, float a
 };
 
 void IceTComposite::localAdd(size_t idx, const glm::vec3 &color, float alpha, float t) {
-  std::cout << ".";
   for (int i = 0; i < 3; i++) {
     color_buffer[idx * 4 + i] += color[i];
     if (color_buffer[idx * 4 + i] > 1.f) color_buffer[idx * 4 + i] = 1.f;
-    std::cout << color_buffer[idx * 4 + i] << " ";
   }
   color_buffer[idx * 4 + 3] += alpha;
-  std::cout << std::endl;
 };
 
 void IceTComposite::write(std::string filename) {

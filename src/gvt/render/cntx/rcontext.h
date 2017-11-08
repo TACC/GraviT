@@ -108,6 +108,8 @@ public:
       identifier tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("type"), identifier(), n.getid());
       tid = identifier(rank, _identifier_counter++);
+      _map[tid] = anode<Variant>(tid, std::string("volume"), identifier(), n.getid());
+      tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("adapter"), identifier(), n.getid());
       tid = identifier(rank, _identifier_counter++);
       _map[tid] = anode<Variant>(tid, std::string("camera"), identifier(), n.getid());

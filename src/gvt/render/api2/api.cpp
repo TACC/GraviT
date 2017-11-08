@@ -431,10 +431,11 @@ void modifyFilm(string name, int w, int h, string path) {
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-void addRenderer(string name, int adapter, int schedule, std::string const& Camera, std::string const& Film) {
+void addRenderer(string name, int adapter, int schedule, std::string const& Camera, std::string const& Film, bool volume) {
   cntx::rcontext &db = cntx::rcontext::instance();
   auto& s = db.createnode("Scheduler",name,true,db.getUnique("Schedulers"));
   db.getChild(s,"type") = schedule;
+  db.getChild(s,"volume") = volume;
   db.getChild(s,"adapter") = adapter;
   db.getChild(s,"camera") = Camera;
   db.getChild(s,"film") = Film;

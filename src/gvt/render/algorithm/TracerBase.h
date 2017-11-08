@@ -317,16 +317,16 @@ public:
    * to find out what instance they will hit next
    */
   inline void shuffleRays(gvt::render::actor::RayVector &rays, const int domID) {
-    std::cout << "Ray_Primary " << std::bitset<8>(RAY_PRIMARY) << std::endl;
-    std::cout << "Ray_Shadow " << std::bitset<8>(RAY_SHADOW) << std::endl;
-    std::cout << "Ray_AO " << std::bitset<8>(RAY_AO) << std::endl;
-    std::cout << "Ray_EMPTY " << std::bitset<8>(RAY_EMPTY) << std::endl;
-    std::cout << "Ray_SURFACE" << std::bitset<8>(RAY_SURFACE) << std::endl;
-    std::cout << "Ray_OPAQUE" << std::bitset<8>(RAY_OPAQUE) << std::endl;
-    std::cout << "Ray_BOUNDARY" << std::bitset<8>(RAY_BOUNDARY) << std::endl;
-    std::cout << "Ray_TIMEOUT" << std::bitset<8>(RAY_TIMEOUT) << std::endl;
-    std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
-    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
+//    std::cout << "Ray_Primary " << std::bitset<8>(RAY_PRIMARY) << std::endl;
+//    std::cout << "Ray_Shadow " << std::bitset<8>(RAY_SHADOW) << std::endl;
+//    std::cout << "Ray_AO " << std::bitset<8>(RAY_AO) << std::endl;
+//    std::cout << "Ray_EMPTY " << std::bitset<8>(RAY_EMPTY) << std::endl;
+//    std::cout << "Ray_SURFACE" << std::bitset<8>(RAY_SURFACE) << std::endl;
+//    std::cout << "Ray_OPAQUE" << std::bitset<8>(RAY_OPAQUE) << std::endl;
+//    std::cout << "Ray_BOUNDARY" << std::bitset<8>(RAY_BOUNDARY) << std::endl;
+//    std::cout << "Ray_TIMEOUT" << std::bitset<8>(RAY_TIMEOUT) << std::endl;
+//    std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
+//    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
 
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());

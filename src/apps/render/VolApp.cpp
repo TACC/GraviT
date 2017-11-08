@@ -72,7 +72,7 @@
 
 #include "ParseCommandLine.h"
 #include <gvt/render/api2/api.h>
-//#define USEAPI
+#define USEAPI
 #ifdef USEAPI
 #include <gvt/render/api2/api.h>
 #endif
@@ -426,10 +426,10 @@ int main(int argc, char **argv) {
       // for now add the domain number to the volumefile name. 
       // It will work.. trust me... 
       std::cout << "create volume and add samples " << volnodename << std::endl;
-      float* sampledata = volheader.readdata(domain);
+      //float* sampledata = volheader.readdata(domain);
       std::cout << volheader.volbox->bounds_min << " x " << volheader.volbox->bounds_max << std::endl;
-      float deltas[3] = {1.0,1.0,1.0};
-      float samplingrate = 1.0;
+      //float deltas[3] = {1.0,1.0,1.0};
+      //float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
       api2::createVolume(volnodename);
       api2::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
@@ -448,8 +448,6 @@ int main(int argc, char **argv) {
     }
   }
   db.sync();
-
-  db.printtreebyrank(std::cout);
 
       // add instances by looping through the domains again. It is enough for rank 0 to do this. It gets synced in the end. 
   if(MPI::COMM_WORLD.Get_rank()==0) {
@@ -550,14 +548,14 @@ int main(int argc, char **argv) {
   db.sync();
 
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
-  api2::addRenderer(rendername,adaptertype,schedtype,camname,filmname);
+  api2::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
   std::cout << "Calling render" << std::endl;
   db.sync();
-  db.printtreebyrank(std::cout);
+
   api2::render(rendername);
   api2::writeimage(rendername);
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#endif
+//  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+#else
 
   auto lpos = glm::vec3(0.0, 0.0, 1.0);
   auto lcolor = glm::vec3(100.0, 100.0, 500.0);
@@ -655,15 +653,19 @@ int main(int argc, char **argv) {
   //api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   auto& s = db.createnode("Scheduler",rendername,true,db.getUnique("Schedulers"));
   db.getChild(s,"type") = schedtype;
+  db.getChild(s,"volume") = true;
   db.getChild(s,"adapter") = adaptertype;
   db.getChild(s,"camera") = camname;
   db.getChild(s,"film") = filmname;
+
 
   db.sync();
   db.printtreebyrank(std::cout);
   api2::render(rendername);
   api2::writeimage(rendername,"simple");
 
+#endif
+  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 
 }
 

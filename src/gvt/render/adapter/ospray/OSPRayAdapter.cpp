@@ -249,9 +249,6 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
                                gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights, size_t _begin,
                                size_t _end){
 
-
-  std::cout << " aaaaa " << std::endl;
-
   // lights
   // todo sort point and area lights. For now assume point light.
   // gravit stores light position and color. ospray uses direction instead.
@@ -297,13 +294,13 @@ void OSPRayAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::a
     ospCommit(theOSPRenderer);
   }
   // convert GVT RayVector into the OSPExternalRays used by ospray.
-  std::cout << " ospadapter GVT -> osprays " << std::endl;
+//  std::cout << " ospadapter GVT -> osprays " << std::endl;
   OSPExternalRays rl = GVT2OSPRays(rayList);
   // trace'em
-  std::cout << " ospadapter: ospTraceRays " << std::endl;
+//  std::cout << " ospadapter: ospTraceRays " << std::endl;
   OSPExternalRays out = ospTraceRays(theOSPRenderer, rl); // ospray trace
   // push everything from out and rl into moved_rays for sorting into houses
-  std::cout << " osprays -> GVT " << std::endl;
+//  std::cout << " osprays -> GVT " << std::endl;
   OSP2GVTMoved_Rays(out, rl, moved_rays);
   // out and rl are no longer needed since they have been copied into moved_rays so
   // whack 'em.

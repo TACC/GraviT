@@ -117,9 +117,11 @@ void gvtRenderer::reload(std::string const &name) {
   // image plane setup.
   myimage = std::make_shared<composite::IceTComposite>(camera->getFilmSizeWidth(), camera->getFilmSizeHeight());
   // allocate rays (needed by tracer constructor)
-  camera->AllocateCameraRays();
-  camera->generateRays();
+//  camera->AllocateCameraRays();
+//  camera->generateRays();
   // now comes the tricky part. setting up the renderer itself.
+
+  volume = db.getChild(ren, "volume").to<bool>();
 
   switch (db.getChild(ren, "type").to<int>()) {
   case scheduler::Image: {
@@ -149,14 +151,9 @@ void gvtRenderer::reload(std::string const &name) {
 }
 
 void gvtRenderer::render(std::string const &name) {
-
-
   reload(name);
-
-  std::cout << "Generating rays" << std::endl;
-
   camera->AllocateCameraRays();
-  camera->generateRays();
+  camera->generateRays(volume);
   if (tracersync) {
     (*tracersync.get())();
   } else if (tracerasync) {
