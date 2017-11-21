@@ -1,0 +1,44 @@
+// ======================================================================== //
+// Copyright 2009-2016 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#pragma once
+
+#include "ospray/common/Ray.ih"
+#include "ospray/lights/Light.ih"
+#include "ospray/math/box.ih"
+#include "ospray/render/Renderer.ih"
+
+//! \brief ISPC variables and functions for the PTracerRenderer
+//!  class, a concrete subtype of the Renderer class for rendering
+//!  volumes with embedded surfaces via ray casting.
+//!
+struct PTracerRenderer
+{
+  //! Variables and functions common to all Renderer subtypes (must be the first field of the struct).
+  Renderer super;
+
+	int n_ao_rays, do_shadows;
+	float ao_radius;
+	float Ka, Kd;
+
+  uniform vec3f *uniform lights;
+  uint32 numLights;
+	int rank;
+	float epsilon;
+};
+
+void PTracerRenderer_renderFramePostamble(Renderer *uniform renderer, const uniform int32 accumID);
+void PTracerRenderer_renderFramePreamble(Renderer *uniform renderer, FrameBuffer *uniform framebuffer);

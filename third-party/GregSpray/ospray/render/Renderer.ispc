@@ -1,0 +1,366 @@
+// ======================================================================== //
+// Copyright 2009-2016 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#include "Renderer.ih"
+#include "render/util.ih"
+#include "camera/Camera.ih"
+#include "common/Model.ih"
+#include "include/ospray/OSPExternalRays.h"
+
+// The layout of this struct must match that of OSPPickData in ospray.h
+void Renderer_default_renderSample(uniform Renderer *uniform self,
+                                   void *uniform perFrameData,
+                                   varying ScreenSample &sample)
+{
+  sample.z = inf;
+  sample.alpha = 1.f;
+  sample.rgb = make_random_color((sample.sampleID.x<<0 )+
+                                 (sample.sampleID.y<<14)+
+                                 (sample.sampleID.z<<28));
+}
+
+static unmasked void *uniform
+Renderer_default_beginFrame(uniform Renderer *uniform self,
+                            uniform FrameBuffer *uniform fb)
+{
+  self->fb = fb;
+  if (self->camera == NULL)
+    print("warning: ispc-side renderer % does not have a camera\n",self);
+  if (self->fb == NULL)
+    print("warning: ispc-side renderer % does not have a frame buffer\n",self);
+  return NULL;
+}
+
+static unmasked void Renderer_default_endFrame(uniform Renderer *uniform self, 
+                                               void *uniform perFrameData)
+{
+  if (self->fb) self->fb = NULL;
+}
+
+void Renderer_default_generateAORays(uniform Renderer *uniform self,
+                                  const uniform int32 nRaysIn,
+                                  uniform ExternalRaySOA *uniform raysIn,
+                                  uniform int *uniform offsets,
+                                  uniform ExternalRaySOA *uniform raysOut)
+{}
+
+void Renderer_default_generateShadowRays(uniform Renderer *uniform self,
+                                  const uniform int32 nRaysIn,
+                                  uniform ExternalRaySOA *uniform raysIn,
+                                  uniform int *uniform offsets,
+                                  uniform ExternalRaySOA *uniform raysOut)
+{}
+
+void Renderer_default_ambientLighting(uniform Renderer *uniform self,
+                                  const uniform int32 nRaysIn,
+                                  uniform ExternalRaySOA *uniform raysIn)
+{}
+
+void Renderer_default_diffuseLighting(uniform Renderer *uniform self,
+                                  const uniform int32 nRaysIn,
+                                  uniform ExternalRaySOA *uniform raysIn)
+{}
+
+void Renderer_default_traceRays(uniform Renderer *uniform self,
+                                    void *uniform perFrameData,
+                                    const uniform int nRaysIn,
+                                    uniform ExternalRaySOA *uniform raysIn)
+{}
+
+unmasked void Renderer_default_renderTile(uniform Renderer *uniform self,
+                                          void *uniform perFrameData,
+                                          uniform Tile &tile,
+                                          uniform int taskIndex)
+{
+  uniform FrameBuffer *uniform fb     = self->fb;
+  uniform Camera      *uniform camera = self->camera;
+
+  float pixel_du = .5f, pixel_dv = .5f;
+  float lens_du = 0.f,  lens_dv = 0.f;
+  uniform int32 spp = self->spp;
+
+  if (spp >= 1) {
+    ScreenSample screenSample;
+    screenSample.z = inf;
+    screenSample.alpha = 0.f;
+
+    CameraSample cameraSample;
+
+    const float spp_inv = 1.f / spp;
+
+    const uniform int begin = taskIndex * RENDERTILE_PIXELS_PER_JOB;
+    const uniform int end   = begin     + RENDERTILE_PIXELS_PER_JOB;
+    const uniform int startSampleID = max(tile.accumID, 0)*spp;
+
+    for (uniform uint32 i = begin; i < end; i += programCount) {
+      const uint32 index = i + programIndex;
+      screenSample.sampleID.x        = tile.region.lower.x + z_order.xs[index];
+      screenSample.sampleID.y        = tile.region.lower.y + z_order.ys[index];
+
+      if ((screenSample.sampleID.x >= fb->size.x) |
+          (screenSample.sampleID.y >= fb->size.y))
+        continue;
+
+      float tMax = infinity;
+      // set ray t value for early ray termination if we have a maximum depth
+      // texture
+      if (self->maxDepthTexture) {
+        // always sample center of pixel
+        vec2f depthTexCoord;
+        depthTexCoord.x = (screenSample.sampleID.x + 0.5f) * fb->rcpSize.x;
+        depthTexCoord.y = (screenSample.sampleID.y + 0.5f) * fb->rcpSize.y;
+
+        tMax = min(get1f(self->maxDepthTexture, depthTexCoord), infinity);
+      }
+      vec3f col = make_vec3f(0.f);
+      const uint32 pixel = z_order.xs[index] + (z_order.ys[index] * TILE_SIZE);
+      for (uniform uint32 s = 0; s < spp; s++) {
+        pixel_du = precomputedHalton2(startSampleID+s);
+        pixel_dv = precomputedHalton3(startSampleID+s);
+        screenSample.sampleID.z = startSampleID+s;
+
+        cameraSample.screen.x = (screenSample.sampleID.x + pixel_du)
+                                * fb->rcpSize.x;
+        cameraSample.screen.y = (screenSample.sampleID.y + pixel_dv)
+                                * fb->rcpSize.y;
+
+        // TODO: fix correlations / better RNG
+        cameraSample.lens.x = precomputedHalton3(startSampleID+s);
+        cameraSample.lens.y = precomputedHalton5(startSampleID+s);
+
+        camera->initRay(camera,screenSample.ray,cameraSample);
+        screenSample.ray.t = tMax;
+
+        self->renderSample(self,perFrameData,screenSample);
+        col = col + screenSample.rgb;
+      }
+      col = col * (spp_inv);
+      setRGBAZ(tile,pixel,col,screenSample.alpha,screenSample.z);
+    }
+  } else {
+    if (tile.accumID >= 0) {
+      pixel_du = precomputedHalton2(tile.accumID);
+      pixel_dv = precomputedHalton3(tile.accumID);
+    }
+
+    ScreenSample screenSample;
+    screenSample.sampleID.z = tile.accumID;
+    screenSample.z = inf;
+    screenSample.alpha = 0.f;
+
+    CameraSample cameraSample;
+
+    const uniform int blocks = tile.accumID > 0
+                               || spp > 0 ? 1 : min(1 << -2 * spp,
+                                                    TILE_SIZE*TILE_SIZE);
+
+    const uniform int begin = taskIndex * RENDERTILE_PIXELS_PER_JOB;
+    const uniform int end   = min(begin + RENDERTILE_PIXELS_PER_JOB,
+                                  TILE_SIZE*TILE_SIZE/blocks);
+
+    for (uint32 i = begin + programIndex; i < end; i+=programCount) {
+      screenSample.sampleID.x = tile.region.lower.x + z_order.xs[i*blocks];
+      screenSample.sampleID.y = tile.region.lower.y + z_order.ys[i*blocks];
+      if ((screenSample.sampleID.x >= fb->size.x) |
+          (screenSample.sampleID.y >= fb->size.y)) {
+        continue;
+      }
+
+      cameraSample.screen.x = (screenSample.sampleID.x + pixel_du)
+                              * fb->rcpSize.x;
+      cameraSample.screen.y = (screenSample.sampleID.y + pixel_dv)
+                              * fb->rcpSize.y;
+
+      camera->initRay(camera,screenSample.ray,cameraSample);
+
+      // set ray t value for early ray termination if we have a maximum depth
+      // texture
+      if (self->maxDepthTexture) {
+        // always sample center of pixel
+        vec2f depthTexCoord;
+        depthTexCoord.x = (screenSample.sampleID.x + 0.5f) * fb->rcpSize.x;
+        depthTexCoord.y = (screenSample.sampleID.y + 0.5f) * fb->rcpSize.y;
+
+        screenSample.ray.t = get1f(self->maxDepthTexture, depthTexCoord);
+      }
+
+      self->renderSample(self,perFrameData,screenSample);
+
+      for (uniform int p = 0; p < blocks; p++) {
+        const uint32 pixel = z_order.xs[i*blocks+p]
+                             + (z_order.ys[i*blocks+p] * TILE_SIZE);
+        assert(pixel < TILE_SIZE*TILE_SIZE);
+        setRGBAZ(tile,pixel,screenSample.rgb,screenSample.alpha,screenSample.z);
+      }
+    }
+  }
+}
+
+void Renderer_Constructor(uniform Renderer *uniform self,
+                          void *uniform cppE)
+{
+  self->cppEquivalent = cppE;
+  self->model  = NULL;
+  self->camera = NULL;
+  self->fb     = NULL;
+  self->spp    = 1;
+  self->backgroundEnabled = true;
+  self->maxDepthTexture = NULL;
+
+  self->renderSample 				= Renderer_default_renderSample;
+  self->renderTile   				= Renderer_default_renderTile;
+  self->beginFrame   				= Renderer_default_beginFrame;
+  self->endFrame     				= Renderer_default_endFrame;
+  self->toneMap      				= NULL;
+  self->traceRays           = Renderer_default_traceRays;
+  self->generateAORays      = Renderer_default_generateAORays;
+  self->generateShadowRays  = Renderer_default_generateShadowRays;
+
+}
+
+void Renderer_Constructor(uniform Renderer *uniform self,
+                          void *uniform cppE,
+                          void *uniform _model,
+                          void *uniform _camera,
+                          const uniform int32 spp)
+{
+  Renderer_Constructor(self, cppE);
+  self->model  = (uniform Model *uniform)_model;
+  self->camera = (uniform Camera *uniform)_camera;
+  self->spp    = spp;
+}
+
+export void Renderer_traceRays(void *uniform _self,
+                                void *uniform perFrameData,
+                                const uniform int nRaysIn,
+                                uniform ExternalRaySOA *uniform raysIn)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->traceRays(self, perFrameData, nRaysIn, raysIn);
+}
+
+export void Renderer_generateAORays(void *uniform _self,
+                                const uniform int nRaysIn,
+                                uniform ExternalRaySOA *uniform raysIn,
+                                uniform int *uniform offsets,
+                                uniform ExternalRaySOA *uniform raysOut)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->generateAORays(self, nRaysIn, raysIn, offsets, raysOut);
+}
+
+export void Renderer_generateShadowRays(void *uniform _self,
+                                const uniform int nRaysIn,
+                                uniform ExternalRaySOA *uniform raysIn,
+                                uniform int *uniform offsets,
+                                uniform ExternalRaySOA *uniform raysOut)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->generateShadowRays(self, nRaysIn, raysIn, offsets, raysOut);
+}
+
+export void Renderer_ambientLighting(void *uniform _self,
+                                const uniform int nRaysIn,
+                                uniform ExternalRaySOA *uniform raysIn)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->ambientLighting(self, nRaysIn, raysIn);
+}
+
+export void Renderer_diffuseLighting(void *uniform _self,
+                                const uniform int nRaysIn,
+                                uniform ExternalRaySOA *uniform raysIn)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->diffuseLighting(self, nRaysIn, raysIn);
+}
+
+
+export void Renderer_renderTile(void *uniform _self,
+                                void *uniform perFrameData,
+                                uniform Tile &tile,
+                                uniform int jobID)
+{
+  //print("Renderer_renderTile\n");
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->renderTile(self, perFrameData, tile, jobID);
+}
+
+export void *uniform Renderer_beginFrame(void *uniform _self,
+                                void *uniform _fb)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  uniform FrameBuffer *uniform fb = (uniform FrameBuffer *uniform)_fb;
+  return self->beginFrame(self,fb);
+}
+
+
+export void Renderer_endFrame(void *uniform _self,
+                              void *uniform perFrameData)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->endFrame(self, perFrameData);
+}
+
+export void Renderer_set(void *uniform _self,
+                         void *uniform _model,
+                         void *uniform _camera,
+                         const uniform float epsilon,
+                         const uniform int32 spp,
+                         const uniform bool backgroundEnabled,
+                         const uniform vec3f &bgColor,
+                         void *uniform _maxDepthTexture)
+{
+  uniform Renderer *uniform self = (uniform Renderer *uniform)_self;
+  self->model  = (uniform Model *uniform)_model;
+  self->camera = (uniform Camera *uniform)_camera;
+  self->epsilon = epsilon;
+  self->spp = spp;
+  self->backgroundEnabled = backgroundEnabled;
+  self->bgColor = bgColor;
+  self->maxDepthTexture = (uniform Texture2D *uniform)_maxDepthTexture;
+
+  precomputeZOrder();
+}
+
+export void Renderer_pick(void *uniform _self,
+                               const uniform vec2f &screenPos,
+                               uniform vec3f &pos,
+                               uniform bool &hit)
+{
+  uniform Renderer *uniform self   = (uniform Renderer *uniform)_self;
+  uniform Camera   *uniform camera = self->camera;
+  uniform Model    *uniform model  = self->model;
+
+  CameraSample cameraSample;
+  cameraSample.screen.x = screenPos.x;
+  cameraSample.screen.y = screenPos.y;
+  // use center of lens and shutter time
+  cameraSample.lens.x = 0.0f;
+  cameraSample.lens.y = 0.0f;
+  cameraSample.time = 0.5f;
+
+  Ray ray;
+  camera->initRay(camera, ray, cameraSample);
+  traceRay(model, ray);
+
+  vec3f p = ray.org + ray.dir * ray.t;
+
+  pos.x = extract(p.x,0);
+  pos.y = extract(p.y,0);
+  pos.z = extract(p.z,0);
+  hit = extract((int)(ray.geomID >= 0 || ray.instID >= 0), 0);
+}

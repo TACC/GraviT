@@ -1,0 +1,160 @@
+// ======================================================================== //
+// Copyright 2009-2016 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#pragma once
+
+#include "render/pathtracer/samplers/Sample.ih"
+#include "math/sampling.ih"
+#include "math/LinearSpace.ih"
+
+/*! Reflects a viewing vector I at a normal N. Cosine between I
+ *  and N is given as input. */
+inline vec3f reflect(const vec3f& I, const vec3f& N, float cosI)
+{
+  return (2.0f*cosI) * N - I;
+}
+
+/*! Reflects a viewing vector I at a normal N. */
+inline vec3f reflect(const vec3f& I, const vec3f& N)
+{
+  return reflect(I, N, dot(I, N));
+}
+
+// helper function which computes cosT^2 from cosI and eta
+inline float sqrCosT(const float cosI, const float eta)
+{
+  return 1.0f - sqr(eta)*(1.0f - sqr(cosI));
+}
+
+//! \brief Refracts a viewing vector I at a normal N
+/*! \detailed Refracts a viewing vector I at a normal N using the
+ *  relative refraction index eta. Eta is refraction index of outside
+ *  medium (where N points into) divided by refraction index of the
+ *  inside medium. The vectors I and N have to point towards the same
+ *  side of the surface. The cosine between I and N, and the cosine of -N and
+ *  the refracted ray is given as input */
+inline vec3f refract(const vec3f& I, const vec3f& N, float cosI, float cosT, float eta)
+{
+  return eta*(cosI*N - I) - cosT*N;
+}
+
+inline vec3f refract(const vec3f& I, const vec3f& N, float cosI, float eta)
+{
+  const float sqrCosT = sqrCosT(cosI, eta);
+  if (sqrCosT < 0.0f) return make_vec3f(0.f);
+  return refract(I, N, cosI, sqrt(sqrCosT), eta);
+}
+
+inline float refract(float cosI, float eta)
+{
+  const float sqrCosT = sqrCosT(cosI, eta);
+  return sqrt(max(sqrCosT, 0.0f));
+}
+
+//! \brief Computes fresnel coefficient for dielectric medium
+/*! \detailed Computes fresnel coefficient for media interface with
+ *  relative refraction index eta. Eta is the outside refraction index
+ *  divided by the inside refraction index. Both cosines have to be
+ *  positive. */
+inline float fresnelDielectric(float cosI, float cosT, float eta)
+{
+  const float Rper = (eta*cosI -     cosT) * rcpf(eta*cosI +     cosT);
+  const float Rpar = (    cosI - eta*cosT) * rcpf(    cosI + eta*cosT);
+  return 0.5f*(sqr(Rpar) + sqr(Rper));
+}
+
+/*! Computes fresnel coefficient for media interface with relative
+ *  refraction index eta. Eta is the outside refraction index
+ *  divided by the inside refraction index. The cosine has to be
+ *  positive. */
+inline float fresnelDielectric(float cosI, float eta)
+{
+  const float sqrCosT = sqrCosT(cosI, eta);
+  if (sqrCosT < 0.0f) return 1.0f;
+  return fresnelDielectric(cosI, sqrt(sqrCosT), eta);
+}
+
+inline float fresnelDielectricEx(float cosI, float& cosT, float eta)
+{
+  const float sqrCosT = sqrCosT(cosI, eta);
+  if (sqrCosT < 0.0f)
+  {
+    cosT = 0.0f;
+    return 1.0f;
+  }
+  return fresnelDielectric(cosI, sqrt(sqrCosT), eta);
+}
+
+/*! Computes fresnel coefficient for conductor medium with complex
+ *  refraction index (eta,k). The cosine has to be positive. */
+inline vec3f fresnelConductor(float cosI, vec3f eta, vec3f k)
+{
+  vec3f tmp = sqr(eta) + sqr(k);
+  vec3f Rpar
+    = (tmp * sqr(cosI) - 2.0f*eta*cosI + make_vec3f(1.f))
+    * rcp(tmp * sqr(cosI) + 2.0f*eta*cosI + make_vec3f(1.f));
+  vec3f Rper
+    = (tmp - 2.0f*eta*cosI + make_vec3f(sqr(cosI)))
+    * rcp(tmp + 2.0f*eta*cosI + make_vec3f(sqr(cosI)));
+  return 0.5f * (Rpar + Rper);
+}
+
+// =======================================================
+struct FresnelConductor
+{
+  vec3f eta;  //!< real part of refraction index
+  vec3f k;    //!< imaginary part of refraction index
+};
+
+inline vec3f eval(const uniform FresnelConductor& self,
+                  float cosTheta)
+{
+  return fresnelConductor(cosTheta, self.eta, self.k);
+}
+
+inline uniform FresnelConductor make_FresnelConductor(uniform vec3f eta, uniform vec3f k)
+{
+  uniform FresnelConductor m;
+  m.eta = eta;
+  m.k = k;
+  return m;
+}
+
+// =======================================================
+struct FresnelDielectric
+{
+  /*! refraction index of the medium the incident ray travels in */
+  float etai;
+
+  /*! refraction index of the medium the outgoing transmission ray
+   *  travels in */
+  float etat;
+};
+
+inline vec3f eval(const uniform FresnelDielectric &self,
+                  const float cosTheta)
+{
+  return make_vec3f(fresnelDielectric(cosTheta,self.etai/self.etat));
+}
+
+inline uniform FresnelDielectric make_FresnelDielectric(const uniform float etai,
+                                                        const uniform float etat)
+{
+  uniform FresnelDielectric m;
+  m.etai = etai;
+  m.etat = etat;
+  return m;
+}

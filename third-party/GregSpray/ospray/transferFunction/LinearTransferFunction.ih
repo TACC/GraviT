@@ -1,0 +1,57 @@
+// ======================================================================== //
+// Copyright 2009-2016 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#pragma once
+
+#include "../transferFunction/TransferFunction.ih"
+
+#define PRECOMPUTED_OPACITY_SUBRANGE_COUNT 32
+
+struct LinearTransferFunction {
+
+  //! Pointers to functions common to all TransferFunction subtypes (must be the first field of the struct).
+  TransferFunction super;
+
+  //! Transfer function opacity values and count.
+  uniform float *uniform opacityValues;  
+  uniform int            opacityValueCount;
+  uniform float* uniform opacityPITable;
+
+  //! Transfer function color values and count.
+  uniform vec3f *uniform colorValues;  
+  uniform int            colorValueCount;  
+  uniform vec3f *uniform colorPITable;
+
+  //! A 2D array that contains precomputed minimum and maximum opacity values for a transfer function.
+  vec2f minMaxOpacityInRange[PRECOMPUTED_OPACITY_SUBRANGE_COUNT][PRECOMPUTED_OPACITY_SUBRANGE_COUNT];
+
+};
+
+inline uniform float getMaxOpacityForRange(LinearTransferFunction *uniform tf, 
+                                           uniform float range_lo, uniform float range_hi)
+{
+  uniform float rel_lo
+    = (range_lo - tf->super.valueRange.x) 
+    * rcp(tf->super.valueRange.y-tf->super.valueRange.x+1e-6f);
+  uniform float rel_hi
+    = (range_hi - tf->super.valueRange.x) 
+    * rcp(tf->super.valueRange.y-tf->super.valueRange.x+1e-6f);
+  uniform int bin_lo = (int)(PRECOMPUTED_OPACITY_SUBRANGE_COUNT*rel_lo);
+  uniform int bin_hi = (int)(ceil(PRECOMPUTED_OPACITY_SUBRANGE_COUNT*rel_hi));
+  bin_lo = min(bin_lo,PRECOMPUTED_OPACITY_SUBRANGE_COUNT-1);
+  bin_hi = min(bin_hi,PRECOMPUTED_OPACITY_SUBRANGE_COUNT-1);
+  return tf->minMaxOpacityInRange[bin_lo][bin_hi].y;
+}

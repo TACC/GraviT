@@ -1,0 +1,113 @@
+// ======================================================================== //
+// Copyright 2009-2016 Intel Corporation                                    //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+#pragma once
+
+#include "../common/Ray.ih"
+#include "../transferFunction/TransferFunction.ih"
+#include "../math/box.ih"
+
+// #if EXP_DATA_PARALLEL
+// struct DataParallelInfo {
+//   /*! total number of pieces, across all nodes */
+//   uint32 numPieces;
+//   /*! number of pieces on _this_ node that I own */
+//   uint32 numMine;
+// };
+// #endif
+
+//! \brief Variables and methods common to all subtypes of the Volume
+//!  class, an abstraction for the concrete object which performs the
+//!  volume sampling (this struct must be the first field of a struct
+//!  representing a "derived" class to allow casting to that class).
+//!
+struct Volume {
+
+  /*! pointer to the c++-equivalent class of this entity */
+  void *cppEquivalent;
+
+  //! Allow the renderer to perform gradient shading.
+  uniform bool gradientShadingEnabled;
+
+  //! Only shade maximum opacity point, if gradientShadingEnabled == 1
+  uniform bool singleShade;
+
+  //! Integrates over transfer function values, good for high frequency tf
+  uniform bool preIntegration;
+
+  //! Adaptively alter the sampling rate according to the sampled values
+  uniform bool adaptiveSampling;
+
+  //! scalar to multiply step size for adaptive calculation
+  uniform float adaptiveScalar;
+
+  //! maximum adaptive sampling rate
+  uniform float adaptiveMaxSamplingRate;
+
+  //! what value to backstep for adaptie sampling, will step back and sample finely
+  uniform float adaptiveBacktrack;
+
+  //! Recommended sampling step size for ray casting based renderers, set by the underlying volume implementation.
+  uniform float samplingStep;
+
+  //! Recommended sampling rate for the renderer.
+  uniform float samplingRate;
+
+  uniform vec3f specular;
+
+  //! Color and opacity transfer function.
+  TransferFunction *uniform transferFunction;
+
+  //! Clipping box for the volume (applies to volume rendering only). An empty clipping box is ignored.
+  uniform box3f volumeClippingBox;
+
+  //! The value at the given sample location in world coordinates.
+  varying float (*uniform computeSample)(void *uniform _self, 
+                                         const varying vec3f &worldCoordinates);
+
+  //! The gradient at the given sample location in world coordinates.
+  varying vec3f (*uniform computeGradient)(void *uniform _self, 
+                                           const varying vec3f &worldCoordinates);
+
+  //! Find the next hit point in the volume for ray casting based renderers.
+  void (*uniform intersect)(void *uniform _self, varying Ray &ray);
+
+  //! Find the next hit point in the volume for ray casting based renderers.
+  void (*uniform intersectAdaptive)(void *uniform _self, varying Ray &ray, const varying float samplingRate);
+
+  //! Find the next isosurface hit point in the volume for ray casting based renderers.
+  void (*uniform intersectIsosurface)(void *uniform _self, 
+                                      uniform float *uniform isovalues, 
+                                      uniform int numIsovalues, 
+                                      varying Ray &ray);
+
+  //! Bounding box for the volume in world coordinates.  This is an internal derived parameter and not meant to be redefined externally.
+  uniform box3f boundingBox;
+
+  //! Whether to volume render
+  uniform bool volume_rendering;
+
+  uniform int nIsovalues;
+  uniform float *uniform isovalues;
+
+  uniform int nSlicePlanes;
+  uniform vec4f *uniform slicePlanes;
+};
+
+void Volume_Constructor(Volume *uniform volume,
+                        /*! pointer to the c++-equivalent class of this entity */
+                        void *uniform cppEquivalent
+                        );
