@@ -267,11 +267,15 @@ public:
               .v.is<std::shared_ptr<gvt::render::data::primitives::Mesh> >()) {
         meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
                           .to<std::shared_ptr<gvt::render::data::primitives::Mesh> >();
-      } else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+      } 
+#ifdef GVT_BUILD_VOLUME      
+      else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
                      .v.is<std::shared_ptr<gvt::render::data::primitives::Volume> >()) {
         meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
                           .to<std::shared_ptr<gvt::render::data::primitives::Volume> >();
-      } else {
+      } 
+#endif       
+      else {
         meshRef[id] = nullptr;
       }
       instM[id] = db.getChild(n, "mat");

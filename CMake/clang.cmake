@@ -1,4 +1,4 @@
-message("Clang/LLVM compiler selected")
+#message("Clang/LLVM compiler selected")
 
 SET(GVT_ARCH_FLAGS__SSSE3 "-msse3")
 SET(GVT_ARCH_FLAGS__SSSE3 "-mssse3")

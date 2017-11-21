@@ -2,11 +2,6 @@
 #include <sstream>
 #include "ORays.h"
 
-#define RAY_PRIMARY              1
-#define RAY_SHADOW               2
-#define RAY_AO                   3
-#define RAY_EMPTY                4
-
 #define RAY_SURFACE              0x1
 #define RAY_OPAQUE               0x2
 #define RAY_BOUNDARY             0x4

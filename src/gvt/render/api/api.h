@@ -17,13 +17,13 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-#ifndef GVT_RENDER_API2_H
-#define GVT_RENDER_API2_H
+#ifndef GVT_RENDER_API_H
+#define GVT_RENDER_API_H
 
 #include <string>
 #include <thread>
 
-namespace api2 {
+namespace api {
 
 void gvtInit(int argc, char **argv, unsigned int threads = std::thread::hardware_concurrency());
 // void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
@@ -34,19 +34,6 @@ void gvtInit(int argc, char **argv, unsigned int threads = std::thread::hardware
  */
 void createMesh(const std::string name);
 
-/* Creates a volume with a unique name
- * volumes use the same nodes as a mesh
- * \param name unique name of the mesh
- */
-void createVolume(const std::string name);
-/* Add transfer function to the volume
- * \param name : volume unique identifier
- * \param colortfname : string name of color transfer function file
- * \param opacitytfname : string name of opacity transfer function file
- * \param low : lower scalar value 
- * \param high : upper scalar value
- * */
-void addVolumeTransferFunctions(const std::string name, const std::string colortfname, const std::string opacitytfname,float low,float high);
 /* Add vertices array to the mesh
  * \param name : mesh unique identifier
  * \param n : number of vertices
@@ -101,15 +88,6 @@ void addMeshMaterial(const std::string name, const unsigned mattype, const float
 void addMeshMaterials(const std::string name, const unsigned n, const unsigned *mattype, const float *kd,
                       const float *ks, const float *alpha);
 
-/* this function adds sample data and necessary data to the volume object
- * \param name the name of the volume node
- * \param samples the pointer to the sample data
- * \param counts the dimensions of the sample data
- * \param deltas the spacing of the sample data
- * \param samplingrate the number of samples per cell used to integrate
- */
-void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate);
-
 /**
  * Add color to vertex
  *
@@ -129,6 +107,30 @@ void addMeshVertexColor(const std::string name, const unsigned n, const float *k
  * \param m transformation matrix that moves and scales instance*/
 
 void addInstance(std::string instname, std::string meshname, const float *m);
+
+#ifdef GVT_BUILD_VOLUME
+/* Creates a volume with a unique name
+ * volumes use the same nodes as a mesh
+ * \param name unique name of the mesh
+ */
+void createVolume(const std::string name);
+/* Add transfer function to the volume
+ * \param name : volume unique identifier
+ * \param colortfname : string name of color transfer function file
+ * \param opacitytfname : string name of opacity transfer function file
+ * \param low : lower scalar value 
+ * \param high : upper scalar value
+ * */
+void addVolumeTransferFunctions(const std::string name, const std::string colortfname, const std::string opacitytfname,float low,float high);
+/* this function adds sample data and necessary data to the volume object
+ * \param name the name of the volume node
+ * \param samples the pointer to the sample data
+ * \param counts the dimensions of the sample data
+ * \param deltas the spacing of the sample data
+ * \param samplingrate the number of samples per cell used to integrate
+ */
+void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate);
+#endif // GVT_BUILD_VOLUME
 
 /**
  * add a point light to the render context
@@ -238,5 +240,5 @@ void addRenderer(std::string name, int adapter, int schedule,  std::string const
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
 void modifyRenderer(std::string name, int adapter, int schedule, std::string const& Camera = "Camera", std::string const& Film = "Film");
-} // namespace api2
+} // namespace api
 #endif // GVT_RENDER_API_H

@@ -71,10 +71,10 @@
 #include <stdlib.h>
 
 #include "ParseCommandLine.h"
-#include <gvt/render/api2/api.h>
-#define USEAPI
-#ifdef USEAPI
-#include <gvt/render/api2/api.h>
+
+#define GVT_USE_API 1
+#ifdef GVT_USE_API
+#include <gvt/render/api/api.h>
 #endif
 
 using namespace std;
@@ -314,27 +314,27 @@ int main(int argc, char **argv) {
     tbb::task_scheduler_init init(cmd.get<int>("threads"));
   }
 
-//#ifdef USEAPI
+#ifdef GVT_USE_API
   // API initialization
   if (!cmd.isSet("threads")) {
-    api2::gvtInit(argc,argv);
+    api::gvtInit(argc,argv);
   } else {
-    api2::gvtInit(argc,argv,cmd.get<int>("threads"));
+    api::gvtInit(argc,argv,cmd.get<int>("threads"));
   }
   int rank,worldsize;
   // get rank and world size for use downstream
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
-//#else
-  // this preprocessor block does what gvtInit does
-//  MPI_Init(&argc, &argv);
-//  MPI_Pcontrol(0);
-//  int rank = -1;
-//  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//  int worldsize;
-//  worldsize = MPI::COMM_WORLD.Get_size();
 
-#if 0
+#else // GVT_USE_API
+  // this preprocessor block does what gvtInit does
+  MPI_Init(&argc, &argv);
+  MPI_Pcontrol(0);
+  int rank = -1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  int worldsize;
+  worldsize = MPI::COMM_WORLD.Get_size();
+
   // context initialization should go in gvt_Init but gvt_Init doesnt exist yet...
   gvt::render::RenderContext *cntxt = gvt::render::RenderContext::instance();
 
@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
     std::cout << "Something went wrong initializing the context" << std::endl;
     exit(0);
   }
-//  gvt::core::DBNodeH root = cntxt->getRootNode();
+
   if (MPI::COMM_WORLD.Get_rank() == 0) {
     cntxt->addToSync(cntxt->createNodeFromType("Data", "Data", root.UUID()));
     cntxt->addToSync(cntxt->createNodeFromType("Instances", "Instances", root.UUID()));
@@ -355,7 +355,7 @@ int main(int argc, char **argv) {
   cntxt->syncContext();
   gvt::core::DBNodeH dataNodes = root["Data"];
   gvt::core::DBNodeH instNodes = root["Instances"];
-#endif
+#endif // GVT_USE_API
 
   cntx::rcontext &db = cntx::rcontext::instance();
 
@@ -431,9 +431,9 @@ int main(int argc, char **argv) {
       //float deltas[3] = {1.0,1.0,1.0};
       //float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
-      api2::createVolume(volnodename);
-      api2::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
-      api2::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
+      api::createVolume(volnodename);
+      api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
+      api::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
 #else
       volnodename = volumefile + std::to_string(domain);
       auto& volumenode = db.createnode("Volume",volnodename,true,db.getUnique("Data"));
@@ -452,20 +452,15 @@ int main(int argc, char **argv) {
       // add instances by looping through the domains again. It is enough for rank 0 to do this. It gets synced in the end. 
   if(MPI::COMM_WORLD.Get_rank()==0) {
     for(int domain=0;domain < volheader.numberofdomains; domain++) {
-#ifdef USEAPI
+#ifdef GVT_USE_API
       volnodename = volumefile + std::to_string(domain);
       auto m = new glm::mat4(1.f);
       auto &mi = (*m);
       float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
                                          mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-      api2::addInstance(std::string("inst") + std::to_string(domain),volnodename, mf);
+      api::addInstance(std::string("inst") + std::to_string(domain),volnodename, mf);
 
-    }
-  }
 #else
-
-
-
       auto& instance = db.createnode("Instance", std::string("inst") + std::to_string(domain),true,db.getUnique("Instances"));
       auto& volumenode = db.getChildren(db.getUnique("Data"))[domain].get();
       db.getChild(instance,"meshRef") = volumenode.getid();
@@ -480,21 +475,19 @@ int main(int argc, char **argv) {
       std::cout << "Getting bbox centroid"  << std::endl;
 
       db.getChild(instance,"centroid") = bbox->centroid();
-
+#endif // GVT_USE_API
     }
   }
-
-#endif
 
   // add lights, camera, and film to the database all nodes do this.
   // again some default stuff loaded in. Not entirely required in this
   // instance but get in tha habbit of putting it there anyway.
-#ifdef USEAPI
+#ifdef GVT_USE_API
   // not sure I need a light but what the heck. 
   auto lpos = glm::vec3(0.,0.,1.);
   auto lcolor = glm::vec3(100.,100.,500.);
   string lightname = "mylight";
-  api2::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
+  api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
   // camera time
   auto eye = glm::vec3(127.5,127.5,1024.);
   if (cmd.isSet("eye")) {
@@ -517,7 +510,7 @@ int main(int argc, char **argv) {
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
   std::cout << "add camera " << camname << std::endl;
-  api2::addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
+  api::addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
   // film
   string filmname = "conefilm";
   std::cout << "add film " << filmname << std::endl;
@@ -532,7 +525,7 @@ int main(int argc, char **argv) {
   if(cmd.isSet("imagefile")) {
     outputpath = cmd.get<std::string>("imagefile");
   } 
-  api2::addFilm(filmname,width,height,outputpath);
+  api::addFilm(filmname,width,height,outputpath);
   // render bits (schedule and adapter)
   string rendername("VolumeRenderer");
   int schedtype;
@@ -553,14 +546,14 @@ int main(int argc, char **argv) {
   db.sync();
 
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
-  api2::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
+  api::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
   std::cout << "Calling render" << std::endl;
   db.sync();
 
-  api2::render(rendername);
-  api2::writeimage(rendername);
-//  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
-#else
+  api::render(rendername);
+  api::writeimage(rendername);
+
+#else // GVT_USE_API
 
   auto lpos = glm::vec3(0.0, 0.0, 1.0);
   auto lcolor = glm::vec3(100.0, 100.0, 500.0);
@@ -655,7 +648,7 @@ int main(int argc, char **argv) {
   }
 
 
-  //api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
+  //api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   auto& s = db.createnode("Scheduler",rendername,true,db.getUnique("Schedulers"));
   db.getChild(s,"type") = schedtype;
   db.getChild(s,"volume") = true;
@@ -666,10 +659,10 @@ int main(int argc, char **argv) {
 
   db.sync();
   db.printtreebyrank(std::cout);
-  api2::render(rendername);
-  api2::writeimage(rendername,"simple");
+  api::render(rendername);
+  api::writeimage(rendername,"simple");
 
-#endif
+#endif // GVT_USE_API
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 
 }

@@ -31,7 +31,9 @@ namespace render {
 namespace adapter {
 /// render engine used
 enum RenderType {
+#ifdef GVT_BUILD_VOLUME  
   Volume,
+#endif  
   Surface,
   Manta,
   Optix,

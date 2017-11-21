@@ -22,7 +22,7 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 
-#include <gvt/render/api2/api.h>
+#include <gvt/render/api/api.h>
 #include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/data/reader/PlyReader.h>
 
@@ -105,7 +105,7 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
 
     std::string meshname = "Mesh" + std::to_string(k);
 
-    api2::createMesh(meshname);
+    api::createMesh(meshname);
 
     filepath = *file;
     myfile = fopen(filepath.c_str(), "r");
@@ -171,10 +171,10 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
       afc[i * 3 + 2] = flist[i]->verts[2];
     }
 
-    api2::addMeshVertices(meshname, nverts, avtx);
-    api2::addMeshTriangles(meshname, nfaces, afc);
-    if (has_color) api2::addMeshVertexColor(meshname, nverts, acolor);
-    api2::finishMesh(meshname);
+    api::addMeshVertices(meshname, nverts, avtx);
+    api::addMeshTriangles(meshname, nfaces, afc);
+    if (has_color) api::addMeshVertexColor(meshname, nverts, acolor);
+    api::finishMesh(meshname);
   }
 }
 

@@ -32,7 +32,7 @@
 #include <gvt/core/Math.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
-#include <gvt/render/api2/api.h>
+#include <gvt/render/api/api.h>
 #include <set>
 #include <vector>
 
@@ -82,7 +82,7 @@ void test_bvh(gvtPerspectiveCamera &camera);
 int main(int argc, char **argv) {
 
   // gvtInit(argc, argv);
-  api2::gvtInit(argc, argv);
+  api::gvtInit(argc, argv);
   cntx::rcontext &db = cntx::rcontext::instance();
 
   ParseCommandLine cmd("gvtSimple");
@@ -123,11 +123,11 @@ int main(int argc, char **argv) {
     std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
     float kd[] = { 1.f, 1.f, 1.f };
 
-    api2::createMesh("conemesh");
-    api2::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
-    api2::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
-    api2::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
-    api2::finishMesh("conemesh");
+    api::createMesh("conemesh");
+    api::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
+    api::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
+    api::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
+    api::finishMesh("conemesh");
   }
   if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
     std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
@@ -151,11 +151,11 @@ int main(int argc, char **argv) {
     };
     float kd[] = { 1.f, 1.f, 1.f };
 
-    api2::createMesh("cubemesh");
-    api2::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
-    api2::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
-    api2::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
-    api2::finishMesh("cubemesh");
+    api::createMesh("cubemesh");
+    api::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
+    api::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
+    api::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
+    api::finishMesh("cubemesh");
   }
 
   //
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
         float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
                        mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
 
-        api2::addInstance(instanceName, instanceMeshname, mf);
+        api::addInstance(instanceName, instanceMeshname, mf);
         instId++;
       }
     }
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
     lcolor = glm::vec3(color[0], color[1], color[2]);
   }
 
-  api2::addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
+  api::addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
   db.sync();
 
   // camera bits..
@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
-  api2::addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth,
+  api::addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth,
                   raySamples, jitterWindowSize);
 
   db.sync();
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
     gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     outputpath = output[0];
   }
-  api2::addFilm(filmname, width, height, outputpath);
+  api::addFilm(filmname, width, height, outputpath);
 
   //  db.printtreebyrank(std::cout);
   db.sync();
@@ -291,14 +291,14 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  api2::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
+  api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   db.sync();
 
 
   std::cout << "All synced" << std::endl;
 
-  api2::render(rendername);
-  api2::writeimage(rendername,"simple");
+  api::render(rendername);
+  api::writeimage(rendername,"simple");
 
   //std::shared_ptr<gvt::render::RayTracer> rt;
 

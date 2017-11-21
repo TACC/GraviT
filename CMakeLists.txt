@@ -10,6 +10,10 @@ set(VERSION_PATCH 0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if (APPLE)
+    set(CMAKE_MACOSX_RPATH 1)
+endif (APPLE)
+
 if (COMMAND cmake_policy)
     # required for mixing libraries with full paths and not...
     cmake_policy(SET CMP0003 NEW)
@@ -64,13 +68,13 @@ if (GVT_RENDER)
     option(GVT_RENDER_ADAPTER_OPTIX_PRIME "Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
     option(GVT_RENDER_ADAPTER_OSPRAY "Build the Intel OSPRay ray tracing engine adapter" OFF)
     option(GVT_RENDER_APP "Build the GraviT example renderer application" ON)
-    option(GVT_GLRENDER_APP "Build the interactive X application" ON)
+    option(GVT_GLRENDER_APP "Build the interactive X application" OFF) # TODO: pnav - update GLRenderApp to use new context
     option(GVT_SIMPLE_APP "Build the simple application" ON)
     option(GVT_SIMPLE_NS_APP "Build the simple application" ON)
-    option(GVT_SIMPLE_FILE_LOAD_APP "Build the simple application (load obj file)" ON)
-    option(GVT_PLY_APP "Build the ply reader application (load ply file)" ON)
+    option(GVT_SIMPLE_FILE_LOAD_APP "Build the simple application (load obj file)" OFF) # TODO: pnav - update SimpleFileLoadApp to use new context
+    option(GVT_PLY_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update PlyApp to use new context
     option(GVT_VOL_APP "Build the volume render application " OFF)
-    option(GVT_PLY_NS_APP "Build the ply reader application (load ply file)" ON)
+    option(GVT_PLY_NS_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update ns/PlyApp to use new context
     option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
     add_definitions(-DGVT_RENDER)
 endif (GVT_RENDER)
@@ -243,7 +247,6 @@ set(GVT_CORE_SRCS ${GVT_CORE_SRCS}
 
 set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
         src/gvt/render/api/api.h
-        src/gvt/render/api2/api.h
 
         src/gvt/render/actor/Ray.h
         src/gvt/render/algorithm/DomainTracer.h
@@ -321,7 +324,7 @@ set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
         src/gvt/render/tracer/Domain/DomainTracer.cpp
         src/gvt/render/tracer/Domain/Messages/SendRayList.cpp
 
-        src/gvt/render/api2/api.cpp
+        src/gvt/render/api/api.cpp
 
         )
 
@@ -471,6 +474,7 @@ if (GVT_RENDER)
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS})
 
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS})
+
     include_directories(${TINYOBJPATH} ${PLYPATH})
 
     # find_package(Boost REQUIRED COMPONENTS system)
@@ -528,14 +532,9 @@ if (GVT_RENDER)
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
     endif (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
 
+    # TODO: pnav - why aren't these guarded by an if/endif ?
     include_directories(${OptiX_INCLUDE})
     include_directories(${GVT_THIRDPARTY_EMBREESHADERS})
-
-    #if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
-    #    find_package(embree 2.15.0 REQUIRED)
-    #    include_directories(${EMBREE_INCLUDE_DIRS})
-    #    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
-    #endif (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
 
     add_library(gvtRender STATIC ${GVT_RENDER_SRCS})
 
@@ -563,9 +562,10 @@ if (GVT_CTEST)
         set(runConfig ibrun -np ${no_mpi_proc})
     endif (GVT_USE_MPI)
 
+    # TODO: pnav - guard tests with a GVT_TESTING flag
     ## Enable gvtSimple and gvtFileLoad, needed for tests
     set(GVT_SIMPLE_APP ON CACHE BOOL "Build libfoo shared library" FORCE)
-    set(GVT_SIMPLE_FILE_LOAD_APP ON CACHE BOOL "Build libfoo shared library" FORCE)
+    #set(GVT_SIMPLE_FILE_LOAD_APP ON CACHE BOOL "Build libfoo shared library" FORCE) # TODO: pnav - update SimpleFileLoadApp to use new context
     set(GVT_BIN_DIR ${PROJECT_BINARY_DIR}/bin)
 
     ## Testing Configuration
@@ -627,7 +627,8 @@ if (GVT_TESTING)
     target_link_libraries(gvttest gvtCore gvtRender ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${OSPRAY_LIBRARIES} ${GVT_CORE_LIBS})
 endif (GVT_TESTING)
 
-if (GVT_PLY_APP)
+if (GVT_PLY_APP) # TODO: pnav - update PlyApp to use new context
+    message(FATAL_ERROR "PlyApp is currently not buildable. Please do not enable it.")
     # find_package(MPI REQUIRED)
     # include_directories(${MPI_INCLUDE_PATH}
     include_directories(${PLYPATH})
@@ -658,7 +659,8 @@ if (GVT_VOL_APP)
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
     target_link_libraries(gvtVol gvtCore gvtRender ${MPI_LIBRARIES} ${GVT_RENDER_LIBS})
 endif (GVT_VOL_APP)
-if (GVT_PLY_NS_APP)
+if (GVT_PLY_NS_APP) # TODO: pnav - update PlyApp to use new context
+    message(FATAL_ERROR "ns/PlyApp is currently not buildable. Please do not enable it.")
     # find_package(MPI REQUIRED)
     # include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
     include_directories(${PLYPATH})
@@ -671,7 +673,8 @@ if (GVT_PLY_NS_APP)
     target_link_libraries(gvtPlyNS gvtCore gvtRender ${GVTPLY_NS_RENDER_LIBS})
 endif (GVT_PLY_NS_APP)
 
-if (GVT_SIMPLE_FILE_LOAD_APP)
+if (GVT_SIMPLE_FILE_LOAD_APP) ## TODO: pnav - update SimpleFileLoadApp to use new context
+    message(FATAL_ERROR "SimpleFileLoadApp is currently not buildable. Please do not enable it.")
     # find_package(MPI REQUIRED)
     # include_directories(${MPI_INCLUDE_PATH})
     set(GVTSIMPLEFILE_RENDER_LIBS ${GVTSIMPLEFILE_RENDER_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
@@ -680,7 +683,8 @@ if (GVT_SIMPLE_FILE_LOAD_APP)
     target_link_libraries(gvtFileLoad gvtCore gvtRender ${GVTSIMPLEFILE_RENDER_LIBS})
 endif (GVT_SIMPLE_FILE_LOAD_APP)
 
-if (GVT_GLRENDER_APP)
+if (GVT_GLRENDER_APP)  # TODO: pnav - update GLRenderApp to use new context
+    message(FATAL_ERROR "GLRenderApp is currently not buildable. Please do not enable it.")
     # find_package(MPI REQUIRED)
     # include_directories(${MPI_INCLUDE_PATH})
     find_package(OpenGL REQUIRED)

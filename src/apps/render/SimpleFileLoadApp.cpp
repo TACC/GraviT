@@ -25,6 +25,7 @@
 // Simple gravit application.
 // Load some geometry and render it.
 //
+#if 0 // TODO: pnav - update SimpleFileLoadApp to use new context
 #include <algorithm>
 #include <gvt/core/Math.h>
 #include <gvt/render/RenderContext.h>
@@ -349,3 +350,4 @@ int main(int argc, char **argv) {
   myimage.Write();
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
+#endif // TODO: pnav - update SimpleFileLoadApp to use new context

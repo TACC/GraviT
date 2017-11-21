@@ -32,12 +32,6 @@
 #include <sstream>
 
 #include <IceT.h>
-#include <IceTDevCommunication.h>
-#include <IceTDevContext.h>
-#include <IceTDevDiagnostics.h>
-#include <IceTDevImage.h>
-#include <IceTDevPorting.h>
-#include <IceTDevState.h>
 #include <IceTMPI.h>
 
 #include <tbb/blocked_range.h>

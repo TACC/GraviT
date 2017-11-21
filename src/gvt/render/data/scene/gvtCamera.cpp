@@ -23,6 +23,7 @@
    ======================================================================================= */
 
 #include <gvt/core/utils/timer.h>
+#include <gvt/render/actor/ORays.h>
 #include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
@@ -33,9 +34,6 @@
 #include <tbb/partitioner.h>
 #include <thread>
 
-#ifdef GVT_BUILD_VOLUME
-#include <gvt/render/actor/ORays.h>
-#endif
 
 using namespace gvt::render::data::scene;
 using namespace gvt::render::actor;

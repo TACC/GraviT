@@ -25,23 +25,7 @@
 #include <cassert>
 #include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/tracer/RayTracer.h>
-#if 0
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
-#endif
 
-#ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
-#endif
-
-#ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
-#endif
-
-#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-#include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
-#endif
-#endif
 
 namespace gvt {
 namespace render {
@@ -209,11 +193,15 @@ void RayTracer::resetBVH() {
         .v.is<std::shared_ptr<gvt::render::data::primitives::Mesh> >()) {
       meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
           .to<std::shared_ptr<gvt::render::data::primitives::Mesh> >();
-    } else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+    }
+#ifdef GVT_BUILD_VOLUME  
+    else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
         .v.is<std::shared_ptr<gvt::render::data::primitives::Volume> >()) {
       meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
           .to<std::shared_ptr<gvt::render::data::primitives::Volume> >();
-    } else {
+    } 
+#endif // GVT_BUILD_VOLUME
+    else {
       meshRef[id] = nullptr;
     }
     instM[id] = db.getChild(n, "mat");

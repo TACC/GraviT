@@ -1,9 +1,33 @@
+/* =======================================================================================
+   This file is released as part of GraviT - scalable, platform independent ray tracing
+   tacc.github.io/GraviT
+
+   Copyright 2013-2017 Texas Advanced Computing Center, The University of Texas at Austin
+   All rights reserved.
+
+   Licensed under the BSD 3-Clause License, (the "License"); you may not use this file
+   except in compliance with the License.
+   A copy of the License is included with this software in the file LICENSE.
+   If your copy does not contain the License, you may obtain a copy of the License at:
+
+       http://opensource.org/licenses/BSD-3-Clause
+
+   Unless required by applicable law or agreed to in writing, software distributed under
+   the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.
+   See the License for the specific language governing permissions and limitations under
+   limitations under the License.
+
+   GraviT is funded in part by the US National Science Foundation under awards ACI-1339863,
+   ACI-1339881 and ACI-1339840
+   ======================================================================================= */
+
 //
 // Created by Joao Barbosa on 9/12/17.
 //
 
-#ifndef CONTEXT_VARIANT_DEF_H
-#define CONTEXT_VARIANT_DEF_H
+#ifndef GVT_CONTEXT_VARIANT_DEF_H
+#define GVT_CONTEXT_VARIANT_DEF_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -18,7 +42,9 @@ typedef details::variant<bool, int, float, double, unsigned, unsigned long, glm:
                          std::shared_ptr<glm::mat3>, std::shared_ptr<glm::mat4>,
                          std::shared_ptr<gvt::render::data::primitives::Box3D>,
                          std::shared_ptr<gvt::render::data::primitives::Mesh>,
+#ifdef GVT_BUILD_VOLUME
                          std::shared_ptr<gvt::render::data::primitives::Volume>,
+#endif                         
                          std::shared_ptr<std::vector<int> >,
                          identifier, std::nullptr_t>
     Variant;
@@ -148,6 +174,7 @@ unpack_function_signature(std::shared_ptr<gvt::render::data::primitives::Mesh>) 
   return nullptr;
 }
 
+#ifdef GVT_BUILD_VOLUME
 pack_function_signature(std::shared_ptr<gvt::render::data::primitives::Volume>) {
   pack<std::nullptr_t>(nullptr);
 }
@@ -155,6 +182,7 @@ pack_function_signature(std::shared_ptr<gvt::render::data::primitives::Volume>) 
 unpack_function_signature(std::shared_ptr<gvt::render::data::primitives::Volume>) {
   return nullptr;
 }
+#endif
 
 } // namespace mpi
 
@@ -168,4 +196,4 @@ inline std::ostream &operator<<(std::ostream &os, const std::shared_ptr<gvt::ren
 
 } // namespace cntx
 
-#endif // CONTEXT_VARIANT_DEF_H
+#endif // GVT_CONTEXT_VARIANT_DEF_H

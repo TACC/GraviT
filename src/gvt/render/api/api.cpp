@@ -48,7 +48,7 @@ ACI-1339881 and ACI-1339840
 using namespace std;
 using namespace gvt::render::data::primitives;
 
-namespace api2 {
+namespace api {
 
 void gvtInit(int argc, char **argv, unsigned int threads) {
   int initialized, rank;
@@ -472,6 +472,7 @@ void writeimage(std::string name, std::string output) {
     ren->WriteImage(name);
 }
 
+#ifdef GVT_BUILD_VOLUME
 void createVolume(const std::string name) {
 
   cntx::rcontext &db = cntx::rcontext::instance();
@@ -507,5 +508,6 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
 }
+#endif // GVT_BUILD_VOLUME
 
-} // namespace api2
+} // namespace api

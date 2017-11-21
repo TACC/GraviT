@@ -28,6 +28,8 @@
  * This will run in both single-process and MPI modes.
  *
 */
+
+#if 0 // TODO: update to use new context class
 #include <algorithm>
 #include <gvt/core/Math.h>
 #include <gvt/render/RenderContext.h>
@@ -348,3 +350,5 @@ int main(int argc, char **argv) {
 
   MPI_Finalize();
 }
+#endif // TODO: update to use new context class
+
