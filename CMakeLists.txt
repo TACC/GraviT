@@ -546,7 +546,7 @@ if (GVT_RENDER)
 
     #INSTALL_HEADERS_WITH_DIRECTORY("src/" "${GVT_RENDER_HDRS}")
 
-    install(FILES src/gvt/render/api/api.h DESTINATION include/)
+    install(FILES src/gvt/render/api/api.h DESTINATION include/gravit)
 endif (GVT_RENDER)
 
 
@@ -593,7 +593,7 @@ if (GVT_CTEST)
     ## Image difference program to verify integration tests
     set(GVTIMAGE_DIFF_SRCS src/apps/render/ImageDiff.cpp)
     add_executable(gvtImageDiff ${GVTIMAGE_DIFF_SRCS})
-
+    install(TARGETS gvtImageDiff RUNTIME DESTINATION bin)
 endif (GVT_CTEST)
 
 if (GVT_SIMPLE_APP)
@@ -603,6 +603,7 @@ if (GVT_SIMPLE_APP)
     set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
     add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
     target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} ${GVT_CORE_LIBS})
+    install(TARGETS gvtSimple RUNTIME DESTINATION bin)
 endif (GVT_SIMPLE_APP)
 
 if (GVT_SIMPLE_NS_APP)
@@ -612,6 +613,7 @@ if (GVT_SIMPLE_NS_APP)
     set(GVTSIMPLE_NS_RENDER_SRCS ${GVTSIMPLE_NS_RENDER_SRCS} src/apps/ns/SimpleApp.cpp)
     add_executable(gvtSimpleNS ${GVTSIMPLE_NS_RENDER_SRCS})
     target_link_libraries(gvtSimpleNS gvtCore gvtRender ${GVTSIMPLE_NS_RENDER_LIBS} ${GVT_CORE_LIBS})
+    install(TARGETS gvtSimpleNS RUNTIME DESTINATION bin)
 endif (GVT_SIMPLE_NS_APP)
 
 
@@ -619,12 +621,14 @@ if (GVT_TESTING)
     find_package(OSPRay)
     include_directories(${OSPRAY_INCLUDE_DIRS} ${PLYPATH})
     set(GVT_TESTING_SRCS ${GVT_TESTING_SRCS} Test/timer.c ${PLYPATH}/ply.c)
-    add_executable(osptest ${GVT_TESTING_SRCS} Test/OSPRayTest/BenchOspray.cpp)
+    add_executable(ospTest ${GVT_TESTING_SRCS} Test/OSPRayTest/BenchOspray.cpp)
     target_link_libraries(osptest ${OSPRAY_LIBRARIES})
     # find_package(MPI REQUIRED)
     # include_directories(${MPI_INCLUDE_PATH})
-    add_executable(gvttest ${GVT_TESTING_SRCS} Test/GVTTest/GVTTest.cpp)
+    add_executable(gvtTest ${GVT_TESTING_SRCS} Test/GVTTest/GVTTest.cpp)
     target_link_libraries(gvttest gvtCore gvtRender ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${OSPRAY_LIBRARIES} ${GVT_CORE_LIBS})
+    install(TARGETS ospTest RUNTIME DESTINATION bin)
+    install(TARGETS gvtTest RUNTIME DESTINATION bin)
 endif (GVT_TESTING)
 
 if (GVT_PLY_APP) # TODO: pnav - update PlyApp to use new context
@@ -638,6 +642,7 @@ if (GVT_PLY_APP) # TODO: pnav - update PlyApp to use new context
             ${PLYPATH}/ply.c)
     add_executable(gvtPly ${GVTPLY_RENDER_SRCS})
     target_link_libraries(gvtPly gvtCore gvtRender ${GVTPLY_RENDER_LIBS})
+    install(TARGETS gvtPly RUNTIME DESTINATION bin)
 endif (GVT_PLY_APP)
 
 if (GVT_VOL_APP)
@@ -658,7 +663,9 @@ if (GVT_VOL_APP)
     set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
     target_link_libraries(gvtVol gvtCore gvtRender ${MPI_LIBRARIES} ${GVT_RENDER_LIBS})
+    install(TARGETS gvtVol RUNTIME DESTINATION bin)
 endif (GVT_VOL_APP)
+
 if (GVT_PLY_NS_APP) # TODO: pnav - update PlyApp to use new context
     message(FATAL_ERROR "ns/PlyApp is currently not buildable. Please do not enable it.")
     # find_package(MPI REQUIRED)
@@ -671,6 +678,7 @@ if (GVT_PLY_NS_APP) # TODO: pnav - update PlyApp to use new context
     add_executable(gvtPlyNS ${GVTPLY_NS_RENDER_SRCS})
     set_target_properties(gvtPlyNS PROPERTIES COMPILE_DEFINITIONS "NS")
     target_link_libraries(gvtPlyNS gvtCore gvtRender ${GVTPLY_NS_RENDER_LIBS})
+    install(TARGETS gvtPlyNS RUNTIME DESTINATION bin)
 endif (GVT_PLY_NS_APP)
 
 if (GVT_SIMPLE_FILE_LOAD_APP) ## TODO: pnav - update SimpleFileLoadApp to use new context
@@ -681,6 +689,7 @@ if (GVT_SIMPLE_FILE_LOAD_APP) ## TODO: pnav - update SimpleFileLoadApp to use ne
     set(GVTSIMPLEFILE_RENDER_SRCS ${GVTSIMPLEFILE_RENDER_SRCS} src/apps/render/SimpleFileLoadApp.cpp)
     add_executable(gvtFileLoad ${GVTSIMPLEFILE_RENDER_SRCS})
     target_link_libraries(gvtFileLoad gvtCore gvtRender ${GVTSIMPLEFILE_RENDER_LIBS})
+    install(TARGETS gvtFileLoad RUNTIME DESTINATION bin)
 endif (GVT_SIMPLE_FILE_LOAD_APP)
 
 if (GVT_GLRENDER_APP)  # TODO: pnav - update GLRenderApp to use new context
@@ -716,7 +725,5 @@ if (GVT_GLRENDER_APP)  # TODO: pnav - update GLRenderApp to use new context
 
     target_link_libraries(glTracer ${OPENGL_gl_LIBRARY} ${GVTGLAPP_RENDER_LIBS} gvtCore gvtRender)
 
-    # install(TARGETS glTracer
-    #   RUNTIME DESTINATION bin
-    # )
+    install(TARGETS glTracer RUNTIME DESTINATION bin)
 endif (GVT_GLRENDER_APP)
