@@ -6,7 +6,7 @@ elif [ "x$1" == "xosx" ]; then
 	TARGET_OS="osx"
 else
 	echo "usage: get-ispc.sh [ linux | osx ]"
-	exit
+	exit 1
 fi
 
 VERSION="1.9.2"
@@ -15,7 +15,7 @@ TARBALL="${TARGET_DIR}.tar.gz"
 
 if [ -x $TARGET_DIR/ispc ]; then
 	echo "ispc for ${TARGET_OS} already exists. Nothing more to do."
-	exit
+	exit 1
 fi
 
 if [ -f ${TARBALL} ]; then
@@ -31,7 +31,7 @@ if [ -f ${TARBALL} ]; then
 else
 	echo "could not find ${TARBALL}"
 	echo "bailing out...."
-	exit
+	exit 1
 fi
 
 if [ -x ${TARGET_DIR}/ispc ]; then
@@ -40,7 +40,7 @@ if [ -x ${TARGET_DIR}/ispc ]; then
 else
 	echo "executable ${TARGET_DIR}/ispc not found"
 	echo "bailing out...."
-	exit
+	exit 1
 fi
 
-
+exit 0
