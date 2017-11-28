@@ -66,7 +66,7 @@ if (GVT_RENDER)
     option(GVT_RENDER_ADAPTER_EMBREE "Build the Intel Embree ray tracing engine adapter" ON)
     option(GVT_RENDER_ADAPTER_EMBREE_STREAM "Build the Intel Embree (stream 1M) ray tracing engine adapter" ON)
     option(GVT_RENDER_ADAPTER_OPTIX_PRIME "Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
-    option(GVT_RENDER_ADAPTER_OSPRAY "Build the Intel OSPRay ray tracing engine adapter" OFF)
+    option(GVT_RENDER_ADAPTER_GREGSPRAY "Build the GregSpray fork of the Intel OSPRay ray tracing engine adapter" OFF)
     option(GVT_RENDER_APP "Build the GraviT example renderer application" ON)
     option(GVT_GLRENDER_APP "Build the interactive X application" OFF) # TODO: pnav - update GLRenderApp to use new context
     option(GVT_SIMPLE_APP "Build the simple application" ON)
@@ -123,20 +123,20 @@ add_subdirectory(${GVT_THIRDPARTY_TOBJ})
 
 find_path(TINYOBJPATH "tiny_obj_loader.h" ${GVT_THIRDPARTY_TOBJ})
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
-    MESSAGE(SEND_ERRORS "tiny obj reader not found")
+    MESSAGE(SEND_ERROR "tiny obj reader not found. Please verify that tinyobjloader-master is in the third-party subdirectory.")
 endif (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
 
 set(GVT_THIRDPARTY_PLY "${CMAKE_SOURCE_DIR}/third-party/ply")
 find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_PLY})
 if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
-    MESSAGE(SEND ERRORS "ply reader header not found")
+    MESSAGE(SEND_ERROR "ply reader header not found. Please verify that ply is in the third-party subdirectory.")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 
-#TODO best way to just include embre folder ?
+#TODO best way to just include embree folder ?
 set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
 
 
-FIND_PACKAGE(IceT REQUIRED)
+FIND_PACKAGE(IceT REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/icet/install/lib ${CMAKE_HOME_DIRECTORY}/third-party/icet/build)
 include_directories(${ICET_INCLUDE_DIRS})
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
@@ -376,7 +376,7 @@ if (GVT_RENDER_ADAPTER_EMBREE)
 endif (GVT_RENDER_ADAPTER_EMBREE)
 
 
-if (GVT_RENDER_ADAPTER_OSPRAY)
+if (GVT_RENDER_ADAPTER_GREGSPRAY)
     add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
     set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
             src/gvt/render/adapter/ospray/OSPRayAdapter.h
@@ -395,10 +395,14 @@ if (GVT_RENDER_ADAPTER_OSPRAY)
                 src/gvt/render/data/primitives/TransferFunction.cpp
                 )
     endif (GVT_VOLUME)
-endif (GVT_RENDER_ADAPTER_OSPRAY)
+else (GVT_RENDER_ADAPTER_GREGSPRAY)
+    if (GVT_VOLUME)
+        message(SEND_ERROR "GVT_VOLUME requires the GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GREGSPRAY).")
+    endif (GVT_VOLUME)
+endif (GVT_RENDER_ADAPTER_GREGSPRAY)
 
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
-    MESSAGE(SEND_ERRORS "tiny obj reader not found")
+    MESSAGE(SEND_ERROR "tiny obj reader not found. Please verify that tinyobjloader-master is in the third-party subdirectory.")
 endif (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
 
 set(GVT_EMBREE_STREAM_PACKET_SIZE 1 CACHE STRING "Embree stream size in stream mode (number of packets per stream).")
@@ -512,7 +516,7 @@ if (GVT_RENDER)
     endif (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
-    if (GVT_RENDER_ADAPTER_OSPRAY)
+    if (GVT_RENDER_ADAPTER_GREGSPRAY)
 #        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
 #        if (OSPRAY_SRCDIR)
 #            include_directories(${OSPRAY_SRCDIR} ${OSPRAY_SRCDIR}/ospray
@@ -520,14 +524,14 @@ if (GVT_RENDER)
 #            #${OSPRAY_SRCDIR}/ospray/embree ${OSPRAY_SRCDIR}/ospray/embree/common
 #        endif (OSPRAY_SRCDIR)
 
-        find_package(ospray)
+        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib/cmake ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/build)
         include_directories(${OSPRAY_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${OSPRAY_LIBRARIES})
 
-    endif (GVT_RENDER_ADAPTER_OSPRAY)
+    endif (GVT_RENDER_ADAPTER_GREGSPRAY)
 
     if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
-        find_package(embree 2.15.0 REQUIRED)
+        find_package(embree 2.15.0 REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib/cmake ${CMAKE_HOME_DIRECTORY}/third-party/embree/build)
         include_directories(${EMBREE_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
     endif (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
@@ -662,7 +666,7 @@ if (GVT_VOL_APP)
     #set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS} ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
     set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
-    target_link_libraries(gvtVol gvtCore gvtRender ${MPI_LIBRARIES} ${GVT_RENDER_LIBS})
+    target_link_libraries(gvtVol gvtCore gvtRender ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} ${OSPRAY_LIBRARIES})
     install(TARGETS gvtVol RUNTIME DESTINATION bin)
 endif (GVT_VOL_APP)
 
