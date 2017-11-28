@@ -136,7 +136,7 @@ endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
 set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
 
 
-FIND_PACKAGE(IceT REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/icet/install/lib ${CMAKE_HOME_DIRECTORY}/third-party/icet/build)
+FIND_PACKAGE(IceT REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/icet/install/lib ${CMAKE_HOME_DIRECTORY}/third-party/icet/build/lib)
 include_directories(${ICET_INCLUDE_DIRS})
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
@@ -524,14 +524,20 @@ if (GVT_RENDER)
 #            #${OSPRAY_SRCDIR}/ospray/embree ${OSPRAY_SRCDIR}/ospray/embree/common
 #        endif (OSPRAY_SRCDIR)
 
-        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib/cmake ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/build)
+        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib64/cmake 
+                                  ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib/cmake 
+                                  ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/build/cmake
+                                  )
         include_directories(${OSPRAY_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${OSPRAY_LIBRARIES})
 
     endif (GVT_RENDER_ADAPTER_GREGSPRAY)
 
     if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
-        find_package(embree 2.15.0 REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib/cmake ${CMAKE_HOME_DIRECTORY}/third-party/embree/build)
+        find_package(embree 2.15.0 REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib64/cmake
+                                                  ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib/cmake 
+                                                  ${CMAKE_HOME_DIRECTORY}/third-party/embree/build
+                                                  )
         include_directories(${EMBREE_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
     endif (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
