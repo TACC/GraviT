@@ -6,7 +6,7 @@ Find GraviT on the [TACC GitHub site](http://tacc.github.io/GraviT/)!
 
 GraviT uses the [CMake](http://cmake.org/) build system to configure the build environment and `make` to perform the actual build. There are a number of libraries on which GraviT depends, which all are provided in the `third-party` subdirectory, either as git submodules or as direct insertions into the repository.
 
-The sequence below should provide a basic GraviT build for recent Linux flavors and for recent MacOS versions, provided that all requirements for the dependencies are also present (e.g. [Qt](https://www.qt.io/)). Please note that the GraviT CMake should find third-party dependencies installed to `third-party/<dependency>/install`, but the dependencies themselves may need help (e.g. [Embree](http://embree.github.io/) and [OSPRay](http://ospray.org/) finding `ispc`).  If you encounter any issues, please file a [issue on GitHub](https://github.com/TACC/GraviT/issues).
+The sequence below should provide a basic GraviT build for recent Linux flavors and for recent MacOS versions, provided that all requirements for the dependencies are also present (in particular, [Qt4](https://www.qt.io/) and a version doxygen with graphviz support must be installed). Please note that the GraviT CMake should find third-party dependencies installed to `third-party/<dependency>/install`, but the dependencies themselves may need help (e.g. [Embree](http://embree.github.io/) and [OSPRay](http://ospray.org/) finding `ispc`).  If you encounter any issues, please file a [issue on GitHub](https://github.com/TACC/GraviT/issues).
 
 ```bash
 git clone https://github.com/TACC/GraviT.git
@@ -15,14 +15,23 @@ git submodule init
 git submodule update
 cd third-party/ispc
 ./get-ispc.sh <os>      # where os: [ linux | osx ]
-cd ../embree
 # build embree, install to `third-party/embree/install`
+cd ../embree
+# note that the path to ISPC will need to be adjusted
+# depending on your OS
+cmake -DCMAKE_PREFIX_PATH=../ispc/ispc-v1.9.2-osx -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install .
+make install
 cd ../GregSpray         # a TACC-specific fork of OSPRay that enables ray communication
 # build GregSpray / OSPRay, install to `third-party/GregSpray/install`
+embree_DIR=../embree cmake -DTBB_LIBRARY_DEBUG=/usr/local/lib/libtbb.dylib -DTBB_LIBRARY_MALLOC_DEBUG=/usr/local/lib/libtbbmalloc.dylib -DCMAKE_PREFIX_PATH=../ispc/ispc-v1.9.2-osx -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install -DOSPRAY_MODULE_OPENGL_UTIL=True -DOSPRAY_USE_EXTERNAL_EMBREE=True -DCMAKE_BUILD_TYPE=Release .
+make install
+# build icet, install to `third-party/icet/install`
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install .
+make install
 cd ../..
 mkdir build
 cd build
-ccmake ..
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install ../
 # configure GraviT
 make && make install
 ```
