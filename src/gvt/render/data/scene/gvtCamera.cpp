@@ -37,6 +37,10 @@
 
 using namespace gvt::render::data::scene;
 using namespace gvt::render::actor;
+#ifndef MAX
+#define MAX(a, b) ((a > b) ? a : b)
+#endif
+
 
 // Camera base class methods
 gvtCameraBase::gvtCameraBase() {

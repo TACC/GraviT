@@ -30,6 +30,7 @@
 
 namespace gvt {
 namespace render {
+
 /**
  * \Brief ray trace Image Decomposition scheduler
  *

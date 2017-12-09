@@ -67,6 +67,9 @@
 namespace gvt {
 namespace render {
 namespace algorithm {
+#ifndef MAX
+#define MAX(a, b) ((a > b) ? a : b)
+#endif
 
 /// Tracer base class
 

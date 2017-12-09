@@ -61,6 +61,10 @@
 
 namespace gvt {
 namespace render {
+#ifndef MAX
+#define MAX(a, b) ((a > b) ? a : b)
+#endif
+
 
 /**
  * \brief Ray tracer scheduler base class

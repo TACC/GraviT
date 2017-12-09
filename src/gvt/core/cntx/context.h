@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <tuple>
 #include <vector>
+#include <algorithm>
 
 namespace cntx {
 
