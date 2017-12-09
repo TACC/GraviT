@@ -467,6 +467,11 @@ void render(std::string name) {
     ren->render(name);
 }
 
+void sync() {
+  cntx::rcontext &db = cntx::rcontext::instance();
+  db.sync();
+}
+
 void writeimage(std::string name, std::string output) {
     gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
     ren->WriteImage(name);

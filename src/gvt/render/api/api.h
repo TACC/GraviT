@@ -226,8 +226,12 @@ void modifyFilm(std::string name, int w, int h, std::string path);
  * \param adapter the rendering adapter / engine used (ospray,embree,optix,manta)
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
-
 void render(std::string name);
+
+/**
+ * synchronize state changes to remote processes
+ */
+void sync();
 
 void writeimage(std::string name, std::string output = "");
 
