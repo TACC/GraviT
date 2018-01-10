@@ -85,13 +85,13 @@ template <size_t simd_width> struct RayPacketIntersection {
     RayVector::iterator rayit = ray_begin;
     for (i = 0; rayit != ray_end && i < simd_width; ++i, ++rayit) {
       Ray &ray = (*rayit);
-      ox[i] = ray.origin[0];
-      oy[i] = ray.origin[1];
-      oz[i] = ray.origin[2];
-      dx[i] = 1.f / ray.direction[0];
-      dy[i] = 1.f / ray.direction[1];
-      dz[i] = 1.f / ray.direction[2];
-      t[i] =  ray.t_max ;
+      ox[i] = ray.mice.origin[0];
+      oy[i] = ray.mice.origin[1];
+      oz[i] = ray.mice.origin[2];
+      dx[i] = 1.f / ray.mice.direction[0];
+      dy[i] = 1.f / ray.mice.direction[1];
+      dz[i] = 1.f / ray.mice.direction[2];
+      t[i] =  ray.mice.t_max ;
       mask[i] = 1;
     }
     for (; i < simd_width; ++i) {

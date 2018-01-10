@@ -64,6 +64,36 @@ public:
    * @method Ray
    */
   inline Ray() {}
+  //
+  struct rats {
+      glm::vec3 origin;    /**< Ray origin */
+      float t_min;         /**< Ray t_min */
+      glm::vec3 direction; /**< Ray direction */
+      float t_max;         /**< Ray t_max */
+      glm::vec3 color;     /**< Current radiance */
+      float t;             /**< Latest intersection distance */
+      int id;              ///<! index into framebuffer
+      int depth;           ///<! sample rate
+      float w;             ///<! weight of image contribution
+      int type;            /**< Ray type */
+  } ;
+
+  union {
+    // struct bar {
+    //  glm::vec3 origin;    /**< Ray origin */
+    //  float t_min;         /**< Ray t_min */
+    //  glm::vec3 direction; /**< Ray direction */
+    //  float t_max;         /**< Ray t_max */
+    //  glm::vec3 color;     /**< Current radiance */
+    //  float t;             /**< Latest intersection distance */
+    //  int id;              ///<! index into framebuffer
+    //  int depth;           ///<! sample rate
+    //  float w;             ///<! weight of image contribution
+    //  int type;            /**< Ray type */
+    //}; 
+    struct rats mice;
+    unsigned char data[68] GVT_ALIGN(16); /**< Packeted Ray in memory */
+  };
   /**
    * Constructor
    * @method Ray
@@ -74,7 +104,17 @@ public:
    * @param  depth        Recursion dept
    */
   inline Ray(glm::vec3 _origin, glm::vec3 _direction, float contribution = 1.f, RayType type = PRIMARY, int depth = 10)
-      : origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)), t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {}
+  {
+      mice.origin = _origin;
+      mice.direction = glm::normalize(_direction);
+      mice.t_min = gvt::render::actor::Ray::RAY_EPSILON;
+      mice.t_max = FLT_MAX;
+      mice.t = FLT_MAX;
+      mice.id = -1;
+      mice.w = contribution;
+      mice.type=type;
+  }
+      //: origin(_origin), t_min(gvt::render::actor::Ray::RAY_EPSILON), direction(glm::normalize(_direction)), t_max(FLT_MAX), t(FLT_MAX), id(-1), w(contribution), type(type) {origin = _origin;}
   /**
    * Copy constructor
    * @method Ray
@@ -138,27 +178,12 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &stream, Ray const &ray) {
     stream << std::setprecision(4) << std::fixed << std::scientific;
-    stream << "Ray[" << ray.id << "][" << ((ray.type == PRIMARY) ? "P" : (ray.type == SHADOW) ? "SH" : "S");
-    stream << "]" << ray.origin << " " << ray.direction << " " << ray.color;
-    stream << " t[" << ray.t_min << ", " << ray.t << ", " << ray.t_max << "]";
+    stream << "Ray[" << ray.mice.id << "][" << ((ray.mice.type == PRIMARY) ? "P" : (ray.mice.type == SHADOW) ? "SH" : "S");
+    stream << "]" << ray.mice.origin << " " << ray.mice.direction << " " << ray.mice.color;
+    stream << " t[" << ray.mice.t_min << ", " << ray.mice.t << ", " << ray.mice.t_max << "]";
     return stream;
   }
 
-  union {
-    struct {
-      glm::vec3 origin;    /**< Ray origin */
-      float t_min;         /**< Ray t_min */
-      glm::vec3 direction; /**< Ray direction */
-      float t_max;         /**< Ray t_max */
-      glm::vec3 color;     /**< Current radiance */
-      float t;             /**< Latest intersection distance */
-      int id;              ///<! index into framebuffer
-      int depth;           ///<! sample rate
-      float w;             ///<! weight of image contribution
-      int type;            /**< Ray type */
-    };
-    unsigned char data[68] GVT_ALIGN(16); /**< Packeted Ray in memory */
-  };
 };
 
 typedef gvt::core::Vector<Ray> RayVector; /**< Array of Rays type */

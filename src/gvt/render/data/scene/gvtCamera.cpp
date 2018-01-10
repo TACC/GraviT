@@ -204,9 +204,9 @@ void gvtCameraBase::dumpraystostdout() {
   std::cout << " gvtCamera: rays x,y,origin,direction,rays.t_max,id,type" << std::endl;
   for (int i = 0; i < numrays; i++) {
     std::cout << i % filmsize[0] << " " << i / filmsize[0] << " ";
-    std::cout << rays[i].origin[0] << " " << rays[i].origin[1] << " " << rays[i].origin[2] << " ";
-    std::cout << rays[i].direction[0] << " " << rays[i].direction[1] << " " << rays[i].direction[2] << " ";
-    std::cout << rays[i].t << " " << rays[i].id << " " << rays[i].type << std::endl;
+    std::cout << rays[i].mice.origin[0] << " " << rays[i].mice.origin[1] << " " << rays[i].mice.origin[2] << " ";
+    std::cout << rays[i].mice.direction[0] << " " << rays[i].mice.direction[1] << " " << rays[i].mice.direction[2] << " ";
+    std::cout << rays[i].mice.t << " " << rays[i].mice.id << " " << rays[i].mice.type << std::endl;
   }
 };
 
@@ -275,22 +275,22 @@ void gvtPerspectiveCamera::generateRays(bool volume) {
                               camera_space_ray_direction[1] = cam2wrld[1][0] * x + cam2wrld[1][1] * y + z[1];
                               camera_space_ray_direction[2] = cam2wrld[2][0] * x + cam2wrld[2][1] * y + z[2];
                               Ray &ray = rays[ridx];
-                              ray.id = idx;
-                              ray.t_min = gvt::render::actor::Ray::RAY_EPSILON;
-                              ray.origin = eye_point;
-                              ray.direction = glm::normalize(camera_space_ray_direction);
-                              ray.t_max = FLT_MAX;
+                              ray.mice.id = idx;
+                              ray.mice.t_min = gvt::render::actor::Ray::RAY_EPSILON;
+                              ray.mice.origin = eye_point;
+                              ray.mice.direction = glm::normalize(camera_space_ray_direction);
+                              ray.mice.t_max = FLT_MAX;
                               if (volume) {
-                                ray.w = 0.0; // volume rendering opacity variable
+                                ray.mice.w = 0.0; // volume rendering opacity variable
                                 // ray.t = 0.0;
-                                ray.t = ray.t_max;
-                                ray.type = RAY_PRIMARY;
-                                ray.depth = 0;
+                                ray.mice.t = ray.mice.t_max;
+                                ray.mice.type = RAY_PRIMARY;
+                                ray.mice.depth = 0;
                               } else {
-                                ray.t = ray.t_max = FLT_MAX;
-                                ray.w = contri;
-                                ray.type = Ray::PRIMARY;
-                                ray.depth = depth;
+                                ray.mice.t = ray.mice.t_max = FLT_MAX;
+                                ray.mice.w = contri;
+                                ray.mice.type = Ray::PRIMARY;
+                                ray.mice.depth = depth;
                               }
                             }
                           }

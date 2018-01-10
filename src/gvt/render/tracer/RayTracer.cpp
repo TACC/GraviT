@@ -60,7 +60,7 @@ bool RayTracer::hasWork() { return true; };
 
 void RayTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
   for (gvt::render::actor::Ray &r : rays) {
-    img->localAdd(r.id, r.color * r.w, 1.0, r.t);
+    img->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.0, r.mice.t);
   }
 }
 

@@ -51,7 +51,7 @@ glm::vec3 lambertShade(const gvt::render::data::primitives::Material *material, 
                        const glm::vec3 &N, const glm::vec3 &wi) {
 
   float NdotL = std::max(0.f, glm::dot(N, wi));
-  glm::vec3 diffuse = material->kd * (NdotL * ray.w);
+  glm::vec3 diffuse = material->kd * (NdotL * ray.mice.w);
 
   return diffuse;
 }
@@ -61,11 +61,11 @@ glm::vec3 phongShade(const gvt::render::data::primitives::Material *material, co
 
   float NdotL = std::max(0.f, glm::dot(N, wi));
   glm::vec3 R = ((N * 2.f) * NdotL) - wi;
-  float VdotR = std::max(0.f, glm::dot(R, (-ray.direction)));
+  float VdotR = std::max(0.f, glm::dot(R, (-ray.mice.direction)));
   float power = VdotR * std::pow(VdotR, material->alpha);
 
-  gvt::render::data::Color finalColor = material->kd * (NdotL * ray.w);
-  finalColor += material->ks * (power * ray.w);
+  gvt::render::data::Color finalColor = material->kd * (NdotL * ray.mice.w);
+  finalColor += material->ks * (power * ray.mice.w);
   return finalColor;
 }
 
@@ -74,13 +74,13 @@ glm::vec3 blinnPhongShade(const gvt::render::data::primitives::Material *materia
 
   float NdotL = std::max(0.f, glm::dot(N, wi));
 
-  glm::vec3 H = glm::normalize(wi - ray.direction);
+  glm::vec3 H = glm::normalize(wi - ray.mice.direction);
 
   float NdotH = std::max(0.f, glm::dot(H, N));
   float power = NdotH * std::pow(NdotH, material->alpha);
 
-  gvt::render::data::Color diffuse = material->kd * (NdotL * ray.w);
-  gvt::render::data::Color specular = material->ks * (power * ray.w);
+  gvt::render::data::Color diffuse = material->kd * (NdotL * ray.mice.w);
+  gvt::render::data::Color specular = material->ks * (power * ray.mice.w);
 
   gvt::render::data::Color finalColor = (diffuse + specular);
   return finalColor;
@@ -92,7 +92,7 @@ bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Materia
                                           const gvt::render::data::scene::Light *lightSource,
                                           const glm::vec3 lightPosSample, glm::vec3 &color) {
 
-  glm::vec3 hitPoint = ray.origin + ray.direction * ray.t;
+  glm::vec3 hitPoint = ray.mice.origin + ray.mice.direction * ray.mice.t;
   glm::vec3 wi = glm::normalize(lightPosSample - hitPoint);
   float NdotL = std::max(0.f, glm::dot(surfaceNormal, wi));
   glm::vec3 Li = lightSource->contribution(hitPoint, lightPosSample);
@@ -117,11 +117,11 @@ bool gvt::render::data::primitives::Shade(gvt::render::data::primitives::Materia
     DifferentialGeometry dg;
     dg.Ns = Vec3fa(surfaceNormal.x, surfaceNormal.y, surfaceNormal.z);
     Vec3fa ewi = Vec3fa(wi.x, wi.y, wi.z);
-    Vec3fa wo = Vec3fa(-ray.direction.x, -ray.direction.y, -ray.direction.z);
+    Vec3fa wo = Vec3fa(-ray.mice.direction.x, -ray.mice.direction.y, -ray.mice.direction.z);
 
     Vec3fa r = gvt::render::data::primitives::Material__eval(material, 0, 1, BRDF(), wo, dg, ewi);
 
-    color = 2.f * glm::vec3(r.x, r.y, r.z) * ray.w;
+    color = 2.f * glm::vec3(r.x, r.y, r.z) * ray.mice.w;
 
   } break;
 #endif

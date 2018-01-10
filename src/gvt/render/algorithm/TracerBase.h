@@ -356,64 +356,64 @@ public:
             if (adapterType == gvt::render::adapter::Ospray) {
               // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
               // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
-              if (r.depth & RAY_BOUNDARY) {
+              if (r.mice.depth & RAY_BOUNDARY) {
                 // check to see if this ray hit anything in bvh
                 if (hits[i].next != -1) {
-                  r.depth &= ~RAY_BOUNDARY;
-                  r.origin = r.origin + r.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
+                  r.mice.depth &= ~RAY_BOUNDARY;
+                  r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
                   target_queue = hits[i].next;
                   // local_queue[hits[i].next].push_back(r);
                 } else {
-                  r.depth &= ~RAY_BOUNDARY;
-                  r.depth |= RAY_EXTERNAL_BOUNDARY;
+                  r.mice.depth &= ~RAY_BOUNDARY;
+                  r.mice.depth |= RAY_EXTERNAL_BOUNDARY;
                   target_queue = -1;
                 }
               }
               // std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type "
               // << std::bitset<8>(r.type) << std::endl; check types
-              if (r.type == RAY_PRIMARY) {
-                if ((r.depth & RAY_OPAQUE) | (r.depth & RAY_EXTERNAL_BOUNDARY)) {
+              if (r.mice.type == RAY_PRIMARY) {
+                if ((r.mice.depth & RAY_OPAQUE) | (r.mice.depth & RAY_EXTERNAL_BOUNDARY)) {
                   write_to_fb = true;
                   target_queue = -1;
-                } else if (r.depth & ~RAY_BOUNDARY) {
+                } else if (r.mice.depth & ~RAY_BOUNDARY) {
                   target_queue = domID;
                 }
-              } else if (r.type == RAY_SHADOW) {
-                if (r.depth & RAY_EXTERNAL_BOUNDARY) {
-                  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              } else if (r.mice.type == RAY_SHADOW) {
+                if (r.mice.depth & RAY_EXTERNAL_BOUNDARY) {
+                  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.mice.id % width]);
                   // colorBuf[r.id] += glm::vec4(r.color, r.w);
-                  image->localAdd(r.id, r.color * r.w, 1.f, r.t);
-                } else if (r.depth & RAY_BOUNDARY) {
-                  r.origin = r.origin + r.direction * (hits[i].t * 1.00f);
+                  image->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
+                } else if (r.mice.depth & RAY_BOUNDARY) {
+                  r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 1.00f);
                   local_queue[hits[i].next].push_back(r);
                 }
-              } else if (r.type == RAY_AO) {
-                if (r.depth & (RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
-                  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              } else if (r.mice.type == RAY_AO) {
+                if (r.mice.depth & (RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
+                  tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.mice.id % width]);
                   //                colorBuf[r.id] += glm::vec4(r.color, r.w);
-                  image->localAdd(r.id, r.color * r.w, 1.f, r.t);
-                } else if (r.depth & RAY_BOUNDARY) {
-                  r.origin = r.origin + r.direction * (hits[i].t * 1.00f);
+                  image->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
+                } else if (r.mice.depth & RAY_BOUNDARY) {
+                  r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 1.00f);
                   local_queue[hits[i].next].push_back(r);
                 }
               }
               if (write_to_fb) {
-                tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.mice.id % width]);
                 // std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
                 // colorBuf[r.id] += glm::vec4(r.color, r.w);
-                image->localAdd(r.id, r.color * r.w, 1.f, r.t);
+                image->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
               }
               if (target_queue != -1) {
                 local_queue[target_queue].push_back(r);
               }
             } else {
               if (hits[i].next != -1) {
-                r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+                r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
                 local_queue[hits[i].next].push_back(r);
-              } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
-                tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              } else if (r.mice.type == gvt::render::actor::Ray::SHADOW && glm::length(r.mice.color) > 0) {
+                tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.mice.id % width]);
                 // colorBuf[r.id] += glm::vec4(r.color, r.w);
-                image->localAdd(r.id, r.color * r.w, 1.f, r.t);
+                image->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
               }
             }
           }

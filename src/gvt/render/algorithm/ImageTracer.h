@@ -227,7 +227,7 @@ public:
                          instMinvN[instTarget].get(), lights);
           unsigned  count = 0;
           for(auto& r : moved_rays) {
-              if(r.type == gvt::render::actor::Ray::SHADOW) count++;
+              if(r.mice.type == gvt::render::actor::Ray::SHADOW) count++;
           }
 
           this->queue[instTarget].clear();

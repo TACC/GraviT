@@ -152,24 +152,24 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
     moved_rays.resize(raycount);
     for (int i = 0; i < out->GetCount(); i++) {
       gvt::render::actor::Ray &ray = moved_rays[i];
-      ray.origin.x = out->xr.ox[i];
-      ray.origin.y = out->xr.oy[i];
-      ray.origin.z = out->xr.oz[i];
-      ray.direction.x = out->xr.dx[i];
-      ray.direction.y = out->xr.dy[i];
-      ray.direction.z = out->xr.dz[i];
-      ray.color.r = out->xr.r[i];
-      ray.color.g = out->xr.g[i];
-      ray.color.b = out->xr.b[i];
-      ray.w = out->xr.o[i]; // store ospray opacity in the w component of the gvt ray
-      ray.t = out->xr.t[i];
-      ray.t_max = out->xr.tMax[i];
-      ray.id = out->xr.y[i] * width + out->xr.x[i];
-      ray.type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY
+      ray.mice.origin.x = out->xr.ox[i];
+      ray.mice.origin.y = out->xr.oy[i];
+      ray.mice.origin.z = out->xr.oz[i];
+      ray.mice.direction.x = out->xr.dx[i];
+      ray.mice.direction.y = out->xr.dy[i];
+      ray.mice.direction.z = out->xr.dz[i];
+      ray.mice.color.r = out->xr.r[i];
+      ray.mice.color.g = out->xr.g[i];
+      ray.mice.color.b = out->xr.b[i];
+      ray.mice.w = out->xr.o[i]; // store ospray opacity in the w component of the gvt ray
+      ray.mice.t = out->xr.t[i];
+      ray.mice.t_max = out->xr.tMax[i];
+      ray.mice.id = out->xr.y[i] * width + out->xr.x[i];
+      ray.mice.type = out->xr.type[i] == EXTERNAL_RAY_PRIMARY
                      ? RAY_PRIMARY
                      : out->xr.type[i] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW
                                                               : out->xr.type[i] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
-      ray.depth = (out->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0) |
+      ray.mice.depth = (out->xr.term[i] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0) |
                   (out->xr.term[i] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
                   (out->xr.term[i] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
                   (out->xr.term[i] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
@@ -181,24 +181,24 @@ void OSPRayAdapter::OSP2GVTMoved_Rays(OSPExternalRays &out, OSPExternalRays &rl,
   moved_rays.resize(raycount + rl->GetCount());
   for (int i = raycount, ii = 0; i < raycount + rl->GetCount(); i++, ii++) {
     gvt::render::actor::Ray &ray = moved_rays[i];
-    ray.origin.x = rl->xr.ox[ii];
-    ray.origin.y = rl->xr.oy[ii];
-    ray.origin.z = rl->xr.oz[ii];
-    ray.direction.x = rl->xr.dx[ii];
-    ray.direction.y = rl->xr.dy[ii];
-    ray.direction.z = rl->xr.dz[ii];
-    ray.color.r = rl->xr.r[ii];
-    ray.color.g = rl->xr.g[ii];
-    ray.color.b = rl->xr.b[ii];
-    ray.w = rl->xr.o[ii];
-    ray.t = rl->xr.t[ii];
-    ray.t_max = rl->xr.tMax[ii];
-    ray.id = rl->xr.y[ii] * width + rl->xr.x[ii];
-    ray.type = rl->xr.type[ii] == EXTERNAL_RAY_PRIMARY
+    ray.mice.origin.x = rl->xr.ox[ii];
+    ray.mice.origin.y = rl->xr.oy[ii];
+    ray.mice.origin.z = rl->xr.oz[ii];
+    ray.mice.direction.x = rl->xr.dx[ii];
+    ray.mice.direction.y = rl->xr.dy[ii];
+    ray.mice.direction.z = rl->xr.dz[ii];
+    ray.mice.color.r = rl->xr.r[ii];
+    ray.mice.color.g = rl->xr.g[ii];
+    ray.mice.color.b = rl->xr.b[ii];
+    ray.mice.w = rl->xr.o[ii];
+    ray.mice.t = rl->xr.t[ii];
+    ray.mice.t_max = rl->xr.tMax[ii];
+    ray.mice.id = rl->xr.y[ii] * width + rl->xr.x[ii];
+    ray.mice.type = rl->xr.type[ii] == EXTERNAL_RAY_PRIMARY
                    ? RAY_PRIMARY
                    : rl->xr.type[ii] == EXTERNAL_RAY_SHADOW ? RAY_SHADOW
                                                             : rl->xr.type[ii] == EXTERNAL_RAY_AO ? RAY_AO : RAY_EMPTY;
-    ray.depth = (rl->xr.term[ii] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0) |
+    ray.mice.depth = (rl->xr.term[ii] & EXTERNAL_RAY_SURFACE ? RAY_SURFACE : 0) |
                 (rl->xr.term[ii] & EXTERNAL_RAY_OPAQUE ? RAY_OPAQUE : 0) |
                 (rl->xr.term[ii] & EXTERNAL_RAY_BOUNDARY ? RAY_BOUNDARY : 0) |
                 (rl->xr.term[ii] & EXTERNAL_RAY_TIMEOUT ? RAY_TIMEOUT : 0);
@@ -211,30 +211,30 @@ OSPExternalRays OSPRayAdapter::GVT2OSPRays(gvt::render::actor::RayVector &rayLis
   OSPExternalRays out = ospNewExternalRays();
   out->Allocate(rayList.size());
   for (int i = 0; i < rayList.size(); i++) {
-    out->xr.ox[i] = rayList[i].origin.x;
-    out->xr.oy[i] = rayList[i].origin.y;
-    out->xr.oz[i] = rayList[i].origin.z;
-    out->xr.dx[i] = rayList[i].direction.x;
-    out->xr.dy[i] = rayList[i].direction.y;
-    out->xr.dz[i] = rayList[i].direction.z;
-    out->xr.r[i] = rayList[i].color.r;
-    out->xr.g[i] = rayList[i].color.g;
-    out->xr.b[i] = rayList[i].color.b;
-    out->xr.o[i] = rayList[i].w; // volume renderer uses w to carry opacity in and out.
+    out->xr.ox[i] = rayList[i].mice.origin.x;
+    out->xr.oy[i] = rayList[i].mice.origin.y;
+    out->xr.oz[i] = rayList[i].mice.origin.z;
+    out->xr.dx[i] = rayList[i].mice.direction.x;
+    out->xr.dy[i] = rayList[i].mice.direction.y;
+    out->xr.dz[i] = rayList[i].mice.direction.z;
+    out->xr.r[i] = rayList[i].mice.color.r;
+    out->xr.g[i] = rayList[i].mice.color.g;
+    out->xr.b[i] = rayList[i].mice.color.b;
+    out->xr.o[i] = rayList[i].mice.w; // volume renderer uses w to carry opacity in and out.
     // out->xr.t[i] = rayList[i].t;
     out->xr.t[i] = 0.0;
-    out->xr.tMax[i] = rayList[i].t_max;
-    out->xr.type[i] = rayList[i].type == RAY_PRIMARY
+    out->xr.tMax[i] = rayList[i].mice.t_max;
+    out->xr.type[i] = rayList[i].mice.type == RAY_PRIMARY
                           ? EXTERNAL_RAY_PRIMARY
-                          : rayList[i].type == RAY_SHADOW
+                          : rayList[i].mice.type == RAY_SHADOW
                                 ? EXTERNAL_RAY_SHADOW
-                                : rayList[i].type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
-    out->xr.term[i] = rayList[i].depth; // depth stored in extermal term variable
+                                : rayList[i].mice.type == RAY_AO ? EXTERNAL_RAY_AO : EXTERNAL_RAY_EMPTY;
+    out->xr.term[i] = rayList[i].mice.depth; // depth stored in extermal term variable
     // x and y are calculated from ray id and image dimensions.
 
 
-    out->xr.x[i] = rayList[i].id % width;
-    out->xr.y[i] = rayList[i].id / width;
+    out->xr.x[i] = rayList[i].mice.id % width;
+    out->xr.y[i] = rayList[i].mice.id / width;
   }
   return out;
 }

@@ -271,12 +271,12 @@ struct embreeStreamParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        ray4.orgx[i] = r.origin[0];
-        ray4.orgy[i] = r.origin[1];
-        ray4.orgz[i] = r.origin[2];
-        ray4.dirx[i] = r.direction[0];
-        ray4.diry[i] = r.direction[1];
-        ray4.dirz[i] = r.direction[2];
+        ray4.orgx[i] = r.mice.origin[0];
+        ray4.orgy[i] = r.mice.origin[1];
+        ray4.orgz[i] = r.mice.origin[2];
+        ray4.dirx[i] = r.mice.direction[0];
+        ray4.diry[i] = r.mice.direction[1];
+        ray4.dirz[i] = r.mice.direction[2];
         ray4.tnear[i] = gvt::render::actor::Ray::RAY_EPSILON;
         ray4.tfar[i] = FLT_MAX;
         ray4.geomID[i] = RTC_INVALID_GEOMETRY_ID;
@@ -305,8 +305,8 @@ struct embreeStreamParallelTrace {
     for (int i = 0; i < GVT_EMBREE_STREAM_SIZE_M; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * glm::vec4(r.origin, 1.f); // transform ray to local space
-        const auto direction = (*minv) * glm::vec4(r.direction, 0.f);
+        const auto origin = (*minv) * glm::vec4(r.mice.origin, 1.f); // transform ray to local space
+        const auto direction = (*minv) * glm::vec4(r.mice.direction, 0.f);
 
         ray[i].org[0] = origin[0];
         ray[i].org[1] = origin[1];
@@ -346,8 +346,8 @@ struct embreeStreamParallelTrace {
       for (int n = 0; n < GVT_EMBREE_PACKET_SIZE_N; ++n) {
         if (valid[offset]) {
           const Ray &r = rays[startIdx + offset];
-          const auto origin = (*minv) * glm::vec4(r.origin, 1.f);
-          const auto direction = (*minv) * glm::vec4(r.direction, 0.f);
+          const auto origin = (*minv) * glm::vec4(r.mice.origin, 1.f);
+          const auto direction = (*minv) * glm::vec4(r.mice.direction, 0.f);
 
           RTCRayN_org_x(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = origin[0];
           RTCRayN_org_y(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = origin[1];
@@ -430,20 +430,20 @@ struct embreeStreamParallelTrace {
       if (!gvt::render::data::primitives::Shade(material, r, normal, light.get(), lightPos, c)) continue;
 
       const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON * 16;
-      const float t_shadow = multiplier * r.t;
+      const float t_shadow = multiplier * r.mice.t;
 
-      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 origin = r.mice.origin + r.mice.direction * t_shadow;
       const glm::vec3 dir = lightPos - origin;
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
-      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+      shadowRays.push_back(Ray(r.mice.origin + r.mice.direction * t_shadow, dir, r.mice.w, Ray::SHADOW, r.mice.depth));
 
       Ray &shadow_ray = shadowRays.back();
-      shadow_ray.t = r.t;
-      shadow_ray.id = r.id;
-      shadow_ray.t_max = t_max;
-      shadow_ray.color = glm::vec3(c[0], c[1], c[2]);
+      shadow_ray.mice.t = r.mice.t;
+      shadow_ray.mice.id = r.mice.id;
+      shadow_ray.mice.t_max = t_max;
+      shadow_ray.mice.color = glm::vec3(c[0], c[1], c[2]);
     }
   }
 
@@ -903,13 +903,13 @@ struct embreeStreamParallelTrace {
             if (ray1M[pi].geomID != (int)RTC_INVALID_GEOMETRY_ID) {
               // ray has hit something
               // shadow ray hit something, so it should be dropped
-              if (r.type == gvt::render::actor::Ray::SHADOW) {
+              if (r.mice.type == gvt::render::actor::Ray::SHADOW) {
                 continue;
               }
 
               // float t = rayNM[m].tfar[n];
               float t = ray1M[pi].tfar;
-              r.t = t;
+              r.mice.t = t;
 
               // FIXME: embree does not take vertex normal information, the
               // examples have the application calculate the normal using
@@ -951,7 +951,7 @@ struct embreeStreamParallelTrace {
               }
 
               // backface check, requires flat normal
-              if (glm::dot(-r.direction, normalflat) <= 0.f) {
+              if (glm::dot(-r.mice.direction, normalflat) <= 0.f) {
                 manualNormal = -manualNormal;
               }
 
@@ -997,9 +997,9 @@ struct embreeStreamParallelTrace {
               }
 
               // reduce contribution of the color that the shadow rays get
-              if (r.type == gvt::render::actor::Ray::SECONDARY) {
+              if (r.mice.type == gvt::render::actor::Ray::SECONDARY) {
                 t = (t > 1) ? 1.f / t : t;
-                r.w = r.w * t;
+                r.mice.w = r.mice.w * t;
               }
 
               generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
@@ -1009,20 +1009,20 @@ struct embreeStreamParallelTrace {
                 delete mat;
               }
 
-              int ndepth = r.depth - 1;
+              int ndepth = r.mice.depth - 1;
 
               float p = 1.f - randEngine.fastrand(0, 1); //(float(rand()) / RAND_MAX);
               // replace current ray with generated secondary ray
-              if (ndepth > 0 && r.w > p) {
-                r.type = gvt::render::actor::Ray::SECONDARY;
+              if (ndepth > 0 && r.mice.w > p) {
+                r.mice.type = gvt::render::actor::Ray::SECONDARY;
                 const float multiplier =
                     1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
-                const float t_secondary = multiplier * r.t;
-                r.origin = r.origin + r.direction * t_secondary;
-                r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
+                const float t_secondary = multiplier * r.mice.t;
+                r.mice.origin = r.mice.origin + r.mice.direction * t_secondary;
+                r.mice.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
-                r.w = r.w * glm::dot(r.direction, normal);
-                r.depth = ndepth;
+                r.mice.w = r.mice.w * glm::dot(r.mice.direction, normal);
+                r.mice.depth = ndepth;
                 validRayLeft = true; // we still have a valid ray in the packet to trace
               } else {
                 // secondary ray is terminated, so disable its valid bit
