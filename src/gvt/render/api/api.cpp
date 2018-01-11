@@ -53,7 +53,7 @@ namespace api {
 void gvtInit(int argc, char **argv, unsigned int threads) {
   int initialized, rank;
 
-  gvt::comm::scomm::init(argc,argv);
+  //gvt::comm::scomm::init(argc,argv);
 
   MPI_Initialized(&initialized);
   if (!initialized) {
