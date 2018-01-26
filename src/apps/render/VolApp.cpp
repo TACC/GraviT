@@ -309,9 +309,9 @@ int main(int argc, char **argv) {
 
   // API initialization
   if (!cmd.isSet("threads")) {
-    api::gvtInit(argc,argv);
+    gvtInit(argc,argv);
   } else {
-    api::gvtInit(argc,argv,cmd.get<int>("threads"));
+    gvtInit(argc,argv,cmd.get<int>("threads"));
   }
   int rank,worldsize;
   // get rank and world size for use downstream
@@ -389,12 +389,12 @@ int main(int argc, char **argv) {
       //float deltas[3] = {1.0,1.0,1.0};
       //float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
-      api::createVolume(volnodename);
-      api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
-      api::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
+      createVolume(volnodename);
+      addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
+      addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
     }
   }
-  api::sync();
+  gvtsync();
 
   // add instances by looping through the domains again. It is enough for rank 0 to do this. It gets synced in the end. 
   if(MPI::COMM_WORLD.Get_rank()==0) {
@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
       auto &mi = (*m);
       float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
                                          mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-      api::addInstance(std::string("inst") + std::to_string(domain),volnodename, mf);
+      addInstance(std::string("inst") + std::to_string(domain),volnodename, mf);
     }
   }
 
@@ -415,7 +415,7 @@ int main(int argc, char **argv) {
   auto lpos = glm::vec3(0.,0.,1.);
   auto lcolor = glm::vec3(100.,100.,500.);
   string lightname = "mylight";
-  api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
+  addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
   // camera time
   auto eye = glm::vec3(127.5,127.5,1024.);
   if (cmd.isSet("eye")) {
@@ -438,7 +438,7 @@ int main(int argc, char **argv) {
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
   std::cout << "add camera " << camname << std::endl;
-  api::addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
+  addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
   // film
   string filmname = "conefilm";
   std::cout << "add film " << filmname << std::endl;
@@ -453,7 +453,7 @@ int main(int argc, char **argv) {
   if(cmd.isSet("imagefile")) {
     outputpath = cmd.get<std::string>("imagefile");
   } 
-  api::addFilm(filmname,width,height,outputpath);
+  addFilm(filmname,width,height,outputpath);
   // render bits (schedule and adapter)
   string rendername("VolumeRenderer");
   int schedtype;
@@ -471,15 +471,15 @@ int main(int argc, char **argv) {
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
-  api::sync();
+  gvtsync();
 
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
-  api::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
+  addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
   std::cout << "Calling render" << std::endl;
-  api::sync();
+  gvtsync();
 
-  api::render(rendername);
-  api::writeimage(rendername);
+  render(rendername);
+  writeimage(rendername);
 
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 

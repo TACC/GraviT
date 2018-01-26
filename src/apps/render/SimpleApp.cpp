@@ -83,7 +83,7 @@ void test_bvh(gvtPerspectiveCamera &camera);
 int main(int argc, char **argv) {
 
   // gvtInit(argc, argv);
-  api::gvtInit(argc, argv);
+  gvtInit(argc, argv);
   cntx::rcontext &db = cntx::rcontext::instance();
 
   ParseCommandLine cmd("gvtSimple");
@@ -124,11 +124,11 @@ int main(int argc, char **argv) {
     std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
     float kd[] = { 1.f, 1.f, 1.f };
 
-    api::createMesh("conemesh");
-    api::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
-    api::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
-    api::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
-    api::finishMesh("conemesh");
+    createMesh("conemesh");
+    addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
+    addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
+    addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
+    finishMesh("conemesh");
   }
   if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
     std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
@@ -152,11 +152,11 @@ int main(int argc, char **argv) {
     };
     float kd[] = { 1.f, 1.f, 1.f };
 
-    api::createMesh("cubemesh");
-    api::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
-    api::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
-    api::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
-    api::finishMesh("cubemesh");
+    createMesh("cubemesh");
+    addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
+    addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
+    addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
+    finishMesh("cubemesh");
   }
 
 //
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
       float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
                      mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
 
-      api::addInstance(instanceName, instanceMeshname, mf);
+      addInstance(instanceName, instanceMeshname, mf);
       instId++;
     }
   }
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
     lcolor = glm::vec3(color[0], color[1], color[2]);
   }
 
-  api::addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
+  addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
   db.sync();
 
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
-  api::addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
+  addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
             jitterWindowSize);
 
   db.sync();
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
     gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     outputpath = output[0];
   }
-  api::addFilm(filmname, width, height, outputpath);
+  addFilm(filmname, width, height, outputpath);
 
 
 //  db.printtreebyrank(std::cout);
@@ -296,11 +296,11 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
+  addRenderer(rendername, adaptertype, schedtype, camname, filmname);
   db.sync();
 //  db.printtreebyrank(std::cout);
-  api::render(rendername);
-  api::writeimage(rendername,"simple");
+  render(rendername);
+  writeimage(rendername,"simple");
 
 #if 0
   writeimage(rendername);

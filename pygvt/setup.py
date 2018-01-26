@@ -10,7 +10,8 @@ compile_args = ['-std=c++11']
 
 try:
    embree_inc = os.environ["embree_DIR"] + "/include"
-   embree_lib = os.environ["embree_DIR"] + ("/lib" if os.path.exists(os.environ["embree_DIR"]+"/lib") else "/lib64")
+   #embree_lib = os.environ["embree_DIR"] + ("/lib" if os.path.exists(os.environ["embree_DIR"]+"/lib") else "/lib64")
+   embree_lib = os.environ["embree_DIR"] + "/build"
 
 except KeyError:
    print("Please set the environment variable embree_DIR")
@@ -77,16 +78,16 @@ extensions = [
         # "boost_system"+mpi_mac,
         "mpi",
         "mpicxx",
-        "irc",
-        "imf",
+        #"irc",
+        #"imf",
 
 
         ],
         library_dirs = [
             embree_lib,
             mpi_lib,
-            boost_lib,
             gvt_lib,
+            #boost_lib,
             os.environ["IceT_LIB_DIR"],
             ],
         language="c++",

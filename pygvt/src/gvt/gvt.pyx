@@ -11,7 +11,7 @@ from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 
 
-cdef extern from "api.h":
+cdef extern from "gravit/api.h":
   void _gvtInit"gvtInit"(int argc, char** argv)
   void _createMesh"createMesh"(string)
   void _addMeshVertices"addMeshVertices"(string name, unsigned &n, float *vertices)
@@ -20,19 +20,15 @@ cdef extern from "api.h":
   void _addMeshVertexNormals"addMeshVertexNormals"( string name,  unsigned &n,  float *normals)
   void _finishMesh"finishMesh"( string name, bool compute_normal)
   void _addMeshMaterial"addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float alpha)
-  void _addMeshMaterial2"addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks,
-                        float alpha )
-  void _addMeshMaterials"addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd,
-                         float *ks,  float *alpha)
-  void _addInstance"addInstance"(string name,  float *m)
+  void _addMeshMaterial2"addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks, float alpha )
+  void _addMeshMaterials"addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd, float *ks,  float *alpha)
+  void _addInstance"addInstance"(string s, string name,  float *m)
   void _addPointLight"addPointLight"(string name,  float *pos,  float *color)
   void _addAreaLight"addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
   void _modifyLight"modifyLight"(string name,  float *pos,  float *color)
   void _modifyLight"modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
-  void _addCamera"addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth,
-                 int samples, float jitter)
-  void _modifyCamera"modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth,
-                    int samples, float jitter)
+  void _addCamera"addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
+  void _modifyCamera"modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
   void _modifyCamera"modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov)
   void _addFilm"addFilm"(string name, int w, int h, string path)
   void _modifyFilm"modifyFilm"(string name, int w, int h, string path)
@@ -90,8 +86,8 @@ def addMeshMaterialSpecular( str name,  unsigned mattype,  np.ndarray[float, ndi
 # def addMeshMaterials( str name,  unsigned n,  np.ndarray[uint32, ndim=1, mode="c"] mattype,  np.ndarray[float, ndim=1, mode="c"] kd, np.ndarray[float, ndim=1, mode="c"] ks,  np.ndarray[float, ndim=1, mode="c"] alpha):
 #   _addMeshMaterials(name.encode(),n,<unsigned*> mattype.data, <float*> kd.data, <float*> ks.float, <float*> alpha.data)
 
-def addInstance(str name,  np.ndarray[float, ndim=1, mode="c"] m):
-  _addInstance(name.encode(),<float*> m.data)
+def addInstance(str s, str name,  np.ndarray[float, ndim=1, mode="c"] m):
+  _addInstance(s.encode(),name.encode(),<float*> m.data)
 
 def addPointLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color):
   _addPointLight(name.encode(),<float*> pos.data, <float*> color.data)

@@ -8,6 +8,7 @@ pyGVT - Python wrapper for GraviT
 * IceT
 * GraviT
 * MPI
+* Python 3.0
 
 Add all lib Dependencies paths to LD_LIBRARY_PATH
 
@@ -19,7 +20,7 @@ Edit setenv.sh and change the paths according to your Dependencies install
 ```bash
 pip install virtualenv
 virtualenv ~/.pve/pyGVT
-source ~/.pve/pyGVT/bin/active
+source ~/.pve/pyGVT/bin/activate
 ```
 
 #### Install

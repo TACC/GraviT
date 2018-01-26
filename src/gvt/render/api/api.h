@@ -23,7 +23,7 @@
 #include <string>
 #include <thread>
 
-namespace api {
+//namespace api {
 
 void gvtInit(int argc, char **argv, unsigned int threads = std::thread::hardware_concurrency());
 // void addMesh(gvt::render::data::primitives::Box3D *mshbx, gvt::render::data::primitives::Mesh *mesh,
@@ -231,7 +231,7 @@ void render(std::string name);
 /**
  * synchronize state changes to remote processes
  */
-void sync();
+void gvtsync();
 
 void writeimage(std::string name, std::string output = "");
 
@@ -244,5 +244,5 @@ void addRenderer(std::string name, int adapter, int schedule,  std::string const
  * \param schedule the schedule to use for this adapter (image,domain,hybrid)
  */
 void modifyRenderer(std::string name, int adapter, int schedule, std::string const& Camera = "Camera", std::string const& Film = "Film");
-} // namespace api
+//} // namespace api
 #endif // GVT_RENDER_API_H
