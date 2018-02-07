@@ -26,7 +26,8 @@ cd ../GregSpray         # a TACC-specific fork of OSPRay that enables ray commun
 embree_DIR=../embree cmake -DTBB_LIBRARY_DEBUG=/usr/local/lib/libtbb.dylib -DTBB_LIBRARY_MALLOC_DEBUG=/usr/local/lib/libtbbmalloc.dylib -DCMAKE_PREFIX_PATH=../ispc/ispc-v1.9.2-osx -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install -DOSPRAY_MODULE_OPENGL_UTIL=True -DOSPRAY_USE_EXTERNAL_EMBREE=True -DCMAKE_BUILD_TYPE=Release .
 make install
 # build icet, install to `third-party/icet/install`
-cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install .
+cd ../icet
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install -DBUILD_SHARED_LIBS=True .
 make install
 cd ../..
 mkdir build
