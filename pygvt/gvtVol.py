@@ -8,6 +8,8 @@
 # use the domain schedule and ospray adapter. Messing with those settings will
 # have unpredictable results.
 #
+# run with this command "ibrun -np 2 python gvtVol.py". Or use your favorite mpi launcher.
+#
 import gvt
 from mpi4py import MPI
 import numpy as np

@@ -7,7 +7,7 @@ import sys
 import os
 import numpy
 
-compile_args = ['-std=c++11']
+compile_args = ['-std=c++11','-DGVT_BUILD_VOLUME']
 
 try:
     embree_inc = os.sep.join([os.environ["embree_DIR"], "include"])
