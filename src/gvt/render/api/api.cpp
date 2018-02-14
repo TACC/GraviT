@@ -48,7 +48,7 @@ ACI-1339881 and ACI-1339840
 using namespace std;
 using namespace gvt::render::data::primitives;
 
-//namespace api {
+namespace api {
 
 void gvtInit(int argc, char **argv, unsigned int threads) {
   int initialized, rank;
@@ -515,4 +515,4 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
 }
 #endif // GVT_BUILD_VOLUME
 
-//} // namespace api
+} // namespace api

@@ -12,34 +12,33 @@ from libcpp cimport bool
 
 
 cdef extern from "gravit/api.h" namespace "api":
-  void _gvtInit "gvtInit"(int argc, char** argv)
-  void _createMesh "createMesh"(string)
-  void _addMeshVertices "addMeshVertices"(string name, unsigned &n, float *vertices)
-  void _addMeshTriangles "addMeshTriangles"( string name,  unsigned &n,  unsigned *triangles)
-  void _addMeshFaceNormals "addMeshFaceNormals"( string name,  unsigned &n,  float *normals)
-  void _addMeshVertexNormals "addMeshVertexNormals"( string name,  unsigned &n,  float *normals)
-  void _finishMesh "finishMesh"( string name, bool compute_normal)
-  void _addMeshMaterial "addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float alpha)
-  void _addMeshMaterial2 "addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks, float alpha )
-  void _addMeshMaterials "addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd, float *ks,  float *alpha)
-  void _addInstance "addInstance"(string name, string meshname, float *m)
-  void _createVolume"createVolume"(string name)
-  void _addVolumeTransferFunctions"addVolumeTransferFunctions"(string name, string colortfname, string opacityfname, float low, float high)
-  void _addVolumeSamples"addVolumeSamples"(string name, float *samples, int *counts, float *origin, float* deltas, float samplingrate)
-  void _addPointLight "addPointLight"(string name,  float *pos,  float *color)
-  void _addAreaLight "addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
-  void _modifyLight "modifyLight"(string name,  float *pos,  float *color)
-  void _modifyLight "modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
-  void _addCamera "addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
-  void _modifyCamera "modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
-  void _modifyCamera "modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov)
-  void _addFilm "addFilm"(string name, int w, int h, string path)
-  void _modifyFilm "modifyFilm"(string name, int w, int h, string path)
-  void _render "render"(string name)
-  void _writeimage "writeimage"(string name, string output)
-  void _addRenderer "addRenderer"(string name, int adapter, int schedule,
-                                  string camera_name, string film_name,
-                                  bool volume)
+  void _gvtInit "api::gvtInit"(int argc, char** argv)
+  void _createMesh "api::createMesh"(string)
+  void _addMeshVertices "api::addMeshVertices"(string name, unsigned &n, float *vertices)
+  void _addMeshTriangles "api::addMeshTriangles"( string name,  unsigned &n,  unsigned *triangles)
+  void _addMeshFaceNormals "api::addMeshFaceNormals"( string name,  unsigned &n,  float *normals)
+  void _addMeshVertexNormals "api::addMeshVertexNormals"( string name,  unsigned &n,  float *normals)
+  void _finishMesh "api::finishMesh"( string name, bool compute_normal)
+  void _addMeshMaterial "api::addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float alpha)
+  void _addMeshMaterial2 "api::addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks, float alpha )
+  void _addMeshMaterials "api::addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd, float *ks,  float *alpha)
+  void _addInstance "api::addInstance"(string name, string meshname, float *m)
+  void _createVolume"api::createVolume"(string name)
+  void _addVolumeTransferFunctions"api::addVolumeTransferFunctions"(string name, string colortfname, string opacityfname, float low, float high)
+  void _addVolumeSamples"api::addVolumeSamples"(string name, float *samples, int *counts, float *origin, float* deltas, float samplingrate)
+  void _addPointLight "api::addPointLight"(string name,  float *pos,  float *color)
+  void _addAreaLight "api::addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
+  void _modifyLight "api::modifyLight"(string name,  float *pos,  float *color)
+  void _modifyLight "api::modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
+  void _addCamera "api::addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
+  void _modifyCamera "api::modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
+  void _modifyCamera "api::modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov)
+  void _addFilm "api::addFilm"(string name, int w, int h, string path)
+  void _modifyFilm "api::modifyFilm"(string name, int w, int h, string path)
+  void _render "api::render"(string name)
+  void _writeimage "api::writeimage"(string name, string output)
+  void _addRenderer "api::addRenderer"(string name, int adapter, int schedule,
+          string camera_name, string film_name, bool volume)
 #void gvtInit(int &argc, char **&argv)
 
 def gvtInit():
@@ -124,9 +123,9 @@ def modifyFilm(str name, int w, int h, str path):
   _modifyFilm(name.encode(),w,h,path.encode())
 
 def addRenderer(str name, int adapter, int schedule, str camera_name,
-                str film_name, bool volume):
-  _addRenderer(name.encode(), adapter, schedule, camera_name.encode(),
-               film_name.encode(), volume)
+        str film_name, bool volume):
+  _addRenderer(name.encode(),adapter,schedule,camera_name.encode(),
+          film_name.encode(),volume)
 
 def render(str name):
   _render(name.encode())

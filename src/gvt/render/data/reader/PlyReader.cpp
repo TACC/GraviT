@@ -105,7 +105,7 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
 
     std::string meshname = "Mesh" + std::to_string(k);
 
-    createMesh(meshname);
+    api::createMesh(meshname);
 
     filepath = *file;
     myfile = fopen(filepath.c_str(), "r");
@@ -171,10 +171,10 @@ PlyReader::PlyReader(std::string rootdir, bool dist) {
       afc[i * 3 + 2] = flist[i]->verts[2];
     }
 
-    addMeshVertices(meshname, nverts, avtx);
-    addMeshTriangles(meshname, nfaces, afc);
-    if (has_color) addMeshVertexColor(meshname, nverts, acolor);
-    finishMesh(meshname);
+    api::addMeshVertices(meshname, nverts, avtx);
+    api::addMeshTriangles(meshname, nfaces, afc);
+    if (has_color) api::addMeshVertexColor(meshname, nverts, acolor);
+    api::finishMesh(meshname);
   }
 }
 
