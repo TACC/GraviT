@@ -37,7 +37,8 @@ cdef extern from "gravit/api.h" namespace "api":
   void _modifyFilm "api::modifyFilm"(string name, int w, int h, string path)
   void _render "api::render"(string name)
   void _writeimage "api::writeimage"(string name, string output)
-  void _addRenderer "api::addRenderer"(string name, int adapter, int schedule)
+  void _addRenderer "api::addRenderer"(string name, int adapter, int schedule,
+          string camera_name, string film_name, bool volume)
 #void gvtInit(int &argc, char **&argv)
 
 def gvtInit():
@@ -121,8 +122,10 @@ def addFilm(str name, int w, int h, str path):
 def modifyFilm(str name, int w, int h, str path):
   _modifyFilm(name.encode(),w,h,path.encode())
 
-def addRenderer(str name, int adapter, int schedule):
-  _addRenderer(name.encode(),adapter,schedule)
+def addRenderer(str name, int adapter, int schedule, str camera_name,
+        str film_name, bool volume):
+  _addRenderer(name.encode(),adapter,schedule,camera_name.encode(),
+          film_name.encode(),volume)
 
 def render(str name):
   _render(name.encode())
