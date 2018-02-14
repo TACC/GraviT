@@ -32,10 +32,41 @@ make install
 cd ../..
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install ../
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/../install ../
 # configure GraviT
 make && make install
 ```
+
+## Building with volume rendering support
+
+Currently volume rendering support must be enabled at compile time. Rather than using the default `cmake` flags, instead build `GraviT` with the following `cmake` invocation:
+
+```
+embree_DIR=../third-party/embree cmake -DGVT_VOLUME=True -DGVT_RENDER_ADAPTER_GREGSPRAY=True -DGVT_VOL_APP=True -DGVT_TIMING=False -DGVT_TESTING=False -DCMAKE_INSTALL_PREFIX:PATH=$PWD/../install ../
+```
+
+This turns on several compile-time flags needed by the volume renderer and disables the testing option, which currently conflicts with the volume renderer.
+
+## Building the Python interface
+
+Once you have build `GraviT` itself, you can optionally build the python bindings to `GraviT`, `pygvt`. To build them, navigate to the `pygvt` folder and build the cython wrapper around the `GraviT` C++ API:
+
+```
+cd pygvt
+embree_DIR=../third-party/embree/install gvt_DIR=../install/ IceT_LIB_DIR=../third-party/icet/install/lib MPI_DIR=/usr/local/ GregSpray_LIB_DIR=../third-party/GregSpray/install/lib python setup.py develop
+```
+
+If you would prefer to avoid setting these environment variables at the command line manually, you can source the `setenv.sh` script instead.
+
+You will need cython and setuptools installed in your python environment for this to work correctly. In addition, this assumes you have an MPI installation in `/usr/local`/ If your local MPI installation is in a different place, adjust `MPI_DIR`.
+
+Now you should be able to run the volume rendering example included with the `GraviT` repository:
+
+```
+LD_LIBRARY_PATH=../install/lib:../third-party/icet/install/lib:../third-party/embree/install/lib:../third-party/GregSpray/install/lib mpirun -np 2 python gvtVol.py
+```
+
+This will produce an image named `PythonVolRenderer.ppm` in the current directory.
 
 ## Design Philosophy
 
