@@ -1,14 +1,18 @@
 #
-# gvtVol_serial.py
+# gvtVol_yt.py
 #
 # This application tests the python interface for the volume rendering
-# parts of the GraviT API.
+# parts of the GraviT API and loads data to render using yt.
 #
-# run with this command "python gvtVol_serial.py"
+# Currently it uses the Enzo_64 test dataset and creates a 256^3 uniform
+# resolution data cube before passing the data to GraviT to render.
 #
+# It should be possible to adapt this to work with arbitrary data loadable by
+# yt, so long as yt can convert it to a covering grid.
 
 import gvt
 import numpy as np
+import yt
 
 # A python implementation of the GraviT volume renderer
 
@@ -17,8 +21,17 @@ gvt.gvtInit()
 # Read some data
 
 dims = (256, 256, 256)
-Volume = np.fromfile("../data/vol/1000.int256", dtype=np.int32).astype(
-    np.float32)
+
+# sample the full domain (Enzo's internal units scale from 0 to 1 along
+# the edge of the domain)
+left_corner = (0, 0, 0)
+right_corner = (1, 1, 1)
+ds = yt.load('Enzo_64/DD0032/data0032')
+grid = ds.arbitrary_grid(left_corner, right_corner, dims)
+Volume = np.log10(np.array(grid['density']).astype('float32').flat[:])
+Volume -= Volume.min()
+Volume /= Volume.max()
+Volume *= 65536.0
 
 # Some volume metadata
 
@@ -87,13 +100,13 @@ gvt.addCamera(camname, eyept, focus, upVector, fov, rayMaxDepth, raySamples,
 
 wsize = np.array([512, 512], dtype=np.int32)
 filmname = "volFilm"
-imagename = "PythonVolImage"
+imagename = "PythonVolImageyt"
 
 gvt.addFilm(filmname, wsize[0], wsize[1], imagename)
 
 # renderer bits ...
 
-rendername = "PythonVolRenderer_serial"
+rendername = "ytVolRender"
 
 # these are the integer values of the two "types" they are
 # enums in the C++. Hardwire here for domain schedul and ospray adapter
