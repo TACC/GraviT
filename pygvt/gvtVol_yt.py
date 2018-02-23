@@ -53,11 +53,11 @@ samplingrate = 1.0
 
 # color transfer function
 
-ctf = "../data/colormaps/Grayscale.orig.cmap"
+ctf = "../data/colormaps/IceFire.cmap"
 
 # opacity transfer function
 
-otf = "../data/colormaps/Grayscale.orig.cmap"
+otf = "../data/colormaps/Grayscale.orig.omap"
 
 # name of the volume node on each rank
 
