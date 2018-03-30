@@ -75,6 +75,7 @@ if (GVT_RENDER)
     option(GVT_PLY_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update PlyApp to use new context
     option(GVT_VOL_APP "Build the volume render application " OFF)
     option(GVT_PLY_NS_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update ns/PlyApp to use new context
+    option(GVT_TESS_APP "Build the Qhull tessellation app " OFF)
     option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
     add_definitions(-DGVT_RENDER)
 endif (GVT_RENDER)
@@ -131,6 +132,10 @@ find_path(PLYPATH "ply.h" ${GVT_THIRDPARTY_PLY})
 if (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
     MESSAGE(SEND_ERROR "ply reader header not found. Please verify that ply is in the third-party subdirectory.")
 endif (${PLYPATH} MATCHES "PLYPATH-NOTFOUND")
+
+# hardwire some paths through third-party Qhull has no cmake support. 
+set(QHULLPATH "${CMAKE_SOURCE_DIR}/third-party/qhull/Install/include")
+set(QHULLLIB "/work/01197/semeraro/stampede2/Projects/GraviT/third-party/qhull/Install/lib/libqhullcpp.a;/work/01197/semeraro/stampede2/Projects/GraviT/third-party/qhull/Install/lib/libqhull_r.so")
 
 #TODO best way to just include embree folder ?
 set(GVT_THIRDPARTY_EMBREESHADERS "${CMAKE_SOURCE_DIR}/third-party/embree-shaders")
@@ -477,9 +482,9 @@ endif (GVT_CORE)
 if (GVT_RENDER)
     set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS})
 
-    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS})
+    set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} tinyobjloader ${ICET_CORE_LIBS} ${ICET_MPI_LIBS} ${QHULLLIB})
 
-    include_directories(${TINYOBJPATH} ${PLYPATH})
+    include_directories(${TINYOBJPATH} ${PLYPATH} ${QHULLPATH})
 
     # find_package(Boost REQUIRED COMPONENTS system)
     # include_directories(${Boost_INCLUDE_DIRS})
@@ -524,9 +529,7 @@ if (GVT_RENDER)
 #            #${OSPRAY_SRCDIR}/ospray/embree ${OSPRAY_SRCDIR}/ospray/embree/common
 #        endif (OSPRAY_SRCDIR)
 
-        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib64/cmake 
-                                  ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib/cmake 
-                                  ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/build/cmake
+        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib64/cmake ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/install/lib/cmake ${CMAKE_HOME_DIRECTORY}/third-party/GregSpray/build/cmake
                                   )
         include_directories(${OSPRAY_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${OSPRAY_LIBRARIES})
@@ -548,7 +551,7 @@ if (GVT_RENDER)
 
     add_library(gvtRender STATIC ${GVT_RENDER_SRCS})
 
-    target_link_libraries(gvtRender gvtCore ${GVT_RENDER_LIBS})
+    target_link_libraries(gvtRender gvtCore ${GVT_RENDER_LIBS} )
 
     install(TARGETS gvtRender
             LIBRARY DESTINATION lib
@@ -606,13 +609,19 @@ if (GVT_CTEST)
     install(TARGETS gvtImageDiff RUNTIME DESTINATION bin)
 endif (GVT_CTEST)
 
+if(GVT_TESS_APP)
+    include_directories(third-party/qhull/Install/include)
+    add_executable(tessApp src/apps/render/Tess.cpp)
+    target_link_libraries(tessApp  /work/01197/semeraro/stampede2/Projects/GraviT/third-party/qhull/Install/lib/libqhullcpp.a /work/01197/semeraro/stampede2/Projects/GraviT/third-party/qhull/Install/lib/libqhull_r.so)
+endif(GVT_TESS_APP)
+
 if (GVT_SIMPLE_APP)
     # find_package(MPI REQUIRED)
     # include_directories(${MPI_INCLUDE_PATH})
     set(GVTSIMPLE_RENDER_LIBS ${GVTSIMPLE_RENDER_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
     set(GVTSIMPLE_RENDER_SRCS ${GVTSIMPLE_RENDER_SRCS} src/apps/render/SimpleApp.cpp)
     add_executable(gvtSimple ${GVTSIMPLE_RENDER_SRCS})
-    target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} ${GVT_CORE_LIBS})
+    target_link_libraries(gvtSimple gvtCore gvtRender ${GVTSIMPLE_RENDER_LIBS} ${GVT_CORE_LIBS} )
     install(TARGETS gvtSimple RUNTIME DESTINATION bin)
 endif (GVT_SIMPLE_APP)
 
@@ -622,7 +631,7 @@ if (GVT_SIMPLE_NS_APP)
     set(GVTSIMPLE_NS_RENDER_LIBS ${GVTSIMPLE_NS_RENDER_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
     set(GVTSIMPLE_NS_RENDER_SRCS ${GVTSIMPLE_NS_RENDER_SRCS} src/apps/ns/SimpleApp.cpp)
     add_executable(gvtSimpleNS ${GVTSIMPLE_NS_RENDER_SRCS})
-    target_link_libraries(gvtSimpleNS gvtCore gvtRender ${GVTSIMPLE_NS_RENDER_LIBS} ${GVT_CORE_LIBS})
+    target_link_libraries(gvtSimpleNS gvtCore gvtRender ${GVTSIMPLE_NS_RENDER_LIBS}  ${GVT_CORE_LIBS})
     install(TARGETS gvtSimpleNS RUNTIME DESTINATION bin)
 endif (GVT_SIMPLE_NS_APP)
 

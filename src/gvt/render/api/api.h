@@ -38,8 +38,10 @@ void createMesh(const std::string name);
  * \param name : mesh unique identifier
  * \param n : number of vertices
  * \param vertices : mesh vertices consecutive <x,y,x>
+ * \param tessellate : boolean default false. 
+ * \param qhullargs : string of qhull args defalut NULL 
  */
-void addMeshVertices(const std::string name, const unsigned &n, const float *vertices);
+void addMeshVertices(const std::string name, const unsigned &n, const float *vertices, const bool tessellate = false, const std::string qhullargs = std::string());
 
 /* Add triangles array to the mesh
  * \param name : mesh unique identifier

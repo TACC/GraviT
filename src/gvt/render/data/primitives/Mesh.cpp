@@ -40,6 +40,7 @@ Mesh::Mesh(Material *mat) : mat(mat), haveNormals(false) {}
 Mesh::Mesh(const Mesh &orig) {
   mat = orig.mat;
   vertices = orig.vertices;
+  tets = orig.tets;
   normals = orig.normals;
   faces = orig.faces;
   boundingBox = orig.boundingBox;
@@ -91,6 +92,13 @@ void Mesh::setMaterial(Material *mat_) {
   *(this->mat) = *mat_;
 }
 
+void Mesh::addTetrahedralCell(int v0, int v1, int v2, int v3) {
+    GVT_ASSERT((v0>=0) && v0 < vertices.size(), "Vertex index 0 outside bounds: " << v0 );
+    GVT_ASSERT((v1>=0) && v1 < vertices.size(), "Vertex index 0 outside bounds: " << v1 );
+    GVT_ASSERT((v2>=0) && v2 < vertices.size(), "Vertex index 0 outside bounds: " << v2 );
+    GVT_ASSERT((v3>=0) && v3 < vertices.size(), "Vertex index 0 outside bounds: " << v3 );
+    tets.push_back(TetrahedralCell(v0,v1,v2,v3));
+}
 void Mesh::addFace(int v0, int v1, int v2) {
   GVT_ASSERT((v0 - 1 >= 0) && v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));
   GVT_ASSERT((v1 - 1 >= 0) && v1 - 1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1 - 1));
