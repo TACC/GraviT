@@ -49,8 +49,12 @@
 #include <tbb/task_scheduler_init.h>
 #include <thread>
 
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#if defined GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
+#elif defined GVT_RENDER_ADAPTER_PVOL
+#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#else
+#error "Must define either GregSpray or PVOL adapter"
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>
@@ -465,9 +469,11 @@ int main(int argc, char **argv) {
   else
     schedtype = gvt::render::scheduler::Domain;
 
-  // and it only works with the ospray adapter.
+  // and it only works with the ospray or pvol adapter.
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
   adaptertype = gvt::render::adapter::Ospray;
+#elif defined GVT_RENDER_ADAPTER_PVOL
+  adaptertype = gvt::render::adapter::Pvol;  
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif

@@ -67,6 +67,7 @@ if (GVT_RENDER)
     option(GVT_RENDER_ADAPTER_EMBREE_STREAM "Build the Intel Embree (stream 1M) ray tracing engine adapter" ON)
     option(GVT_RENDER_ADAPTER_OPTIX_PRIME "Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
     option(GVT_RENDER_ADAPTER_GREGSPRAY "Build the GregSpray fork of the Intel OSPRay ray tracing engine adapter" OFF)
+    option(GVT_RENDER_ADAPTER_PVOL "Build the PVOL parallel volume renderer, leveraging Intel's OSPRay ray tracing engine adapter" OFF)
     option(GVT_RENDER_APP "Build the GraviT example renderer application" ON)
     option(GVT_GLRENDER_APP "Build the interactive X application" OFF) # TODO: pnav - update GLRenderApp to use new context
     option(GVT_SIMPLE_APP "Build the simple application" ON)
@@ -375,8 +376,11 @@ if (GVT_RENDER_ADAPTER_EMBREE)
             )
 endif (GVT_RENDER_ADAPTER_EMBREE)
 
-
 if (GVT_RENDER_ADAPTER_GREGSPRAY)
+    if (GVT_RENDER_ADAPTER_PVOL)
+        message(SEND_ERROR "PVOL and GregSpray cannot both be enabled. Please disable GregSpray before enabling PVOL.")
+    endif(GVT_RENDER_ADAPTER_PVOL)
+
     add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
     set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
             src/gvt/render/adapter/ospray/OSPRayAdapter.h
@@ -397,9 +401,43 @@ if (GVT_RENDER_ADAPTER_GREGSPRAY)
     endif (GVT_VOLUME)
 else (GVT_RENDER_ADAPTER_GREGSPRAY)
     if (GVT_VOLUME)
-        message(SEND_ERROR "GVT_VOLUME requires the GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GREGSPRAY).")
+        if (NOT GVT_RENDER_ADAPTER_PVOL)
+            message(SEND_ERROR "GVT_VOLUME requires the PVOL or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_PVOL or GVT_RENDER_ADAPTER_GREGSPRAY).")
+        endif(NOT GVT_RENDER_ADAPTER_PVOL)
     endif (GVT_VOLUME)
 endif (GVT_RENDER_ADAPTER_GREGSPRAY)
+
+
+if (GVT_RENDER_ADAPTER_PVOL)
+    if (GVT_RENDER_ADAPTER_GREGSPRAY)
+        message(SEND_ERROR "PVOL and GregSpray cannot both be enabled. Please disable GregSpray before enabling PVOL.")
+    endif(GVT_RENDER_ADAPTER_GREGSPRAY)
+
+    add_definitions(-DGVT_RENDER_ADAPTER_PVOL)
+    set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+            src/gvt/render/adapter/pvol/PVolAdapter.h
+            )
+    set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+            src/gvt/render/adapter/pvol/PVolAdapter.cpp
+            )
+    if (GVT_VOLUME)
+        add_definitions(-DGVT_BUILD_VOLUME)
+        set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+                src/gvt/render/data/primitives/Volume.h
+                src/gvt/render/data/primitives/TransferFunction.h
+                )
+        set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+                src/gvt/render/data/primitives/Volume.cpp
+                src/gvt/render/data/primitives/TransferFunction.cpp
+                )
+    endif (GVT_VOLUME)
+else (GVT_RENDER_ADAPTER_PVOL)
+    if (GVT_VOLUME)
+        if (NOT GVT_RENDER_ADAPTER_GREGSPRAY)
+            message(SEND_ERROR "GVT_VOLUME requires the PVOL or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_PVOL or GVT_RENDER_ADAPTER_GREGSPRAY).")
+        endif(NOT GVT_RENDER_ADAPTER_GREGSPRAY)
+    endif (GVT_VOLUME)
+endif (GVT_RENDER_ADAPTER_PVOL)
 
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
     MESSAGE(SEND_ERROR "tiny obj reader not found. Please verify that tinyobjloader-master is in the third-party subdirectory.")
@@ -515,6 +553,53 @@ if (GVT_RENDER)
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
     endif (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
+
+    if (GVT_RENDER_ADAPTER_PVOL)
+#        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
+#        if (OSPRAY_SRCDIR)
+#            include_directories(${OSPRAY_SRCDIR} ${OSPRAY_SRCDIR}/ospray
+#                    ${OSPRAY_SRCDIR}/ospray/include)
+#            #${OSPRAY_SRCDIR}/ospray/embree ${OSPRAY_SRCDIR}/ospray/embree/common
+#        endif (OSPRAY_SRCDIR)
+
+        # TODO: configure pvol to create cmake package file
+        # find_package(pvol PATHS ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib64/cmake 
+        #                         ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib/cmake 
+        #                         ${CMAKE_HOME_DIRECTORY}/third-party/pvol/build/cmake
+        #                         )
+
+        # TODO: package-tize this for pvol
+        set(PVOL_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/include
+            CACHE PATH "Location of the PVOL include directory")
+        set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/include
+            CACHE PATH "Location of the PVOL RapidJSON include directory")
+        set(PVOL_THREADPOOL11_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/third-party/threadpool11/install/include
+            CACHE PATH "Location of the PVOL Threadpool11 include directory")
+        set(PVOL_INCLUDE_DIRS 
+            ${PVOL_INC_DIR}
+            ${PVOL_RAPIDJSON_DIR}
+            ${PVOL_THREADPOOL11_DIR}
+            )
+        set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib
+            CACHE PATH "Location of the PVOL library directory")
+        set(PVOL_LIBRARIES 
+            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_data${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_framework${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
+            )
+
+        find_package(VTK REQUIRED NO_MODULE)
+        include(${VTK_USE_FILE})
+
+        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib64/cmake 
+                                  ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib/cmake 
+                                  ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/build/cmake
+                                  )
+  
+        include_directories(${PVOL_INCLUDE_DIRS} ${OSPRAY_INCLUDE_DIRS})
+        set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${PVOL_LIBRARIES} ${OSPRAY_LIBRARIES})
+
+    endif (GVT_RENDER_ADAPTER_PVOL)
 
     if (GVT_RENDER_ADAPTER_GREGSPRAY)
 #        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")

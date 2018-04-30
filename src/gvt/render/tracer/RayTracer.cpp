@@ -95,7 +95,11 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
       adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
       break;
 #endif
-
+#ifdef GVT_RENDER_ADAPTER_PVOL
+    case gvt::render::adapter::Pvol:
+      adapter = std::make_shared<gvt::render::adapter::pvol::data::PVolAdapter>(mesh, width, height);
+      break;
+#endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
     case gvt::render::adapter::Manta:
       adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);

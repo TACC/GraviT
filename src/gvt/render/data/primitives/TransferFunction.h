@@ -40,7 +40,11 @@ public:
   ~TransferFunction();
   void load(std::string cname, std::string oname);
   float *getOpacity() { return opacity; }
+  glm::vec2 *getOpacityMap() { return opacitymap; }
+  int getOpacityCount() { return n_opacities; }
   glm::vec3 *getColors() { return color; }
+  glm::vec4 *getColorMap() { return colormap; }
+  int getColorCount() { return n_colors; }
   OSPTransferFunction GetTheOSPTransferFunction() { return theOSPTransferFunction; }
   void setValueRange(glm::vec2 range) { valueRange = range; }
   bool set();

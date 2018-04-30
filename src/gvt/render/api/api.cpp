@@ -71,7 +71,9 @@ void gvtInit(int argc, char **argv, unsigned int threads) {
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(&argc, argv);
 #endif
 
-
+#ifdef GVT_RENDER_ADAPTER_PVOL
+  gvt::render::adapter::pvol::data::PVolAdapter::init_pvol(&argc, argv);
+#endif
 
 
 }

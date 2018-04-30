@@ -56,6 +56,10 @@
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
+#ifdef GVT_RENDER_ADAPTER_PVOL
+#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#endif
+
 
 #include <gvt/core/utils/global_counter.h>
 
@@ -263,6 +267,11 @@ public:
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
             case gvt::render::adapter::Ospray:
               adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
+              break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_PVOL
+            case gvt::render::adapter::Pvol:
+              adapter = std::make_shared<gvt::render::adapter::pvol::data::PVolAdapter>(mesh, width, height);
               break;
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
