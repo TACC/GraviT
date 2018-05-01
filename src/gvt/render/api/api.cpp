@@ -152,11 +152,14 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
          if(!vs.isEmpty()) {
            QhullVertex v;
            QhullPoint p;
-           while(j.hasNext()) {
-             v = j.next();
-             p = v.point();
-           // accumulate points here
+           if(vs.count() == 3) { // add a triangle
+               m->addFace(vs[0].point().id(),vs[1].point().id(),vs[2].point().id());
            }
+           //while(j.hasNext()) {
+           // v = j.next();
+           //  p = v.point();
+           // accumulate points here
+          //}
          }
       }
   }
