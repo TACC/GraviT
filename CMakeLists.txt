@@ -573,12 +573,12 @@ if (GVT_RENDER)
             CACHE PATH "Location of the PVOL include directory")
         set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/include
             CACHE PATH "Location of the PVOL RapidJSON include directory")
-        set(PVOL_THREADPOOL11_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/third-party/threadpool11/install/include
-            CACHE PATH "Location of the PVOL Threadpool11 include directory")
+        set(PVOL_THREADPOOL11_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/third-party/threadpool11/install
+            CACHE PATH "Location of the PVOL Threadpool11 install directory")
         set(PVOL_INCLUDE_DIRS 
             ${PVOL_INC_DIR}
             ${PVOL_RAPIDJSON_DIR}
-            ${PVOL_THREADPOOL11_DIR}
+            ${PVOL_THREADPOOL11_DIR}/include
             )
         set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib
             CACHE PATH "Location of the PVOL library directory")
@@ -586,6 +586,7 @@ if (GVT_RENDER)
             ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_data${CMAKE_SHARED_LIBRARY_SUFFIX}
             ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_framework${CMAKE_SHARED_LIBRARY_SUFFIX}
             ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${PVOL_THREADPOOL11_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}threadpool11${CMAKE_STATIC_LIBRARY_SUFFIX}
             )
 
         find_package(VTK REQUIRED NO_MODULE)
@@ -596,8 +597,8 @@ if (GVT_RENDER)
                                   ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/build/cmake
                                   )
   
-        include_directories(${PVOL_INCLUDE_DIRS} ${OSPRAY_INCLUDE_DIRS})
-        set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${PVOL_LIBRARIES} ${OSPRAY_LIBRARIES})
+        include_directories(${PVOL_INCLUDE_DIRS} ${OSPRAY_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
+        set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${PVOL_LIBRARIES} ${OSPRAY_LIBRARIES} ${VTK_LIBRARIES})
 
     endif (GVT_RENDER_ADAPTER_PVOL)
 
