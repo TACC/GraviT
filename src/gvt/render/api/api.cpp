@@ -465,6 +465,7 @@ void modifyRenderer(string name, int adapter, int schedule, std::string const& C
 }
 
 void render(std::string name) {
+    std::cout << "calling the renderer render method " << name << std::endl;
     gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
     ren->render(name);
 }

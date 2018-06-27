@@ -24,12 +24,13 @@ ACI-1339881 and ACI-1339840
 #define TBB_PREVIEW_STATIC_PARTITIONER 1
 #include "PVolAdapter.h"
 
-#include <pvol/Lighting.h>
+#include <Lighting.h>
 
 using namespace gvt::render::adapter::pvol::data;
 
 bool PVolAdapter::init = false;
 ::pvol::Application*   PVolAdapter::theApplication;
+::pvol::RendererP PVolAdapter::theRenderer;
 
 // constructor for data (not implemented)
 //OSPRayAdapter::OSPRayAdapter(gvt::render::data::primitives::Data *data) : Adapter(data) {
@@ -64,9 +65,11 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
 
   width  = w;
   height = h; 
-
+  std::cerr << "width " << width << " height " << height << std::endl;
   // build the PVOL volume from the data in the GraviT volume
   ::pvol::VolumeP theVolume = ::pvol::Volume::NewP();
+  ::pvol::DatasetsP theDataset = ::pvol::Datasets::NewP();
+
   ::pvol::VolumeVisP theVolumeVis = ::pvol::VolumeVis::NewP();
   theVisualization = ::pvol::Visualization::NewP();
   dolights = false;
@@ -118,6 +121,9 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   data->GetTransferFunction()->set();
   float data_min, data_max;
   theVolume->get_global_minmax(data_min, data_max);
+  theDataset->Insert("avol",theVolume);
+  //theDataset->Commit();
+  //theVolume->Commit();
   {
     int count = data->GetTransferFunction()->getColorCount();
     glm::vec3 *in = data->GetTransferFunction()->getColors();
@@ -149,7 +155,11 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   theVolumeVis->SetVolumeRendering( true );
 
   theVolumeVis->SetTheData(theVolume);
+  theVolumeVis->SetName("avol");
+  theVolumeVis->Commit(theDataset);
+
   theVisualization->AddVolumeVis(theVolumeVis);
+  theVisualization->Commit(theDataset);
 
   // only need this if PVOL handles explicit meshes
   // theOSPModel = ospNewModel();
@@ -213,6 +223,7 @@ void PVolAdapter::PVOL2GVTMoved_Rays( ::pvol::RayList& theOutRays, ::pvol::RayLi
 // convert gravit to ospray rays format
 ::pvol::RayList PVolAdapter::GVT2PVOLRays(gvt::render::actor::RayVector &rayList) {
   const int rayCount = rayList.size();
+  std::cerr << "converting " << rayCount << " rays" << std::endl;
   ::pvol::RayList out(rayCount);
   for (int i = 0; i < rayCount; i++) {
     out.set_ox(i, rayList[i].mice.origin.x);
@@ -285,6 +296,8 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   // trace'em
 //  std::cout << " ospadapter: ospTraceRays " << std::endl;
   ::pvol::TraceRays tracer;
+  std::cerr << theInRays.GetRayCount() << std::endl;
+  std::cerr << theVisualization->GetISPC() << std::endl;
   ::pvol::RayList& theOutRays = *(tracer.Trace(theLighting, theVisualization, &theInRays));
   // push everything from out and rl into moved_rays for sorting into houses
 //  std::cout << " osprays -> GVT " << std::endl;
@@ -299,7 +312,10 @@ void PVolAdapter::init_pvol(int *argc, char **argv) {
     ospInit(argc, (const char **)argv);
     PVolAdapter::theApplication = new ::pvol::Application( argc, &argv );
     PVolAdapter::theApplication->Start(false /* == no MPI */);
+    ::pvol::Renderer::Initialize();
     PVolAdapter::theApplication->Run();
+    PVolAdapter::theRenderer = ::pvol::Renderer::NewP();
+    PVolAdapter::theRenderer->Commit();
     PVolAdapter::init = true;
   } else {
     GVT_WARNING_BACKTRACE(0,"PVolAdapter::init_pvol called when already initialized");

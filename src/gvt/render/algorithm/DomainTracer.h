@@ -232,8 +232,10 @@ public:
         if (instTarget >= 0) {
 
           t_adapter.resume();
+          std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
+          std::cout << " domaintracer: greb mesh shared pointer " << std::endl;
           std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -271,6 +273,7 @@ public:
 #endif
 #ifdef GVT_RENDER_ADAPTER_PVOL
             case gvt::render::adapter::Pvol:
+              std::cout << " domaintracer build an adapter" << std::endl;
               adapter = std::make_shared<gvt::render::adapter::pvol::data::PVolAdapter>(mesh, width, height);
               break;
 #endif
@@ -294,8 +297,10 @@ public:
             t_trace.resume();
 
             gc_rays.add(this->queue[instTarget].size());
+            std::cerr << "domaintracer " << this->queue[instTarget].size() << std::endl;
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 
+            std::cout << " domaintracer: call adapter->trace method " << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 

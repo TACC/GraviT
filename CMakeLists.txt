@@ -19,7 +19,7 @@ if (COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    cmake_policy(SET CMP0042 NEW)
+    #cmake_policy(SET CMP0042 NEW)
 endif (COMMAND cmake_policy)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -569,23 +569,24 @@ if (GVT_RENDER)
         #                         )
 
         # TODO: package-tize this for pvol
-        set(PVOL_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/include
+        set(PVOL_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install/include
             CACHE PATH "Location of the PVOL include directory")
-        set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/include
+        set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install/include
             CACHE PATH "Location of the PVOL RapidJSON include directory")
         set(PVOL_THREADPOOL11_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/third-party/threadpool11/install
             CACHE PATH "Location of the PVOL Threadpool11 install directory")
         set(PVOL_INCLUDE_DIRS 
             ${PVOL_INC_DIR}
+            ${PVOL_INC_DIR}/pvol
             ${PVOL_RAPIDJSON_DIR}
             ${PVOL_THREADPOOL11_DIR}/include
             )
-        set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib
+        set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install/lib
             CACHE PATH "Location of the PVOL library directory")
         set(PVOL_LIBRARIES 
-            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_data${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_framework${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}pvol_renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Data${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Framework${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
             ${PVOL_THREADPOOL11_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}threadpool11${CMAKE_STATIC_LIBRARY_SUFFIX}
             )
 
@@ -758,7 +759,8 @@ if (GVT_VOL_APP)
     #set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS} ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
     set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
-    target_link_libraries(gvtVol gvtCore gvtRender ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} )
+    #target_link_libraries(gvtVol gvtCore gvtRender ${PVOL_LIBRARIES} ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} )
+    target_link_libraries(gvtVol gvtCore gvtRender ${PVOL_LIBRARIES} ${MPI_LIBRARIES})
     install(TARGETS gvtVol RUNTIME DESTINATION bin)
 endif (GVT_VOL_APP)
 

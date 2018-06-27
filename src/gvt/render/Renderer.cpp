@@ -164,6 +164,7 @@ void gvtRenderer::WriteImage(std::string const &name) { myimage->write(name); }
 
 gvtRenderer *gvtRenderer::instance() {
   if (__singleton == nullptr) {
+      std::cout << "creatin a new gvtRenderer " << std::endl;
     __singleton = new gvtRenderer();
   }
   return __singleton;

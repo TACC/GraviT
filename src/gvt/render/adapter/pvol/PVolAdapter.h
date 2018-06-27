@@ -27,14 +27,14 @@
 #include <iostream>
 #include "gvt/render/Adapter.h"
 #include <gvt/render/cntx/rcontext.h>
-#include <pvol/pvol.h>
-#include <pvol/dtypes.h>
-#include <pvol/Lighting.h>
-#include <pvol/Rays.h>
-#include <pvol/Renderer.h>
-#include <pvol/Visualization.h>
-#include <pvol/Volume.h>
-#include <pvol/VolumeVis.h>
+#include <pvol.h>
+#include <dtypes.h>
+#include <Lighting.h>
+#include <Rays.h>
+#include <Renderer.h>
+#include <Visualization.h>
+#include <Volume.h>
+#include <VolumeVis.h>
 
 namespace gvt {
 namespace render {
@@ -74,6 +74,7 @@ protected:
   bool dolights;
 public:
   static ::pvol::Application*   theApplication;
+  static ::pvol::RendererP theRenderer;
   ::pvol::Lighting       theLighting;
   ::pvol::VisualizationP theVisualization;
 };
