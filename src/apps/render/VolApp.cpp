@@ -292,10 +292,10 @@ int main(int argc, char **argv) {
   cmd.addoption("upVector", ParseCommandLine::FLOAT, "upVector", 3);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
-  cmd.addoption("volfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to Volume");
+  cmd.addoption("volfile", ParseCommandLine::PATH , "File path to Volume");
   cmd.addoption("imagefile", ParseCommandLine::PATH , "image file name");
-  cmd.addoption("ctffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to color transfer function");
-  cmd.addoption("otffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to opacity transfer function");
+  cmd.addoption("ctffile", ParseCommandLine::PATH , "File path to color transfer function");
+  cmd.addoption("otffile", ParseCommandLine::PATH , "File path to opacity transfer function");
   cmd.addoption("domain", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("adomain", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -325,9 +325,15 @@ int main(int argc, char **argv) {
   // read volume information and initialize gravit volume object
   // transfer functions are associated with the volume
   std::string filename, filepath, volumefile,otffile,ctffile,imagefile,volnodename;
-  volumefile = cmd.get<std::string>("volfile");
-  ctffile = cmd.get<std::string>("ctffile");
-  otffile = cmd.get<std::string>("otffile");
+  volumefile = "../data/vol/int2.bov";
+  ctffile = "../data/colormaps/Grayscale.cmap";
+  otffile = "../data/colormaps/Grayscale.omap";
+  if(cmd.isSet("volfile"))
+    volumefile = cmd.get<std::string>("volfile");
+  if(cmd.isSet("ctffile"))
+    ctffile = cmd.get<std::string>("ctffile");
+  if(cmd.isSet("otffile"))
+    otffile = cmd.get<std::string>("otffile");
   // volume data...
   if(!file_exists(volumefile.c_str())) {
     cout << "File \"" << volumefile << "\" does not exist. Exiting." << endl;
@@ -446,8 +452,8 @@ int main(int argc, char **argv) {
   // film
   string filmname = "conefilm";
   std::cout << "add film " << filmname << std::endl;
-  int width = 100;
-  int height = 100;
+  int width = 512;
+  int height = 512;
   if (cmd.isSet("wsize")) {
     std::vector<int> wsize = cmd.getValue<int>("wsize");
     width = wsize[0];
@@ -481,11 +487,11 @@ int main(int argc, char **argv) {
 
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
   api::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
-  std::cout << "Calling render" << std::endl;
   api::gvtsync();
+  std::cout << "Calling render" << std::endl;
 
   api::render(rendername);
-  api::writeimage(rendername);
+  //api::writeimage(rendername);
 
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 
