@@ -91,6 +91,7 @@ gvtRenderer::gvtRenderer() {
 
 void gvtRenderer::reload(std::string const &name) {
 
+    std::cerr << " reloading gvtRenderer " << name << std::endl;
   if (name == current_scheduler) return;
   cntx::rcontext &db = cntx::rcontext::instance();
 
@@ -152,11 +153,15 @@ void gvtRenderer::reload(std::string const &name) {
 
 void gvtRenderer::render(std::string const &name) {
   reload(name);
+  std::cerr << " gvtRenderer allocate camera rays " << std::endl;
   camera->AllocateCameraRays();
+  std::cerr << " gvtRenderer generate camera rays " << std::endl;
   camera->generateRays(volume);
   if (tracersync) {
+  std::cerr << " gvtRenderer synchronours tracer call " << std::endl;
     (*tracersync.get())();
   } else if (tracerasync) {
+  std::cerr << " gvtRenderer asynchronours tracer call " << std::endl;
     (*tracerasync.get())();
   }
 }

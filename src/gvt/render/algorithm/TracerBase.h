@@ -34,7 +34,8 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
-#include <gvt/render/actor/ORays.h>
+//#include <gvt/render/actor/ORays.h>
+//#include <RayFlags.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
@@ -50,13 +51,14 @@
 
 #include <deque>
 #include <map>
+#include <bitset>
 
 // uncomment this to restrict tbb to serial operation
 // must also add "serial" to tbb::parallel_for
 // like this tbb::serial::parallel_for. Do this to get reasonable
 // prints out of parallel for loop. Of course it doesent run in parallel
 // any more.
-//#define TBB_PREVIEW_SERIAL_SUBSET 1
+#define TBB_PREVIEW_SERIAL_SUBSET 1
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
 #include <tbb/parallel_for.h>
@@ -333,30 +335,32 @@ public:
 //    std::cout << "Ray_BOUNDARY" << std::bitset<8>(RAY_BOUNDARY) << std::endl;
 //    std::cout << "Ray_TIMEOUT" << std::bitset<8>(RAY_TIMEOUT) << std::endl;
 //    std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
-//    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
+    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
 
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
 
     static tbb::auto_partitioner ap;
 
-    tbb::parallel_for(
+//tbb::parallel_for(
+    tbb::serial::parallel_for(
         tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
         [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
           gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
               acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
 
           gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-          // std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
+           std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
           for (size_t i = 0; i < hits.size(); i++) {
             gvt::render::actor::Ray &r = *(raysit.begin() + i);
             bool write_to_fb = false;
             int target_queue = -1;
             //#ifdef GVT_RENDER_ADAPTER_OSPRAY
+            //std::cerr << i << " adapterType " << adapterType << " "<<  gvt::render::adapter::Pvol << std::endl;
             if ( adapterType == gvt::render::adapter::Pvol 
               || adapterType == gvt::render::adapter::Ospray ) {
-              // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
-              // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
+               std::cout << "initially ray " << r.mice.id << " r.depth " << std::bitset<8>(r.mice.depth)<< " r.type " <<
+               std::bitset<8>(r.mice.type) << " r.color " << r.mice.color <<std::endl;
               if (r.mice.depth & RAY_BOUNDARY) {
                 // check to see if this ray hit anything in bvh
                 if (hits[i].next != -1) {
@@ -370,8 +374,8 @@ public:
                   target_queue = -1;
                 }
               }
-              // std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type "
-              // << std::bitset<8>(r.type) << std::endl; check types
+               std::cout << "after boundary test ray " << r.mice.id << " r.depth " << std::bitset<8>(r.mice.depth)<< " r.type "
+               << std::bitset<8>(r.mice.type) << std::endl; //check types
               if (r.mice.type == RAY_PRIMARY) {
                 if ((r.mice.depth & RAY_OPAQUE) | (r.mice.depth & RAY_EXTERNAL_BOUNDARY)) {
                   write_to_fb = true;

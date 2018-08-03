@@ -57,6 +57,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   int n_slices, n_isovalues;
   glm::vec4 *slices;
   glm::vec3 globalorigin;
+  glm::vec3 localoffset(0.,0.,0.);
   glm::vec3 volumedimensions;
   glm::vec3 volumespacing;
   float *isovalues;
@@ -67,10 +68,13 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   height = h; 
   std::cerr << "width " << width << " height " << height << std::endl;
   // build the PVOL volume from the data in the GraviT volume
+  std::cerr << " pvoladapter: init local volume shared p " << std::endl;
   ::pvol::VolumeP theVolume = ::pvol::Volume::NewP();
-  ::pvol::DatasetsP theDataset = ::pvol::Datasets::NewP();
-
+  std::cerr << " pvoladapter: init local dataset shared p " << std::endl;
+  theDataset = ::pvol::Datasets::NewP();
+  std::cerr << " pvoladapter: init local volume vis shared p " << std::endl;
   ::pvol::VolumeVisP theVolumeVis = ::pvol::VolumeVis::NewP();
+  std::cerr << " pvoladapter: init theVisualization ivar " << std::endl;
   theVisualization = ::pvol::Visualization::NewP();
   dolights = false;
 
@@ -91,17 +95,29 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   }
 
   data->GetGlobalOrigin(globalorigin);
+  std::cerr << "pvoladapter: set volume global origin" << std::endl;
   theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
+  std::cerr << "pvoladapter: set local offsets" << std::endl;
+  theVolume->set_local_offset(localoffset.x, localoffset.y, localoffset.z);
+  std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
+  theVolume->set_ghosted_local_offset(localoffset.x, localoffset.y, localoffset.z);
 
   data->GetCounts(volumedimensions);
+  std::cerr << "pvoladapter: set volume counts" << std::endl;
   theVolume->set_global_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
+  std::cerr << "pvoladapter: set local counts" << std::endl;
   theVolume->set_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
+  std::cerr << "pvoladapter: set ghosted local counts" << std::endl;
+  theVolume->set_ghosted_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
   
   data->GetDeltas(volumespacing);
+  std::cerr << "pvoladapter: set volume spacing" << std::endl;
   theVolume->set_deltas(volumespacing.x, volumespacing.y, volumespacing.z);
 
+  std::cerr << "pvoladapter: set volume samples" << std::endl;
   theVolume->set_samples((void*)data->GetSamples()); // same for float and uchar
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
+  std::cerr << "pvoladapter: set volume data type" << std::endl;
   switch (vt) {
   case gvt::render::data::primitives::Volume::FLOAT: 
     theVolume->set_type(::pvol::Volume::DataType::FLOAT);
@@ -121,9 +137,12 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   data->GetTransferFunction()->set();
   float data_min, data_max;
   theVolume->get_global_minmax(data_min, data_max);
+  std::cerr << "pvoladapter commit the volume" << std::endl;
+  theVolume->Commit();
+  std::cerr << "pvoladapter insert volume into dataset" << std::endl;
   theDataset->Insert("avol",theVolume);
-  //theDataset->Commit();
-  //theVolume->Commit();
+  std::cerr << "pvoladapter commit the dataset" << std::endl;
+  theDataset->Commit();
   {
     int count = data->GetTransferFunction()->getColorCount();
     glm::vec3 *in = data->GetTransferFunction()->getColors();
@@ -156,9 +175,11 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
 
   theVolumeVis->SetTheData(theVolume);
   theVolumeVis->SetName("avol");
+  std::cerr << "pvoladapter: commit theVolumevis " << std::endl;
   theVolumeVis->Commit(theDataset);
-
+  std::cerr << "pvoladapter: add volumevis to fisualization" << std::endl;
   theVisualization->AddVolumeVis(theVolumeVis);
+  std::cerr << "pvoladapter: commit the visualization" << std::endl;
   theVisualization->Commit(theDataset);
 
   // only need this if PVOL handles explicit meshes
@@ -173,31 +194,43 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
 /*** this routine maps pvol rays to gravit rays
  *
  */
-void PVolAdapter::PVOL2GVTMoved_Rays( ::pvol::RayList& theOutRays, ::pvol::RayList &theInRays,
-                                      gvt::render::actor::RayVector &moved_rays) {
-  const int outCount = theOutRays.GetRayCount();
-  const int inCount  = theInRays.GetRayCount();
+void PVolAdapter::PVOL2GVTMoved_Rays( ::pvol::RayList *theOutRays, ::pvol::RayList &theInRays, gvt::render::actor::RayVector &moved_rays) {
+    int outCount, inCount;
+    std::cerr << " theOutRays ptr is null " << (theOutRays == NULL)  << std::endl;
+  if(theOutRays && (theOutRays->GetRayCount() != 0)) {
+      std::cerr << " pvol2moved: outrays " << theOutRays->GetRayCount() << std::endl;
+   outCount = theOutRays->GetRayCount();
+  } else {
+      outCount = 0;
+  }
+  if(&theInRays && theInRays.GetRayCount() != 0) {
+      std::cerr << " pvol2moved: inrays " << theInRays.GetRayCount() << std::endl;
+   inCount  = theInRays.GetRayCount();
+  } else {
+      inCount =0;
+  }
+  std::cerr << "pvol2moved: resize moved_rays " << inCount << std::endl;
   moved_rays.resize(outCount + inCount);
   // plug in the rays into moved_rays
   // the idea is to pile all the rays to moved_rays and let the scheduler sort 'em
   // first check the out rays. out consists of generated rays (ao, shadow, ?)
   for (int i = 0; i < outCount; i++) {
     gvt::render::actor::Ray &ray = moved_rays[i];
-    ray.mice.origin.x    = theOutRays.get_ox(i);
-    ray.mice.origin.y    = theOutRays.get_oy(i);
-    ray.mice.origin.z    = theOutRays.get_oz(i);
-    ray.mice.direction.x = theOutRays.get_dx(i);
-    ray.mice.direction.y = theOutRays.get_dy(i);
-    ray.mice.direction.z = theOutRays.get_dz(i);
-    ray.mice.color.r     = theOutRays.get_r(i);
-    ray.mice.color.g     = theOutRays.get_g(i);
-    ray.mice.color.b     = theOutRays.get_b(i);
-    ray.mice.w           = theOutRays.get_o(i); // store pvol opacity in the w component of the gvt ray
-    ray.mice.t           = theOutRays.get_t(i);
-    ray.mice.t_max       = theOutRays.get_tMax(i);
-    ray.mice.id          = theOutRays.get_y(i) * width + theOutRays.get_x(i);
-    ray.mice.type        = theOutRays.get_type(i); // TODO: gvt and pvol happen to define these the same way. BRITTLE!
-    ray.mice.depth       = theOutRays.get_term(i); // TODO: gvt and pvol happen to define these the same way. BRITTLE!
+    ray.mice.origin.x    = theOutRays->get_ox(i);
+    ray.mice.origin.y    = theOutRays->get_oy(i);
+    ray.mice.origin.z    = theOutRays->get_oz(i);
+    ray.mice.direction.x = theOutRays->get_dx(i);
+    ray.mice.direction.y = theOutRays->get_dy(i);
+    ray.mice.direction.z = theOutRays->get_dz(i);
+    ray.mice.color.r     = theOutRays->get_r(i);
+    ray.mice.color.g     = theOutRays->get_g(i);
+    ray.mice.color.b     = theOutRays->get_b(i);
+    ray.mice.w           = theOutRays->get_o(i); // store pvol opacity in the w component of the gvt ray
+    ray.mice.t           = theOutRays->get_t(i);
+    ray.mice.t_max       = theOutRays->get_tMax(i);
+    ray.mice.id          = theOutRays->get_y(i) * width + theOutRays->get_x(i);
+    ray.mice.type        = theOutRays->get_type(i); // TODO: gvt and pvol happen to define these the same way. BRITTLE!
+    ray.mice.depth       = theOutRays->get_term(i); // TODO: gvt and pvol happen to define these the same way. BRITTLE!
   }
 
   // now do the inRays rays which may be terminated as indicated in their term variable.
@@ -296,11 +329,14 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   // trace'em
 //  std::cout << " ospadapter: ospTraceRays " << std::endl;
   ::pvol::TraceRays tracer;
-  std::cerr << theInRays.GetRayCount() << std::endl;
-  std::cerr << theVisualization->GetISPC() << std::endl;
-  ::pvol::RayList& theOutRays = *(tracer.Trace(theLighting, theVisualization, &theInRays));
+  std::cerr << " pvoladapter tracing " << theInRays.GetRayCount() << " rays " <<std::endl;
+  std::cerr << "pvoladapter visualization ispc pointer " << theVisualization->GetISPC() << std::endl;
+  //::pvol::RayList& theOutRays = *(tracer.Trace(theLighting, theVisualization, &theInRays));
+  ::pvol::RayList  *theOutRays = (tracer.Trace(theLighting, theVisualization, &theInRays));
   // push everything from out and rl into moved_rays for sorting into houses
-//  std::cout << " osprays -> GVT " << std::endl;
+  std::cerr << " whats up with theOutRays " << (theOutRays == NULL) << std::endl;
+  std::cerr <<  theInRays.GetRayCount() << " input rays " << std::endl;
+
   PVOL2GVTMoved_Rays(theOutRays, theInRays, moved_rays);
   // out and rl are no longer needed since they have been copied into moved_rays so
   // whack 'em.

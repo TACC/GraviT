@@ -452,8 +452,8 @@ int main(int argc, char **argv) {
   // film
   string filmname = "conefilm";
   std::cout << "add film " << filmname << std::endl;
-  int width = 512;
-  int height = 512;
+  int width = 10;
+  int height = 10;
   if (cmd.isSet("wsize")) {
     std::vector<int> wsize = cmd.getValue<int>("wsize");
     width = wsize[0];

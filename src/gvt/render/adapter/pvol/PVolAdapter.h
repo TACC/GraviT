@@ -54,7 +54,7 @@ public:
   ~PVolAdapter();
   static void init_pvol(int *argc,char **argv) ;
   ::pvol::RayList GVT2PVOLRays(gvt::render::actor::RayVector &rayList);
-  void PVOL2GVTMoved_Rays(::pvol::RayList& out, ::pvol::RayList& rl, gvt::render::actor::RayVector& moved_rays);
+  void PVOL2GVTMoved_Rays(::pvol::RayList *out, ::pvol::RayList& rl, gvt::render::actor::RayVector& moved_rays);
   virtual void trace( gvt::render::actor::RayVector &rayList, 
                       gvt::render::actor::RayVector &moved_rays, 
                       glm::mat4 *m,
@@ -75,6 +75,7 @@ protected:
 public:
   static ::pvol::Application*   theApplication;
   static ::pvol::RendererP theRenderer;
+  ::pvol::DatasetsP theDataset;
   ::pvol::Lighting       theLighting;
   ::pvol::VisualizationP theVisualization;
 };

@@ -190,7 +190,8 @@ public:
     gvt::util::global_counter gc_sent("Number of rays sent :");
 
     clearBuffer();
-    int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
+    //int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
+    adapterType = db.getChild(db.getUnique(schedulername), "adapter");
 
     t_filter.resume();
     gc_filter.add(rays.size());
@@ -235,7 +236,7 @@ public:
           std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
-          std::cout << " domaintracer: greb mesh shared pointer " << std::endl;
+          std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
           std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -275,6 +276,7 @@ public:
             case gvt::render::adapter::Pvol:
               std::cout << " domaintracer build an adapter" << std::endl;
               adapter = std::make_shared<gvt::render::adapter::pvol::data::PVolAdapter>(mesh, width, height);
+              std::cout << " domaintracer built a pvol adapter" << std::endl;
               break;
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
@@ -300,7 +302,7 @@ public:
             std::cerr << "domaintracer " << this->queue[instTarget].size() << std::endl;
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 
-            std::cout << " domaintracer: call adapter->trace method " << std::endl;
+            std::cout << " domaintracer: call adapter->trace method. Inst target:  " << instTarget << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 
@@ -310,6 +312,7 @@ public:
 
           t_shuffle.resume();
           gc_shuffle.add(moved_rays.size());
+          std::cerr << " shuffling rays " << std::endl;
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
           t_shuffle.stop();

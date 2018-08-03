@@ -42,6 +42,10 @@ ACI-1339881 and ACI-1339840
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_PVOL
+#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#endif
+
 #include "api.h"
 #include <gvt/render/cntx/rcontext.h>
 

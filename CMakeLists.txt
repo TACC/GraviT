@@ -569,9 +569,9 @@ if (GVT_RENDER)
         #                         )
 
         # TODO: package-tize this for pvol
-        set(PVOL_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install/include
+        set(PVOL_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install2/include
             CACHE PATH "Location of the PVOL include directory")
-        set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install/include
+        set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install2/include
             CACHE PATH "Location of the PVOL RapidJSON include directory")
         set(PVOL_THREADPOOL11_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/third-party/threadpool11/install
             CACHE PATH "Location of the PVOL Threadpool11 install directory")
@@ -581,7 +581,7 @@ if (GVT_RENDER)
             ${PVOL_RAPIDJSON_DIR}
             ${PVOL_THREADPOOL11_DIR}/include
             )
-        set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install/lib
+        set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install2/lib
             CACHE PATH "Location of the PVOL library directory")
         set(PVOL_LIBRARIES 
             ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Data${CMAKE_SHARED_LIBRARY_SUFFIX}
@@ -592,8 +592,10 @@ if (GVT_RENDER)
 
         find_package(VTK REQUIRED NO_MODULE)
         include(${VTK_USE_FILE})
-
-        find_package(ospray PATHS ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib64/cmake 
+        if (DEFINED ENV{TACC_OSPRAY_LIB})
+            set(SYSTEM_OSPRAY $ENV{TACC_OSPRAY_LIB})
+        endif(DEFINED ENV{TACC_OSPRAY_LIB})
+        find_package(ospray PATHS ${SYSTEM_OSPRAY}/cmake ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib64/cmake 
                                   ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib/cmake 
                                   ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/build/cmake
                                   )
