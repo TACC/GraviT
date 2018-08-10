@@ -280,6 +280,7 @@ void gvtPerspectiveCamera::generateRays(bool volume) {
                               ray.mice.origin = eye_point;
                               ray.mice.direction = glm::normalize(camera_space_ray_direction);
                               ray.mice.t_max = FLT_MAX;
+                              ray.mice.color = glm::vec3(0.,0.,0.);
                               if (volume) {
                                 ray.mice.w = 0.0; // volume rendering opacity variable
                                 // ray.t = 0.0;

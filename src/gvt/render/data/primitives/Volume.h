@@ -41,6 +41,7 @@ public:
   ~Volume();
   Box3D boundingBox;
   Box3D *getBoundingBox();
+  void SetBoundingBox(glm::vec3 lo, glm::vec3 hi) { boundingBox = Box3D(lo,hi);};
   enum VoxelType // a short list of possible types
   { DOUBLE,
     FLOAT,

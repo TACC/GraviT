@@ -518,6 +518,7 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetSamplingRate(samplingrate);
   glm::vec3 lower(origin[0],origin[1],origin[2]);
   glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
+  v->SetBoundingBox(lower,upper);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
 }
 #endif // GVT_BUILD_VOLUME

@@ -330,8 +330,10 @@ int main(int argc, char **argv) {
   otffile = "../data/colormaps/Grayscale.omap";
   if(cmd.isSet("volfile"))
     volumefile = cmd.get<std::string>("volfile");
-  if(cmd.isSet("ctffile"))
+  if(cmd.isSet("ctffile")) {
     ctffile = cmd.get<std::string>("ctffile");
+    std::cerr << " using " << ctffile << " for color " << std::endl;
+  }
   if(cmd.isSet("otffile"))
     otffile = cmd.get<std::string>("otffile");
   // volume data...
@@ -387,18 +389,19 @@ int main(int argc, char **argv) {
       vol->SetDeltas(dels.x,dels.y,dels.z);
       vol->SetSamplingRate(samplingrate);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
+      vol->boundingBox = gvt::render::data::primitives::Box3D(*volbox);
 
 
       // create a volume object
       // but we need a unique name for each actual mesh. 
       // for now add the domain number to the volumefile name. 
       // It will work.. trust me... 
-      std::cout << "create volume and add samples " << volnodename << std::endl;
       //float* sampledata = volheader.readdata(domain);
       std::cout << volheader.volbox->bounds_min << " x " << volheader.volbox->bounds_max << std::endl;
       //float deltas[3] = {1.0,1.0,1.0};
       //float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
+      std::cout << "create volume and add samples " << volnodename << std::endl;
       api::createVolume(volnodename);
       api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
       api::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
@@ -491,7 +494,7 @@ int main(int argc, char **argv) {
   std::cout << "Calling render" << std::endl;
 
   api::render(rendername);
-  //api::writeimage(rendername);
+  api::writeimage(rendername);
 
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 

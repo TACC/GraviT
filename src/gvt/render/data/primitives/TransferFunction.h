@@ -47,6 +47,7 @@ public:
   int getColorCount() { return n_colors; }
   OSPTransferFunction GetTheOSPTransferFunction() { return theOSPTransferFunction; }
   void setValueRange(glm::vec2 range) { valueRange = range; }
+  glm::vec2 getValueRange() {return valueRange;} 
   bool set();
 
 protected:

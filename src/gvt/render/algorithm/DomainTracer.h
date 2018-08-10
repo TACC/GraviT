@@ -303,6 +303,7 @@ public:
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 
             std::cout << " domaintracer: call adapter->trace method. Inst target:  " << instTarget << std::endl;
+            std::cout << this->queue[instTarget][0] << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 
