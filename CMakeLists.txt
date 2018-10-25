@@ -67,7 +67,7 @@ if (GVT_RENDER)
     option(GVT_RENDER_ADAPTER_EMBREE_STREAM "Build the Intel Embree (stream 1M) ray tracing engine adapter" ON)
     option(GVT_RENDER_ADAPTER_OPTIX_PRIME "Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
     option(GVT_RENDER_ADAPTER_GREGSPRAY "Build the GregSpray fork of the Intel OSPRay ray tracing engine adapter" OFF)
-    option(GVT_RENDER_ADAPTER_PVOL "Build the PVOL parallel volume renderer, leveraging Intel's OSPRay ray tracing engine adapter" OFF)
+    option(GVT_RENDER_ADAPTER_GALAXY "Build the GALAXY parallel volume renderer, leveraging Intel's OSPRay ray tracing engine adapter" OFF)
     option(GVT_RENDER_APP "Build the GraviT example renderer application" ON)
     option(GVT_GLRENDER_APP "Build the interactive X application" OFF) # TODO: pnav - update GLRenderApp to use new context
     option(GVT_SIMPLE_APP "Build the simple application" ON)
@@ -377,9 +377,9 @@ if (GVT_RENDER_ADAPTER_EMBREE)
 endif (GVT_RENDER_ADAPTER_EMBREE)
 
 if (GVT_RENDER_ADAPTER_GREGSPRAY)
-    if (GVT_RENDER_ADAPTER_PVOL)
-        message(SEND_ERROR "PVOL and GregSpray cannot both be enabled. Please disable GregSpray before enabling PVOL.")
-    endif(GVT_RENDER_ADAPTER_PVOL)
+    if (GVT_RENDER_ADAPTER_GALAXY)
+        message(SEND_ERROR "GALAXY and GregSpray cannot both be enabled. Please disable GregSpray before enabling GALAXY.")
+    endif(GVT_RENDER_ADAPTER_GALAXY)
 
     add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
     set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
@@ -401,24 +401,24 @@ if (GVT_RENDER_ADAPTER_GREGSPRAY)
     endif (GVT_VOLUME)
 else (GVT_RENDER_ADAPTER_GREGSPRAY)
     if (GVT_VOLUME)
-        if (NOT GVT_RENDER_ADAPTER_PVOL)
-            message(SEND_ERROR "GVT_VOLUME requires the PVOL or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_PVOL or GVT_RENDER_ADAPTER_GREGSPRAY).")
-        endif(NOT GVT_RENDER_ADAPTER_PVOL)
+        if (NOT GVT_RENDER_ADAPTER_GALAXY)
+            message(SEND_ERROR "GVT_VOLUME requires the GALAXY or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GALAXY or GVT_RENDER_ADAPTER_GREGSPRAY).")
+        endif(NOT GVT_RENDER_ADAPTER_GALAXY)
     endif (GVT_VOLUME)
 endif (GVT_RENDER_ADAPTER_GREGSPRAY)
 
 
-if (GVT_RENDER_ADAPTER_PVOL)
+if (GVT_RENDER_ADAPTER_GALAXY)
     if (GVT_RENDER_ADAPTER_GREGSPRAY)
-        message(SEND_ERROR "PVOL and GregSpray cannot both be enabled. Please disable GregSpray before enabling PVOL.")
+        message(SEND_ERROR "GALAXY and GregSpray cannot both be enabled. Please disable GregSpray before enabling GALAXY.")
     endif(GVT_RENDER_ADAPTER_GREGSPRAY)
 
-    add_definitions(-DGVT_RENDER_ADAPTER_PVOL)
+    add_definitions(-DGVT_RENDER_ADAPTER_GALAXY)
     set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
-            src/gvt/render/adapter/pvol/PVolAdapter.h
+            src/gvt/render/adapter/galaxy/PVolAdapter.h
             )
     set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
-            src/gvt/render/adapter/pvol/PVolAdapter.cpp
+            src/gvt/render/adapter/galaxy/PVolAdapter.cpp
             )
     if (GVT_VOLUME)
         add_definitions(-DGVT_BUILD_VOLUME)
@@ -431,13 +431,13 @@ if (GVT_RENDER_ADAPTER_PVOL)
                 src/gvt/render/data/primitives/TransferFunction.cpp
                 )
     endif (GVT_VOLUME)
-else (GVT_RENDER_ADAPTER_PVOL)
+else (GVT_RENDER_ADAPTER_GALAXY)
     if (GVT_VOLUME)
         if (NOT GVT_RENDER_ADAPTER_GREGSPRAY)
-            message(SEND_ERROR "GVT_VOLUME requires the PVOL or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_PVOL or GVT_RENDER_ADAPTER_GREGSPRAY).")
+            message(SEND_ERROR "GVT_VOLUME requires the GALAXY or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GALAXY or GVT_RENDER_ADAPTER_GREGSPRAY).")
         endif(NOT GVT_RENDER_ADAPTER_GREGSPRAY)
     endif (GVT_VOLUME)
-endif (GVT_RENDER_ADAPTER_PVOL)
+endif (GVT_RENDER_ADAPTER_GALAXY)
 
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
     MESSAGE(SEND_ERROR "tiny obj reader not found. Please verify that tinyobjloader-master is in the third-party subdirectory.")
@@ -554,40 +554,24 @@ if (GVT_RENDER)
     endif (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
 
-    if (GVT_RENDER_ADAPTER_PVOL)
-#        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
-#        if (OSPRAY_SRCDIR)
-#            include_directories(${OSPRAY_SRCDIR} ${OSPRAY_SRCDIR}/ospray
-#                    ${OSPRAY_SRCDIR}/ospray/include)
-#            #${OSPRAY_SRCDIR}/ospray/embree ${OSPRAY_SRCDIR}/ospray/embree/common
-#        endif (OSPRAY_SRCDIR)
+    if (GVT_RENDER_ADAPTER_GALAXY)
 
-        # TODO: configure pvol to create cmake package file
-        # find_package(pvol PATHS ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib64/cmake 
-        #                         ${CMAKE_HOME_DIRECTORY}/third-party/pvol/install/lib/cmake 
-        #                         ${CMAKE_HOME_DIRECTORY}/third-party/pvol/build/cmake
-        #                         )
-
-        # TODO: package-tize this for pvol
-        set(PVOL_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install2/include
-            CACHE PATH "Location of the PVOL include directory")
-        set(PVOL_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install2/include
-            CACHE PATH "Location of the PVOL RapidJSON include directory")
-        set(PVOL_THREADPOOL11_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/third-party/threadpool11/install
-            CACHE PATH "Location of the PVOL Threadpool11 install directory")
-        set(PVOL_INCLUDE_DIRS 
-            ${PVOL_INC_DIR}
-            ${PVOL_INC_DIR}/pvol
-            ${PVOL_RAPIDJSON_DIR}
-            ${PVOL_THREADPOOL11_DIR}/include
+        # TODO: package-tize this for galaxy
+        set(GALAXY_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/install/include
+            CACHE PATH "Location of the GALAXY include directory")
+        set(GALAXY_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/third-party/rapidjson/install/include
+            CACHE PATH "Location of the GALAXY RapidJSON include directory")
+        set(GALAXY_INCLUDE_DIRS 
+            ${GALAXY_INC_DIR}
+            ${GALAXY_INC_DIR}/gxy
+            ${GALAXY_RAPIDJSON_DIR}
             )
-        set(PVOL_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/pvol/Install2/lib
-            CACHE PATH "Location of the PVOL library directory")
-        set(PVOL_LIBRARIES 
-            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Data${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Framework${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${PVOL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${PVOL_THREADPOOL11_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}threadpool11${CMAKE_STATIC_LIBRARY_SUFFIX}
+        set(GALAXY_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/install/lib
+            CACHE PATH "Location of the GALAXY library directory")
+        set(GALAXY_LIBRARIES 
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Data${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Framework${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
             )
 
         find_package(VTK REQUIRED NO_MODULE)
@@ -599,11 +583,10 @@ if (GVT_RENDER)
                                   ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib/cmake 
                                   ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/build/cmake
                                   )
-  
-        include_directories(${PVOL_INCLUDE_DIRS} ${OSPRAY_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
-        set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${PVOL_LIBRARIES} ${OSPRAY_LIBRARIES} ${VTK_LIBRARIES})
+        include_directories(${GALAXY_INCLUDE_DIRS} ${OSPRAY_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
+        set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${GALAXY_LIBRARIES} ${OSPRAY_LIBRARIES} ${VTK_LIBRARIES})
 
-    endif (GVT_RENDER_ADAPTER_PVOL)
+    endif (GVT_RENDER_ADAPTER_GALAXY)
 
     if (GVT_RENDER_ADAPTER_GREGSPRAY)
 #        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
@@ -761,8 +744,8 @@ if (GVT_VOL_APP)
     #set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS} ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
     set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
-    #target_link_libraries(gvtVol gvtCore gvtRender ${PVOL_LIBRARIES} ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} )
-    target_link_libraries(gvtVol gvtCore gvtRender ${PVOL_LIBRARIES} ${MPI_LIBRARIES})
+    #target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} )
+    target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES})
     install(TARGETS gvtVol RUNTIME DESTINATION bin)
 endif (GVT_VOL_APP)
 
