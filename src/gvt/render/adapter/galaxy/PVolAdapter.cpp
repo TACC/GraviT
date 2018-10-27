@@ -125,6 +125,10 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   std::cerr << " boxU \n" << upperbound.x << " " << upperbound.y << " " << upperbound.z << std::endl;
   
   theVolume->set_local_box(lb,ub);
+  theVolume->set_global_box(lb,ub);
+  theVolume->set_global_scalar_minmax(0.0,65536.0);
+  theVolume->set_local_scalar_minmax(0.0,65536.0);
+  theVolume->VolumeHasNoNeighbors();
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   //std::cerr << "pvoladapter: set volume data type" << std::endl;
   switch (vt) {
@@ -365,7 +369,7 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   //std::cerr << "pvoladapter visualization ispc pointer " << theVisualization->GetISPC() << std::endl;
   //::pvol::RayList& theOutRays = *(tracer.Trace(theLighting, theVisualization, &theInRays));
   //theInRays.print();
-  ::gxy::RayList  *theOutRays = (tracer.Trace(theLighting, theVisualization, &theInRays));
+  ::gxy::RayList  *theOutRays = (tracer.Trace(&theLighting, theVisualization, &theInRays));
   //theInRays.print();
   // push everything from out and rl into moved_rays for sorting into houses
   //std::cerr << " whats up with theOutRays " << (theOutRays == NULL) << std::endl;

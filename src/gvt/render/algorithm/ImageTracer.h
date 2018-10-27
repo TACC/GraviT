@@ -59,8 +59,8 @@
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
 
-#ifdef GVT_RENDER_ADAPTER_PVOL
-#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
 #endif
 
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
@@ -209,9 +209,9 @@ public:
             adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
             break;
 #endif
-#ifdef GVT_RENDER_ADAPTER_PVOL
+#ifdef GVT_RENDER_ADAPTER_GALAXY
           case gvt::render::adapter::Pvol:
-            adapter = std::make_shared<gvt::render::adapter::pvol::data::PVolAdapter>(mesh, width, height);
+            adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
             break;
 #endif            
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)

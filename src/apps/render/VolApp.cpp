@@ -51,8 +51,8 @@
 
 #if defined GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
-#elif defined GVT_RENDER_ADAPTER_PVOL
-#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#elif defined GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
 #else
 #error "Must define either GregSpray or PVOL adapter"
 #endif
@@ -481,7 +481,7 @@ int main(int argc, char **argv) {
   // and it only works with the ospray or pvol adapter.
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
   adaptertype = gvt::render::adapter::Ospray;
-#elif defined GVT_RENDER_ADAPTER_PVOL
+#elif defined GVT_RENDER_ADAPTER_GALAXY
   adaptertype = gvt::render::adapter::Pvol;  
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");

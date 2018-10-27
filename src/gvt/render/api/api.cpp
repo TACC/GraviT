@@ -42,8 +42,8 @@ ACI-1339881 and ACI-1339840
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
-#ifdef GVT_RENDER_ADAPTER_PVOL
-#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
 #endif
 
 #include "api.h"
@@ -75,8 +75,8 @@ void gvtInit(int argc, char **argv, unsigned int threads) {
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(&argc, argv);
 #endif
 
-#ifdef GVT_RENDER_ADAPTER_PVOL
-  gvt::render::adapter::pvol::data::PVolAdapter::init_pvol(&argc, argv);
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+  gvt::render::adapter::galaxy::data::PVolAdapter::init_pvol(&argc, argv);
 #endif
 
 

@@ -56,8 +56,8 @@
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
-#ifdef GVT_RENDER_ADAPTER_PVOL
-#include <gvt/render/adapter/pvol/PVolAdapter.h>
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
 #endif
 
 
@@ -272,10 +272,10 @@ public:
               adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
               break;
 #endif
-#ifdef GVT_RENDER_ADAPTER_PVOL
+#ifdef GVT_RENDER_ADAPTER_GALAXY
             case gvt::render::adapter::Pvol:
               std::cout << " domaintracer build an adapter" << std::endl;
-              adapter = std::make_shared<gvt::render::adapter::pvol::data::PVolAdapter>(mesh, width, height);
+              adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
               std::cout << " domaintracer built a pvol adapter" << std::endl;
               break;
 #endif

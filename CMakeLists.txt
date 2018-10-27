@@ -569,9 +569,9 @@ if (GVT_RENDER)
         set(GALAXY_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/install/lib
             CACHE PATH "Location of the GALAXY library directory")
         set(GALAXY_LIBRARIES 
-            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Data${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Framework${CMAKE_SHARED_LIBRARY_SUFFIX}
-            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}Renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}gxy_data${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}gxy_framework${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}gxy_renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
             )
 
         find_package(VTK REQUIRED NO_MODULE)
@@ -742,7 +742,8 @@ if (GVT_VOL_APP)
     find_package(MPI REQUIRED)
     include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
     #set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS} ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
-    set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
+    #set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
+    set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp )
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
     #target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} )
     target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES})
