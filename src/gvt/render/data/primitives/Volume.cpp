@@ -33,6 +33,7 @@ gvt::render::data::primitives::Volume::Volume() {
   counts = { 1, 1, 1 };
   origin = { 0.0, 0.0, 0.0 };
   spacing = { 1.0, 1.0, 1.0 };
+  AMR = false;
 }
 
 gvt::render::data::primitives::Volume::Volume(const Volume& other) {
@@ -51,15 +52,43 @@ gvt::render::data::primitives::Volume::Volume(const Volume& other) {
   deltas = other.deltas;
   samples = other.samples;
   floatsamples = other.floatsamples;
-//  shortsamples = other.shortsamples;
-//  intsamples = other.intsamples;
-//  theOSPVolume = other.theOSPVolume;
-//  theOSPData = other.theOSPData;
+  AMR = other.AMR;
 }
 void gvt::render::data::primitives::Volume::SetDeltas(float delx, float dely, float delz) {
   spacing = { delx, dely, delz };
 }
-// void gvt::render::data::primitives::Volume::SetDeltas(glm::vec3 &del) { spacing = del;}
+void gvt::render::data::primitives::Volume::AddAMRGrid(gvt::render::data::primitives::griddata gd) { 
+    gvt::render::data::primitives::griddata data;
+    data.gridid = gd.gridid;
+    data.origin[0] = gd.origin[0];
+    data.origin[1] = gd.origin[1];
+    data.origin[2] = gd.origin[2];
+    data.spacing[0] = gd.spacing[0];
+    data.spacing[1] = gd.spacing[1];
+    data.spacing[2] = gd.spacing[2];
+    data.counts[0] = gd.counts[0];
+    data.counts[1] = gd.counts[1];
+    data.counts[2] = gd.counts[2];
+    data.samples = gd.samples;
+    gridvector.push_back(data);
+}
+
+void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, float *orig, float *spac, int *counts, float *samp) {
+    gvt::render::data::primitives::griddata data;
+    data.gridid = gridid;
+    data.origin[0] = orig[0];
+    data.origin[1] = orig[1];
+    data.origin[2] = orig[2];
+    data.spacing[0] = spac[0];
+    data.spacing[1] = spac[1];
+    data.spacing[2] = spac[2];
+    data.counts[0] = counts[0];
+    data.counts[1] = counts[1];
+    data.counts[2] = counts[2];
+    data.samples = samp;
+    gridvector.push_back(data);
+}
+
 void gvt::render::data::primitives::Volume::GetDeltas(glm::vec3 &del) { del = spacing; }
 void gvt::render::data::primitives::Volume::GetCounts(glm::vec3 &cnts) { cnts = counts; }
 void gvt::render::data::primitives::Volume::GetGlobalOrigin(glm::vec3 &orig) { orig = origin; }

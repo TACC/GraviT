@@ -34,6 +34,15 @@ namespace render {
 namespace data {
 namespace primitives {
 
+
+struct griddata {
+    int gridid;
+    float origin[3];
+    float spacing[3];
+    int counts[3];
+    float * samples;
+};
+
 class Volume : public Data {
 public:
   Volume();
@@ -48,15 +57,11 @@ public:
     UCHAR,
     SHORT,
     INT };
-  // unsigned char *get_samples() ;
-  // short *GetSamples() {return shortsamples;};
   float *GetSamples() { return floatsamples; }
-  // int *GetSamples() {return intsamples;}
   VoxelType GetVoxelType() { return voxtype; }
   void SetVoxelType(VoxelType vtype) { voxtype = vtype; }
   double GetSamplingRate() { return samplingrate; }
   void SetSamplingRate(double rate) { samplingrate = rate; }
-  // void SetSamples(short * samples) {shortsamples = samples;};
   void SetSamples(float *samples) { floatsamples = samples; };
   void SetCounts(int countx, int county, int countz) {
     counts = { countx, county, countz };
@@ -80,11 +85,16 @@ public:
     n = n_slices;
     s = slices;
   }
+  void SetAMRLevels(int n) { numberoflevels = n;};
+  void SetAMRGrids(int n) { totalnumberofgrids = n;};
+  void AddAMRGrid(int gid, float* origin, float* spacing, int* counts, float* samples);
+  void AddAMRGrid(griddata gd);
   void SetIsovalues(int n, float *values);
   void GetIsovalues(int &n, float *values) {
     n = n_isovalues;
     values = isovalues;
   }
+  bool is_AMR() { return AMR;};
 
   virtual std::shared_ptr<Data> getData() { return std::shared_ptr<Data>(this); }
 
@@ -97,6 +107,7 @@ protected:
   int n_slices;
   float *isovalues;
   int n_isovalues;
+  bool AMR;
 
 private:
   VoxelType voxtype;
@@ -104,10 +115,12 @@ private:
   glm::vec3 deltas;
   unsigned char *samples;
   float *floatsamples;
-  //  short *shortsamples;
-  //  int *intsamples;
-  //  OSPVolume theOSPVolume;
-  //  OSPData theOSPData;
+  int numberoflevels;
+  int totalnumberofgrids;
+  std::vector<int> gridsperlevel; 
+  std::vector<griddata> gridvector;
+
+
 };
 } // namespace primitives
 } // namespace data
