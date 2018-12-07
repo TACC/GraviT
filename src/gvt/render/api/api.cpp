@@ -485,13 +485,17 @@ void writeimage(std::string name, std::string output) {
 }
 
 #ifdef GVT_BUILD_VOLUME
-void createVolume(const std::string name) {
+void createVolume(const std::string name, const bool amr=false) {
 
   cntx::rcontext &db = cntx::rcontext::instance();
   cntx::node &root = cntx::rcontext::instance().root();
   db.createnode("Volume", name, true, db.getUnique("Data").getid());
   db.getChild(db.getUnique(name), "file") = name;
   db.getChild(db.getUnique(name), "ptr") = std::make_shared<gvt::render::data::primitives::Volume>();
+  if ( amr ) {
+    std::shared_ptr<gvt::render::data::primitives::Volume> vol = getChildByName(db.getUnique(name), "ptr");
+    vol->SetAMRTrue();
+  }
   std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
   v->push_back(db.cntx_comm.rank);
   db.getChild(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
@@ -520,6 +524,13 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
   v->SetBoundingBox(lower,upper);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
+}
+
+void addAmrSubgrid(const std::string name, int gridid, float *samples, int *counts, float *origin, float *deltas) {
+    cntx::rcontext &db = cntx::rcontext::instance();
+    std::shared_ptr<gvt::render::data::primitives::Volume> v = getChildByName(db.getUnique(name), "ptr");
+    // now set subgrid
+    v->AddAMRGrid(gridid,origin,deltas,counts,samples);
 }
 #endif // GVT_BUILD_VOLUME
 

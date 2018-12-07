@@ -36,13 +36,23 @@ namespace primitives {
 
 
 struct griddata {
-    int gridid;
-    float origin[3];
-    float spacing[3];
-    int counts[3];
-    float * samples;
+    int gridid;      // global grid index. Index of this grid in total number of grids.
+    int level;       // the level of refinement of this grid. 
+    float origin[3]; // origin of this grid in world coords
+    float spacing[3];// cell spacing of this grid
+    int counts[3];   // dimensions of this grid
+    float * samples; // values of scalar at grid points
+    std::vector<int> subgrids; // vector of subgrid indices of this grid 
 };
 
+/**
+ * A Volume consists of a collection of nested grids. There is one level 0 grid and
+ * any number of subgrids. The level 0 grid contains the global origin, counts, and 
+ * spacing. It maintains a level 0 grid structure which in turn contains a vector of
+ * subgrids. The whole collection forms a tree with grids on each level of the tree.
+ * All necessary information about a grid including the sample data is contained in
+ * the griddata structure. 
+ */
 class Volume : public Data {
 public:
   Volume();
@@ -95,14 +105,16 @@ public:
     values = isovalues;
   }
   bool is_AMR() { return AMR;};
+  void SetAMRTrue() { AMR = true;};
+  void SetAMRFalse() {AMR = false;};
 
   virtual std::shared_ptr<Data> getData() { return std::shared_ptr<Data>(this); }
 
 protected:
   glm::vec4 *slices;
-  glm::vec3 counts;
-  glm::vec3 origin;
-  glm::vec3 spacing;
+  glm::vec3 counts; // if AMR this contains dims of level0 grid
+  glm::vec3 origin; // if AMR this contains global origin.
+  glm::vec3 spacing;// if AMR this contains spacing of level0 grid
   TransferFunction *transfunction;
   int n_slices;
   float *isovalues;
@@ -115,10 +127,10 @@ private:
   glm::vec3 deltas;
   unsigned char *samples;
   float *floatsamples;
-  int numberoflevels;
-  int totalnumberofgrids;
-  std::vector<int> gridsperlevel; 
-  std::vector<griddata> gridvector;
+  int numberoflevels; // for amr number of levels in this volume
+  int totalnumberofgrids; // for amr total number of grids in this volume
+  std::vector<int> gridsperlevel; // for amr number of grids per level
+  std::vector<griddata> gridvector; // vector of grids in this volume
 
 
 };

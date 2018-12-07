@@ -75,6 +75,7 @@ if (GVT_RENDER)
     option(GVT_SIMPLE_FILE_LOAD_APP "Build the simple application (load obj file)" OFF) # TODO: pnav - update SimpleFileLoadApp to use new context
     option(GVT_PLY_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update PlyApp to use new context
     option(GVT_VOL_APP "Build the volume render application " OFF)
+    option(GVT_AMR_APP "Build the amr volume render application " OFF)
     option(GVT_PLY_NS_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update ns/PlyApp to use new context
     option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
     add_definitions(-DGVT_RENDER)
@@ -749,6 +750,16 @@ if (GVT_VOL_APP)
     target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES})
     install(TARGETS gvtVol RUNTIME DESTINATION bin)
 endif (GVT_VOL_APP)
+
+if (GVT_AMR_APP) 
+    find_package(MPI REQUIRED)
+    include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+    set(GVTAMR_RENDER_SRCS ${GVTAMR_RENDER_SRCS} src/apps/render/AmrApp.cpp )
+    add_executable(gvtAmr ${GVTAMR_RENDER_SRCS})
+    target_link_libraries(gvtAmr gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES})
+    install(TARGETS gvtAmr RUNTIME DESTINATION bin)
+endif (GVT_AMR_APP)
+    
 
 if (GVT_PLY_NS_APP) # TODO: pnav - update PlyApp to use new context
     message(FATAL_ERROR "ns/PlyApp is currently not buildable. Please do not enable it.")
