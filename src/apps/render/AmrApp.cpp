@@ -99,6 +99,7 @@ bool file_exists(const char *path) {
 // This bit imports the amrvol dataset. amrvol uses the vtk datasets to hold
 // grids so we need to use some vtk.
 struct amrheader {
+    std::ifstream in;
     std::string amrvolfile;
     int numberoflevels;
     int numberofgrids;
@@ -109,16 +110,19 @@ int getnumberoflevels() { return numberoflevels;}
 int getgridsinlevel(int level) { return gridsperlevel[level];}
 std::string getgridfilename(int grid) { return gridfilenames[grid];}
 
-amrheader(std::string filename): amrvolfile(filename) {
-    ifstream in;
+amrheader(std::string headername): amrvolfile(headername) {
     int parentgridindex;
-    in.open(amrvolfile.c_str());
+    std::cerr << "headername " << headername << " amrvolfile " << amrvolfile << std:: endl;
+    in.open(amrvolfile.c_str(),std::ios::in);
     if(in.fail())
     {
         std::cerr << "ERROR: unable to open volfile:" << amrvolfile << std::endl;
         exit(1);
     }
-    in >> numberoflevels; // get number of levels
+    int nl;
+    in >> nl; // get number of levels
+    std::cerr << " reading " << nl << " levels " << std::endl;
+    numberoflevels = nl;
     int grids;
     std::string gfn;
     numberofgrids = 0;
@@ -138,17 +142,22 @@ amrheader(std::string filename): amrvolfile(filename) {
     // it remains to be seen if I actually make use of this information..
     for(int i = 0;i<numberofgrids;i++)
     {
-        in>>gfn,parentgridindex;
+        in>>gfn >> parentgridindex;
         // if we nave a nonzero parent index stash this grid index 
         // in the subgrid vector of the parent. If not create an
         // empty subgrid vector for this index because the index
         // is a level 0 grid index. The input file needs all the 
         // level 0 grids to be listed first.
-        if(!(parentgridindex < 0)) 
+        std::cerr << i << " parentindex " << parentgridindex << std::endl;
+        // create a vector in the subvector list for this grid 
+        subgrids.push_back(std::vector<int>());
+        if(!(parentgridindex < 0)) {
             subgrids[parentgridindex].push_back(i);
-        else
-            subgrids.push_back(std::vector<int>());
+        } else {
+          //  subgrids.push_back(std::vector<int>());
+        }
         gridfilenames.push_back(gfn);
+    std::cerr << "length of subgrids: " << subgrids.size() << std::endl;
     }
 }
 
@@ -201,8 +210,10 @@ int main(int argc, char ** argv) {
   // read volume information and initialize gravit volume object.
   std::string filename, filepath, volumefile,otffile,ctffile,imagefile,volnodename;
   volumefile = "../data/vol/ballinthecorner.amrvol";
-  ctffile = "../data/colormaps/Grayscale.cmap";
-  otffile = "../data/colormaps/Grayscale.omap";
+  //ctffile = "../data/colormaps/Grayscale.cmap";
+  //otffile = "../data/colormaps/Grayscale.omap";
+  ctffile = "../data/colormaps/Balls.cmap";
+  otffile = "../data/colormaps/Balls.omap";
   // transfer functions
   if(cmd.isSet("volfile"))
     volumefile = cmd.get<std::string>("volfile");
@@ -231,6 +242,7 @@ int main(int argc, char ** argv) {
     return 0;
   }
   // open the file and read the data
+  
   amrheader amrmetadata(volumefile);
   int levels = amrmetadata.numberoflevels;
   int gridsinlevel;
@@ -287,6 +299,7 @@ int main(int argc, char ** argv) {
           //Deep copy the sample data from the vtk object
           fltptr = loadsamplesfromvtk(gsp);
           // store the level 0 grid info in the volume
+          api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,72.0);
           api::addVolumeSamples(volnodename,fltptr,ivector,origin,spacing,samplingrate);
           // find the grids that are contained in this level 0 grid
           // I have a vector of subgrids which contains the indices
@@ -294,10 +307,12 @@ int main(int argc, char ** argv) {
           // subgrids indices and then decend the tree to collect the
           // subrrid indices of each subindex. Its a tree search. 
           std::vector<int> domainsubgrids;
-          // initialize with level 1 grids
+          // initialize with level 1 grids (level 0 subgrids)
           std::queue<int> searchqueue; 
-          for(int i : amrmetadata.subgrids[domain])
+          for(int i : amrmetadata.subgrids[domain]) {
               searchqueue.push(i);
+              std::cerr << "domain " << domain << " searchqueue element " << i << " " << searchqueue.front()<< std::endl; 
+          }
           // search for more
           int sgrid;
           while(!searchqueue.empty()) {
@@ -305,14 +320,19 @@ int main(int argc, char ** argv) {
               sgrid = searchqueue.front();
               domainsubgrids.push_back(sgrid);
               searchqueue.pop();
-              for(int j : amrmetadata.subgrids[sgrid])
+              std::cerr << "added " << sgrid << " to domainsubgrids" << std::endl;
+              std::cerr<<std::boolalpha << amrmetadata.subgrids[sgrid].empty() << "size "<< amrmetadata.subgrids[sgrid].size() << std::endl;
+              if(!(amrmetadata.subgrids[sgrid].empty())){
+                for(int j : amrmetadata.subgrids[sgrid])
                   searchqueue.push(j);
+              }
           }
           // domainsubgrids should contain all subgrids of this domain
           // parse them and load their data via the api
           for(int k : domainsubgrids) {
               // read from vtk file
             gridfilename = dir + amrmetadata.gridfilenames[k];
+            std::cerr << "reading subgrid file " << gridfilename.c_str() << std::endl;
             gridreader->SetFileName(gridfilename.c_str());
             gsp = gridreader->GetOutput();
             gridreader->Update();
@@ -387,5 +407,6 @@ int main(int argc, char ** argv) {
   api::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
   api::gvtsync();
   api::render(rendername);
+  api::writeimage(rendername);
   if(worldsize > 1) MPI_Finalize();
 }
