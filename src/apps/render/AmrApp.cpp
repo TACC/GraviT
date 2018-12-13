@@ -283,7 +283,7 @@ int main(int argc, char ** argv) {
           gsp = gridreader->GetOutput();
           gridreader->Update();
           // pull metadata for this grid
-          volnodename = amrmetadata.gridfilenames[domain] + std::to_string(domain);
+          volnodename = volumefile + std::to_string(domain);
           api::createVolume(volnodename,volisamr);
           gsp->GetOrigin(dvector);
           origin[0] = dvector[0];
@@ -353,17 +353,24 @@ int main(int argc, char ** argv) {
   } // loop over level 0 grids (domains)
   api::gvtsync();
   // now for instancing. 
+  std::cerr << " instancing on rank " << rank << std::endl;
   if(rank == 0) {
+      std::cerr << " instancing " << numberofdomains << " domains" << std::endl;
       for(int domain = 0;domain <numberofdomains;domain++) {
-          volnodename = amrmetadata.gridfilenames[domain] + std::to_string(domain);
+          volnodename = volumefile + std::to_string(domain);
           auto m = new glm::mat4(1.f);
           auto &mi = (*m);
           float mf[] = {mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
               mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+          std::cerr << "adding inst" << std::string("inst")+std::to_string(domain) << " " << volnodename << std::endl;
           api::addInstance(std::string("inst")+std::to_string(domain),volnodename, mf);
       }
   }
   // lights etc goes here...
+  auto lpos = glm::vec3(0.,0.,1.);
+  auto lcolor = glm::vec3(100.,100.,500.);
+  string lightname = "mylight";
+  api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
   auto eye = glm::vec3(3.,3.,3.);
   if(cmd.isSet("eye")) {
       std::vector<float> cameye = cmd.getValue<float>("eye");
@@ -375,10 +382,10 @@ int main(int argc, char ** argv) {
   int rayMaxDepth = (int)1;
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
-  string camname = "ballcam";
+  string camname = "conecam";
   api::addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
   //film
-  string filmname = "ballfilm";
+  string filmname = "conefilm";
   int width = 10;
   int height = 10;
   if(cmd.isSet("wsize")) {

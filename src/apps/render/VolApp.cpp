@@ -402,7 +402,7 @@ int main(int argc, char **argv) {
       //float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
       std::cout << "create volume and add samples " << volnodename << std::endl;
-      api::createVolume(volnodename);
+      api::createVolume(volnodename,false);
       api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
       api::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
     }

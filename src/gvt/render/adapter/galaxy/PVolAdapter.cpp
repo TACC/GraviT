@@ -95,26 +95,26 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   }
 
   data->GetGlobalOrigin(globalorigin);
-  //std::cerr << "pvoladapter: set volume global origin" << std::endl;
+  std::cerr << "pvoladapter: set volume global origin" << std::endl;
   theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
-  //std::cerr << "pvoladapter: set local offsets" << std::endl;
+  std::cerr << "pvoladapter: set local offsets" << std::endl;
   theVolume->set_local_offset(localoffset.x, localoffset.y, localoffset.z);
-  //std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
+  std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
   theVolume->set_ghosted_local_offset(localoffset.x, localoffset.y, localoffset.z);
 
   data->GetCounts(volumedimensions);
-  //std::cerr << "pvoladapter: set volume counts" << std::endl;
+  std::cerr << "pvoladapter: set volume counts" << std::endl;
   theVolume->set_global_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
-  //std::cerr << "pvoladapter: set local counts" << std::endl;
+  std::cerr << "pvoladapter: set local counts" << std::endl;
   theVolume->set_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
-  //std::cerr << "pvoladapter: set ghosted local counts" << std::endl;
+  std::cerr << "pvoladapter: set ghosted local counts" << std::endl;
   theVolume->set_ghosted_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
   
   data->GetDeltas(volumespacing);
-  //std::cerr << "pvoladapter: set volume spacing" << std::endl;
+  std::cerr << "pvoladapter: set volume spacing" << std::endl;
   theVolume->set_deltas(volumespacing.x, volumespacing.y, volumespacing.z);
 
-  //std::cerr << "pvoladapter: set volume samples" << std::endl;
+  std::cerr << "pvoladapter: set volume samples" << std::endl;
   theVolume->set_samples((void*)data->GetSamples()); // same for float and uchar
   gvt::render::data::primitives::Box3D *bbox = data->getBoundingBox();
   glm::vec3 lowerbound = bbox->bounds_min;
@@ -126,8 +126,8 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   
   theVolume->set_local_box(lb,ub);
   theVolume->set_global_box(lb,ub);
-  theVolume->set_global_scalar_minmax(0.0,65536.0);
-  theVolume->set_local_scalar_minmax(0.0,65536.0);
+  theVolume->set_global_scalar_minmax(0.0,72.0);
+  theVolume->set_local_scalar_minmax(0.0,72.0);
   theVolume->VolumeHasNoNeighbors();
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   //std::cerr << "pvoladapter: set volume data type" << std::endl;

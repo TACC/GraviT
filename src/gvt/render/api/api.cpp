@@ -238,6 +238,7 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   cntx::rcontext &db = cntx::rcontext::instance();
 
   cntx::node &ameshnode = db.getUnique(meshname);
+  std::cerr << " instancename " << instancename << " meshname " << meshname << std::endl;
 
   cntx::node &inode = db.createnode("Instance", instancename, true, db.getUnique("Instances").getid());
 
@@ -252,6 +253,8 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
   auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+  std::cerr << il[0]<<" " << il[1]<<" " <<il[2]<< std::endl;
+  std::cerr << ih[0]<<" " << ih[1]<<" " << ih[2]<< std::endl;
   std::shared_ptr<gvt::render::data::primitives::Box3D> ibox =
       std::make_shared<gvt::render::data::primitives::Box3D>(il, ih);
 
@@ -492,13 +495,13 @@ void createVolume(const std::string name, const bool amr=false) {
   db.createnode("Volume", name, true, db.getUnique("Data").getid());
   db.getChild(db.getUnique(name), "file") = name;
   db.getChild(db.getUnique(name), "ptr") = std::make_shared<gvt::render::data::primitives::Volume>();
-  if ( amr ) {
-    std::shared_ptr<gvt::render::data::primitives::Volume> vol = getChildByName(db.getUnique(name), "ptr");
-    vol->SetAMRTrue();
-  }
   std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
   v->push_back(db.cntx_comm.rank);
   db.getChild(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
+  if ( amr ) {
+    std::shared_ptr<gvt::render::data::primitives::Volume> vol = getChildByName(db.getUnique(name),"ptr");
+    vol->SetAMRTrue();
+  }
 
 }
 
@@ -512,6 +515,7 @@ void addVolumeTransferFunctions(const std::string name, const std::string colort
 }
 
 void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate) {
+    float dx,dy,dz;
   cntx::rcontext &db = cntx::rcontext::instance();
   std::shared_ptr<gvt::render::data::primitives::Volume> v = getChildByName(db.getUnique(name), "ptr");
   v->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
@@ -521,7 +525,10 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetDeltas(deltas[0],deltas[1],deltas[2]);
   v->SetSamplingRate(samplingrate);
   glm::vec3 lower(origin[0],origin[1],origin[2]);
-  glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
+  dx = deltas[0]*(float)(counts[0] - 1);
+  dy = deltas[1]*(float)(counts[1] - 1);
+  dz = deltas[2]*(float)(counts[2] - 1);
+  glm::vec3 upper = lower + glm::vec3(dx,dy,dz);
   v->SetBoundingBox(lower,upper);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
 }

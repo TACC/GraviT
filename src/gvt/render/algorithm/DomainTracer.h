@@ -144,27 +144,27 @@ public:
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 
-                        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-                            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
-                        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-                        for (size_t i = 0; i < hits.size(); i++) {
-                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                          if (hits[i].next != -1) {
-                            r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
-                            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
-                            if (inRank) local_queue[hits[i].next].push_back(r);
-                          }
-                        }
+       gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+          acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
+       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+       for (size_t i = 0; i < hits.size(); i++) {
+          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+          if (hits[i].next != -1) {
+            r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
+            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
+            if (inRank) local_queue[hits[i].next].push_back(r);
+          }
+       }
 
-                        for (auto &q : local_queue) {
-                          queue_mutex[q.first].lock();
-                          queue[q.first].insert(queue[q.first].end(),
-                                                std::make_move_iterator(local_queue[q.first].begin()),
-                                                std::make_move_iterator(local_queue[q.first].end()));
-                          queue_mutex[q.first].unlock();
-                        }
-                      },
-                      ap);
+       for (auto &q : local_queue) {
+          queue_mutex[q.first].lock();
+          queue[q.first].insert(queue[q.first].end(),
+          std::make_move_iterator(local_queue[q.first].begin()),
+          std::make_move_iterator(local_queue[q.first].end()));
+          queue_mutex[q.first].unlock();
+       }
+               },
+         ap);
 
     rays.clear();
   }
@@ -223,6 +223,7 @@ public:
 
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+          std::cerr << " queue inRank " << inRank << " rank " << mpi.rank << std::endl;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
@@ -230,6 +231,7 @@ public:
         }
         t_sort.stop();
 
+        std::cerr << " instTarget " << instTarget << std::endl;
         if (instTarget >= 0) {
 
           t_adapter.resume();
