@@ -36,9 +36,10 @@ except KeyError:
     sys.exit(1)
 
 try:
-    os.environ["GregSpray_LIB_DIR"]
+    #os.environ["GregSpray_LIB_DIR"]
+    os.environ["Galaxy_LIB_DIR"]
 except KeyError:
-    print("Please set the environment variable GregSpray_LIB_DIR")
+    print("Please set the environment variable Galaxy_LIB_DIR")
     sys.exit(1)
 
 try:
@@ -92,17 +93,22 @@ extensions = [
               libraries=[
                  "gvtRender", "gvtCore",
                  "IceTGL", "IceTMPI", "IceTCore",
-                 "embree",
+                 "embree3",
                  "mpi",
                  mpi_cxx_lib,
                  "ospray",
+                 "gxy_data",
+                 "gxy_framework",
+                 "gxy_renderer",
+                 "gxy_sampler",
               ],
               library_dirs=[
                  embree_lib,
                  mpi_lib,
                  gvt_lib,
                  os.environ["IceT_LIB_DIR"],
-                 os.environ["GregSpray_LIB_DIR"],
+                 os.environ["ospray_LIB_DIR"],
+                 os.environ["Galaxy_LIB_DIR"],
               ],
               language="c++",
               extra_compile_args=compile_args,
