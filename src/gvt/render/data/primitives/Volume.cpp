@@ -70,12 +70,15 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(gvt::render::data::primit
     data.counts[1] = gd.counts[1];
     data.counts[2] = gd.counts[2];
     data.samples = gd.samples;
+    numberofgridsinvolume +=1;
     gridvector.push_back(data);
 }
 
-void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, float *orig, float *spac, int *counts, float *samp) {
+void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, int level, float *orig, float *spac, int *counts, float *samp) {
     gvt::render::data::primitives::griddata data;
+    std::cerr << " adding gid " << gridid << " level " << level << std::endl;
     data.gridid = gridid;
+    data.level = level;
     data.origin[0] = orig[0];
     data.origin[1] = orig[1];
     data.origin[2] = orig[2];
@@ -86,7 +89,21 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, float *orig, 
     data.counts[1] = counts[1];
     data.counts[2] = counts[2];
     data.samples = samp;
+    numberofgridsinvolume +=1;
     gridvector.push_back(data);
+    std::map<int,int>::iterator lngit = lng.find(level);
+    if(lngit == lng.end()) {
+        lng.insert(std::make_pair(level,1));
+    } else {
+        lngit->second = lngit->second + 1;
+    }
+}
+gvt::render::data::primitives::griddata gvt::render::data::primitives::Volume::GetAMRGrid(int gid)
+{
+    std::cerr << " gid " << gid << " gridvector size " << gridvector.size() << std::endl;
+    std::cerr << gridvector[gid].origin[0] << " " << gridvector[gid].origin[1] << " " << gridvector[gid].origin[2] << std::endl;
+       //return gridvector[gid];
+       return gridvector.at(gid);
 }
 
 void gvt::render::data::primitives::Volume::GetDeltas(glm::vec3 &del) { del = spacing; }

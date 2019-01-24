@@ -33,7 +33,8 @@
 #include <gxy/Rays.h>
 #include <gxy/Renderer.h>
 #include <gxy/Visualization.h>
-#include <gxy/Volume.h>
+//#include <gxy/Volume.h>
+#include <gxy/AmrVolume.h>
 #include <gxy/VolumeVis.h>
 
 namespace gvt {

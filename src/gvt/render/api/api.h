@@ -116,7 +116,7 @@ void addInstance(std::string instname, std::string meshname, const float *m);
  * \param name unique name of the mesh
  * \param amr automatic mesh refinement flag
  */
-void createVolume(const std::string name,const bool amr);
+void createVolume(const std::string name,const bool amr=false);
 /**
  * Add transfer function to the volume
  * \param name : volume unique identifier
@@ -134,7 +134,7 @@ void addVolumeTransferFunctions(const std::string name, const std::string colort
  * \param deltas the spacing of the sample data
  * \param samplingrate the number of samples per cell used to integrate
  */
-void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate);
+void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate, double *bounds=NULL);
 /**
  * this function adds a subgrid to the existing volume object
  * \param name the name of the volume node
@@ -143,7 +143,7 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
  * \param deltas the spacing of the sample data
  * \param samplingrate the number of samples per cell used to integrate
  */
-void addAmrSubgrid(const std::string name,int gridid, float *samples, int *counts, float *origin, float *deltas);
+void addAmrSubgrid(const std::string name,int gridid, int level, float *samples, int *counts, float *origin, float *deltas);
 #endif // GVT_BUILD_VOLUME
 
 /**

@@ -29,6 +29,8 @@
 #include <gvt/render/data/scene/Light.h>
 
 #include <vector>
+#include <map>
+#include <iterator>
 namespace gvt {
 namespace render {
 namespace data {
@@ -41,6 +43,7 @@ struct griddata {
     float origin[3]; // origin of this grid in world coords
     float spacing[3];// cell spacing of this grid
     int counts[3];   // dimensions of this grid
+    float bounds[6]; // bounds of this  grid.
     float * samples; // values of scalar at grid points
     std::vector<int> subgrids; // vector of subgrid indices of this grid 
 };
@@ -96,9 +99,32 @@ public:
     s = slices;
   }
   void SetAMRLevels(int n) { numberoflevels = n;};
+  void SetAMRNumberOfGridsInVolume(int n) {numberofgridsinvolume = n;};
+  int GetAMRNumberOfGridsInVolume() { return numberofgridsinvolume;};
+  int GetAMRNumberOfLevels() { return numberoflevels;};
   void SetAMRGrids(int n) { totalnumberofgrids = n;};
-  void AddAMRGrid(int gid, float* origin, float* spacing, int* counts, float* samples);
+  void SetAMRlng(int level,int count) {lng.insert(std::make_pair(level,count));};
+  std::map<int,int> GetAmrlng() { return lng;};
+  int GetAMRTotalNumberOfGrids() { return totalnumberofgrids;};
+  int GetAMRNumberOfGridsInLevel(int level) {return gridsperlevel[level];};
+  void AddAMRGrid(int gid, int level, float* origin, float* spacing, int* counts, float* samples);
+  griddata GetAMRGrid(int gid); 
   void AddAMRGrid(griddata gd);
+  void SetAMRBounds(double b[]) { bounds[0] = b[0];
+                                  bounds[1] = b[1];
+                                  bounds[2] = b[2];
+                                  bounds[3] = b[3];
+                                  bounds[4] = b[4];
+                                  bounds[5] = b[5]; };
+  float * GetAMRBounds() { float *b = new float[6]; 
+                            b[0] = bounds[0]; 
+                            b[1] = bounds[1]; 
+                            b[2] = bounds[2]; 
+                            b[3] = bounds[3]; 
+                            b[4] = bounds[4]; 
+                            b[5] = bounds[5]; 
+                            return b;
+  };
   void SetIsovalues(int n, float *values);
   void GetIsovalues(int &n, float *values) {
     n = n_isovalues;
@@ -124,12 +150,15 @@ protected:
 private:
   VoxelType voxtype;
   double samplingrate;
+  double bounds[6];
   glm::vec3 deltas;
   unsigned char *samples;
   float *floatsamples;
   int numberoflevels; // for amr number of levels in this volume
   int totalnumberofgrids; // for amr total number of grids in this volume
+  int numberofgridsinvolume; // number of grids in this volume
   std::vector<int> gridsperlevel; // for amr number of grids per level
+  std::map<int,int> lng; // map of levels nuber of grids
   std::vector<griddata> gridvector; // vector of grids in this volume
 
 

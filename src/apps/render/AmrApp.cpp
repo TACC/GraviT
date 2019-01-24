@@ -103,6 +103,7 @@ struct amrheader {
     std::string amrvolfile;
     int numberoflevels;
     int numberofgrids;
+    std::vector<int> levelofgrid;
     std::vector<int> gridsperlevel;
     std::vector<std::string> gridfilenames;
     std::vector<std::vector<int>> subgrids; 
@@ -130,6 +131,7 @@ amrheader(std::string headername): amrvolfile(headername) {
     {
         in>>grids;
         gridsperlevel.push_back(grids);
+        for(int g=0;g<grids;g++) levelofgrid.push_back(level);
         numberofgrids += gridsperlevel[level];
     }
     // this loop reads the grid file names and parent grid index
@@ -295,12 +297,16 @@ int main(int argc, char ** argv) {
           spacing[2] = dvector[2];
           gsp->ComputeBounds();
           gsp->GetDimensions(ivector);
+          // galaxy expects cell data so need to adjust dimensions
+          ivector[0] -=1;
+          ivector[1] -=1;
+          ivector[2] -=1;
           gsp->GetBounds(bounds);
           //Deep copy the sample data from the vtk object
           fltptr = loadsamplesfromvtk(gsp);
           // store the level 0 grid info in the volume
-          api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,72.0);
-          api::addVolumeSamples(volnodename,fltptr,ivector,origin,spacing,samplingrate);
+          api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,83.1);
+          api::addVolumeSamples(volnodename,fltptr,ivector,origin,spacing,samplingrate,bounds);
           // find the grids that are contained in this level 0 grid
           // I have a vector of subgrids which contains the indices
           // of the subgrids of this level0 grid. I need to collect the
@@ -311,7 +317,6 @@ int main(int argc, char ** argv) {
           std::queue<int> searchqueue; 
           for(int i : amrmetadata.subgrids[domain]) {
               searchqueue.push(i);
-              std::cerr << "domain " << domain << " searchqueue element " << i << " " << searchqueue.front()<< std::endl; 
           }
           // search for more
           int sgrid;
@@ -321,7 +326,7 @@ int main(int argc, char ** argv) {
               domainsubgrids.push_back(sgrid);
               searchqueue.pop();
               std::cerr << "added " << sgrid << " to domainsubgrids" << std::endl;
-              std::cerr<<std::boolalpha << amrmetadata.subgrids[sgrid].empty() << "size "<< amrmetadata.subgrids[sgrid].size() << std::endl;
+              std::cerr<<std::boolalpha << amrmetadata.subgrids[sgrid].empty() << " size "<< amrmetadata.subgrids[sgrid].size() << std::endl;
               if(!(amrmetadata.subgrids[sgrid].empty())){
                 for(int j : amrmetadata.subgrids[sgrid])
                   searchqueue.push(j);
@@ -332,6 +337,7 @@ int main(int argc, char ** argv) {
           for(int k : domainsubgrids) {
               // read from vtk file
             gridfilename = dir + amrmetadata.gridfilenames[k];
+            int gridlevel = amrmetadata.levelofgrid[k];
             std::cerr << "reading subgrid file " << gridfilename.c_str() << std::endl;
             gridreader->SetFileName(gridfilename.c_str());
             gsp = gridreader->GetOutput();
@@ -346,8 +352,13 @@ int main(int argc, char ** argv) {
             spacing[2] = dvector[2];
             gsp->ComputeBounds();
             gsp->GetDimensions(ivector);
+            // ospray expects cell centered data adjust counts
+            ivector[0] -=1;
+            ivector[1] -=1;
+            ivector[2] -=1;
             fltptr = loadsamplesfromvtk(gsp);
-            api::addAmrSubgrid(volnodename,domainsubgrids[k],fltptr,ivector,origin,spacing);
+            //api::addAmrSubgrid(volnodename,domainsubgrids[k],fltptr,ivector,origin,spacing);
+            api::addAmrSubgrid(volnodename,k,gridlevel,fltptr,ivector,origin,spacing);
           } // loop over subgrids
       } // if level 0 grid is in this rank
   } // loop over level 0 grids (domains)
@@ -377,6 +388,10 @@ int main(int argc, char ** argv) {
       eye = glm::vec3(cameye[0],cameye[1],cameye[2]);
   }
   auto focus = glm::vec3(-4.0,-4.0,-4.0);
+  if(cmd.isSet("look")) {
+      std::vector<float> fp = cmd.getValue<float>("look");
+      focus = glm::vec3(fp[0],fp[1],fp[2]);
+  }
   auto upVector = glm::vec3(0.0,0.0,1.0);
   auto fov = (float)(30.0*M_PI/180.0);
   int rayMaxDepth = (int)1;

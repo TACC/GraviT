@@ -61,15 +61,49 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   glm::vec3 volumedimensions;
   glm::vec3 volumespacing;
   float *isovalues;
+  ::gxy::AmrVolumeP theVolume;
 
   cntx::rcontext &db = cntx::rcontext::instance();
 
   width  = w;
   height = h; 
-  //std::cerr << "width " << width << " height " << height << std::endl;
+  std::vector<int> levelnumberofgrids;
+  std::cerr << "width " << width << " height " << height << std::endl;
   // build the PVOL volume from the data in the GraviT volume
   //std::cerr << " pvoladapter: init local volume shared p " << std::endl;
-  ::gxy::VolumeP theVolume = ::gxy::Volume::NewP();
+  theVolume = ::gxy::AmrVolume::NewP();
+  // load the number of levels and grids per level
+  theVolume->set_numlevels(data->GetAMRNumberOfLevels());
+  if (data->is_AMR()) {
+      std::cerr << " data is amr" << std::endl;
+      std::map<int,int> lng = data->GetAmrlng();
+      std::cerr << " lng size " << lng.size() << std::endl;
+      for (auto it = lng.begin(); it != lng.end(); ++it)
+      {
+        std::cerr << it->second << " grids in level " << it->first << std::endl;
+        levelnumberofgrids.push_back(it->second);
+      }
+      theVolume->set_levelnumgrids(levelnumberofgrids);
+      data->GetGlobalOrigin(globalorigin);
+      theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
+      // get the number of grids in this volume
+      int ngv = data->GetAMRNumberOfGridsInVolume();
+      std::cerr << " ngv " << ngv << std::endl;
+      // iterate over the subgrids in the volume and populate the galaxy volume
+      //
+      for(int gvtgrid = 0;gvtgrid<ngv;gvtgrid++) 
+      { 
+          std::cerr << " gvt grid " << gvtgrid << std::endl;
+          gvt::render::data::primitives::griddata gvtdata = data->GetAMRGrid(gvtgrid);
+          std::cerr << gvtdata.origin[0] << " " << gvtdata.origin[1] << " " << gvtdata.origin[2] << std::endl;
+          std::cerr << gvtdata.counts[0] << " " << gvtdata.counts[1] << " " << gvtdata.counts[2] << std::endl;
+          std::cerr << gvtdata.spacing[0] << " " << gvtdata.spacing[1] << " " << gvtdata.spacing[2] << std::endl;
+          theVolume->add_gridorigin(gvtdata.origin[0],gvtdata.origin[1],gvtdata.origin[2]);
+          theVolume->add_gridcounts(gvtdata.counts[0],gvtdata.counts[1],gvtdata.counts[2]);
+          theVolume->add_gridspacing(gvtdata.spacing[0],gvtdata.spacing[1],gvtdata.spacing[2]);
+          theVolume->add_samples(gvtdata.samples);
+      }
+  }
   //std::cerr << " pvoladapter: init local dataset shared p " << std::endl;
   theDataset = ::gxy::Datasets::NewP();
   //std::cerr << " pvoladapter: init local volume vis shared p " << std::endl;
@@ -94,9 +128,9 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
     theVolumeVis->SetIsovalues(n_isovalues, isovalues);
   }
 
-  data->GetGlobalOrigin(globalorigin);
-  std::cerr << "pvoladapter: set volume global origin" << std::endl;
-  theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
+  //data->GetGlobalOrigin(globalorigin);
+  //std::cerr << "pvoladapter: set volume global origin" << std::endl;
+  //theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
   std::cerr << "pvoladapter: set local offsets" << std::endl;
   theVolume->set_local_offset(localoffset.x, localoffset.y, localoffset.z);
   std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
@@ -112,10 +146,10 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   
   data->GetDeltas(volumespacing);
   std::cerr << "pvoladapter: set volume spacing" << std::endl;
-  theVolume->set_deltas(volumespacing.x, volumespacing.y, volumespacing.z);
+  theVolume->Volume::set_deltas(volumespacing.x, volumespacing.y, volumespacing.z);
 
   std::cerr << "pvoladapter: set volume samples" << std::endl;
-  theVolume->set_samples((void*)data->GetSamples()); // same for float and uchar
+  //theVolume->set_samples((void*)data->GetSamples()); // same for float and uchar
   gvt::render::data::primitives::Box3D *bbox = data->getBoundingBox();
   glm::vec3 lowerbound = bbox->bounds_min;
   glm::vec3 upperbound = bbox->bounds_max;
@@ -124,11 +158,11 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   std::cerr << " boxL \n" << lowerbound.x << " " << lowerbound.y << " " << lowerbound.z << std::endl;
   std::cerr << " boxU \n" << upperbound.x << " " << upperbound.y << " " << upperbound.z << std::endl;
   
-  theVolume->set_local_box(lb,ub);
-  theVolume->set_global_box(lb,ub);
-  theVolume->set_global_scalar_minmax(0.0,72.0);
-  theVolume->set_local_scalar_minmax(0.0,72.0);
-  theVolume->VolumeHasNoNeighbors();
+  theVolume->Volume::set_local_box(lb,ub);
+  //theVolume->Volume::set_global_box(lb,ub);
+  //theVolume->Volume::set_global_scalar_minmax(0.0,72.0);
+  //theVolume->Volume::set_local_scalar_minmax(0.0,72.0);
+  //theVolume->Volume::VolumeHasNoNeighbors();
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
   //std::cerr << "pvoladapter: set volume data type" << std::endl;
   switch (vt) {
@@ -150,10 +184,10 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   glm::vec2 datavaluerange;
   float data_min, data_max;
   //std::cerr << "pvoladapter commit the volume" << std::endl;
-  theVolume->Commit();
+  //theVolume->Commit();
   //std::cerr << "pvoladapter insert volume into dataset" << std::endl;
   theDataset->Insert("avol",theVolume);
-  //std::cerr << "pvoladapter commit the dataset" << std::endl;
+  std::cerr << "pvoladapter commit the dataset" << std::endl;
   theDataset->Commit();
   datavaluerange = data->GetTransferFunction()->getValueRange();
   data_min = datavaluerange[0]; data_max = datavaluerange[1];
