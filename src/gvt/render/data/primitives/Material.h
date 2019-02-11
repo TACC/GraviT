@@ -34,6 +34,9 @@
 
 //#include <stdio.h>
 #include <glm/glm.hpp>
+#include <gvt/render/actor/Ray.h>
+#include <gvt/render/data/primitives/Shade.h>
+#include <gvt/render/data/scene/Light.h>
 
 //#include <cmath>
 //#include <gvt/render/data/DerivedTypes.h>

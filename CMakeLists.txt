@@ -19,7 +19,7 @@ if (COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
 
     # use rpath on MacOS
-    cmake_policy(SET CMP0042 NEW)
+    #cmake_policy(SET CMP0042 NEW)
 endif (COMMAND cmake_policy)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -48,8 +48,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
         set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_C_FLAGS}")
         SET(GVT_HOST "KNL-Stampede" CACHE STRING "Choose Stampede | Maverick | Other")
     elseif (HOST_NAME MATCHES "(.)*stampede2(.)*")
-        set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/5.4.0/ ${CMAKE_CXX_FLAGS}")
-        set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/5.4.0/ ${CMAKE_C_FLAGS}")
+        #set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/5.4.0/ ${CMAKE_CXX_FLAGS}")
+        #set(CMAKE_C_FLAGS "-cxxlib=/opt/apps/gcc/5.4.0/ ${CMAKE_C_FLAGS}")
         SET(GVT_HOST "Stampede2" CACHE STRING "Choose Stampede | Stampede2 | Maverick | Other")
     elseif (HOST_NAME MATCHES "(.)*stampede(.)*")
         set(CMAKE_CXX_FLAGS "-cxxlib=/opt/apps/gcc/4.9.3/ ${CMAKE_CXX_FLAGS}")
@@ -67,6 +67,7 @@ if (GVT_RENDER)
     option(GVT_RENDER_ADAPTER_EMBREE_STREAM "Build the Intel Embree (stream 1M) ray tracing engine adapter" ON)
     option(GVT_RENDER_ADAPTER_OPTIX_PRIME "Build the NVIDIA Optix Prime ray tracing engine adapter" OFF)
     option(GVT_RENDER_ADAPTER_GREGSPRAY "Build the GregSpray fork of the Intel OSPRay ray tracing engine adapter" OFF)
+    option(GVT_RENDER_ADAPTER_GALAXY "Build the GALAXY parallel volume renderer, leveraging Intel's OSPRay ray tracing engine adapter" OFF)
     option(GVT_RENDER_APP "Build the GraviT example renderer application" ON)
     option(GVT_GLRENDER_APP "Build the interactive X application" OFF) # TODO: pnav - update GLRenderApp to use new context
     option(GVT_SIMPLE_APP "Build the simple application" ON)
@@ -74,6 +75,7 @@ if (GVT_RENDER)
     option(GVT_SIMPLE_FILE_LOAD_APP "Build the simple application (load obj file)" OFF) # TODO: pnav - update SimpleFileLoadApp to use new context
     option(GVT_PLY_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update PlyApp to use new context
     option(GVT_VOL_APP "Build the volume render application " OFF)
+    option(GVT_AMR_APP "Build the amr volume render application " OFF)
     option(GVT_PLY_NS_APP "Build the ply reader application (load ply file)" OFF) # TODO: pnav - update ns/PlyApp to use new context
     option(GVT_CTEST "Build CTEST Unit and Integration tests" ON)
     add_definitions(-DGVT_RENDER)
@@ -375,8 +377,11 @@ if (GVT_RENDER_ADAPTER_EMBREE)
             )
 endif (GVT_RENDER_ADAPTER_EMBREE)
 
-
 if (GVT_RENDER_ADAPTER_GREGSPRAY)
+    if (GVT_RENDER_ADAPTER_GALAXY)
+        message(SEND_ERROR "GALAXY and GregSpray cannot both be enabled. Please disable GregSpray before enabling GALAXY.")
+    endif(GVT_RENDER_ADAPTER_GALAXY)
+
     add_definitions(-DGVT_RENDER_ADAPTER_OSPRAY)
     set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
             src/gvt/render/adapter/ospray/OSPRayAdapter.h
@@ -397,9 +402,43 @@ if (GVT_RENDER_ADAPTER_GREGSPRAY)
     endif (GVT_VOLUME)
 else (GVT_RENDER_ADAPTER_GREGSPRAY)
     if (GVT_VOLUME)
-        message(SEND_ERROR "GVT_VOLUME requires the GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GREGSPRAY).")
+        if (NOT GVT_RENDER_ADAPTER_GALAXY)
+            message(SEND_ERROR "GVT_VOLUME requires the GALAXY or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GALAXY or GVT_RENDER_ADAPTER_GREGSPRAY).")
+        endif(NOT GVT_RENDER_ADAPTER_GALAXY)
     endif (GVT_VOLUME)
 endif (GVT_RENDER_ADAPTER_GREGSPRAY)
+
+
+if (GVT_RENDER_ADAPTER_GALAXY)
+    if (GVT_RENDER_ADAPTER_GREGSPRAY)
+        message(SEND_ERROR "GALAXY and GregSpray cannot both be enabled. Please disable GregSpray before enabling GALAXY.")
+    endif(GVT_RENDER_ADAPTER_GREGSPRAY)
+
+    add_definitions(-DGVT_RENDER_ADAPTER_GALAXY)
+    set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+            src/gvt/render/adapter/galaxy/PVolAdapter.h
+            )
+    set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+            src/gvt/render/adapter/galaxy/PVolAdapter.cpp
+            )
+    if (GVT_VOLUME)
+        add_definitions(-DGVT_BUILD_VOLUME)
+        set(GVT_RENDER_HDRS ${GVT_RENDER_HDRS}
+                src/gvt/render/data/primitives/Volume.h
+                src/gvt/render/data/primitives/TransferFunction.h
+                )
+        set(GVT_RENDER_SRCS ${GVT_RENDER_SRCS}
+                src/gvt/render/data/primitives/Volume.cpp
+                src/gvt/render/data/primitives/TransferFunction.cpp
+                )
+    endif (GVT_VOLUME)
+else (GVT_RENDER_ADAPTER_GALAXY)
+    if (GVT_VOLUME)
+        if (NOT GVT_RENDER_ADAPTER_GREGSPRAY)
+            message(SEND_ERROR "GVT_VOLUME requires the GALAXY or GregSpray adapter to be enabled (GVT_RENDER_ADAPTER_GALAXY or GVT_RENDER_ADAPTER_GREGSPRAY).")
+        endif(NOT GVT_RENDER_ADAPTER_GREGSPRAY)
+    endif (GVT_VOLUME)
+endif (GVT_RENDER_ADAPTER_GALAXY)
 
 if (${TINYOBJPATH} MATCHES "TINYOBJPATH-NOTFOUND")
     MESSAGE(SEND_ERROR "tiny obj reader not found. Please verify that tinyobjloader-master is in the third-party subdirectory.")
@@ -515,6 +554,40 @@ if (GVT_RENDER)
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} gvtCudaOptix)
     endif (GVT_RENDER_ADAPTER_OPTIX_PRIME)
 
+
+    if (GVT_RENDER_ADAPTER_GALAXY)
+
+        # TODO: package-tize this for galaxy
+        set(GALAXY_INC_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/install/include
+            CACHE PATH "Location of the GALAXY include directory")
+        set(GALAXY_RAPIDJSON_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/third-party/rapidjson/install/include
+            CACHE PATH "Location of the GALAXY RapidJSON include directory")
+        set(GALAXY_INCLUDE_DIRS 
+            ${GALAXY_INC_DIR}
+            ${GALAXY_INC_DIR}/gxy
+            ${GALAXY_RAPIDJSON_DIR}
+            )
+        set(GALAXY_LIB_DIR ${CMAKE_HOME_DIRECTORY}/third-party/galaxy/install/lib
+            CACHE PATH "Location of the GALAXY library directory")
+        set(GALAXY_LIBRARIES 
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}gxy_data${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}gxy_framework${CMAKE_SHARED_LIBRARY_SUFFIX}
+            ${GALAXY_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}gxy_renderer${CMAKE_SHARED_LIBRARY_SUFFIX}
+            )
+
+        find_package(VTK REQUIRED NO_MODULE)
+        include(${VTK_USE_FILE})
+        if (DEFINED ENV{TACC_OSPRAY_LIB})
+            set(SYSTEM_OSPRAY $ENV{TACC_OSPRAY_LIB})
+        endif(DEFINED ENV{TACC_OSPRAY_LIB})
+        find_package(ospray PATHS ${SYSTEM_OSPRAY}/cmake ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib64/cmake 
+                                  ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/install/lib/cmake 
+                                  ${CMAKE_HOME_DIRECTORY}/third-party/OSPRay/build/cmake
+                                  )
+        include_directories(${GALAXY_INCLUDE_DIRS} ${OSPRAY_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
+        set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${GALAXY_LIBRARIES} ${OSPRAY_LIBRARIES} ${VTK_LIBRARIES})
+
+    endif (GVT_RENDER_ADAPTER_GALAXY)
 
     if (GVT_RENDER_ADAPTER_GREGSPRAY)
 #        set(OSPRAY_SRCDIR "" CACHE FILEPATH "source directory of OSPRAY")
@@ -670,11 +743,23 @@ if (GVT_VOL_APP)
     find_package(MPI REQUIRED)
     include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
     #set(GVTVOL_RENDER_LIBS ${GVTVOL_RENDER_LIBS} ${OSPRAY_LIBS} ${MPI_LIBRARIES} ${GVT_CORE_LIBS})
-    set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
+    #set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp ${PLYPATH}/ply.c)
+    set(GVTVOL_RENDER_SRCS ${GVTVOL_RENDER_SRCS} src/apps/render/VolApp.cpp )
     add_executable(gvtVol ${GVTVOL_RENDER_SRCS})
-    target_link_libraries(gvtVol gvtCore gvtRender ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} ${OSPRAY_LIBRARIES})
+    #target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES} ${GVT_RENDER_LIBS} )
+    target_link_libraries(gvtVol gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES})
     install(TARGETS gvtVol RUNTIME DESTINATION bin)
 endif (GVT_VOL_APP)
+
+if (GVT_AMR_APP) 
+    find_package(MPI REQUIRED)
+    include_directories(${MPI_INCLUDE_PATH} ${PLYPATH})
+    set(GVTAMR_RENDER_SRCS ${GVTAMR_RENDER_SRCS} src/apps/render/AmrApp.cpp )
+    add_executable(gvtAmr ${GVTAMR_RENDER_SRCS})
+    target_link_libraries(gvtAmr gvtCore gvtRender ${GALAXY_LIBRARIES} ${MPI_LIBRARIES})
+    install(TARGETS gvtAmr RUNTIME DESTINATION bin)
+endif (GVT_AMR_APP)
+    
 
 if (GVT_PLY_NS_APP) # TODO: pnav - update PlyApp to use new context
     message(FATAL_ERROR "ns/PlyApp is currently not buildable. Please do not enable it.")

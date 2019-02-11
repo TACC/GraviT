@@ -58,6 +58,9 @@
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
+#endif
 
 namespace gvt {
 namespace render {

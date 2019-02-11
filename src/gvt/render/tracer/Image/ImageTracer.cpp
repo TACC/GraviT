@@ -171,7 +171,8 @@ void ImageTracer::processRays(gvt::render::actor::RayVector &rays, const int src
           bool write_to_fb = false;
           int target_queue = -1;
           //#ifdef GVT_RENDER_ADAPTER_OSPRAY
-          if (adapterType == gvt::render::adapter::Ospray) {
+          if ( adapterType == gvt::render::adapter::Pvol 
+            || adapterType == gvt::render::adapter::Ospray ) {
             // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
             // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
             if (r.mice.depth & RAY_BOUNDARY) {

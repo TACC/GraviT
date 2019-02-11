@@ -34,7 +34,7 @@
 #include <gvt/core/Debug.h>
 #include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
-#include <gvt/render/actor/ORays.h>
+//#include <gvt/render/actor/ORays.h>
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
@@ -50,6 +50,7 @@
 
 #include <deque>
 #include <map>
+#include <bitset>
 
 // uncomment this to restrict tbb to serial operation
 // must also add "serial" to tbb::parallel_for
@@ -333,47 +334,51 @@ public:
 //    std::cout << "Ray_BOUNDARY" << std::bitset<8>(RAY_BOUNDARY) << std::endl;
 //    std::cout << "Ray_TIMEOUT" << std::bitset<8>(RAY_TIMEOUT) << std::endl;
 //    std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
-//    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
+    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
 
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
 
     static tbb::auto_partitioner ap;
 
-    tbb::parallel_for(
+    //tbb::serial::parallel_for(
+tbb::parallel_for(
         tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
         [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
           gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
               acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), domID);
 
           gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-          // std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
+     //      std::cout << "shuffle intersected " << hits.size() << " rays with bvh and domID " << domID<< std::endl;
           for (size_t i = 0; i < hits.size(); i++) {
             gvt::render::actor::Ray &r = *(raysit.begin() + i);
             bool write_to_fb = false;
             int target_queue = -1;
             //#ifdef GVT_RENDER_ADAPTER_OSPRAY
-            if (adapterType == gvt::render::adapter::Ospray) {
-              // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
-              // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
+            //std::cerr << i << " adapterType " << adapterType << " "<<  gvt::render::adapter::Pvol << std::endl;
+            if ( adapterType == gvt::render::adapter::Pvol 
+              || adapterType == gvt::render::adapter::Ospray ) {
+               //std::cout << "initially ray " << r.mice.id << " r.depth " << std::bitset<8>(r.mice.depth)<< " r.type " <<
+               //std::bitset<8>(r.mice.type) << " r.color " << r.mice.color <<std::endl;
               if (r.mice.depth & RAY_BOUNDARY) {
                 // check to see if this ray hit anything in bvh
                 if (hits[i].next != -1) {
-                  r.mice.depth &= ~RAY_BOUNDARY;
-                  r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
-                  target_queue = hits[i].next;
+                  r.mice.depth &= ~RAY_BOUNDARY; // turn off boundary term type
+                  r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon())); // bump the origin into next volume
+                  target_queue = hits[i].next; 
                   // local_queue[hits[i].next].push_back(r);
-                } else {
-                  r.mice.depth &= ~RAY_BOUNDARY;
-                  r.mice.depth |= RAY_EXTERNAL_BOUNDARY;
+                } else { // elvis is leaving the building
+                  r.mice.depth &= ~RAY_BOUNDARY; // turn off ray boundary
+                  r.mice.depth |= RAY_EXTERNAL_BOUNDARY; // set term type to external
                   target_queue = -1;
                 }
               }
-              // std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type "
-              // << std::bitset<8>(r.type) << std::endl; check types
+              // std::cout << "after boundary test ray " << r.mice.id << " r.depth " << std::bitset<8>(r.mice.depth)<< " r.type "
+               //<< std::bitset<8>(r.mice.type) << std::endl; //check types
               if (r.mice.type == RAY_PRIMARY) {
                 if ((r.mice.depth & RAY_OPAQUE) | (r.mice.depth & RAY_EXTERNAL_BOUNDARY)) {
                   write_to_fb = true;
+                  //std::cerr << "write ray " << r.mice.id << " to fb" << std::endl;
                   target_queue = -1;
                 } else if (r.mice.depth & ~RAY_BOUNDARY) {
                   target_queue = domID;
@@ -399,7 +404,7 @@ public:
               }
               if (write_to_fb) {
                 tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.mice.id % width]);
-                // std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
+                 //std::cout << "TB: writing colorBuf["<<r.mice.id<<"] "<< r.mice.color << std::endl;
                 // colorBuf[r.id] += glm::vec4(r.color, r.w);
                 image->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
               }

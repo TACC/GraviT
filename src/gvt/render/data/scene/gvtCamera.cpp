@@ -23,12 +23,12 @@
    ======================================================================================= */
 
 #include <gvt/core/utils/timer.h>
-#include <gvt/render/actor/ORays.h>
+#include <RayFlags.h> // .TODO this is included from galaxy. Protect it.
+//#include <gvt/render/actor/ORays.h>
 #include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
 //#define TBB_PREVIEW_SERIAL_SUBSET 1
-#include <gvt/render/cntx/rcontext.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <tbb/partitioner.h>
@@ -280,6 +280,7 @@ void gvtPerspectiveCamera::generateRays(bool volume) {
                               ray.mice.origin = eye_point;
                               ray.mice.direction = glm::normalize(camera_space_ray_direction);
                               ray.mice.t_max = FLT_MAX;
+                              ray.mice.color = glm::vec3(0.,0.,0.);
                               if (volume) {
                                 ray.mice.w = 0.0; // volume rendering opacity variable
                                 // ray.t = 0.0;

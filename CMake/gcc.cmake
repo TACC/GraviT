@@ -12,7 +12,7 @@ SET(GVT_ARCH_FLAGS__AVX512SKX "-mavx512f -mavx512dq -mavx512cd -mavx512bw -mavx5
 SET(CMAKE_CXX_COMPILER "g++")
 SET(CMAKE_C_COMPILER "gcc")
 SET(CMAKE_CXX_FLAGS "-fPIC")
-SET(CMAKE_CXX_FLAGS_DEBUG          "--g -O3 -ftree-ter")
+SET(CMAKE_CXX_FLAGS_DEBUG          "-g -O3 -ftree-ter")
 SET(CMAKE_CXX_FLAGS_RELEASE        "-DNDEBUG    -O3 -Wstrict-aliasing=0 -ffast-math ")
 SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -g -O3 -Wstrict-aliasing=0 -ffast-math ")
 SET(CMAKE_EXE_LINKER_FLAGS "")

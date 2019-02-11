@@ -42,6 +42,10 @@ ACI-1339881 and ACI-1339840
 #include <gvt/render/adapter/optix/OptixMeshAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
+#endif
+
 #include "api.h"
 #include <gvt/render/cntx/rcontext.h>
 
@@ -71,7 +75,9 @@ void gvtInit(int argc, char **argv, unsigned int threads) {
   gvt::render::adapter::ospray::data::OSPRayAdapter::initospray(&argc, argv);
 #endif
 
-
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+  gvt::render::adapter::galaxy::data::PVolAdapter::init_pvol(&argc, argv);
+#endif
 
 
 }
@@ -232,6 +238,7 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   cntx::rcontext &db = cntx::rcontext::instance();
 
   cntx::node &ameshnode = db.getUnique(meshname);
+  std::cerr << " instancename " << instancename << " meshname " << meshname << std::endl;
 
   cntx::node &inode = db.createnode("Instance", instancename, true, db.getUnique("Instances").getid());
 
@@ -246,6 +253,8 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
   auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
+  std::cerr << il[0]<<" " << il[1]<<" " <<il[2]<< std::endl;
+  std::cerr << ih[0]<<" " << ih[1]<<" " << ih[2]<< std::endl;
   std::shared_ptr<gvt::render::data::primitives::Box3D> ibox =
       std::make_shared<gvt::render::data::primitives::Box3D>(il, ih);
 
@@ -463,6 +472,7 @@ void modifyRenderer(string name, int adapter, int schedule, std::string const& C
 }
 
 void render(std::string name) {
+    std::cout << "calling the renderer render method " << name << std::endl;
     gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
     ren->render(name);
 }
@@ -478,7 +488,7 @@ void writeimage(std::string name, std::string output) {
 }
 
 #ifdef GVT_BUILD_VOLUME
-void createVolume(const std::string name) {
+void createVolume(const std::string name, const bool amr) {
 
   cntx::rcontext &db = cntx::rcontext::instance();
   cntx::node &root = cntx::rcontext::instance().root();
@@ -488,6 +498,10 @@ void createVolume(const std::string name) {
   std::shared_ptr<std::vector<int> > v = std::make_shared<std::vector<int> >();
   v->push_back(db.cntx_comm.rank);
   db.getChild(db.getUnique(name), "Locations") = v; // db.cntx_comm.rank;
+  if ( amr ) {
+    std::shared_ptr<gvt::render::data::primitives::Volume> vol = getChildByName(db.getUnique(name),"ptr");
+    vol->SetAMRTrue();
+  }
 
 }
 
@@ -500,7 +514,8 @@ void addVolumeTransferFunctions(const std::string name, const std::string colort
   v->SetTransferFunction(tf);
 }
 
-void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate) {
+void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas, float samplingrate, double *bounds ) {
+    float dx,dy,dz;
   cntx::rcontext &db = cntx::rcontext::instance();
   std::shared_ptr<gvt::render::data::primitives::Volume> v = getChildByName(db.getUnique(name), "ptr");
   v->SetVoxelType(gvt::render::data::primitives::Volume::FLOAT);
@@ -509,9 +524,38 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetOrigin(origin[0],origin[1],origin[2]);
   v->SetDeltas(deltas[0],deltas[1],deltas[2]);
   v->SetSamplingRate(samplingrate);
-  glm::vec3 lower(origin[0],origin[1],origin[2]);
-  glm::vec3 upper = lower + glm::vec3((float)counts[0],(float)counts[1],(float)counts[2]) - glm::vec3(1.0,1.0,1.0);
+  std::cerr << " api: bounds " << bounds[0] << "\n" 
+  << bounds[1] << "\n"
+  << bounds[2] << "\n"
+  << bounds[3] << "\n"
+  << bounds[4] << "\n"
+  << bounds[5] << "\n"<< std::endl;
+  glm::vec3 lower(bounds[0],bounds[2],bounds[4]);
+  glm::vec3 upper(bounds[1],bounds[3],bounds[5]);
+  //glm::vec3 lower(origin[0],origin[1],origin[2]);
+  dx = deltas[0]*(float)(counts[0] - 1);
+  dy = deltas[1]*(float)(counts[1] - 1);
+  dz = deltas[2]*(float)(counts[2] - 1);
+  //glm::vec3 upper = lower + glm::vec3(dx,dy,dz);
+  v->SetBoundingBox(lower,upper);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
+  if(v->is_AMR()) {
+      v->SetAMRLevels(1); // first level on this call 
+      v->SetAMRNumberOfGridsInVolume(0); // addAmrSubgrid increments this. 
+      v->SetAMRlng(0,0); // addAmrSubgrid increments this.
+      v->SetAMRBounds(bounds); // set the bounds of the level 0 grid
+      addAmrSubgrid(name,0,0,samples,counts,origin,deltas);// level0 grid is first in list
+
+  } else {
+      v->SetSamples(samples);
+  }
+}
+
+void addAmrSubgrid(const std::string name, int gridid, int level, float *samples, int *counts, float *origin, float *deltas) {
+    cntx::rcontext &db = cntx::rcontext::instance();
+    std::shared_ptr<gvt::render::data::primitives::Volume> v = getChildByName(db.getUnique(name), "ptr");
+    // now set subgrid
+    v->AddAMRGrid(gridid,level,origin,deltas,counts,samples);
 }
 #endif // GVT_BUILD_VOLUME
 

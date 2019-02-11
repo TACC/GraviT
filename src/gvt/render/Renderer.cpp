@@ -91,6 +91,7 @@ gvtRenderer::gvtRenderer() {
 
 void gvtRenderer::reload(std::string const &name) {
 
+    std::cerr << " reloading gvtRenderer " << name << std::endl;
   if (name == current_scheduler) return;
   cntx::rcontext &db = cntx::rcontext::instance();
 
@@ -125,21 +126,25 @@ void gvtRenderer::reload(std::string const &name) {
 
   switch (db.getChild(ren, "type").to<int>()) {
   case scheduler::Image: {
+    std::cerr << " image shed " << std::endl;
     tracersync = std::make_shared<algorithm::Tracer<schedule::ImageScheduler> >(camera, myimage, cam, fil, name);
     db.tracer = tracerasync = nullptr;
     break;
   }
   case scheduler::Domain: {
+    std::cerr << " domain shed " << std::endl;
     tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
     db.tracer = tracerasync = nullptr;
     break;
   }
   case scheduler::AsyncDomain: {
+    std::cerr << " asyncd shed " << std::endl;
     db.tracer = tracerasync = std::make_shared<gvt::render::DomainTracer>(name,camera,myimage);
     tracersync = nullptr;
     break;
   }
   case scheduler::AsyncImage: {
+    std::cerr << " asynci shed " << std::endl;
     db.tracer = tracerasync = std::make_shared<gvt::render::ImageTracer>(name,camera,myimage);
     tracersync = nullptr;
     break;
@@ -152,11 +157,15 @@ void gvtRenderer::reload(std::string const &name) {
 
 void gvtRenderer::render(std::string const &name) {
   reload(name);
+  std::cerr << " gvtRenderer allocate camera rays " << std::endl;
   camera->AllocateCameraRays();
+  std::cerr << " gvtRenderer generate camera rays " << std::endl;
   camera->generateRays(volume);
   if (tracersync) {
+  std::cerr << " gvtRenderer synchronours tracer call " << std::endl;
     (*tracersync.get())();
   } else if (tracerasync) {
+  std::cerr << " gvtRenderer asynchronours tracer call " << std::endl;
     (*tracerasync.get())();
   }
 }
@@ -164,6 +173,7 @@ void gvtRenderer::WriteImage(std::string const &name) { myimage->write(name); }
 
 gvtRenderer *gvtRenderer::instance() {
   if (__singleton == nullptr) {
+      std::cout << "creatin a new gvtRenderer " << std::endl;
     __singleton = new gvtRenderer();
   }
   return __singleton;
