@@ -11,7 +11,7 @@ export TBB_LIB=/opt/intel/compilers_and_libraries_2018.2.199/linux/tbb/lib/intel
 export Galaxy_LIB_DIR=$gvt_DIR/../third-party/galaxy/install/lib
 export ospray_LIB_DIR=$ospray_DIR/lib64
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$embree_DIR/lib64:$MPI_DIR/lib64:$IceT_LIB_DIR:$gvt_DIR/lib:$ospray_DIR/lib64
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$embree_DIR/lib64:$MPI_DIR/lib64:$IceT_LIB_DIR:$gvt_DIR/lib:$ospray_DIR/lib64:$Galaxy_LIB_DIR
 
 
 echo "======================================================"
