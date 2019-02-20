@@ -238,7 +238,7 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   cntx::rcontext &db = cntx::rcontext::instance();
 
   cntx::node &ameshnode = db.getUnique(meshname);
-  std::cerr << " instancename " << instancename << " meshname " << meshname << std::endl;
+  //std::cerr << " instancename " << instancename << " meshname " << meshname << std::endl;
 
   cntx::node &inode = db.createnode("Instance", instancename, true, db.getUnique("Instances").getid());
 
@@ -253,8 +253,8 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
   auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-  std::cerr << il[0]<<" " << il[1]<<" " <<il[2]<< std::endl;
-  std::cerr << ih[0]<<" " << ih[1]<<" " << ih[2]<< std::endl;
+  //std::cerr << il[0]<<" " << il[1]<<" " <<il[2]<< std::endl;
+  //std::cerr << ih[0]<<" " << ih[1]<<" " << ih[2]<< std::endl;
   std::shared_ptr<gvt::render::data::primitives::Box3D> ibox =
       std::make_shared<gvt::render::data::primitives::Box3D>(il, ih);
 
@@ -524,12 +524,12 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetOrigin(origin[0],origin[1],origin[2]);
   v->SetDeltas(deltas[0],deltas[1],deltas[2]);
   v->SetSamplingRate(samplingrate);
-  std::cerr << " api: bounds " << bounds[0] << "\n" 
-  << bounds[1] << "\n"
-  << bounds[2] << "\n"
-  << bounds[3] << "\n"
-  << bounds[4] << "\n"
-  << bounds[5] << "\n"<< std::endl;
+  //std::cerr << " api: bounds " << bounds[0] << "\n" 
+  //<< bounds[1] << "\n"
+  //<< bounds[2] << "\n"
+  //<< bounds[3] << "\n"
+  //<< bounds[4] << "\n"
+  //<< bounds[5] << "\n"<< std::endl;
   glm::vec3 lower(bounds[0],bounds[2],bounds[4]);
   glm::vec3 upper(bounds[1],bounds[3],bounds[5]);
   //glm::vec3 lower(origin[0],origin[1],origin[2]);
@@ -540,6 +540,7 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetBoundingBox(lower,upper);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
   if(v->is_AMR()) {
+      std::cerr<<"gvt:api:addVolumeSamples floats " << samples[0] << " " <<samples[1]<<std::endl;
       v->SetAMRLevels(1); // first level on this call 
       v->SetAMRNumberOfGridsInVolume(0); // addAmrSubgrid increments this. 
       v->SetAMRlng(0,0); // addAmrSubgrid increments this.
@@ -555,6 +556,7 @@ void addAmrSubgrid(const std::string name, int gridid, int level, float *samples
     cntx::rcontext &db = cntx::rcontext::instance();
     std::shared_ptr<gvt::render::data::primitives::Volume> v = getChildByName(db.getUnique(name), "ptr");
     // now set subgrid
+    std::cerr << "gvt:api:addAmrSubgrid floats " << samples[0] << " " << samples[1] << std::endl;
     v->AddAMRGrid(gridid,level,origin,deltas,counts,samples);
 }
 #endif // GVT_BUILD_VOLUME

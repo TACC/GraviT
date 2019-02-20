@@ -23,14 +23,14 @@ cdef extern from "gravit/api.h" namespace "api":
   void _addMeshMaterial2 "api::addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks, float alpha )
   void _addMeshMaterials "api::addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd, float *ks,  float *alpha)
   void _addInstance "api::addInstance"(string name, string meshname, float *m)
-  void _createVolume"api::createVolume"(string name)
+  void _createVolume"api::createVolume"(string name,bool amr)
   void _addVolumeTransferFunctions"api::addVolumeTransferFunctions"(string name, string colortfname, string opacityfname, float low, float high)
   void _addVolumeSamples"api::addVolumeSamples"(string name, float *samples, int *counts, float *origin, float* deltas, float samplingrate, double *bounds)
   void _addAmrSubgrid"api::addAmrSubgrid"(string name, int gridid, int level, float *samples, int *counts, float *origin, float *deltas)
   void _addPointLight "api::addPointLight"(string name,  float *pos,  float *color)
   void _addAreaLight "api::addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
   void _modifyLight "api::modifyLight"(string name,  float *pos,  float *color)
-  void _modifyLight "api::modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
+  void _modifyLight2 "api::modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
   void _addCamera "api::addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
   void _modifyCamera "api::modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
   void _modifyCamera "api::modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov)
@@ -70,7 +70,7 @@ def addVolumeTransferFunctions(str name, str colortfname, str opacityfname, floa
    _addVolumeTransferFunctions(name.encode(),colortfname.encode(),opacityfname.encode(),low,high)
 def addVolumeSamples(str name, np.ndarray[float, ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin, np.ndarray[float,ndim=1,mode="c"] deltas,float samplingrate,np.ndarray[double,ndim=1,mode="c"] bounds):
    _addVolumeSamples(name.encode(),<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data,samplingrate,<double*>bounds.data)
-def addAmrSubgrid(str name, int gridid, int level,np.ndarray[float,ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin,np.ndarray[float,ndim=1,mode="c"] deltas]):
+def addAmrSubgrid(str name, int gridid, int level,np.ndarray[float,ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin,np.ndarray[float,ndim=1,mode="c"] deltas):
     _addAmrSubgrid(name.encode(),gridid,level,<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data)
 def addMeshVertices(str name, int size, np.ndarray[float, ndim=1, mode="c"] vertices not None):
   _addMeshVertices(name.encode(),size,<float*> vertices.data)
@@ -98,8 +98,8 @@ def addMeshMaterialSpecular( str name,  unsigned mattype,  np.ndarray[float, ndi
 
 def addInstance(str s, str name,  np.ndarray[float, ndim=1, mode="c"] m):
   _addInstance(s.encode(),name.encode(),<float*> m.data)
-def createVolume(str name):
-      _createVolume(name.encode())
+def createVolume(str name,bool amr = False):
+      _createVolume(name.encode(),amr)
 
 def addPointLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color):
   _addPointLight(name.encode(),<float*> pos.data, <float*> color.data)
@@ -110,8 +110,8 @@ def addAreaLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray
 def modifyLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color):
   _modifyLight(name.encode(),<float*>pos.data, <float*> color.data)
 
-def modifyLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color,  np.ndarray[float, ndim=1, mode="c"] n, float w, float h):
-  _modifyLight(name.encode(),<float*>pos.data,<float*>color.data,<float*>n.data,w,h)
+def modifyLight2(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color,  np.ndarray[float, ndim=1, mode="c"] n, float w, float h):
+  _modifyLight2(name.encode(),<float*>pos.data,<float*>color.data,<float*>n.data,w,h)
 
 def addCamera(str name,  np.ndarray[float, ndim=1, mode="c"]  pos,  np.ndarray[float, ndim=1, mode="c"]  focus,  np.ndarray[float, ndim=1, mode="c"]  up, float fov, int depth, int samples, float jitter):
   _addCamera(name.encode(), <float*> pos.data, <float*>focus.data,<float*>up.data,fov,depth,samples,jitter)

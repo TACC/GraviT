@@ -72,12 +72,12 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   // build the PVOL volume from the data in the GraviT volume
   //std::cerr << " pvoladapter: init local volume shared p " << std::endl;
   theVolume = ::gxy::AmrVolume::NewP();
-  // load the number of levels and grids per level
-  theVolume->set_numlevels(data->GetAMRNumberOfLevels());
   if (data->is_AMR()) {
-      std::cerr << " data is amr" << std::endl;
+  // load the number of levels and grids per level
+      theVolume->set_numlevels(data->GetAMRNumberOfLevels());
+      std::cerr << " anr data has " << data->GetAMRNumberOfLevels()<<" levels"<<std::endl;
       std::map<int,int> lng = data->GetAmrlng();
-      std::cerr << " lng size " << lng.size() << std::endl;
+      std::cerr << " level grid map size " << lng.size() << std::endl;
       for (auto it = lng.begin(); it != lng.end(); ++it)
       {
         std::cerr << it->second << " grids in level " << it->first << std::endl;
@@ -88,7 +88,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
       theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
       // get the number of grids in this volume
       int ngv = data->GetAMRNumberOfGridsInVolume();
-      std::cerr << " ngv " << ngv << std::endl;
+      std::cerr << " number of grids in volume " << ngv << std::endl;
       // iterate over the subgrids in the volume and populate the galaxy volume
       //
       for(int gvtgrid = 0;gvtgrid<ngv;gvtgrid++) 
@@ -96,11 +96,12 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
           std::cerr << " gvt grid " << gvtgrid << std::endl;
           gvt::render::data::primitives::griddata gvtdata = data->GetAMRGrid(gvtgrid);
           std::cerr << gvtdata.origin[0] << " " << gvtdata.origin[1] << " " << gvtdata.origin[2] << std::endl;
-          std::cerr << gvtdata.counts[0] << " " << gvtdata.counts[1] << " " << gvtdata.counts[2] << std::endl;
-          std::cerr << gvtdata.spacing[0] << " " << gvtdata.spacing[1] << " " << gvtdata.spacing[2] << std::endl;
           theVolume->add_gridorigin(gvtdata.origin[0],gvtdata.origin[1],gvtdata.origin[2]);
+          std::cerr << gvtdata.counts[0] << " " << gvtdata.counts[1] << " " << gvtdata.counts[2] << std::endl;
           theVolume->add_gridcounts(gvtdata.counts[0],gvtdata.counts[1],gvtdata.counts[2]);
+          std::cerr << gvtdata.spacing[0] << " " << gvtdata.spacing[1] << " " << gvtdata.spacing[2] << std::endl;
           theVolume->add_gridspacing(gvtdata.spacing[0],gvtdata.spacing[1],gvtdata.spacing[2]);
+          std::cerr << "gvt:pvoladapter samples pointer " << gvtdata.samples <<std::endl;
           theVolume->add_samples(gvtdata.samples);
       }
   }
@@ -132,12 +133,13 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   //std::cerr << "pvoladapter: set volume global origin" << std::endl;
   //theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
   std::cerr << "pvoladapter: set local offsets" << std::endl;
+  std::cerr << localoffset.x << " " << localoffset.y << " " << localoffset.z << std::endl;
   theVolume->set_local_offset(localoffset.x, localoffset.y, localoffset.z);
   std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
   theVolume->set_ghosted_local_offset(localoffset.x, localoffset.y, localoffset.z);
-
   data->GetCounts(volumedimensions);
   std::cerr << "pvoladapter: set volume counts" << std::endl;
+  std::cerr << volumedimensions.x<<" " <<volumedimensions.y<<" "<<volumedimensions.z <<std::endl;
   theVolume->set_global_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
   std::cerr << "pvoladapter: set local counts" << std::endl;
   theVolume->set_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
@@ -155,8 +157,8 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   glm::vec3 upperbound = bbox->bounds_max;
   ::gxy::vec3f lb = {lowerbound.x,lowerbound.y,lowerbound.z};
   ::gxy::vec3f ub = {upperbound.x,upperbound.y,upperbound.z};
-  std::cerr << " boxL \n" << lowerbound.x << " " << lowerbound.y << " " << lowerbound.z << std::endl;
-  std::cerr << " boxU \n" << upperbound.x << " " << upperbound.y << " " << upperbound.z << std::endl;
+ // std::cerr << " boxL \n" << lowerbound.x << " " << lowerbound.y << " " << lowerbound.z << std::endl;
+  //std::cerr << " boxU \n" << upperbound.x << " " << upperbound.y << " " << upperbound.z << std::endl;
   
   theVolume->Volume::set_local_box(lb,ub);
   //theVolume->Volume::set_global_box(lb,ub);
@@ -195,7 +197,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   //std::cerr << "pvoladapter data min/max " << data_min << " " << data_max << std::endl;
   {
     int count = data->GetTransferFunction()->getColorCount();
-    std::cerr << " setting " << count << " element transfer function " << std::endl;
+    //std::cerr << " setting " << count << " element transfer function " << std::endl;
     // this statement is wrong. it gets the wrong vector
     // the right vector is a vec4 also. 
     //glm::vec3 *in = data->GetTransferFunction()->getColors();
@@ -207,9 +209,9 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
     for (int i = 0; i < count; ++i )
     {
       scalar = in[i].x*(data_max - data_min) + data_min;
-      std::cerr << i << "incolor " << in[i].x << " " << in[i].y <<  " " << in[i].z << " " << in[i].w << std::endl;
+    //  std::cerr << i << "incolor " << in[i].x << " " << in[i].y <<  " " << in[i].z << " " << in[i].w << std::endl;
       out[i] = ::gxy::vec4f(scalar, in[i].y, in[i].z, in[i].w);
-      std::cerr << i << " color " << out[i].x << " " << out[i].y << " " << out[i].z << " " << out[i].w << std::endl;
+     // std::cerr << i << " color " << out[i].x << " " << out[i].y << " " << out[i].z << " " << out[i].w << std::endl;
       //scalar += data_step;
     }
     theVolumeVis->SetColorMap( count, out );
@@ -226,7 +228,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
     {
       scalar = in[i].x*(data_max - data_min) + data_min;
       out[i] = ::gxy::vec2f(scalar,in[i].y);
-      std::cout << i << " opacity " << out[i].x << " " << out[i].y << std::endl;
+     // std::cout << i << " opacity " << out[i].x << " " << out[i].y << std::endl;
       //scalar += data_step;
     }
     theVolumeVis->SetOpacityMap( count, out );
