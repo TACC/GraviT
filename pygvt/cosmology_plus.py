@@ -44,8 +44,11 @@ os.chdir(data_dir)
 volumefile = os.path.join(data_dir,"DD0046/DD0046.hierarchy.hdf5")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Grayscale.orig.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/Grayscale.orig.omap")
-ctffile = os.path.join(gravit_dir,"data/colormaps/CoolWarm.cmap")
-otffile = os.path.join(gravit_dir,"data/colormaps/CoolWarm.omap")
+#ctffile = os.path.join(gravit_dir,"data/colormaps/CoolWarm.cmap")
+otffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.omap")
+ctffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.cmap")
+#ctffile = os.path.join(gravit_dir,"data/colormaps/orange-5.cmap")
+#otffile = os.path.join(gravit_dir,"data/colormaps/orange-5.omap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Balls.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/Balls.omap")
 #
@@ -63,7 +66,7 @@ for domain in range(numberofdomains):
     level = 0 
     if(domain%numprocs == rank): # read the domain (grid)
         nodename = "enzo_cosmology_plus_domain_" + repr(domain)
-        print(" creating node " + nodename)
+#        print(" creating node " + nodename)
         gvt.createVolume(nodename,True)
         gridname = level0grids[domain]
         grid = level0[gridname]
@@ -86,16 +89,16 @@ for domain in range(numberofdomains):
         right = left + spacing*(dimensions)
         bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
         # stuff the level grid full
-        print("\tdims "+repr(dimensions[:]))
-        print("\tsdims "+repr(scalardims[:]))
-        print("\tleft " + repr(left[:]))
-        print("\tspacing " + repr(spacing))
-        print("\tsampling " + repr(samplingrate))
-        print("\tbounds " + repr(bounds))
+#        print("\tdims "+repr(dimensions[:]))
+#        print("\tsdims "+repr(scalardims[:]))
+#        print("\tleft " + repr(left[:]))
+#        print("\tspacing " + repr(spacing))
+#        print("\tsampling " + repr(samplingrate))
+#        print("\tbounds " + repr(bounds))
         #fltptr = scalars.flatten()
         fltptr = np.ravel(scalars,order='C')
-        print("\tfloats " + repr(fltptr[0]) + " " +repr(fltptr[1] ))
-        print("level " + repr(level) + " gridname " + gridname +" nodename "+ nodename)
+#        print("\tfloats " + repr(fltptr[0]) + " " +repr(fltptr[1] ))
+#        print("level " + repr(level) + " gridname " + gridname +" nodename "+ nodename)
         gvt.addVolumeSamples(nodename,fltptr.astype(np.float32),dimensions.astype(np.int32),left.astype(np.float32),spacing.astype(np.float32),samplingrate,bounds.astype(np.float64))
         # grab the subgrids or daughters of this grid
         daughtergrids = grid['DaughterGrids']
@@ -123,18 +126,20 @@ for domain in range(numberofdomains):
             right = grid['GridRightEdge'][()]
             bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
             spacing = (right - left)/(endindex-startindex +1)
-            print("\t"+dgname)
-            print("\t\tdims "+repr(dimensions[:]))
-            print("\t\tleft " + repr(left[:]))
-            print("\t\tright " + repr(right[:]))
-            print("\t\tspacing " + repr(spacing))
-            print("\tbounds " + repr(bounds))
+#            print("\t"+dgname)
+#            print("\t\tdims "+repr(dimensions[:]))
+#            print("\t\tleft " + repr(left[:]))
+#            print("\t\tright " + repr(right[:]))
+#            print("\t\tspacing " + repr(spacing))
+#            print("\tbounds " + repr(bounds))
             fltptr = scalars.flatten()
-            print("level "+repr(level)+" gridname "+dgname+" nodename "+nodename)
+#            print("level "+repr(level)+" gridname "+dgname+" nodename "+nodename)
             gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),dimensions.astype(np.int32),left.astype(np.float32),spacing.astype(np.float32))
         print(" add transfer functions " + nodename)
         print(" ctffile : " + ctffile)
         print(" otffile : " + otffile)
+        low_scalar = 1.0
+        high_scalar = 20.0
         print(" scalar range : " + repr(low_scalar) + " " + repr(high_scalar))
         gvt.addVolumeTransferFunctions(nodename,ctffile,otffile,low_scalar,high_scalar)
         # add an instance for this level 0 grid
@@ -143,8 +148,8 @@ for domain in range(numberofdomains):
         gvt.addInstance(myinstance,nodename,mf)
 # and now camera etc.
 #
-eyept = np.array([2.5,2.5,2.5],dtype=np.float32)
-focus = np.array([0.5,0.5,0.5],dtype=np.float32)
+eyept = np.array([0.5,0.5,1.9],dtype=np.float32)
+focus = np.array([0.461,0.211,0.570],dtype=np.float32)
 fov = 30.0*np.pi/180.0
 upVector = np.array([0.0,1.0,0.0],dtype=np.float32)
 rayMaxDepth = 1
@@ -153,7 +158,7 @@ jitterWindowSize = 0.5
 camname = "conecam"
 gvt.addCamera(camname,eyept,focus,upVector,fov,rayMaxDepth,raysamples,jitterWindowSize)
 #film
-wsize = np.array([512,512],dtype=np.int32)
+wsize = np.array([1024,1024],dtype=np.int32)
 filmname = "conefilm"
 imagename = "EnzoImage"
 gvt.addFilm(filmname,wsize[0],wsize[1],imagename)
