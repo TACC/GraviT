@@ -45,13 +45,16 @@ volumefile = os.path.join(data_dir,"DD0046/DD0046.hierarchy.hdf5")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Grayscale.orig.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/Grayscale.orig.omap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/CoolWarm.cmap")
-otffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.omap")
+#otffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.omap")
+otffile = os.path.join(gravit_dir,"data/colormaps/tenspikes.omap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/ramp.omap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.cmap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/IceFire.cmap")
+#ctffile = os.path.join(gravit_dir,"data/colormaps/blueredyellowwhite.cmap")
+#ctffile = os.path.join(gravit_dir,"data/colormaps/gist_stern.cmap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Jet.cmap")
-ctffile = os.path.join(gravit_dir,"data/colormaps/coldhot.cmap")
+#ctffile = os.path.join(gravit_dir,"data/colormaps/coldhot.cmap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/orange-5.cmap")
+ctffile = os.path.join(gravit_dir,"data/colormaps/RdBu_r.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/orange-5.omap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Balls.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/Balls.omap")
@@ -77,7 +80,7 @@ for domain in range(numberofdomains):
         griddata = grid.get('GridData')
         density = griddata['Density']
         with density.astype('float32'):
-            scalars = density[()]
+            scalars = np.log10(density[()])
         scalardims = np.array(scalars.shape,dtype=np.int32)
         low_scalar= min(low_scalar,scalars.min())
         high_scalar= max(high_scalar,scalars.max())
@@ -117,7 +120,7 @@ for domain in range(numberofdomains):
             griddata = grid.get('GridData')
             density = griddata['Density']
             with density.astype('float32'):
-                scalars = density[()]
+                scalars = np.log10(density[()])
             scalardims = np.array(scalars.shape,dtype=np.int32) -1
             low_scalar= min(low_scalar,scalars.min())
             high_scalar= max(high_scalar,scalars.max())
@@ -142,8 +145,9 @@ for domain in range(numberofdomains):
         print(" add transfer functions " + nodename)
         print(" ctffile : " + ctffile)
         print(" otffile : " + otffile)
-        low_scalar = 0.10
-        high_scalar = 42.0
+        #low_scalar = 0.10
+        #high_scalar = 42.0
+        high_scalar = np.log10(100.0)
         print(" scalar range : " + repr(low_scalar) + " " + repr(high_scalar))
         gvt.addVolumeTransferFunctions(nodename,ctffile,otffile,low_scalar,high_scalar)
         # add an instance for this level 0 grid
@@ -152,9 +156,11 @@ for domain in range(numberofdomains):
         gvt.addInstance(myinstance,nodename,mf)
 # and now camera etc.
 #
-eyept = np.array([2.0,2.0,2.0],dtype=np.float32)
-focus = np.array([0.4,0.6,0.5],dtype=np.float32)
-fov = 10.0*np.pi/180.0
+eyept = np.array([2.5,2.5,2.5],dtype=np.float32)
+#focus = np.array([0.65,0.7,0.6],dtype=np.float32)
+focus = np.array([0.5,0.5,0.5],dtype=np.float32)
+#focus = np.array([0.461,0.211,0.570],dtype=np.float32)
+fov = 30.0*np.pi/180.0
 upVector = np.array([0.0,1.0,0.0],dtype=np.float32)
 rayMaxDepth = 1
 raysamples = 1
@@ -162,7 +168,7 @@ jitterWindowSize = 0.5
 camname = "conecam"
 gvt.addCamera(camname,eyept,focus,upVector,fov,rayMaxDepth,raysamples,jitterWindowSize)
 #film
-wsize = np.array([640,640],dtype=np.int32)
+wsize = np.array([1024,1024],dtype=np.int32)
 filmname = "conefilm"
 imagename = "EnzoImage"
 gvt.addFilm(filmname,wsize[0],wsize[1],imagename)
