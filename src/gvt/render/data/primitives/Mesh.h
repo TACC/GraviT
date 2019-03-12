@@ -50,6 +50,7 @@ namespace primitives {
 class Mesh : public Data {
 public:
   typedef std::tuple<int, int, int> Face;
+  typedef std::tuple<int, int, int, int> TetrahedralCell;
   typedef std::tuple<int, int, int> FaceToNormals;
 
   Mesh(gvt::render::data::primitives::Material *mat = NULL);
@@ -67,6 +68,7 @@ public:
   virtual void addNormal(glm::vec3 normal);
   virtual void addTexUV(glm::vec3 texUV);
   virtual void addFace(int v0, int v1, int v2);
+  virtual void addTetrahedralCell(int v0, int v1, int v2, int v3);
   virtual void addFaceToNormals(FaceToNormals);
 
   virtual gvt::render::data::primitives::Box3D computeBoundingBox();
@@ -89,6 +91,7 @@ public:
   gvt::core::Vector<glm::vec3> mapuv;
   gvt::core::Vector<glm::vec3> normals;
   gvt::core::Vector<Face> faces;
+  gvt::core::Vector<TetrahedralCell> tets;
   gvt::core::Vector<FaceToNormals> faces_to_normals;
   gvt::core::Vector<glm::vec3> face_normals;
   gvt::core::Vector<Material *> faces_to_materials;

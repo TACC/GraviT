@@ -17,6 +17,18 @@ GraviT is funded in part by the US National Science Foundation under awards ACI-
 ACI-1339881 and ACI-1339840
 ======================================================================================= */
 
+// Qhull bits
+#include "libqhullcpp/Qhull.h"
+#include "libqhullcpp/RboxPoints.h"
+#include "libqhullcpp/QhullError.h"
+#include "libqhullcpp/QhullQh.h"
+#include "libqhullcpp/QhullFacet.h"
+#include "libqhullcpp/QhullFacetList.h"
+#include "libqhullcpp/QhullLinkedList.h"
+#include "libqhullcpp/QhullVertex.h"
+#include "libqhullcpp/QhullPoint.h"
+#include "libqhullcpp/QhullVertexSet.h"
+
 // API functions
 #include <cassert>
 #include <gvt/core/Math.h>
@@ -51,6 +63,13 @@ ACI-1339881 and ACI-1339840
 
 using namespace std;
 using namespace gvt::render::data::primitives;
+using orgQhull::Qhull;
+using orgQhull::QhullFacetList;
+using orgQhull::QhullFacet;
+using orgQhull::QhullVertexSet;
+using orgQhull::QhullVertexSetIterator;
+using orgQhull::QhullVertex;
+using orgQhull::QhullPoint;
 
 namespace api {
 
@@ -68,7 +87,7 @@ void gvtInit(int argc, char **argv, unsigned int threads) {
   }
 
   cntx::node &root = cntx::rcontext::instance().root();
-  cntx::rcontext::instance().createnode_allranks("threads", "threads", true, root.getid());
+  cntx::rcontext::instance().createnode_allranks("threads","threads",true,root.getid());
   cntx::rcontext::instance().getUnique("threads") = threads;
 
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
@@ -104,13 +123,51 @@ void createMesh(const std::string name) {
 }
 
 
-void addMeshVertices(const std::string name, const unsigned &n, const float *vertices) {
+void addMeshVertices(const std::string name, const unsigned &n, const float *vertices, const bool tesselate, const std::string qhullargs) {
 
+  // it is assumed that we have 3D data.
+  int dimension = 3;
+  Qhull qhull;
+  std::string control(qhullargs);
   cntx::rcontext &db = cntx::rcontext::instance();
   std::shared_ptr<gvt::render::data::primitives::Mesh> m = getChildByName(db.getUnique(name), "ptr");
 
+  // qhull expects double  verticies and gvt uses float so make a temp array to
+  // hold the doubles and delete it after the routines are done. What a waste.
+  double *dverts = new double[3*n];
   for (int i = 0; i < n * 3; i += 3) {
     m->addVertex(glm::vec3(vertices[i + 0], vertices[i + 1], vertices[i + 2]));
+    dverts[i] = vertices[i+0];
+    dverts[i+1] = vertices[i+1];
+    dverts[i+2] = vertices[i+2];
+  }
+  if(tesselate) { // call qhull to tesselate the vertices and create the triangle mesh
+      if(control.empty())
+          control = "d Qz";
+      // call qhull to tesselate
+      qhull.runQhull("",dimension,n,dverts,control.c_str());
+  }
+  delete dverts;
+  // pull the tessellation data out of qhull and load it into gravit
+  QhullFacetList facets = qhull.facetList();
+  for(QhullFacetList::const_iterator i = facets.begin();i!=facets.end();++i){
+      QhullFacet f = *i;
+      if(facets.isSelectAll() || f.isGood()) {
+         QhullVertexSet vs = f.vertices();
+         QhullVertexSetIterator j = vs;
+         if(!vs.isEmpty()) {
+           QhullVertex v;
+           QhullPoint p;
+           if(vs.count() == 3) { // add a triangle
+               m->addFace(vs[0].point().id(),vs[1].point().id(),vs[2].point().id());
+           }
+           //while(j.hasNext()) {
+           // v = j.next();
+           //  p = v.point();
+           // accumulate points here
+          //}
+         }
+      }
   }
 }
 
