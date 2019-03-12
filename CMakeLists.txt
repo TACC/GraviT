@@ -607,7 +607,7 @@ if (GVT_RENDER)
     endif (GVT_RENDER_ADAPTER_GREGSPRAY)
 
     if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
-        find_package(embree 2.15.0 REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib64/cmake
+        find_package(embree 2.15.0 REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/embree
                                                   ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib/cmake 
                                                   ${CMAKE_HOME_DIRECTORY}/third-party/embree/build
                                                   )
