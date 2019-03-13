@@ -111,6 +111,8 @@ SET_PROPERTY(CACHE GVT_VECTOR_TARGET PROPERTY STRINGS NONE SSE AVX AVX2 AVX512KN
 find_package(TBB REQUIRED)
 include_directories(${TBB_INCLUDE_DIRS})
 link_directories(${TBB_LIBRARY_DIRS})
+message(STATUS "TBB lib dirs ${TBB_LIBRARY_DIRS}")
+
 
 set(GVT_THIRDPARTY_GLM "third-party/glm")
 set(GLM_ROOT_DIR "${PROJECT_SOURCE_DIR}/third-party/glm")
@@ -540,7 +542,7 @@ if (GVT_RENDER)
     if (GVT_RENDER_ADAPTER_EMBREE OR GVT_RENDER_ADAPTER_EMBREE_STREAM)
         find_package(embree 2.15.0 REQUIRED PATHS ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib64/cmake
                                                   ${CMAKE_HOME_DIRECTORY}/third-party/embree/install/lib/cmake 
-                                                  ${CMAKE_HOME_DIRECTORY}/third-party/embree/build
+                                                  ${CMAKE_HOME_DIRECTORY}/third-party/embree/
                                                   )
         include_directories(${EMBREE_INCLUDE_DIRS})
         set(GVT_RENDER_LIBS ${GVT_RENDER_LIBS} ${EMBREE_LIBRARIES})
@@ -620,7 +622,7 @@ if(GVT_TESS_APP)
     set(GVTTESS_RENDER_SRCS ${GVTTESS_RENDER_SRCS} src/apps/render/TessApp.cpp)
     add_executable(gvtTess ${GVTTESS_RENDER_SRCS})
     #add_executable(tessApp src/apps/render/TessApp.cpp)
-    target_link_libraries(gvtTess gvtCore gvtRender ${GVTTESS_RENDER_LIBS} ${GVT_CORE_LIBS} )
+    target_link_libraries(gvtTess gvtCore gvtRender ${GVTTESS_RENDER_LIBS} ${GVT_CORE_LIBS} ${GVT_RENDER_LIBS} )
     install(TARGETS gvtTess RUNTIME DESTINATION bin)
     #include_directories(third-party/qhull/Install/include)
     #target_link_libraries(tessApp  /work/01197/semeraro/stampede2/Projects/GraviT/third-party/qhull/Install/lib/libqhullcpp.a /work/01197/semeraro/stampede2/Projects/GraviT/third-party/qhull/Install/lib/libqhull_r.so)
