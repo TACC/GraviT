@@ -157,7 +157,7 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
                std::cerr << vs[0].point().id() << " " 
                          << vs[1].point().id() << " " 
                          << vs[2].point().id() << std::endl;
-               m->addFace(vs[0].point().id(),vs[1].point().id(),vs[2].point().id());
+               m->addFace(vs[0].point().id()+1,vs[1].point().id()+1,vs[2].point().id()+1);
            }
            //while(j.hasNext()) {
            // v = j.next();

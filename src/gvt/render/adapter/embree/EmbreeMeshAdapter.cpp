@@ -72,6 +72,7 @@
 #define GVT_EMBREE_INTERSECTION rtcIntersect4
 #define GVT_EMBREE_OCCULUSION rtcOccluded4
 #endif
+#define FLAT_SHADING
 
 using namespace gvt::render::actor;
 using namespace gvt::render::adapter::embree::data;

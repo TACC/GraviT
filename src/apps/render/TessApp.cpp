@@ -1,23 +1,9 @@
 /**
- * GraviT delaunay tessellation test application. Create a delaunay tessellation
- * of several points in 3D space. The points are randomly placed in a unit cube
- * centered at the origin. 
- *
- * The domain decomposition segments the cube along the coordinate axes.
- * For simplicity three decompositions are allowed. 
- *    0) a 1 rank partition (serial code)
- *    1) a 2 rank partition along the x axis.
- *    2) a 4 rank partition along the x and y axis.
- *    3) a 8 rank partition along the x, y and z axis. 
- *
- * The decomposition is determined by the number of mpi ranks. Thus the
- * appliction should be started with the appropriate number. If it is 
- * determined that the number of ranks is not 2, 4 or 8 (or that mpi_init was
- * not called, serial run) the application will return without running. 
- *
- * Each rank of the application generates n random points on the unit cube
- * and then drops the points that are outside if its bounding box. This 
- * eliminates the need for communication in the data generation stage. 
+ * GraviT delaunay tessellation test application two. 
+ * This application reads sets of points in vtk unstructured grid format
+ * Each file contains a set of points to be tesslated. The application
+ * loads the points from a file into a separate GraviT mesh object. Each
+ * mesh object is tesslated and rendered by GraviT.
  *
  */
 // GraviT includes
@@ -229,7 +215,7 @@ int main(int argc, char** argv) {
         api::createMesh(mymeshname);
         api::addMeshVertices(mymeshname,local_count,local_point_vector,true,qhull_control);
         api::addMeshMaterial(mymeshname,(unsigned)gvt::render::data::primitives::LAMBERT,kd,1.f);
-        api::finishMesh(mymeshname);
+        api::finishMesh(mymeshname,true);
         // now have each rank add an instance of the mesh it owns.
         // Each instance needs a transformation matrix to position the
         // particular instance of the mesh. Since the mesh is not being 
@@ -336,10 +322,10 @@ int main(int argc, char** argv) {
     // now the camera and lights can be set up. 
     // and the scene rendered
     // camera bits
-    auto eye = glm::vec3(0.,0.,-4.0);
+    auto eye = glm::vec3(0.,0.,3.0);
     auto focus = glm::vec3(0.0,0.0,0.0);
     auto upVector = glm::vec3(0.0,1.0,0.0);
-    float fov = (float)(45.0*M_PI/180.0);
+    float fov = (float)(30.0*M_PI/180.0);
     int rayMaxDepth = (int)1;
     int raySamples = (int)1;
     float jitterWindowSize = (float)0.5;
@@ -348,15 +334,15 @@ int main(int argc, char** argv) {
     api::addCamera(camname, glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
     db.sync();
     // a light
-    auto lpos = glm::vec3(0.0,0.0,-4.0);
-    auto lcolor = glm::vec3(1.0,1.0,1.0);
+    auto lpos = glm::vec3(0.0,1.0,4.0);
+    auto lcolor = glm::vec3(2.0,2.0,2.0);
     std::string lightname = "tessLight";
     api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
     db.sync();
     // film bits
     std::string filmname = "TFilm";
-     int width = (int)512;
-     int height = (int)512;
+     int width = (int)1024;
+     int height = (int)1024;
      std::string outputpath = "Tess";
     std::cout << "addFilm " << std::endl;
      api::addFilm(filmname, width, height, outputpath);
