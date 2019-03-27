@@ -29,6 +29,10 @@
 #include "libqhullcpp/QhullVertex.h"
 #include "libqhullcpp/QhullPoint.h"
 #include "libqhullcpp/QhullVertexSet.h"
+// VTK
+#include <vtkUnstructuredGridReader.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkSmartPoiner.h>
 // other includes...
 #include <ostream>
 #include <stdexcept>
@@ -234,93 +238,6 @@ int main(int argc, char** argv) {
         api::addInstance(instanceName,instanceTessName,mf);
     }
     db.sync(); // sync the database globally. 
-    // now we call qhull to generate a tesslation
-    // At this point rbox has created the points. These will be the vertices
-    // of the gravit mesh. It remains to tessselate the mesh points.
-    // retrieve some info from rbox.
-#if 0
-    qhull.runQhull("",dimension,global_count,global_point_vector,qhull_control.c_str());
-    QhullFacetList facets = qhull.facetList();
-    std::cout << "facets contain " << facets.count() << " entities" << std::endl;
-    for(QhullFacetList::const_iterator i = facets.begin();i!=facets.end();++i){
-        QhullFacet f=*i;
-        if(facets.isSelectAll() || f.isGood()) {
-            std::cout << " facet id: " << f.id() << std::endl;
-            QhullVertexSet vs = f.vertices();
-            if(!vs.isEmpty()) {
-                std::cout << "this facet has " << vs.count() << " verts" << std::endl;
-                for(int k=0;k<vs.count();k++){
-                   coordT * points = vs[k].point().coordinates();
-                   std::cout << " " << vs[k].point().id();
-        //           std::cout << "\n" << points[0] << " " << points[1] << " " << points[2] << std::endl;
-                }
-                std::cout << std::endl;
-            }
-        }
-    }
-#endif
-#if 0 
-    float *local_point_vector;
-    double x,y,z;
-    std::vector<int> point_index;
-    //if(rnk == 0) {
-    //    std::cout << bounds_min[0] << " " << bounds_max[0] << std::endl;
-    //    std::cout << bounds_min[1] << " " << bounds_max[1] << std::endl;
-    //    std::cout << bounds_min[2] << " " << bounds_max[2] << std::endl;
-    //}
-    for(int p=0;p<global_count;p++) {
-        x = global_point_vector[p];
-        y = global_point_vector[p+1];
-        z = global_point_vector[p+2];
-        //std::cout << " x " << x << " y " << y << " z " << z << std::endl;
-        if((x > bounds_min[0] && x < bounds_max[0]) && 
-           (y > bounds_min[1] && y < bounds_max[1]) &&
-           (z > bounds_min[2] && z < bounds_max[2])) {
-           point_index.push_back(p); // add point index to kept points
-       //    std::cout << "pushed point "<< p << " to point_index" << std::endl;
-        } 
-    }
-    // add meshes if we have them
-    // each rank contributes a different mesh 
-    // with a distinct mesh name
-    if(!point_index.empty() && point_index.size() >= 5){// need 5 points to tessellate
-        local_count = point_index.size();
-        local_point_vector = new float[local_count*3];
-        int index = 0;
-        for(int n : point_index){
-            local_point_vector[index]   = global_point_vector[n];
-            local_point_vector[index+1] = global_point_vector[n+1];
-            local_point_vector[index+2] = global_point_vector[n+2];
-            index += 3;
-        }
-        // now add the mesh to gravit and let the api do the tessellation. 
-        float kd[] = {1.f,1.f,1.f};
-        std::string mymeshname = "Tessellation"+std::to_string(rnk);
-        api::createMesh(mymeshname);
-        api::addMeshVertices(mymeshname,local_count,local_point_vector,true);
-        api::addMeshMaterial(mymeshname,(unsigned)gvt::render::data::primitives::LAMBERT,kd,1.f);
-        api::finishMesh(mymeshname,true);
-        // now have each rank add an instance of the mesh it owns.
-        // Each instance needs a transformation matrix to position the
-        // particular instance of the mesh. Since the mesh is not being 
-        // transformed we pass the identity matrix.
-        glm::mat4 *m = new glm::mat4(1.f);
-        glm::mat4 &mi = (*m);
-        float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], 
-                       mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                       mi[2][0], mi[2][1], mi[2][2], mi[2][3], 
-                       mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-        //std::string instanceTessName = "tessmesh";
-        // each rank creates a single unique mesh with a unique instance
-        // that points to that mesh
-        std::string instanceTessName = mymeshname;
-        std::string instanceName = "inst"+std::to_string(rnk);
-        api::addInstance(instanceName,instanceTessName,mf);
-    }
-    db.sync(); // sync the database globally. 
-#endif
-    // now the camera and lights can be set up. 
-    // and the scene rendered
     // camera bits
     auto eye = glm::vec3(0.,0.,3.0);
     auto focus = glm::vec3(0.0,0.0,0.0);
