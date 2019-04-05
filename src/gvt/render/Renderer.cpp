@@ -95,7 +95,7 @@ void gvtRenderer::reload(std::string const &name) {
   cntx::rcontext &db = cntx::rcontext::instance();
 
   auto &ren = db.getUnique(name);
-  GVT_ASSERT(!ren.getid().isInvalid(), "Suplied renderer " << name << " is not valis");
+  GVT_ASSERT(!ren.getid().isInvalid(), "Suplied renderer " << name << " is not valid");
 
   auto &cam = db.getUnique(db.getChild(ren, "camera"));
   auto &fil = db.getUnique(db.getChild(ren, "film"));
@@ -123,6 +123,7 @@ void gvtRenderer::reload(std::string const &name) {
 
   volume = db.getChild(ren, "volume").to<bool>();
 
+  std::cerr << "sched type "<< db.getChild(ren,"type").to<int>()<< std::endl;
   switch (db.getChild(ren, "type").to<int>()) {
   case scheduler::Image: {
     tracersync = std::make_shared<algorithm::Tracer<schedule::ImageScheduler> >(camera, myimage, cam, fil, name);
@@ -130,6 +131,7 @@ void gvtRenderer::reload(std::string const &name) {
     break;
   }
   case scheduler::Domain: {
+    std::cerr << " got a domain " << std::endl;
     tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
     db.tracer = tracerasync = nullptr;
     break;

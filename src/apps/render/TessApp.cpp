@@ -32,7 +32,8 @@
 // VTK
 #include <vtkUnstructuredGridReader.h>
 #include <vtkUnstructuredGrid.h>
-#include <vtkSmartPoiner.h>
+#include <vtkSmartPointer.h>
+#include <vtkCellArray.h>
 // other includes...
 #include <ostream>
 #include <stdexcept>
@@ -53,110 +54,76 @@ using orgQhull::QhullVertexSet;
 using orgQhull::QhullVertexSetIterator;
 using orgQhull::QhullPoint;
 
+float *getPoints(vtkUnstructuredGrid *usp) {
+    int npts = usp->GetNumberOfPoints();
+    int idx;
+    float *point_vector = new float[npts*3]; // point coords vector
+    double *dvector;
+    for(int i=0;i<npts;i++){
+        dvector = usp->GetPoint(i);
+        idx=3*i;
+        point_vector[idx]   = dvector[0];
+        point_vector[idx+1] = dvector[1];
+        point_vector[idx+2] = dvector[2];
+    }
+    return point_vector;
+}
+// create a gvt mesh object from a vtkUnstructuredGrid
+// filename contains the full path to the vtk file.
+// tesselation included.
+void vtkPointsToGvtMesh(std::string filename,std::string nodename,std::string qhull_control,int domain)
+{
+    int count;
+    float *points;
+    float kd[] = {1.f,1.f,1.f};
+    vtkSmartPointer<vtkUnstructuredGridReader> vtkreader = vtkSmartPointer<vtkUnstructuredGridReader>::New();
+    vtkUnstructuredGrid *usp;
+    api::createMesh(nodename);
+    vtkreader->SetFileName(filename.c_str());
+    usp = vtkreader->GetOutput();
+    vtkreader->Update();
+    //count = usp->GetCells()->GetNumberOfCells();
+    count = usp->GetNumberOfPoints();
+    std::cerr << " read " << count << " cells " << std::endl;
+    points = getPoints(usp);
+    //usp->GetOrigin(dvector);
+    // copy dvector to single
+    
+    
+    api::addMeshVertices(nodename,count,points,true,qhull_control);
+    api::addMeshMaterial(nodename,(unsigned)gvt::render::data::primitives::LAMBERT,kd,1.f);  
+    api::finishMesh(nodename,true);
+    //add instance
+    glm::mat4 *m = new glm::mat4(1.f);
+    glm::mat4 &mi = (*m);
+    float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3],
+                   mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                   mi[2][0], mi[2][1], mi[2][2], mi[2][3],
+                   mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+    std::string instanceTessName = nodename;
+    std::string instanceName = "inst"+std::to_string(domain);
+    api::addInstance(instanceName,instanceTessName,mf);
+}
 // and here we go...
 int main(int argc, char** argv) {
 
-    // qhull library check
-    QHULL_LIB_CHECK
-    // declare the qhull classes
-    RboxPoints rbox;
-    Qhull qhull;
+    std::string dirname("/work/01197/semeraro/stampede2/Projects/GraviT/pygvt");
+    std::string filename;
+    ParseCommandLine cmd("gvtTess");
+    cmd.addoption("control_string", ParseCommandLine::PATH, "qhull control string",1);
+    cmd.parse(argc,argv);
     // init gravit and check for validity
     api::gvtInit(argc,argv);
     cntx::rcontext &db = cntx::rcontext::instance();
     int comsize = db.cntx_comm.size;
     int rnk = db.cntx_comm.rank;
+    std::cerr << comsize << " ranks " << std::endl;
     tbb::task_scheduler_init *init;
     unsigned int numthreads = 8;
     init = new tbb::task_scheduler_init(numthreads);
     db.getUnique("threads") = numthreads;
-    // see if we have a legal decomposition.
-    //std::cerr << "comsize: " << comsize << " rank: " << rnk << std::endl;
-    if(comsize > 8) {
-        if(rnk == 0)
-            std::cerr << " decomposition size > 8 " << std::endl;
-        return 0;
-    }
-    if(comsize & (comsize -1) !=0) { // not power of two comsize
-        if(rnk == 0)
-            std::cerr << " need 1, 2, 4, or 8 ranks " << std::endl;
-        return 0;
-    }
-    // set up the bounding box for this rank
-    // start with global bounding box 
-    glm::vec3 bounds_min = {-0.5,-0.5,-0.5};
-    glm::vec3 bounds_max = {0.5,0.5,0.5};
-    int idx,jdx,kdx;
-    // this is the logical rank index
-    //  rnk  idx jdx kdx
-    //  0     0    0   0
-    //  1     1    0   0
-    //  2     0    1   0
-    //  3     1    1   0
-    //  4     0    0   1
-    //  5     1    0   1
-    //  6     0    1   1
-    //  7     1    1   1
-    if(comsize > 1) {
-        idx = rnk%2;
-        jdx = (rnk>>1)%2;
-        kdx = (rnk>>2)%2;
-        if(idx == 1)
-            bounds_min[0] = 0.0;
-        else
-            bounds_max[0] = 0.0;
-        if(comsize > 2) {
-            if(jdx == 1)
-             bounds_min[1] = 0.0;
-            else
-             bounds_max[1] = 0.0;
-        }
-        if(comsize > 4) {
-            if(kdx == 1)
-             bounds_min[2] = 0.0;
-            else 
-             bounds_max[2] = 0.0;
-        }
-    } else {
-        idx = 0;
-        jdx = 0;
-        kdx = 0;
-    }
-    // set the local bounds
-    /*if(idx == 1) 
-        bounds_min[0] = 0.0;
-    else 
-        if(idx == 0)
-            bounds_max[0] = 0.0;
-    if(jdx == 1)
-        bounds_min[1] = 0.0;
-    else
-        if(jdx == 0)
-            bounds_max[1] = 0.0;
-    if(kdx == 1)
-        bounds_min[2] = 0.0;
-    else
-        if(kdx == 0) 
-            bounds_max[2] = 0.0; */
-    // things look good - parse the args
-    //if(rnk == 0) {
-        std::cout << bounds_min[0] << " " << bounds_max[0] << std::endl;
-        std::cout << bounds_min[1] << " " << bounds_max[1] << std::endl;
-        std::cout << bounds_min[2] << " " << bounds_max[2] << std::endl;
-    //}
-    ParseCommandLine cmd("gvtTess");
-    cmd.addoption("num_points", ParseCommandLine::INT, "number of points", 1);
-    cmd.addoption("control_string", ParseCommandLine::PATH, "qhull control string",1);
-    cmd.parse(argc,argv);
-    std::string rbox_control;
+    std::string mymeshname,haloname;
     std::string qhull_control;
-    if(!cmd.isSet("num_points")) {
-        rbox_control = "80 D3";
-    } else {
-        int np;
-        np = cmd.get<int>("num_points");
-        rbox_control = std::to_string(np) + " D3";
-    }
     if(cmd.isSet("control_string")) {
         gvt::core::Vector<std::string> ctrl = cmd.getValue<std::string>("control_string");
         qhull_control = ctrl[0];
@@ -164,83 +131,22 @@ int main(int argc, char** argv) {
        qhull_control = " " ;
        //qhull_control = "d Qz";
     } 
-    std::cout << " rbox_control: " << rbox_control << std::endl;
-    std::cout << " qhull_control: " << qhull_control << std::endl;
-    // all ranks create the random point set.
-    // Note: each rank creates a possibly different global set of points
-    // later each rank will select a subset of it's locally generated
-    // set and the union of the points across the ranks will be the
-    // actual global set of points. 
-    rbox.appendPoints(rbox_control.c_str());
-    if(rbox.hasRboxMessage()) {
-        std::cerr << "GraviT Tessellation Test error: " << rbox.rboxMessage();
-        return rbox.rboxStatus();
-    }
-    // determine which points are local using the local domain bounds
-    int dimension = rbox.dimension();
-    int global_count = rbox.count();
-    double *global_point_vector = rbox.coordinates();
-    int local_count = 0;
-    float *local_point_vector;
-    double x,y,z;
-    std::vector<int> point_index;
-    std::cout << " dims " << dimension << " global count " << global_count << std::endl;
-    for(int p=0;p<global_count;p++) {
-        int pt = p*dimension;
-        x = global_point_vector[pt];
-        y = global_point_vector[pt+1];
-        z = global_point_vector[pt+2];
-    //    std::cout << " x " << x << " y " << y << " z " << z << std::endl;
-        if((x > bounds_min[0] && x < bounds_max[0]) && 
-           (y > bounds_min[1] && y < bounds_max[1]) &&
-           (z > bounds_min[2] && z < bounds_max[2])) {
-           point_index.push_back(p); // add point index to kept points
-           //std::cout << "pushed point "<< p << " to point_index" << std::endl;
-        } 
-    }
-    if(!point_index.empty() && point_index.size() >= 5){// need 5 points to tessellate
-        local_count = point_index.size();
-        local_point_vector = new float[local_count*dimension];
-        int index = 0;
-        for(int n : point_index){
-            int nt = n*dimension;
-            local_point_vector[index]   = global_point_vector[nt];
-            local_point_vector[index+1] = global_point_vector[nt+1];
-            local_point_vector[index+2] = global_point_vector[nt+2];
-            //std::cerr << n << " " << nt << " " << index << std::endl;
-            //std::cerr << local_point_vector[index]   << " " 
-            //          << local_point_vector[index+1] << " "
-            //          << local_point_vector[index+2] << std::endl;
-            index += 3;
+    for(int h=0;h<25;h++)
+    {
+        if(h%comsize == rnk) // read this halo and mesh it.
+        {
+            haloname = "/halo"+std::to_string(h) + ".vtk";
+            filename = dirname+haloname;
+            mymeshname = "Halo"+std::to_string(h);
+            std::cerr << "rank " << rnk << " reading " << haloname << " " << mymeshname << std::endl;
+            vtkPointsToGvtMesh(filename,mymeshname,qhull_control,h);
         }
-        // now add the mesh to gravit and let the api do the tessellation. 
-        float kd[] = {1.f,1.f,1.f};
-        std::string mymeshname = "Tessellation"+std::to_string(rnk);
-        api::createMesh(mymeshname);
-        api::addMeshVertices(mymeshname,local_count,local_point_vector,true,qhull_control);
-        api::addMeshMaterial(mymeshname,(unsigned)gvt::render::data::primitives::LAMBERT,kd,1.f);
-        api::finishMesh(mymeshname,true);
-        // now have each rank add an instance of the mesh it owns.
-        // Each instance needs a transformation matrix to position the
-        // particular instance of the mesh. Since the mesh is not being 
-        // transformed we pass the identity matrix.
-        glm::mat4 *m = new glm::mat4(1.f);
-        glm::mat4 &mi = (*m);
-        float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], 
-                       mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                       mi[2][0], mi[2][1], mi[2][2], mi[2][3], 
-                       mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-        //std::string instanceTessName = "tessmesh";
-        // each rank creates a single unique mesh with a unique instance
-        // that points to that mesh
-        std::string instanceTessName = mymeshname;
-        std::string instanceName = "inst"+std::to_string(rnk);
-        api::addInstance(instanceName,instanceTessName,mf);
     }
+
     db.sync(); // sync the database globally. 
     // camera bits
-    auto eye = glm::vec3(0.,0.,3.0);
-    auto focus = glm::vec3(0.0,0.0,0.0);
+    auto eye = glm::vec3(0.5,0.5,3.0);
+    auto focus = glm::vec3(0.5,0.5,0.5);
     auto upVector = glm::vec3(0.0,1.0,0.0);
     float fov = (float)(30.0*M_PI/180.0);
     int rayMaxDepth = (int)1;
@@ -258,8 +164,8 @@ int main(int argc, char** argv) {
     db.sync();
     // film bits
     std::string filmname = "TFilm";
-     int width = (int)1024;
-     int height = (int)1024;
+     int width = (int)512;
+     int height = (int)512;
      std::string outputpath = "Tess";
     std::cout << "addFilm " << std::endl;
      api::addFilm(filmname, width, height, outputpath);
@@ -282,6 +188,8 @@ int main(int argc, char** argv) {
      api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
      db.sync();
 //     db.printtreebyrank(std::cout);
+     db.printtreebyrank(std::cout);
+     std::cerr << " time to render " << rnk << std::endl;
      api::render(rendername);
      api::writeimage(rendername,"simple");
      MPI_Finalize();

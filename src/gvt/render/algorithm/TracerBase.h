@@ -266,8 +266,11 @@ public:
       auto &n = nref.get();
       size_t id = db.getChild(n, "id");
 
+      std::cerr << "initializing " << n << std::endl;
+      std::cerr << db.deRef(db.getChild(n, "meshRef")) << std::endl;
       if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
               .v.is<std::shared_ptr<gvt::render::data::primitives::Mesh> >()) {
+          std::cerr << "rank  got a mesh type " << std::endl;
         meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
                           .to<std::shared_ptr<gvt::render::data::primitives::Mesh> >();
       } 

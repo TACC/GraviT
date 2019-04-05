@@ -134,7 +134,7 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
     dverts[i] = vertices[i];
     dverts[i+1] = vertices[i+1];
     dverts[i+2] = vertices[i+2];
-    std::cerr << dverts[i] << " " << dverts[i+1] << " " << dverts[i+2] << std::endl;
+    //std::cerr << dverts[i] << " " << dverts[i+1] << " " << dverts[i+2] << std::endl;
   }
   if(tesselate) { // call qhull to tesselate the vertices and create the triangle mesh
       if(control.empty())
@@ -154,9 +154,9 @@ void addMeshVertices(const std::string name, const unsigned &n, const float *ver
            QhullVertex v;
            QhullPoint p;
            if(vs.count() == 3) { // add a triangle
-               std::cerr << vs[0].point().id() << " " 
-                         << vs[1].point().id() << " " 
-                         << vs[2].point().id() << std::endl;
+     //          std::cerr << vs[0].point().id() << " " 
+     //                    << vs[1].point().id() << " " 
+     //                    << vs[2].point().id() << std::endl;
                m->addFace(vs[0].point().id()+1,vs[1].point().id()+1,vs[2].point().id()+1);
            }
            //while(j.hasNext()) {
