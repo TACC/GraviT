@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 //
 
   db.sync();
-  //db.printtreebyrank(std::cout);
+  db.printtreebyrank(std::cout);
 
 
   if (db.cntx_comm.rank == 0) {
@@ -189,6 +189,7 @@ int main(int argc, char **argv) {
   }
   }
 
+  db.printtreebyrank(std::cout);
   db.sync();
 
   auto lpos = glm::vec3(1.0, 0.0, -1.0);

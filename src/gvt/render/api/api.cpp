@@ -238,7 +238,6 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   cntx::rcontext &db = cntx::rcontext::instance();
 
   cntx::node &ameshnode = db.getUnique(meshname);
-  std::cerr << " instancename " << instancename << " meshname " << meshname << std::endl;
 
   cntx::node &inode = db.createnode("Instance", instancename, true, db.getUnique("Instances").getid());
 
@@ -253,8 +252,6 @@ void addInstance(std::string instancename, std::string meshname, const float *am
   *normi = glm::transpose(glm::inverse(glm::mat3(*m)));
   auto il = glm::vec3((*m) * glm::vec4(mbox->bounds_min, 1.f));
   auto ih = glm::vec3((*m) * glm::vec4(mbox->bounds_max, 1.f));
-  std::cerr << il[0]<<" " << il[1]<<" " <<il[2]<< std::endl;
-  std::cerr << ih[0]<<" " << ih[1]<<" " << ih[2]<< std::endl;
   std::shared_ptr<gvt::render::data::primitives::Box3D> ibox =
       std::make_shared<gvt::render::data::primitives::Box3D>(il, ih);
 
