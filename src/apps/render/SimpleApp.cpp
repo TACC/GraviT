@@ -117,7 +117,8 @@ int main(int argc, char **argv) {
     db.getUnique("threads") = unsigned(cmd.get<int>("threads"));
   }
 
-  if (db.cntx_comm.rank % 2 == 0) {
+//  if (db.cntx_comm.rank % 2 == 0) {
+  {
     std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
                                   0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
 
@@ -130,7 +131,8 @@ int main(int argc, char **argv) {
     api::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
     api::finishMesh("conemesh");
   }
-  if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
+ // if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
+   {
     std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
 
                                   -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
@@ -162,7 +164,7 @@ int main(int argc, char **argv) {
 //
 
   db.sync();
-  db.printtreebyrank(std::cout);
+  //db.printtreebyrank(std::cout);
 
 
   if (db.cntx_comm.rank == 0) {
@@ -189,8 +191,8 @@ int main(int argc, char **argv) {
   }
   }
 
-  db.printtreebyrank(std::cout);
   db.sync();
+  db.printtreebyrank(std::cout);
 
   auto lpos = glm::vec3(1.0, 0.0, -1.0);
   auto lcolor = glm::vec3(1.0, 1.0, 1.0);
