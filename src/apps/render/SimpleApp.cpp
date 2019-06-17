@@ -79,6 +79,35 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 void test_bvh(gvtPerspectiveCamera &camera);
+void conemesh() {
+    std::vector<float> vertex = { 0.5,0.0,0.0,-0.5,0.5,0.0,-0.5,0.25,0.433013,-0.5,-0.25,
+                         0.43013,-0.5,-0.5,0.0,-0.5,-0.25,-0.433013,-0.5,0.25,-0.433013};
+    std::vector<unsigned> faces = {1,2,3,1,3,4,1,4,5,1,5,6,1,6,7,1,7,2};
+    float kd[] = { 1.f, 1.f, 1.f };
+    api::createMesh("conemesh");
+    api::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
+    api::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
+    api::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
+    api::finishMesh("conemesh");
+}
+void cubemesh() {
+    std::vector<float> vertex = {-0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,0.5,0.5,
+                                 -0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,
+                                  0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,
+                                 -0.5,-0.5,0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,
+                                  0.5,-0.5,0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,
+                                -0.5,-0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5};
+    std::vector<unsigned> faces = {
+      1,  2,  3,  1,  3,  4,  17, 19, 20, 17, 20, 18, 6,  5,  8,  6,  8,  7,
+      23, 21, 22, 23, 22, 24, 10, 9,  11, 10, 11, 12, 13, 15, 16, 13, 16, 14,
+    };
+    float kd[] = { 1.f, 1.f, 1.f };
+    api::createMesh("cubemesh");
+    api::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
+    api::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
+    api::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
+    api::finishMesh("cubemesh");
+}
 
 int main(int argc, char **argv) {
 
@@ -117,53 +146,19 @@ int main(int argc, char **argv) {
     db.getUnique("threads") = unsigned(cmd.get<int>("threads"));
   }
 
-  if (db.cntx_comm.rank % 2 == 0) {
-    std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
-                                  0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
-
-    std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
-    float kd[] = { 1.f, 1.f, 1.f };
-
-    api::createMesh("conemesh");
-    api::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
-    api::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
-    api::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
-    api::finishMesh("conemesh");
+  if (cmd.isSet("domain")){
+      if (db.cntx_comm.rank % 2 == 0) {
+      conemesh();
+      }
+      if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
+       cubemesh();
+      }
+  } else {
+      conemesh();
+      cubemesh();
   }
-  if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
-    std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
-
-                                  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
-
-                                  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
-
-                                  -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5,
-
-                                  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5,
-
-                                  -0.5, -0.5, 0.5,  -0.5, 0.5,  0.5,  -0.5, -0.5, -0.5, -0.5, 0.5,  -0.5
-
-    };
-
-    std::vector<unsigned> faces = {
-      1,  2,  3,  1,  3,  4,  17, 19, 20, 17, 20, 18, 6,  5,  8,  6,  8,  7,
-      23, 21, 22, 23, 22, 24, 10, 9,  11, 10, 11, 12, 13, 15, 16, 13, 16, 14,
-
-    };
-    float kd[] = { 1.f, 1.f, 1.f };
-
-    api::createMesh("cubemesh");
-    api::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
-    api::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
-    api::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
-    api::finishMesh("cubemesh");
-  }
-
 //
-
   db.sync();
-  //db.printtreebyrank(std::cout);
-
 
   if (db.cntx_comm.rank == 0) {
   // create a NxM grid of alternating cones / cubes, offset using i and j
@@ -190,6 +185,7 @@ int main(int argc, char **argv) {
   }
 
   db.sync();
+  db.printtreebyrank(std::cout);
 
   auto lpos = glm::vec3(1.0, 0.0, -1.0);
   auto lcolor = glm::vec3(1.0, 1.0, 1.0);
@@ -247,10 +243,7 @@ int main(int argc, char **argv) {
   }
   api::addFilm(filmname, width, height, outputpath);
 
-
-//  db.printtreebyrank(std::cout);
   db.sync();
-
 
   // render bits (schedule and adapter)
   string rendername("Enzoschedule");

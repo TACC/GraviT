@@ -111,12 +111,16 @@ void addMeshVertexColor(const std::string name, const unsigned n, const float *k
 void addInstance(std::string instname, std::string meshname, const float *m);
 
 #ifdef GVT_BUILD_VOLUME
-/* Creates a volume with a unique name
+/**
+ * Creates a volume with a unique name
  * volumes use the same nodes as a mesh
+ * Can contain amr volume
  * \param name unique name of the mesh
+ * \param amr automatic mesh refinement flag
  */
-void createVolume(const std::string name);
-/* Add transfer function to the volume
+void createVolume(const std::string name,const bool amr=false);
+/**
+ * Add transfer function to the volume
  * \param name : volume unique identifier
  * \param colortfname : string name of color transfer function file
  * \param opacitytfname : string name of opacity transfer function file
@@ -124,14 +128,24 @@ void createVolume(const std::string name);
  * \param high : upper scalar value
  * */
 void addVolumeTransferFunctions(const std::string name, const std::string colortfname, const std::string opacitytfname,float low,float high);
-/* this function adds sample data and necessary data to the volume object
+/**
+ * this function adds sample data and necessary data to the volume object
  * \param name the name of the volume node
  * \param samples the pointer to the sample data
  * \param counts the dimensions of the sample data
  * \param deltas the spacing of the sample data
  * \param samplingrate the number of samples per cell used to integrate
  */
-void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate);
+void addVolumeSamples(const std::string name,  float *samples,  int *counts,  float *origin,  float *deltas,  float samplingrate, double *bounds=NULL);
+/**
+ * this function adds a subgrid to the existing volume object
+ * \param name the name of the volume node
+ * \param samples the pointer to the sample data
+ * \param counts the dimensions of the sample data
+ * \param deltas the spacing of the sample data
+ * \param samplingrate the number of samples per cell used to integrate
+ */
+void addAmrSubgrid(const std::string name,int gridid, int level, float *samples, int *counts, float *origin, float *deltas);
 #endif // GVT_BUILD_VOLUME
 
 /**

@@ -24,12 +24,13 @@
 #ifndef GVT_RENDER_ADAPTER_H
 #define GVT_RENDER_ADAPTER_H
 
-#include <gvt/render/actor/ORays.h>
+//#include <gvt/render/actor/ORays.h>
 #include <gvt/render/actor/Ray.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/data/primitives/Mesh.h>
 #ifdef GVT_BUILD_VOLUME
 #include <gvt/render/data/primitives/Volume.h>
+#include <RayFlags.h>
 #endif
 #include <gvt/render/data/scene/ColorAccumulator.h>
 #include <gvt/render/data/scene/Light.h>

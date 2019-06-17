@@ -56,6 +56,10 @@
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
+#endif
+
 
 #include <gvt/core/utils/global_counter.h>
 
@@ -140,27 +144,27 @@ public:
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 
-                        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-                            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
-                        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-                        for (size_t i = 0; i < hits.size(); i++) {
-                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                          if (hits[i].next != -1) {
-                            r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
-                            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
-                            if (inRank) local_queue[hits[i].next].push_back(r);
-                          }
-                        }
+       gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+          acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
+       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+       for (size_t i = 0; i < hits.size(); i++) {
+          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+          if (hits[i].next != -1) {
+            r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
+            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
+            if (inRank) local_queue[hits[i].next].push_back(r);
+          }
+       }
 
-                        for (auto &q : local_queue) {
-                          queue_mutex[q.first].lock();
-                          queue[q.first].insert(queue[q.first].end(),
-                                                std::make_move_iterator(local_queue[q.first].begin()),
-                                                std::make_move_iterator(local_queue[q.first].end()));
-                          queue_mutex[q.first].unlock();
-                        }
-                      },
-                      ap);
+       for (auto &q : local_queue) {
+          queue_mutex[q.first].lock();
+          queue[q.first].insert(queue[q.first].end(),
+          std::make_move_iterator(local_queue[q.first].begin()),
+          std::make_move_iterator(local_queue[q.first].end()));
+          queue_mutex[q.first].unlock();
+       }
+               },
+         ap);
 
     rays.clear();
   }
@@ -186,7 +190,8 @@ public:
     gvt::util::global_counter gc_sent("Number of rays sent :");
 
     clearBuffer();
-    int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
+    //int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
+    adapterType = db.getChild(db.getUnique(schedulername), "adapter");
 
     t_filter.resume();
     gc_filter.add(rays.size());
@@ -218,6 +223,7 @@ public:
 
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
+          std::cerr << " queue inRank " << inRank << " rank " << mpi.rank << std::endl;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
@@ -225,11 +231,14 @@ public:
         }
         t_sort.stop();
 
+        std::cerr << " instTarget " << instTarget << std::endl;
         if (instTarget >= 0) {
 
           t_adapter.resume();
+          std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
+          std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
           std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -265,6 +274,13 @@ public:
               adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
               break;
 #endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+            case gvt::render::adapter::Pvol:
+              std::cout << " domaintracer build an adapter" << std::endl;
+              adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
+              std::cout << " domaintracer built a pvol adapter" << std::endl;
+              break;
+#endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
             case gvt::render::adapter::Heterogeneous:
               adapter =
@@ -285,8 +301,11 @@ public:
             t_trace.resume();
 
             gc_rays.add(this->queue[instTarget].size());
+            std::cerr << "domaintracer " << this->queue[instTarget].size() << std::endl;
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 
+            std::cout << " domaintracer: call adapter->trace method. Inst target:  " << instTarget << std::endl;
+            std::cout << this->queue[instTarget][0] << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 
@@ -296,6 +315,7 @@ public:
 
           t_shuffle.resume();
           gc_shuffle.add(moved_rays.size());
+          std::cerr << " shuffling rays " << std::endl;
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
           t_shuffle.stop();

@@ -651,9 +651,9 @@ void EmbreeMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::rende
 
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
-                    [&](tbb::blocked_range<size_t> chunk) {
-                      embreeParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi,
-                                          lights, static_pointer_cast<gvt::render::data::primitives::Mesh>(data), counter, chunk.begin(), chunk.end())();
+     [&](tbb::blocked_range<size_t> chunk) { embreeParallelTrace(this, 
+     rayList, moved_rays, chunk.end()-chunk.begin(), m, minv, normi, lights, 
+     std::static_pointer_cast<gvt::render::data::primitives::Mesh>(data), counter, chunk.begin(), chunk.end())();
                     },
                     ap);
   rtcDeleteScene(global_scene);

@@ -25,7 +25,8 @@ cdef extern from "gravit/api.h" namespace "api":
   void _addInstance "api::addInstance"(string name, string meshname, float *m)
   void _createVolume"api::createVolume"(string name)
   void _addVolumeTransferFunctions"api::addVolumeTransferFunctions"(string name, string colortfname, string opacityfname, float low, float high)
-  void _addVolumeSamples"api::addVolumeSamples"(string name, float *samples, int *counts, float *origin, float* deltas, float samplingrate)
+  void _addVolumeSamples"api::addVolumeSamples"(string name, float *samples, int *counts, float *origin, float* deltas, float samplingrate, double *bounds)
+  void _addAmrSubgrid"api::addAmrSubgrid"(string name, int gridid, int level, float *samples, int *counts, float *origin, float *deltas)
   void _addPointLight "api::addPointLight"(string name,  float *pos,  float *color)
   void _addAreaLight "api::addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
   void _modifyLight "api::modifyLight"(string name,  float *pos,  float *color)
@@ -67,8 +68,10 @@ def createMesh(str name):
   _createMesh(name.encode())
 def addVolumeTransferFunctions(str name, str colortfname, str opacityfname, float low, float high):
    _addVolumeTransferFunctions(name.encode(),colortfname.encode(),opacityfname.encode(),low,high)
-def addVolumeSamples(str name, np.ndarray[float, ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin, np.ndarray[float,ndim=1,mode="c"] deltas,float samplingrate):
-   _addVolumeSamples(name.encode(),<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data,samplingrate)
+def addVolumeSamples(str name, np.ndarray[float, ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin, np.ndarray[float,ndim=1,mode="c"] deltas,float samplingrate,np.ndarray[double,ndim=1,mode="c"] bounds):
+   _addVolumeSamples(name.encode(),<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data,samplingrate,<double*>bounds.data)
+def addAmrSubgrid(str name, int gridid, int level,np.ndarray[float,ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin,np.ndarray[float,ndim=1,mode="c"] deltas]):
+    _addAmrSubgrid(name.encode(),gridid,level,<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data)
 def addMeshVertices(str name, int size, np.ndarray[float, ndim=1, mode="c"] vertices not None):
   _addMeshVertices(name.encode(),size,<float*> vertices.data)
 

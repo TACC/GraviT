@@ -30,7 +30,7 @@ namespace gvt {
 namespace render {
 namespace adapter {
 /// render engine used
-enum RenderType {
+enum RenderType {  // TODO: guard these with proper #defs so they only appear if built
 #ifdef GVT_BUILD_VOLUME  
   Volume,
 #endif  
@@ -39,6 +39,7 @@ enum RenderType {
   Optix,
   Embree,
   Ospray,
+  Pvol,
   EmbreeStream,
   Heterogeneous
 };

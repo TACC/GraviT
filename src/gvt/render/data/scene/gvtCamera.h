@@ -28,6 +28,11 @@
 //
 // Dave Semeraro - May 2015
 //
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <RayFlags.h> // .TODO this is included from galaxy. Protect it.
+#else
+#include <gvt/render/actor/ORays.h>
+#endif
 #include <gvt/core/Math.h>
 #include <gvt/core/math/RandEngine.h>
 #include <gvt/render/data/Primitives.h>

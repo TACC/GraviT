@@ -49,8 +49,12 @@
 #include <tbb/task_scheduler_init.h>
 #include <thread>
 
-#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#if defined GVT_RENDER_ADAPTER_OSPRAY
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
+#elif defined GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
+#else
+#error "Must define either GregSpray or PVOL adapter"
 #endif
 
 #include <gvt/render/algorithm/Tracers.h>
@@ -288,10 +292,10 @@ int main(int argc, char **argv) {
   cmd.addoption("upVector", ParseCommandLine::FLOAT, "upVector", 3);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
-  cmd.addoption("volfile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to Volume");
+  cmd.addoption("volfile", ParseCommandLine::PATH , "File path to Volume");
   cmd.addoption("imagefile", ParseCommandLine::PATH , "image file name");
-  cmd.addoption("ctffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to color transfer function");
-  cmd.addoption("otffile", ParseCommandLine::PATH | ParseCommandLine::REQUIRED, "File path to opacity transfer function");
+  cmd.addoption("ctffile", ParseCommandLine::PATH , "File path to color transfer function");
+  cmd.addoption("otffile", ParseCommandLine::PATH , "File path to opacity transfer function");
   cmd.addoption("domain", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("adomain", ParseCommandLine::NONE, "schedule", 0);
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
@@ -321,9 +325,17 @@ int main(int argc, char **argv) {
   // read volume information and initialize gravit volume object
   // transfer functions are associated with the volume
   std::string filename, filepath, volumefile,otffile,ctffile,imagefile,volnodename;
-  volumefile = cmd.get<std::string>("volfile");
-  ctffile = cmd.get<std::string>("ctffile");
-  otffile = cmd.get<std::string>("otffile");
+  volumefile = "../data/vol/int2.bov";
+  ctffile = "../data/colormaps/Grayscale.cmap";
+  otffile = "../data/colormaps/Grayscale.omap";
+  if(cmd.isSet("volfile"))
+    volumefile = cmd.get<std::string>("volfile");
+  if(cmd.isSet("ctffile")) {
+    ctffile = cmd.get<std::string>("ctffile");
+    std::cerr << " using " << ctffile << " for color " << std::endl;
+  }
+  if(cmd.isSet("otffile"))
+    otffile = cmd.get<std::string>("otffile");
   // volume data...
   if(!file_exists(volumefile.c_str())) {
     cout << "File \"" << volumefile << "\" does not exist. Exiting." << endl;
@@ -377,19 +389,20 @@ int main(int argc, char **argv) {
       vol->SetDeltas(dels.x,dels.y,dels.z);
       vol->SetSamplingRate(samplingrate);
       gvt::render::data::primitives::Box3D *volbox = volheader.volbox;
+      vol->boundingBox = gvt::render::data::primitives::Box3D(*volbox);
 
 
       // create a volume object
       // but we need a unique name for each actual mesh. 
       // for now add the domain number to the volumefile name. 
       // It will work.. trust me... 
-      std::cout << "create volume and add samples " << volnodename << std::endl;
       //float* sampledata = volheader.readdata(domain);
       std::cout << volheader.volbox->bounds_min << " x " << volheader.volbox->bounds_max << std::endl;
       //float deltas[3] = {1.0,1.0,1.0};
       //float samplingrate = 1.0;
       volnodename = volumefile + std::to_string(domain);
-      api::createVolume(volnodename);
+      std::cout << "create volume and add samples " << volnodename << std::endl;
+      api::createVolume(volnodename,false);
       api::addVolumeTransferFunctions(volnodename,ctffile,otffile,0.0,65536.0);
       api::addVolumeSamples(volnodename,sampledata,volheader.counts,volheader.origin,deltas,samplingrate);
     }
@@ -403,7 +416,7 @@ int main(int argc, char **argv) {
       auto m = new glm::mat4(1.f);
       auto &mi = (*m);
       float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                                         mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+                     mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
       api::addInstance(std::string("inst") + std::to_string(domain),volnodename, mf);
     }
   }
@@ -442,8 +455,8 @@ int main(int argc, char **argv) {
   // film
   string filmname = "conefilm";
   std::cout << "add film " << filmname << std::endl;
-  int width = 100;
-  int height = 100;
+  int width = 10;
+  int height = 10;
   if (cmd.isSet("wsize")) {
     std::vector<int> wsize = cmd.getValue<int>("wsize");
     width = wsize[0];
@@ -465,9 +478,11 @@ int main(int argc, char **argv) {
   else
     schedtype = gvt::render::scheduler::Domain;
 
-  // and it only works with the ospray adapter.
+  // and it only works with the ospray or pvol adapter.
 #ifdef GVT_RENDER_ADAPTER_OSPRAY
   adaptertype = gvt::render::adapter::Ospray;
+#elif defined GVT_RENDER_ADAPTER_GALAXY
+  adaptertype = gvt::render::adapter::Pvol;  
 #elif
   GVT_DEBUG(DBG_ALWAYS, "ERROR: missing valid adapter");
 #endif
@@ -475,8 +490,8 @@ int main(int argc, char **argv) {
 
   std::cout << "add renderer " << rendername << " " << adaptertype << " " << schedtype << std::endl;
   api::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
-  std::cout << "Calling render" << std::endl;
   api::gvtsync();
+  std::cout << "Calling render" << std::endl;
 
   api::render(rendername);
   api::writeimage(rendername);

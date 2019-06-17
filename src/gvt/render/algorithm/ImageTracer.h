@@ -59,6 +59,10 @@
 #include <gvt/render/adapter/ospray/OSPRayAdapter.h>
 #endif
 
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
+#endif
+
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
@@ -91,10 +95,10 @@ public:
          std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {
-    int ray_portion = rays.size() / mpi.world_size;
-    rays_start = mpi.rank * ray_portion;
-    rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size()
-                                                : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+    //int ray_portion = rays.size() / mpi.world_size;
+    //rays_start = mpi.rank * ray_portion;
+    //rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size()
+    //             : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
   }
 
   void resetInstances() {
@@ -106,6 +110,11 @@ public:
   // if using mpi, only keep the rays for the current rank
   inline void FilterRaysLocally() {
     if (mpi) {
+    int ray_portion = rays.size() / mpi.world_size;
+    rays_start = mpi.rank * ray_portion;
+    rays_end = (mpi.rank + 1) == mpi.world_size ? rays.size()
+               : (mpi.rank + 1) * ray_portion; // tack on any odd rays to last proc
+    std::cerr << mpi.rank << " " << mpi.world_size << " size " << rays.size() << " start " << rays_start << " end " << rays_end << std::endl;
       gvt::render::actor::RayVector lrays;
       lrays.assign(rays.begin() + rays_start, rays.begin() + rays_end);
       rays.clear();
@@ -168,6 +177,7 @@ public:
         std::shared_ptr<gvt::render::Adapter> adapter = nullptr;
 
         std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
+        std::cerr << " target " << instTarget << " mesh " << mesh << std::endl;
         // TODO: Make cache generic needs to accept any kind of adpater
 
         // 'getAdapterFromCache' functionality
@@ -205,6 +215,11 @@ public:
             adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
             break;
 #endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+          case gvt::render::adapter::Pvol:
+            adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
+            break;
+#endif            
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
           case gvt::render::adapter::Heterogeneous:
             adapter = std::make_shared<gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter>(mesh);
