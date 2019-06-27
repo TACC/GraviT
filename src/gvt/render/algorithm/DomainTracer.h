@@ -223,7 +223,6 @@ public:
 
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
-          std::cerr << " queue inRank " << inRank << " rank " << mpi.rank << std::endl;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
@@ -231,14 +230,11 @@ public:
         }
         t_sort.stop();
 
-        std::cerr << " instTarget " << instTarget << std::endl;
         if (instTarget >= 0) {
 
           t_adapter.resume();
-          std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
-          std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
           std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -276,9 +272,7 @@ public:
 #endif
 #ifdef GVT_RENDER_ADAPTER_GALAXY
             case gvt::render::adapter::Pvol:
-              std::cout << " domaintracer build an adapter" << std::endl;
               adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
-              std::cout << " domaintracer built a pvol adapter" << std::endl;
               break;
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
@@ -301,11 +295,8 @@ public:
             t_trace.resume();
 
             gc_rays.add(this->queue[instTarget].size());
-            std::cerr << "domaintracer " << this->queue[instTarget].size() << std::endl;
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 
-            std::cout << " domaintracer: call adapter->trace method. Inst target:  " << instTarget << std::endl;
-            std::cout << this->queue[instTarget][0] << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 
@@ -315,7 +306,6 @@ public:
 
           t_shuffle.resume();
           gc_shuffle.add(moved_rays.size());
-          std::cerr << " shuffling rays " << std::endl;
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
           t_shuffle.stop();

@@ -388,13 +388,13 @@ template <typename Variant, typename Derived> struct context {
     context &db = context::instance();
 
     if (db.cntx_comm.size <= 1) return;
-
+    std::cerr << " blindsync " << std::endl;
     context::children_vector d = getDirty(-1);
     unsigned long *counter = new unsigned long[db.cntx_comm.size];
     counter[db.cntx_comm.rank] = d.size();
 
     unsigned long s = d.size();
-
+    std::cerr << " size of children_vector " << s << std::endl;
     MPI_Allgather(&s, 1, MPI_UNSIGNED_LONG, counter, 1, MPI_UNSIGNED_LONG, db.cntx_comm.comm);
 
     for (int i = 0; i < db.cntx_comm.size; ++i) {

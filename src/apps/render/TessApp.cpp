@@ -95,16 +95,6 @@ void vtkPointsToGvtMesh(std::string filename,std::string nodename,std::string qh
     api::addMeshVertices(nodename,count,points,true,qhull_control);
     api::addMeshMaterial(nodename,(unsigned)gvt::render::data::primitives::LAMBERT,kd,1.f);  
     api::finishMesh(nodename,true);
-    //add instance
-    glm::mat4 *m = new glm::mat4(1.f);
-    glm::mat4 &mi = (*m);
-    float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3],
-                   mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                   mi[2][0], mi[2][1], mi[2][2], mi[2][3],
-                   mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-    std::string instanceTessName = nodename;
-    std::string instanceName = "inst"+std::to_string(domain);
-    api::addInstance(instanceName,instanceTessName,mf);
 }
 // and here we go...
 int main(int argc, char** argv) {
@@ -126,6 +116,8 @@ int main(int argc, char** argv) {
     db.getUnique("threads") = numthreads;
     std::string mymeshname,haloname;
     std::string qhull_control;
+    int numberofhalos;
+    numberofhalos = 25;
     if(cmd.isSet("control_string")) {
         gvt::core::Vector<std::string> ctrl = cmd.getValue<std::string>("control_string");
         qhull_control = ctrl[0];
@@ -134,54 +126,66 @@ int main(int argc, char** argv) {
        //qhull_control = "d Qz";
     } 
     // add the halo meshes
-    for(int h=0;h<25;h++)
+    for(int h=0;h<numberofhalos;h++)
     {
         if((h%comsize == rnk) && (h!=11) && (h!=20)) // read this halo and mesh it.
         {
             haloname = "/halo"+std::to_string(h) + ".vtk";
             filename = dirname+haloname;
             mymeshname = "Halo"+std::to_string(h);
-            std::cerr << "rank " << rnk << " reading " << haloname << " " << mymeshname << std::endl;
             vtkPointsToGvtMesh(filename,mymeshname,qhull_control,h);
         }
     }
-// add the bbox surface
-// back wall
-    float kd[] = {1.,1.,1.};
-    float kdb[] = {0.5,.695,.726};
-    auto m = new glm::mat4(1.f);
-    auto &mi = (*m);
-    float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], 
-                   mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                   mi[2][0], mi[2][1], mi[2][2], mi[2][3], 
-                   mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-    std::vector<float> boxvertex = {0.0,0.0,0.0, 1.0,0.0,0.0, 1.0,1.0,0.0, 0.,1.,0.,
+    // add the bbox surface
+    // back wall
+    if(rnk == 0) {
+        float kd[] = {1.,1.,1.};
+        float kdb[] = {0.5,.695,.726};
+        std::vector<float> boxvertex = {0.0,0.0,0.0, 1.0,0.0,0.0, 1.0,1.0,0.0, 0.,1.,0.,
                                     0.,0.,-0.01, 1.0,0.0,-0.01, 1.0,1.0,-0.01, 0.,1.,-0.01};
-    std::vector<unsigned> boxfaces = {1,2,3,1,3,4,5,7,6,5,8,7};
-    api::createMesh("boxmesh");
-    api::addMeshVertices("boxmesh",boxvertex.size()/3,&boxvertex[0]);
-    api::addMeshTriangles("boxmesh",boxfaces.size()/3,&boxfaces[0]);
-    api::addMeshMaterial("boxmesh",(unsigned)gvt::render::data::primitives::LAMBERT,kdb,1.f);
-    api::finishMesh("boxmesh",true);
-    // add three instances for the back walls of the domain. 
-    api::addInstance("rightwall","boxmesh",mf);
-    auto roty = new glm::mat4(1.f);
-    *roty = glm::rotate(*roty,1.57f,glm::vec3(0.0f,-1.0f,0.0f));
-    auto &roti = (*roty);
-    float rotyf[] = {roti[0][0],roti[0][1],roti[0][2],roti[0][3],
-                    roti[1][0],roti[1][1],roti[1][2],roti[1][3],
-                    roti[2][0],roti[2][1],roti[2][2],roti[2][3],
-                    roti[3][0],roti[3][1],roti[3][2],roti[3][3]};
-    api::addInstance("leftwall","boxmesh",rotyf);
-    auto rotz = new glm::mat4(1.f);
-    *rotz = glm::rotate(*roty,1.57f,glm::vec3(-1.0f,0.0f,0.0f));
-    roti = (*rotz);
-    float rotzf[] = {roti[0][0],roti[0][1],roti[0][2],roti[0][3],
-                    roti[1][0],roti[1][1],roti[1][2],roti[1][3],
-                    roti[2][0],roti[2][1],roti[2][2],roti[2][3],
-                    roti[3][0],roti[3][1],roti[3][2],roti[3][3]};
-    api::addInstance("floorwall","boxmesh",rotzf);
-
+        std::vector<unsigned> boxfaces = {1,2,3,1,3,4,5,7,6,5,8,7};
+        api::createMesh("boxmesh");
+        api::addMeshVertices("boxmesh",boxvertex.size()/3,&boxvertex[0]);
+        api::addMeshTriangles("boxmesh",boxfaces.size()/3,&boxfaces[0]);
+        api::addMeshMaterial("boxmesh",(unsigned)gvt::render::data::primitives::LAMBERT,kdb,1.f);
+        api::finishMesh("boxmesh",true);
+    }
+    db.sync();
+    // add instances on rank 0 and sync
+    glm::mat4 *m = new glm::mat4(1.f);
+    glm::mat4 &mi = (*m);
+    float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3],
+                   mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                   mi[2][0], mi[2][1], mi[2][2], mi[2][3],
+                   mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
+    if(rnk == 0) {
+        // halo instances
+        for(int h=0;h<numberofhalos;h++) {
+            if((h!=11) && (h!=20)){
+         mymeshname = "Halo"+std::to_string(h);
+         std::string instanceName = "inst"+std::to_string(h);
+         api::addInstance(instanceName,mymeshname,mf);
+            }
+        }
+        // add three instances for the back walls of the domain. 
+        api::addInstance("rightwall","boxmesh",mf);
+        auto roty = new glm::mat4(1.f);
+        *roty = glm::rotate(*roty,1.57f,glm::vec3(0.0f,-1.0f,0.0f));
+        auto &roti = (*roty);
+        float rotyf[] = {roti[0][0],roti[0][1],roti[0][2],roti[0][3],
+                     roti[1][0],roti[1][1],roti[1][2],roti[1][3],
+                     roti[2][0],roti[2][1],roti[2][2],roti[2][3],
+                     roti[3][0],roti[3][1],roti[3][2],roti[3][3]};
+        api::addInstance("leftwall","boxmesh",rotyf);
+        auto rotz = new glm::mat4(1.f);
+        *rotz = glm::rotate(*roty,1.57f,glm::vec3(-1.0f,0.0f,0.0f));
+        roti = (*rotz);
+        float rotzf[] = {roti[0][0],roti[0][1],roti[0][2],roti[0][3],
+                     roti[1][0],roti[1][1],roti[1][2],roti[1][3],
+                     roti[2][0],roti[2][1],roti[2][2],roti[2][3],
+                     roti[3][0],roti[3][1],roti[3][2],roti[3][3]};
+        api::addInstance("floorwall","boxmesh",rotzf);
+    }
     db.sync(); // sync the database globally. 
     // camera bits
     auto eye = glm::vec3(3.0,3.0,3.0);
@@ -199,8 +203,8 @@ int main(int argc, char** argv) {
     auto lpos = glm::vec3(3.5,3.5,3.5);
     auto lcolor = glm::vec3(3.0,3.0,3.0);
     std::string lightname = "tessLight1";
-    api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
-    lpos = glm::vec3(1.5,4.0,0.5);
+    //api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
+    lpos = glm::vec3(1.5,3.0,0.5);
     lcolor = glm::vec3(3.0,3.0,4.0);
     lightname = "tessLight2";
     api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
@@ -219,7 +223,6 @@ int main(int argc, char** argv) {
      int adaptertype;
      // hardwire the domain scheduler for this test. 
      schedtype = gvt::render::scheduler::Domain;
-     //schedtype = gvt::render::scheduler::Image;
      // embree adapter
      std::string adapter("embree");
 #ifdef GVT_RENDER_ADAPTER_EMBREE
@@ -231,7 +234,6 @@ int main(int argc, char** argv) {
     std::cout << "addRenderer " << std::endl;
      api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
      db.sync();
-//     db.printtreebyrank(std::cout);
      //db.printtreebyrank(std::cout);
      std::cerr << " time to render " << rnk << std::endl;
      api::render(rendername);
