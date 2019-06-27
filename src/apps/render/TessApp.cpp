@@ -86,7 +86,6 @@ void vtkPointsToGvtMesh(std::string filename,std::string nodename,std::string qh
     vtkreader->Update();
     //count = usp->GetCells()->GetNumberOfCells();
     count = usp->GetNumberOfPoints();
-    std::cerr << " read " << count << " cells " << std::endl;
     points = getPoints(usp);
     //usp->GetOrigin(dvector);
     // copy dvector to single
@@ -196,17 +195,12 @@ int main(int argc, char** argv) {
     int raySamples = (int)1;
     float jitterWindowSize = (float)0.5;
     std::string camname = "TCamera";
-    std::cout << "addCamera " << std::endl;
     api::addCamera(camname, glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
     db.sync();
     // a light
-    auto lpos = glm::vec3(3.5,3.5,3.5);
-    auto lcolor = glm::vec3(3.0,3.0,3.0);
-    std::string lightname = "tessLight1";
-    //api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
-    lpos = glm::vec3(1.5,3.0,0.5);
-    lcolor = glm::vec3(3.0,3.0,4.0);
-    lightname = "tessLight2";
+    auto lpos = glm::vec3(1.5,3.0,0.5);
+    auto lcolor = glm::vec3(3.0,3.0,4.0);
+    std::string lightname = "tessLight2";
     api::addPointLight(lightname,glm::value_ptr(lpos),glm::value_ptr(lcolor));
     db.sync();
     // film bits
@@ -214,7 +208,6 @@ int main(int argc, char** argv) {
      int width = (int)1024;
      int height = (int)1024;
      std::string outputpath = "Tess";
-    std::cout << "addFilm " << std::endl;
      api::addFilm(filmname, width, height, outputpath);
      db.sync();
      // rendering bits
@@ -231,11 +224,9 @@ int main(int argc, char** argv) {
      std::cerr << "Embree adapter missing. Enable embree and recompile" << std::endl;
      exit(1);
 #endif
-    std::cout << "addRenderer " << std::endl;
      api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
      db.sync();
      //db.printtreebyrank(std::cout);
-     std::cerr << " time to render " << rnk << std::endl;
      api::render(rendername);
      api::writeimage(rendername,"simple");
      MPI_Finalize();
