@@ -536,7 +536,7 @@ void gvtsync() {
 
 void writeimage(std::string name, std::string output) {
     gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
-    ren->WriteImage(name);
+    ren->WriteImage(output);
 }
 
 #ifdef GVT_BUILD_VOLUME
