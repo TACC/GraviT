@@ -101,6 +101,7 @@ public:
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {
 
+          std::cerr << "initialize domain tracer " << std::endl;
     Initialize();
   }
 

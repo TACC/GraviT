@@ -35,6 +35,9 @@
 #include <gvt/core/utils/timer.h>
 #include <gvt/render/Adapter.h>
 //#include <gvt/render/actor/ORays.h>
+#ifdef GVT_RENDER_ADAPTER_EMBREE
+#include <gvt/render/actor/ORays.h>
+#endif
 #include <gvt/render/data/Primitives.h>
 #include <gvt/render/data/accel/BVH.h>
 #include <gvt/render/data/scene/ColorAccumulator.h>
@@ -212,6 +215,7 @@ public:
     //    require_composite = img.initIceT();
     // NOTE : Replaced by smat pointer
     // colorBuf = new glm::vec4[width * height];
+    std::cerr << "initialize abstract tracer " << std::endl;
     Initialize();
   }
 

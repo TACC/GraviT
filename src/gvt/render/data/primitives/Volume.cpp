@@ -76,7 +76,7 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(gvt::render::data::primit
 
 void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, int level, float *orig, float *spac, int *counts, float *samp) {
     gvt::render::data::primitives::griddata data;
-    std::cerr << "gvt:Volume:AddAMRGrid: gid " << gridid << " level " << level << std::endl;
+    //std::cerr << "gvt:Volume:AddAMRGrid: gid " << gridid << " level " << level << std::endl;
     data.gridid = gridid;
     data.level = level;
     data.origin[0] = orig[0];
@@ -85,9 +85,9 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, int level, fl
     data.spacing[0] = spac[0];
     data.spacing[1] = spac[1];
     data.spacing[2] = spac[2];
-    std::cerr << "gvt:volume:AddAMRGrid: counts " << counts[0] << " " << counts[1] << " " << counts[2] << std::endl;
+    //std::cerr << "gvt:volume:AddAMRGrid: counts " << counts[0] << " " << counts[1] << " " << counts[2] << std::endl;
     int numsamples = counts[0]*counts[1]*counts[2];
-    std::cerr << "gvt:volume:AddAMRGrid: numsamples " << numsamples << std::endl;
+    //std::cerr << "gvt:volume:AddAMRGrid: numsamples " << numsamples << std::endl;
     data.samples = new float[numsamples];
     for(int i = 0;i<numsamples;i++) 
         data.samples[i] = samp[i];

@@ -91,12 +91,13 @@ gvtRenderer::gvtRenderer() {
 
 void gvtRenderer::reload(std::string const &name) {
 
-    std::cerr << " reloading gvtRenderer " << name << std::endl;
+  std::cerr << " reloading: current_scheduler  " << current_scheduler <<
+     " name " << name  << std::endl;
   if (name == current_scheduler) return;
   cntx::rcontext &db = cntx::rcontext::instance();
 
   auto &ren = db.getUnique(name);
-  GVT_ASSERT(!ren.getid().isInvalid(), "Suplied renderer " << name << " is not valis");
+  GVT_ASSERT(!ren.getid().isInvalid(), "Suplied renderer " << name << " is not valid");
 
   auto &cam = db.getUnique(db.getChild(ren, "camera"));
   auto &fil = db.getUnique(db.getChild(ren, "film"));
@@ -132,8 +133,13 @@ void gvtRenderer::reload(std::string const &name) {
     break;
   }
   case scheduler::Domain: {
-    std::cerr << " domain shed " << std::endl;
+    std::cerr << " domain shed tracer use count " << tracersync.use_count() << std::endl;
+    if(tracersync.use_count() != 0 ) {
+        tracersync.reset(new algorithm::Tracer<schedule::DomainScheduler>(camera,myimage,cam,fil,name)); 
+    } else {
     tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
+    }
+    std::cerr << " domain set db.tracer to nullptr " << std::endl;
     db.tracer = tracerasync = nullptr;
     break;
   }
@@ -151,7 +157,7 @@ void gvtRenderer::reload(std::string const &name) {
   }
   default: {}
   }
-
+  std::cerr << " renderer reloaded " << std::endl;
   // db.tracer = tracer;
 }
 

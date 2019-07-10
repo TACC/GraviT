@@ -541,7 +541,7 @@ void gvtsync() {
 
 void writeimage(std::string name, std::string output) {
     gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
-    ren->WriteImage(name);
+    ren->WriteImage(output);
 }
 
 #ifdef GVT_BUILD_VOLUME
@@ -597,7 +597,7 @@ void addVolumeSamples(const std::string name,  float *samples,  int *counts,  fl
   v->SetBoundingBox(lower,upper);
   db.getChild(db.getUnique(name), "bbox") = std::make_shared<gvt::render::data::primitives::Box3D>(lower,upper);
   if(v->is_AMR()) {
-      std::cerr<<"gvt:api:addVolumeSamples floats " << samples[0] << " " <<samples[1]<<std::endl;
+      //std::cerr<<"gvt:api:addVolumeSamples floats " << samples[0] << " " <<samples[1]<<std::endl;
       v->SetAMRLevels(1); // first level on this call 
       v->SetAMRNumberOfGridsInVolume(0); // addAmrSubgrid increments this. 
       v->SetAMRlng(0,0); // addAmrSubgrid increments this.
@@ -613,7 +613,7 @@ void addAmrSubgrid(const std::string name, int gridid, int level, float *samples
     cntx::rcontext &db = cntx::rcontext::instance();
     std::shared_ptr<gvt::render::data::primitives::Volume> v = getChildByName(db.getUnique(name), "ptr");
     // now set subgrid
-    std::cerr << "gvt:api:addAmrSubgrid floats " << samples[0] << " " << samples[1] << std::endl;
+    //std::cerr << "gvt:api:addAmrSubgrid floats " << samples[0] << " " << samples[1] << std::endl;
     v->AddAMRGrid(gridid,level,origin,deltas,counts,samples);
 }
 #endif // GVT_BUILD_VOLUME

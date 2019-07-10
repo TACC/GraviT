@@ -12,6 +12,7 @@ from libcpp cimport bool
 
 
 cdef extern from "gravit/api.h" namespace "api":
+  void _gvtsync "api::gvtsync"()
   void _gvtInit "api::gvtInit"(int argc, char** argv)
   void _createMesh "api::createMesh"(string)
   void _addMeshVertices "api::addMeshVertices"(string name, unsigned &n, float *vertices)
@@ -64,6 +65,8 @@ def gvtInit():
   #   argv[i] = ctypes.create_string_buffer(enc_arg)
   # _gvtInit(argc,argv)
 
+def gvtsync():
+  _gvtsync()
 def createMesh(str name):
   _createMesh(name.encode())
 def addVolumeTransferFunctions(str name, str colortfname, str opacityfname, float low, float high):

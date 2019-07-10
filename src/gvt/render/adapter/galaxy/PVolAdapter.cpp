@@ -68,19 +68,19 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   width  = w;
   height = h; 
   std::vector<int> levelnumberofgrids;
-  std::cerr << "width " << width << " height " << height << std::endl;
+  //std::cerr << "width " << width << " height " << height << std::endl;
   // build the PVOL volume from the data in the GraviT volume
   //std::cerr << " pvoladapter: init local volume shared p " << std::endl;
   theVolume = ::gxy::AmrVolume::NewP();
   if (data->is_AMR()) {
   // load the number of levels and grids per level
       theVolume->set_numlevels(data->GetAMRNumberOfLevels());
-      std::cerr << " anr data has " << data->GetAMRNumberOfLevels()<<" levels"<<std::endl;
+      //std::cerr << " anr data has " << data->GetAMRNumberOfLevels()<<" levels"<<std::endl;
       std::map<int,int> lng = data->GetAmrlng();
-      std::cerr << " level grid map size " << lng.size() << std::endl;
+      //std::cerr << " level grid map size " << lng.size() << std::endl;
       for (auto it = lng.begin(); it != lng.end(); ++it)
       {
-        std::cerr << it->second << " grids in level " << it->first << std::endl;
+        //std::cerr << it->second << " grids in level " << it->first << std::endl;
         levelnumberofgrids.push_back(it->second);
       }
       theVolume->set_levelnumgrids(levelnumberofgrids);
@@ -88,20 +88,20 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
       theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
       // get the number of grids in this volume
       int ngv = data->GetAMRNumberOfGridsInVolume();
-      std::cerr << " number of grids in volume " << ngv << std::endl;
+      //std::cerr << " number of grids in volume " << ngv << std::endl;
       // iterate over the subgrids in the volume and populate the galaxy volume
       //
       for(int gvtgrid = 0;gvtgrid<ngv;gvtgrid++) 
       { 
-          std::cerr << " gvt grid " << gvtgrid << std::endl;
+          //std::cerr << " gvt grid " << gvtgrid << std::endl;
           gvt::render::data::primitives::griddata gvtdata = data->GetAMRGrid(gvtgrid);
-          std::cerr << gvtdata.origin[0] << " " << gvtdata.origin[1] << " " << gvtdata.origin[2] << std::endl;
+          //std::cerr << gvtdata.origin[0] << " " << gvtdata.origin[1] << " " << gvtdata.origin[2] << std::endl;
           theVolume->add_gridorigin(gvtdata.origin[0],gvtdata.origin[1],gvtdata.origin[2]);
-          std::cerr << gvtdata.counts[0] << " " << gvtdata.counts[1] << " " << gvtdata.counts[2] << std::endl;
+          //std::cerr << gvtdata.counts[0] << " " << gvtdata.counts[1] << " " << gvtdata.counts[2] << std::endl;
           theVolume->add_gridcounts(gvtdata.counts[0],gvtdata.counts[1],gvtdata.counts[2]);
-          std::cerr << gvtdata.spacing[0] << " " << gvtdata.spacing[1] << " " << gvtdata.spacing[2] << std::endl;
+          //std::cerr << gvtdata.spacing[0] << " " << gvtdata.spacing[1] << " " << gvtdata.spacing[2] << std::endl;
           theVolume->add_gridspacing(gvtdata.spacing[0],gvtdata.spacing[1],gvtdata.spacing[2]);
-          std::cerr << "gvt:pvoladapter samples pointer " << gvtdata.samples <<std::endl;
+          //std::cerr << "gvt:pvoladapter samples pointer " << gvtdata.samples <<std::endl;
           theVolume->add_samples(gvtdata.samples);
       }
   }
@@ -132,25 +132,25 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   //data->GetGlobalOrigin(globalorigin);
   //std::cerr << "pvoladapter: set volume global origin" << std::endl;
   //theVolume->set_global_origin(globalorigin.x, globalorigin.y, globalorigin.z);
-  std::cerr << "pvoladapter: set local offsets" << std::endl;
-  std::cerr << localoffset.x << " " << localoffset.y << " " << localoffset.z << std::endl;
+  //std::cerr << "pvoladapter: set local offsets" << std::endl;
+  //std::cerr << localoffset.x << " " << localoffset.y << " " << localoffset.z << std::endl;
   theVolume->set_local_offset(localoffset.x, localoffset.y, localoffset.z);
-  std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
+  //std::cerr << "pvoladapter: set ghosted local offsets" << std::endl;
   theVolume->set_ghosted_local_offset(localoffset.x, localoffset.y, localoffset.z);
   data->GetCounts(volumedimensions);
-  std::cerr << "pvoladapter: set volume counts" << std::endl;
-  std::cerr << volumedimensions.x<<" " <<volumedimensions.y<<" "<<volumedimensions.z <<std::endl;
+  //std::cerr << "pvoladapter: set volume counts" << std::endl;
+  //std::cerr << volumedimensions.x<<" " <<volumedimensions.y<<" "<<volumedimensions.z <<std::endl;
   theVolume->set_global_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
-  std::cerr << "pvoladapter: set local counts" << std::endl;
+  //std::cerr << "pvoladapter: set local counts" << std::endl;
   theVolume->set_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
-  std::cerr << "pvoladapter: set ghosted local counts" << std::endl;
+  //std::cerr << "pvoladapter: set ghosted local counts" << std::endl;
   theVolume->set_ghosted_local_counts(volumedimensions.x, volumedimensions.y, volumedimensions.z);
   
   data->GetDeltas(volumespacing);
-  std::cerr << "pvoladapter: set volume spacing" << std::endl;
+  //std::cerr << "pvoladapter: set volume spacing" << std::endl;
   theVolume->Volume::set_deltas(volumespacing.x, volumespacing.y, volumespacing.z);
 
-  std::cerr << "pvoladapter: set volume samples" << std::endl;
+  //std::cerr << "pvoladapter: set volume samples" << std::endl;
   //theVolume->set_samples((void*)data->GetSamples()); // same for float and uchar
   gvt::render::data::primitives::Box3D *bbox = data->getBoundingBox();
   glm::vec3 lowerbound = bbox->bounds_min;
@@ -189,7 +189,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   //theVolume->Commit();
   //std::cerr << "pvoladapter insert volume into dataset" << std::endl;
   theDataset->Insert("avol",theVolume);
-  std::cerr << "pvoladapter commit the dataset" << std::endl;
+  //std::cerr << "pvoladapter commit the dataset" << std::endl;
   theDataset->Commit();
   datavaluerange = data->GetTransferFunction()->getValueRange();
   data_min = datavaluerange[0]; data_max = datavaluerange[1];
@@ -238,7 +238,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
 
   theVolumeVis->SetTheData(theVolume);
   theVolumeVis->SetName("avol");
-  std::cerr << "pvoladapter: commit theVolumevis " << std::endl;
+  //std::cerr << "pvoladapter: commit theVolumevis " << std::endl;
   theVolumeVis->Commit(theDataset);
   //std::cerr << "pvoladapter: add volumevis to fisualization" << std::endl;
   theVisualization->AddVolumeVis(theVolumeVis);
@@ -401,7 +401,7 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   // trace'em
 //  std::cout << " ospadapter: ospTraceRays " << std::endl;
   ::gxy::TraceRays tracer;
-  std::cerr << " pvoladapter tracing " << theInRays.GetRayCount() << " rays " <<std::endl;
+  //std::cerr << " pvoladapter tracing " << theInRays.GetRayCount() << " rays " <<std::endl;
   //std::cerr << "pvoladapter visualization ispc pointer " << theVisualization->GetISPC() << std::endl;
   //::pvol::RayList& theOutRays = *(tracer.Trace(theLighting, theVisualization, &theInRays));
   //theInRays.print();
@@ -409,7 +409,7 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   //theInRays.print();
   // push everything from out and rl into moved_rays for sorting into houses
   //std::cerr << " whats up with theOutRays " << (theOutRays == NULL) << std::endl;
-  std::cerr <<  theInRays.GetRayCount() << " input rays " << std::endl;
+  //std::cerr <<  theInRays.GetRayCount() << " input rays " << std::endl;
 
   PVOL2GVTMoved_Rays(theOutRays, theInRays, moved_rays);
   // out and rl are no longer needed since they have been copied into moved_rays so

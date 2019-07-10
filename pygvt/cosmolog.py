@@ -59,7 +59,7 @@ ctffile = os.path.join(gravit_dir,"data/colormaps/RdBu_r.cmap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Balls.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/Balls.omap")
 #
-root=h5py.File(volumefile)
+root=h5py.File(volumefile,'r')
 # the number of domains is the number of grids in level 0
 level0 = root['Level0']
 numberofdomains = level0.attrs["NumberOfGrids"]
@@ -168,7 +168,7 @@ jitterWindowSize = 0.5
 camname = "conecam"
 gvt.addCamera(camname,eyept,focus,upVector,fov,rayMaxDepth,raysamples,jitterWindowSize)
 #film
-wsize = np.array([1024,1024],dtype=np.int32)
+wsize = np.array([512,512],dtype=np.int32)
 filmname = "conefilm"
 imagename = "EnzoImage"
 gvt.addFilm(filmname,wsize[0],wsize[1],imagename)
@@ -179,4 +179,11 @@ adaptertype = 6
 gvt.addRenderer(rendername,adaptertype,schedtype,camname,filmname,True)
 gvt.render(rendername)
 os.chdir(imagedir)
+gvt.writeimage(rendername,imagename)
+print(f'move the camera and render again {eyept}')
+eyept[2] = 1.5
+gvt.modifyCamera(camname,eyept,focus,upVector,fov)
+gvt.render(rendername)
+imagename = imagename + str(0)
+print(imagename)
 gvt.writeimage(rendername,imagename)
