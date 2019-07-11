@@ -135,8 +135,10 @@ void gvtRenderer::reload(std::string const &name) {
   case scheduler::Domain: {
     std::cerr << " domain shed tracer use count " << tracersync.use_count() << std::endl;
     if(tracersync.use_count() != 0 ) {
+        std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
         tracersync.reset(new algorithm::Tracer<schedule::DomainScheduler>(camera,myimage,cam,fil,name)); 
     } else {
+        std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
     tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
     }
     std::cerr << " domain set db.tracer to nullptr " << std::endl;

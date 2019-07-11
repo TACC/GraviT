@@ -77,6 +77,6 @@ gvt.addCamera("MyCamera",np.array([4.0, 0.0, 0.0],dtype=np.float32), np.array([0
             0.5)
 
 gvt.addFilm("film",512,512,"simple")
-gvt.addRenderer("render", 4, 0);
+gvt.addRenderer("render", 4, 0,"MyCamera","film",True);
 gvt.render("render");
 gvt.writeimage("render","simple");

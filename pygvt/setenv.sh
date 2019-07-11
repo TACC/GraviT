@@ -1,6 +1,7 @@
 export gvt_DIR=$WORK/Projects/GraviT/Install2
 export package_DIR=$WORK/Packages
-export embree_DIR=$WORK/Projects/GraviT/third-party/galaxy/third-party/embree/install
+export embree_DIR=$package_DIR/Embree
+#export embree_DIR=$WORK/Projects/GraviT/third-party/galaxy/third-party/embree/install
 export ospray_DIR=$WORK/Projects/GraviT/third-party/galaxy/third-party/ospray/install
 export qhull_DIR=$WORK/Projects/GraviT/third-party/qhull/Install
 export MPI_DIR=$I_MPI_ROOT/

@@ -300,7 +300,11 @@ int main(int argc, char **argv) {
   db.sync();
 //  db.printtreebyrank(std::cout);
   api::render(rendername);
-  api::writeimage(rendername,"simple");
+  api::writeimage(rendername,outputpath);
+  eye[1] = 1.0;
+  api::modifyCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov);
+  api::render(rendername);
+  api::writeimage(rendername,outputpath+"0");
 
 #if 0
   writeimage(rendername);

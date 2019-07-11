@@ -7,7 +7,8 @@ import sys
 import os
 import numpy
 
-compile_args = ['-std=c++11','-DGVT_BUILD_VOLUME']
+#compile_args = ['-std=c++11','-DGVT_BUILD_VOLUME']
+compile_args = ['-std=c++11']
 
 try:
     embree_inc = os.sep.join([os.environ["embree_DIR"], "include"])
@@ -102,7 +103,7 @@ extensions = [
               libraries=[
                  "gvtRender", "gvtCore","qhullcpp",
                  "IceTGL", "IceTMPI", "IceTCore",
-                 "embree3","qhull_r",
+                 "embree","qhull_r",
                  "mpi",
                  mpi_cxx_lib,
                  "ospray",

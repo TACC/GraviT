@@ -401,8 +401,8 @@ int main(int argc, char ** argv) {
   api::addCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov,rayMaxDepth,raySamples,jitterWindowSize);
   //film
   string filmname = "conefilm";
-  int width = 10;
-  int height = 10;
+  int width = 500;
+  int height = 500;
   if(cmd.isSet("wsize")) {
       std::vector<int> wsize = cmd.getValue<int>("wsize");
       width = wsize[0];
@@ -429,6 +429,10 @@ int main(int argc, char ** argv) {
   api::addRenderer(rendername,adaptertype,schedtype,camname,filmname,true);
   api::gvtsync();
   api::render(rendername);
-  api::writeimage(rendername);
+  api::writeimage(rendername, outputpath);
+  eye[1] = 1.0;
+  api::modifyCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov);
+  api::render(rendername);
+  api::writeimage(rendername,outputpath+"0");
   if(worldsize > 1) MPI_Finalize();
 }
