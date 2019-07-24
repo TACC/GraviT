@@ -96,16 +96,8 @@ for domain in range(numberofdomains):
         right = left + spacing*(dimensions)
         bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
         # stuff the level grid full
-#        print("\tdims "+repr(dimensions[:]))
-#        print("\tsdims "+repr(scalardims[:]))
-#        print("\tleft " + repr(left[:]))
-#        print("\tspacing " + repr(spacing))
-#        print("\tsampling " + repr(samplingrate))
-#        print("\tbounds " + repr(bounds))
         #fltptr = scalars.flatten()
         fltptr = np.ravel(scalars,order='C')
-#        print("\tfloats " + repr(fltptr[0]) + " " +repr(fltptr[1] ))
-#        print("level " + repr(level) + " gridname " + gridname +" nodename "+ nodename)
         gvt.addVolumeSamples(nodename,fltptr.astype(np.float32),dimensions.astype(np.int32),left.astype(np.float32),spacing.astype(np.float32),samplingrate,bounds.astype(np.float64))
         # grab the subgrids or daughters of this grid
         daughtergrids = grid['DaughterGrids']
@@ -124,7 +116,6 @@ for domain in range(numberofdomains):
             scalardims = np.array(scalars.shape,dtype=np.int32) -1
             low_scalar= min(low_scalar,scalars.min())
             high_scalar= max(high_scalar,scalars.max())
-            #dimensions = grid['GridDimension'].value
             startindex = grid['GridStartIndex'][()]
             endindex = grid['GridEndIndex'][()]
             dimensions = endindex - startindex 
@@ -133,14 +124,7 @@ for domain in range(numberofdomains):
             right = grid['GridRightEdge'][()]
             bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
             spacing = (right - left)/(endindex-startindex +1)
-#            print("\t"+dgname)
-#            print("\t\tdims "+repr(dimensions[:]))
-#            print("\t\tleft " + repr(left[:]))
-#            print("\t\tright " + repr(right[:]))
-#            print("\t\tspacing " + repr(spacing))
-#            print("\tbounds " + repr(bounds))
             fltptr = scalars.flatten()
-#            print("level "+repr(level)+" gridname "+dgname+" nodename "+nodename)
             gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),dimensions.astype(np.int32),left.astype(np.float32),spacing.astype(np.float32))
         print(" add transfer functions " + nodename)
         print(" ctffile : " + ctffile)
@@ -180,10 +164,10 @@ gvt.addRenderer(rendername,adaptertype,schedtype,camname,filmname,True)
 gvt.render(rendername)
 os.chdir(imagedir)
 gvt.writeimage(rendername,imagename)
-print(f'move the camera and render again {eyept}')
-eyept[2] = 1.5
-gvt.modifyCamera(camname,eyept,focus,upVector,fov)
-gvt.render(rendername)
-imagename = imagename + str(0)
-print(imagename)
-gvt.writeimage(rendername,imagename)
+#print(f'move the camera and render again {eyept}')
+#eyept[2] = 1.5
+#gvt.modifyCamera(camname,eyept,focus,upVector,fov)
+#gvt.render(rendername)
+#imagename = imagename + str(0)
+#print(imagename)
+#gvt.writeimage(rendername,imagename)
