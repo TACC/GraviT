@@ -17,6 +17,68 @@ import h5py
 import os
 from mpi4py import MPI
 import numpy as np
+def volinput(level0,domain,com,rank):
+    k = 0
+    print(f'rank {rank} reading domain {domain}')
+    nodename = "enzo_cosmology_plus_domain_" + repr(domain)
+    gvt.createVolume(nodename,True)
+    #gridname = level0grids[domain]
+    #grid = level0[gridname]
+    #level0grids = list(level0.keys())
+    #grid = level0[list(level0grids[domain]]
+    grid = level0[list(level0.keys())[domain]]
+    griddata = grid.get('GridData')
+    density = griddata['Density']
+    with density.astype('float32'):
+        scalars = np.log10(density[()])
+    scalardims = np.array(scalars.shape,dtype=np.int32)
+    low_scalar= min(low_scalar,scalars.min())
+    high_scalar= max(high_scalar,scalars.max())
+    #dimensions = grid['GridDimension'].value
+    startindex = grid['GridStartIndex'][()]
+    endindex = grid['GridEndIndex'][()]
+    dimensions = (endindex - startindex)+1 
+    #dimensions = scalardims
+    origin = grid['GridGlobalPosition'][()]
+    left = grid['GridLeftEdge'][()]
+    right = grid['GridRightEdge'][()]
+    spacing = (right - left)/(dimensions)
+    right = left + spacing*(dimensions)
+    bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
+    # stuff the level grid full
+    #fltptr = scalars.flatten()
+    fltptr = np.ravel(scalars,order='C')
+    gvt.addVolumeSamples(nodename,fltptr.astype(np.float32), \
+            dimensions.astype(np.int32),left.astype(np.float32),\
+            spacing.astype(np.float32),samplingrate,bounds.astype(np.float64))
+    # grab the subgrids or daughters of this grid
+    daughtergrids = grid['DaughterGrids']
+    dglist = list(daughtergrids.keys())
+    numsubs = len(dglist)
+    for dgname in daughtergrids.keys():
+        #dgname = dglist[l]
+        level = 1
+        k = k + 1
+        grid = daughtergrids[dgname]
+        griddata = grid.get('GridData')
+        density = griddata['Density']
+        with density.astype('float32'):
+            scalars = np.log10(density[()])
+        scalardims = np.array(scalars.shape,dtype=np.int32) -1
+        low_scalar= min(low_scalar,scalars.min())
+        high_scalar= max(high_scalar,scalars.max())
+        startindex = grid['GridStartIndex'][()]
+        endindex = grid['GridEndIndex'][()]
+        dimensions = endindex - startindex 
+        origin = grid['GridGlobalPosition'][()]
+        left = grid['GridLeftEdge'][()]
+        right = grid['GridRightEdge'][()]
+        bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
+        spacing = (right - left)/(endindex-startindex +1)
+        fltptr = scalars.flatten()
+        gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),\
+                dimensions.astype(np.int32),left.astype(np.float32),\
+                spacing.astype(np.float32))
 #from vtk import vtkStructuredPointsReader, vtkStructuredPoints
 #
 # initialize GraviT
@@ -59,21 +121,21 @@ ctffile = os.path.join(gravit_dir,"data/colormaps/RdBu_r.cmap")
 #ctffile = os.path.join(gravit_dir,"data/colormaps/Balls.cmap")
 #otffile = os.path.join(gravit_dir,"data/colormaps/Balls.omap")
 #
-root=h5py.File(volumefile,'r')
 # the number of domains is the number of grids in level 0
+root=h5py.File(volumefile,'r')
 level0 = root['Level0']
 numberofdomains = level0.attrs["NumberOfGrids"]
 level0grids = list(level0.keys())
 low_scalar = np.finfo('float32').max
 high_scalar = np.finfo('float32').min
 samplingrate = 1.0
-k = 0
 #for domain in range(1):
 for domain in range(numberofdomains):
     level = 0 
     if(domain%numprocs == rank): # read the domain (grid)
+        k = 0
+        #volinput(level0grids, domain,comm,rank)
         nodename = "enzo_cosmology_plus_domain_" + repr(domain)
-#        print(" creating node " + nodename)
         gvt.createVolume(nodename,True)
         gridname = level0grids[domain]
         grid = level0[gridname]
@@ -98,7 +160,9 @@ for domain in range(numberofdomains):
         # stuff the level grid full
         #fltptr = scalars.flatten()
         fltptr = np.ravel(scalars,order='C')
-        gvt.addVolumeSamples(nodename,fltptr.astype(np.float32),dimensions.astype(np.int32),left.astype(np.float32),spacing.astype(np.float32),samplingrate,bounds.astype(np.float64))
+        gvt.addVolumeSamples(nodename,fltptr.astype(np.float32),\
+                dimensions.astype(np.int32),left.astype(np.float32),\
+                spacing.astype(np.float32),samplingrate,bounds.astype(np.float64))
         # grab the subgrids or daughters of this grid
         daughtergrids = grid['DaughterGrids']
         dglist = list(daughtergrids.keys())
@@ -125,19 +189,25 @@ for domain in range(numberofdomains):
             bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
             spacing = (right - left)/(endindex-startindex +1)
             fltptr = scalars.flatten()
-            gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),dimensions.astype(np.int32),left.astype(np.float32),spacing.astype(np.float32))
+            gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),\
+                    dimensions.astype(np.int32),left.astype(np.float32),\
+                    spacing.astype(np.float32))
         print(" add transfer functions " + nodename)
         print(" ctffile : " + ctffile)
         print(" otffile : " + otffile)
         #low_scalar = 0.10
         #high_scalar = 42.0
         high_scalar = np.log10(100.0)
-        print(" scalar range : " + repr(low_scalar) + " " + repr(high_scalar))
+        #print(" scalar range : " + repr(low_scalar) + " " + repr(high_scalar))
         gvt.addVolumeTransferFunctions(nodename,ctffile,otffile,low_scalar,high_scalar)
-        # add an instance for this level 0 grid
-        mf = np.identity(4,dtype=np.float32).flatten()
-        myinstance = "inst" + repr(domain)
-        gvt.addInstance(myinstance,nodename,mf)
+gvt.gvtsync()
+mf = np.identity(4,dtype=np.float32).flatten()
+for domain in range(numberofdomains):
+    nodename = "enzo_cosmology_plus_domain_" + repr(domain)
+    # add an instance for this level 0 grid
+    myinstance = "inst" + repr(domain)
+    gvt.addInstance(myinstance,nodename,mf)
+gvt.gvtsync()
 # and now camera etc.
 #
 eyept = np.array([2.5,2.5,2.5],dtype=np.float32)
