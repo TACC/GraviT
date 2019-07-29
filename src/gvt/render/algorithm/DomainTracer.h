@@ -101,7 +101,7 @@ public:
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {
 
-          std::cerr << "initialize domain tracer " << std::endl;
+          //std::cerr << "initialize domain tracer " << std::endl;
     Initialize();
   }
 
@@ -113,11 +113,11 @@ public:
   }
 
   virtual void Initialize() {
-      std::cerr << "get inst" << std::endl;
+      //std::cerr << "get inst" << std::endl;
     auto inst = db.getChildren(db.getUnique("Instances"));
-      std::cerr << "get data" << std::endl;
+      //std::cerr << "get data" << std::endl;
     auto data = db.getChildren(db.getUnique("Data"));
-      std::cerr << "get lastAssigned" << std::endl;
+      //std::cerr << "get lastAssigned" << std::endl;
     gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
     for (auto &rn : data) {
       auto &m = rn.get();
@@ -126,21 +126,21 @@ public:
 
     unsigned icount = 0;
 
-    std::cerr << "loop on inst" << std::endl;
+    //std::cerr << "DomainTracer: loop on inst" << std::endl;
     for (auto &ri : inst) {
-        std::cerr << " get ri " << std::endl;
+      //std::cerr << " get ri " << std::endl;
       auto &i = ri.get();
-      std::cerr << " get m " << std::endl;
+      //std::cerr << " get m " << std::endl;
       auto &m = db.deRef(db.getChild(i, "meshRef"));
-      std::cerr << " get id " << std::endl;
+      //std::cerr << " get id " << std::endl;
       size_t id = db.getChild(i, "id");
-      std::cerr << " get loc " << std::endl;
+      //std::cerr << " get loc " << std::endl;
       std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
-      std::cerr << " map instances " << std::endl;
+      //std::cerr << " map instances " << std::endl;
       mpiInstanceMap[id] = loc[lastAssigned[m.getid()] % loc.size()];
       lastAssigned[m.getid()]++;
     }
-    std::cerr << " done looping on inst " << std::endl;
+    //std::cerr << " done looping on inst " << std::endl;
   }
 
   virtual ~Tracer() {}
@@ -234,7 +234,7 @@ public:
 
         for (auto &q : queue) {
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
-          std::cerr << " queue inRank " << inRank << " rank " << mpi.rank << std::endl;
+          //std::cerr << " queue inRank " << inRank << " rank " << mpi.rank << std::endl;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
             instTarget = q.first;
@@ -242,14 +242,14 @@ public:
         }
         t_sort.stop();
 
-        std::cerr << " instTarget " << instTarget << std::endl;
+        //std::cerr << " instTarget " << instTarget << std::endl;
         if (instTarget >= 0) {
 
           t_adapter.resume();
-          std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
+          //std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
-          std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
+          //std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
           std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -287,9 +287,9 @@ public:
 #endif
 #ifdef GVT_RENDER_ADAPTER_GALAXY
             case gvt::render::adapter::Pvol:
-              std::cout << " domaintracer build an adapter" << std::endl;
+              //std::cout << " domaintracer build an adapter" << std::endl;
               adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
-              std::cout << " domaintracer built a pvol adapter" << std::endl;
+              //std::cout << " domaintracer built a pvol adapter" << std::endl;
               break;
 #endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
@@ -312,11 +312,11 @@ public:
             t_trace.resume();
 
             gc_rays.add(this->queue[instTarget].size());
-            std::cerr << "domaintracer " << this->queue[instTarget].size() << std::endl;
+            //std::cerr << "domaintracer " << this->queue[instTarget].size() << std::endl;
             moved_rays.reserve(this->queue[instTarget].size() * 10);
 
-            std::cout << " domaintracer: call adapter->trace method. Inst target:  " << instTarget << std::endl;
-            std::cout << this->queue[instTarget][0] << std::endl;
+            //std::cout << " domaintracer: call adapter->trace method. Inst target:  " << instTarget << std::endl;
+            //std::cout << this->queue[instTarget][0] << std::endl;
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 
@@ -326,7 +326,7 @@ public:
 
           t_shuffle.resume();
           gc_shuffle.add(moved_rays.size());
-          std::cerr << " shuffling rays " << std::endl;
+          //std::cerr << " shuffling rays " << std::endl;
           shuffleRays(moved_rays, instTarget);
           moved_rays.clear();
           t_shuffle.stop();

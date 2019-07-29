@@ -215,7 +215,7 @@ public:
     //    require_composite = img.initIceT();
     // NOTE : Replaced by smat pointer
     // colorBuf = new glm::vec4[width * height];
-    std::cerr << "initialize abstract tracer " << std::endl;
+    //std::cerr << "initialize abstract tracer " << std::endl;
     Initialize();
   }
 
@@ -338,7 +338,7 @@ public:
 //    std::cout << "Ray_BOUNDARY" << std::bitset<8>(RAY_BOUNDARY) << std::endl;
 //    std::cout << "Ray_TIMEOUT" << std::bitset<8>(RAY_TIMEOUT) << std::endl;
 //    std::cout << "Ray_EXTERNAL_BOUNDARY" << std::bitset<8>(RAY_EXTERNAL_BOUNDARY) << std::endl;
-    std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
+    //std::cout << "shuffling " << rays.size() << " with domID " << domID << std::endl;
 
     const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
     gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());

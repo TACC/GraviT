@@ -91,8 +91,8 @@ gvtRenderer::gvtRenderer() {
 
 void gvtRenderer::reload(std::string const &name) {
 
-  std::cerr << " reloading: current_scheduler  " << current_scheduler <<
-     " name " << name  << std::endl;
+  //std::cerr << " reloading: current_scheduler  " << current_scheduler <<
+  //   " name " << name  << std::endl;
   if (name == current_scheduler) return;
   cntx::rcontext &db = cntx::rcontext::instance();
 
@@ -133,15 +133,15 @@ void gvtRenderer::reload(std::string const &name) {
     break;
   }
   case scheduler::Domain: {
-    std::cerr << " domain shed tracer use count " << tracersync.use_count() << std::endl;
+    //std::cerr << " domain shed tracer use count " << tracersync.use_count() << std::endl;
     if(tracersync.use_count() != 0 ) {
-        std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
+    //    std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
         tracersync.reset(new algorithm::Tracer<schedule::DomainScheduler>(camera,myimage,cam,fil,name)); 
     } else {
-        std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
+     //   std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
     tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
     }
-    std::cerr << " domain set db.tracer to nullptr " << std::endl;
+    //std::cerr << " domain set db.tracer to nullptr " << std::endl;
     db.tracer = tracerasync = nullptr;
     break;
   }
@@ -159,21 +159,21 @@ void gvtRenderer::reload(std::string const &name) {
   }
   default: {}
   }
-  std::cerr << " renderer reloaded " << std::endl;
+  //std::cerr << " renderer reloaded " << std::endl;
   // db.tracer = tracer;
 }
 
 void gvtRenderer::render(std::string const &name) {
   reload(name);
-  std::cerr << " gvtRenderer allocate camera rays " << std::endl;
+  //std::cerr << " gvtRenderer allocate camera rays " << std::endl;
   camera->AllocateCameraRays();
-  std::cerr << " gvtRenderer generate camera rays " << std::endl;
+  //std::cerr << " gvtRenderer generate camera rays " << std::endl;
   camera->generateRays(volume);
   if (tracersync) {
-  std::cerr << " gvtRenderer synchronours tracer call " << std::endl;
+  //std::cerr << " gvtRenderer synchronours tracer call " << std::endl;
     (*tracersync.get())();
   } else if (tracerasync) {
-  std::cerr << " gvtRenderer asynchronours tracer call " << std::endl;
+  //std::cerr << " gvtRenderer asynchronours tracer call " << std::endl;
     (*tracerasync.get())();
   }
 }
@@ -181,7 +181,7 @@ void gvtRenderer::WriteImage(std::string const &name) { myimage->write(name); }
 
 gvtRenderer *gvtRenderer::instance() {
   if (__singleton == nullptr) {
-      std::cout << "creatin a new gvtRenderer " << std::endl;
+//      std::cout << "creatin a new gvtRenderer " << std::endl;
     __singleton = new gvtRenderer();
   }
   return __singleton;

@@ -91,7 +91,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 numprocs = comm.size
 #
-print(" numprocs " + str(numprocs) + " rank " + str(rank))
+#print(" numprocs " + str(numprocs) + " rank " + str(rank))
 #
 #
 # where are the data
@@ -192,9 +192,9 @@ for domain in range(numberofdomains):
             gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),\
                     dimensions.astype(np.int32),left.astype(np.float32),\
                     spacing.astype(np.float32))
-        print(" add transfer functions " + nodename)
-        print(" ctffile : " + ctffile)
-        print(" otffile : " + otffile)
+        #print(" add transfer functions " + nodename)
+        #print(" ctffile : " + ctffile)
+        #print(" otffile : " + otffile)
         #low_scalar = 0.10
         #high_scalar = 42.0
         high_scalar = np.log10(100.0)
