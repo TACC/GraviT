@@ -17,16 +17,14 @@ import h5py
 import os
 from mpi4py import MPI
 import numpy as np
-def volinput(level0,domain,com,rank):
+def volinput(grid,domain,com,rank):
+    level=0
     k = 0
+    low_scalar = np.finfo('float32').max
+    high_scalar = np.finfo('float32').min
     print(f'rank {rank} reading domain {domain}')
     nodename = "enzo_cosmology_plus_domain_" + repr(domain)
     gvt.createVolume(nodename,True)
-    #gridname = level0grids[domain]
-    #grid = level0[gridname]
-    #level0grids = list(level0.keys())
-    #grid = level0[list(level0grids[domain]]
-    grid = level0[list(level0.keys())[domain]]
     griddata = grid.get('GridData')
     density = griddata['Density']
     with density.astype('float32'):
@@ -34,19 +32,15 @@ def volinput(level0,domain,com,rank):
     scalardims = np.array(scalars.shape,dtype=np.int32)
     low_scalar= min(low_scalar,scalars.min())
     high_scalar= max(high_scalar,scalars.max())
-    #dimensions = grid['GridDimension'].value
     startindex = grid['GridStartIndex'][()]
     endindex = grid['GridEndIndex'][()]
     dimensions = (endindex - startindex)+1 
-    #dimensions = scalardims
     origin = grid['GridGlobalPosition'][()]
     left = grid['GridLeftEdge'][()]
     right = grid['GridRightEdge'][()]
     spacing = (right - left)/(dimensions)
     right = left + spacing*(dimensions)
     bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
-    # stuff the level grid full
-    #fltptr = scalars.flatten()
     fltptr = np.ravel(scalars,order='C')
     gvt.addVolumeSamples(nodename,fltptr.astype(np.float32), \
             dimensions.astype(np.int32),left.astype(np.float32),\
@@ -56,7 +50,6 @@ def volinput(level0,domain,com,rank):
     dglist = list(daughtergrids.keys())
     numsubs = len(dglist)
     for dgname in daughtergrids.keys():
-        #dgname = dglist[l]
         level = 1
         k = k + 1
         grid = daughtergrids[dgname]
@@ -79,7 +72,7 @@ def volinput(level0,domain,com,rank):
         gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),\
                 dimensions.astype(np.int32),left.astype(np.float32),\
                 spacing.astype(np.float32))
-#from vtk import vtkStructuredPointsReader, vtkStructuredPoints
+    return (low_scalar,high_scalar)
 #
 # initialize GraviT
 #
@@ -91,9 +84,6 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 numprocs = comm.size
 #
-#print(" numprocs " + str(numprocs) + " rank " + str(rank))
-#
-#
 # where are the data
 #
 data_dir = os.path.join(os.environ['WORK'],"Projects/GraviT/data/enzo_cosmology_plus")
@@ -104,22 +94,8 @@ imagedir = os.getcwd()
 os.chdir(data_dir)
 # input files 
 volumefile = os.path.join(data_dir,"DD0046/DD0046.hierarchy.hdf5")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/Grayscale.orig.cmap")
-#otffile = os.path.join(gravit_dir,"data/colormaps/Grayscale.orig.omap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/CoolWarm.cmap")
-#otffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.omap")
 otffile = os.path.join(gravit_dir,"data/colormaps/tenspikes.omap")
-#otffile = os.path.join(gravit_dir,"data/colormaps/ramp.omap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/blue2cyan.cmap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/blueredyellowwhite.cmap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/gist_stern.cmap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/Jet.cmap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/coldhot.cmap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/orange-5.cmap")
 ctffile = os.path.join(gravit_dir,"data/colormaps/RdBu_r.cmap")
-#otffile = os.path.join(gravit_dir,"data/colormaps/orange-5.omap")
-#ctffile = os.path.join(gravit_dir,"data/colormaps/Balls.cmap")
-#otffile = os.path.join(gravit_dir,"data/colormaps/Balls.omap")
 #
 # the number of domains is the number of grids in level 0
 root=h5py.File(volumefile,'r')
@@ -129,77 +105,16 @@ level0grids = list(level0.keys())
 low_scalar = np.finfo('float32').max
 high_scalar = np.finfo('float32').min
 samplingrate = 1.0
-#for domain in range(1):
 for domain in range(numberofdomains):
-    level = 0 
     if(domain%numprocs == rank): # read the domain (grid)
+        level = 0 
         k = 0
-        #volinput(level0grids, domain,comm,rank)
         nodename = "enzo_cosmology_plus_domain_" + repr(domain)
-        gvt.createVolume(nodename,True)
         gridname = level0grids[domain]
         grid = level0[gridname]
-        griddata = grid.get('GridData')
-        density = griddata['Density']
-        with density.astype('float32'):
-            scalars = np.log10(density[()])
-        scalardims = np.array(scalars.shape,dtype=np.int32)
-        low_scalar= min(low_scalar,scalars.min())
-        high_scalar= max(high_scalar,scalars.max())
-        #dimensions = grid['GridDimension'].value
-        startindex = grid['GridStartIndex'][()]
-        endindex = grid['GridEndIndex'][()]
-        dimensions = (endindex - startindex)+1 
-        #dimensions = scalardims
-        origin = grid['GridGlobalPosition'][()]
-        left = grid['GridLeftEdge'][()]
-        right = grid['GridRightEdge'][()]
-        spacing = (right - left)/(dimensions)
-        right = left + spacing*(dimensions)
-        bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
-        # stuff the level grid full
-        #fltptr = scalars.flatten()
-        fltptr = np.ravel(scalars,order='C')
-        gvt.addVolumeSamples(nodename,fltptr.astype(np.float32),\
-                dimensions.astype(np.int32),left.astype(np.float32),\
-                spacing.astype(np.float32),samplingrate,bounds.astype(np.float64))
-        # grab the subgrids or daughters of this grid
-        daughtergrids = grid['DaughterGrids']
-        dglist = list(daughtergrids.keys())
-        numsubs = len(dglist)
-        #for l in range(0):
-        for dgname in daughtergrids.keys():
-            #dgname = dglist[l]
-            level = 1
-            k = k + 1
-            grid = daughtergrids[dgname]
-            griddata = grid.get('GridData')
-            density = griddata['Density']
-            with density.astype('float32'):
-                scalars = np.log10(density[()])
-            scalardims = np.array(scalars.shape,dtype=np.int32) -1
-            low_scalar= min(low_scalar,scalars.min())
-            high_scalar= max(high_scalar,scalars.max())
-            startindex = grid['GridStartIndex'][()]
-            endindex = grid['GridEndIndex'][()]
-            dimensions = endindex - startindex 
-            origin = grid['GridGlobalPosition'][()]
-            left = grid['GridLeftEdge'][()]
-            right = grid['GridRightEdge'][()]
-            bounds = np.array([left[0],right[0],left[1],right[1],left[2],right[2]])
-            spacing = (right - left)/(endindex-startindex +1)
-            fltptr = scalars.flatten()
-            gvt.addAmrSubgrid(nodename,k,level,fltptr.astype(np.float32),\
-                    dimensions.astype(np.int32),left.astype(np.float32),\
-                    spacing.astype(np.float32))
-        #print(" add transfer functions " + nodename)
-        #print(" ctffile : " + ctffile)
-        #print(" otffile : " + otffile)
-        #low_scalar = 0.10
-        #high_scalar = 42.0
-        high_scalar = np.log10(100.0)
-        #print(" scalar range : " + repr(low_scalar) + " " + repr(high_scalar))
-        gvt.addVolumeTransferFunctions(nodename,ctffile,otffile,low_scalar,high_scalar)
+        (ls,hs) = volinput(grid, domain,comm,rank)
+        #high_scalar = np.log10(100.0)
+        gvt.addVolumeTransferFunctions(nodename,ctffile,otffile,ls,hs)
 gvt.gvtsync()
 mf = np.identity(4,dtype=np.float32).flatten()
 for domain in range(numberofdomains):
@@ -207,7 +122,6 @@ for domain in range(numberofdomains):
     # add an instance for this level 0 grid
     myinstance = "inst" + repr(domain)
     gvt.addInstance(myinstance,nodename,mf)
-gvt.gvtsync()
 # and now camera etc.
 #
 eyept = np.array([2.5,2.5,2.5],dtype=np.float32)
@@ -234,10 +148,3 @@ gvt.addRenderer(rendername,adaptertype,schedtype,camname,filmname,True)
 gvt.render(rendername)
 os.chdir(imagedir)
 gvt.writeimage(rendername,imagename)
-#print(f'move the camera and render again {eyept}')
-#eyept[2] = 1.5
-#gvt.modifyCamera(camname,eyept,focus,upVector,fov)
-#gvt.render(rendername)
-#imagename = imagename + str(0)
-#print(imagename)
-#gvt.writeimage(rendername,imagename)
