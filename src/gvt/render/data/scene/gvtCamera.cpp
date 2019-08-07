@@ -23,11 +23,17 @@
    ======================================================================================= */
 
 #include <gvt/core/utils/timer.h>
+// these commented lines are from the dev branch. 
 //#ifdef GVT_RENDER_ADAPTER_GALAXY
 //#include <RayFlags.h> // .TODO this is included from galaxy. Protect it.
 //#else
 //#include <gvt/render/actor/ORays.h>
 //#endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <RayFlags.h> // .TODO this is included from galaxy. Protect it.
+#else
+#include <gvt/render/actor/ORays.h>
+#endif
 #include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 

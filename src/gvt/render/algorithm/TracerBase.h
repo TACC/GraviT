@@ -211,6 +211,7 @@ public:
     //    require_composite = img.initIceT();
     // NOTE : Replaced by smat pointer
     // colorBuf = new glm::vec4[width * height];
+    //std::cerr << "initialize abstract tracer " << std::endl;
     Initialize();
   }
 

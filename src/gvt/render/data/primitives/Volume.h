@@ -44,7 +44,7 @@ struct griddata {
     float spacing[3];// cell spacing of this grid
     int counts[3];   // dimensions of this grid
     float bounds[6]; // bounds of this  grid.
-    float * samples; // values of scalar at grid points
+    float * samples; // pointer to scalar at grid points
     std::vector<int> subgrids; // vector of subgrid indices of this grid 
 };
 

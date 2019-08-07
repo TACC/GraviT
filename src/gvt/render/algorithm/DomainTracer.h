@@ -101,6 +101,7 @@ public:
          std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
       : AbstractTrace(camera, image, camname, filmname, schedulername) {
 
+          //std::cerr << "initialize domain tracer " << std::endl;
     Initialize();
   }
 
@@ -112,8 +113,11 @@ public:
   }
 
   virtual void Initialize() {
+      //std::cerr << "get inst" << std::endl;
     auto inst = db.getChildren(db.getUnique("Instances"));
+      //std::cerr << "get data" << std::endl;
     auto data = db.getChildren(db.getUnique("Data"));
+      //std::cerr << "get lastAssigned" << std::endl;
     gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
     for (auto &rn : data) {
       auto &m = rn.get();
@@ -122,14 +126,21 @@ public:
 
     unsigned icount = 0;
 
+    //std::cerr << "DomainTracer: loop on inst" << std::endl;
     for (auto &ri : inst) {
+      //std::cerr << " get ri " << std::endl;
       auto &i = ri.get();
+      //std::cerr << " get m " << std::endl;
       auto &m = db.deRef(db.getChild(i, "meshRef"));
+      //std::cerr << " get id " << std::endl;
       size_t id = db.getChild(i, "id");
+      //std::cerr << " get loc " << std::endl;
       std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
+      //std::cerr << " map instances " << std::endl;
       mpiInstanceMap[id] = loc[lastAssigned[m.getid()] % loc.size()];
       lastAssigned[m.getid()]++;
     }
+    //std::cerr << " done looping on inst " << std::endl;
   }
 
   virtual ~Tracer() {}
@@ -230,11 +241,14 @@ public:
         }
         t_sort.stop();
 
+        //std::cerr << " instTarget " << instTarget << std::endl;
         if (instTarget >= 0) {
 
           t_adapter.resume();
+          //std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
           std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
+          //std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
           std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
           auto it = adapterCache.find(mesh);
@@ -296,7 +310,6 @@ public:
 
             gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
-
             adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
                            instMinvN[instTarget].get(), lights);
 

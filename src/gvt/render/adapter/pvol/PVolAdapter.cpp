@@ -121,8 +121,8 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   glm::vec3 upperbound = bbox->bounds_max;
   ::pvol::vec3f lb = {lowerbound.x,lowerbound.y,lowerbound.z};
   ::pvol::vec3f ub = {upperbound.x,upperbound.y,upperbound.z};
-  std::cerr << " boxL \n" << lowerbound.x << " " << lowerbound.y << " " << lowerbound.z << std::endl;
-  std::cerr << " boxU \n" << upperbound.x << " " << upperbound.y << " " << upperbound.z << std::endl;
+  //std::cerr << " boxL \n" << lowerbound.x << " " << lowerbound.y << " " << lowerbound.z << std::endl;
+  //std::cerr << " boxU \n" << upperbound.x << " " << upperbound.y << " " << upperbound.z << std::endl;
   
   theVolume->set_local_box(lb,ub);
   gvt::render::data::primitives::Volume::VoxelType vt = data->GetVoxelType();
@@ -157,7 +157,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
   //std::cerr << "pvoladapter data min/max " << data_min << " " << data_max << std::endl;
   {
     int count = data->GetTransferFunction()->getColorCount();
-    std::cerr << " setting " << count << " element transfer function " << std::endl;
+    //std::cerr << " setting " << count << " element transfer function " << std::endl;
     // this statement is wrong. it gets the wrong vector
     // the right vector is a vec4 also. 
     //glm::vec3 *in = data->GetTransferFunction()->getColors();
@@ -169,9 +169,9 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
     for (int i = 0; i < count; ++i )
     {
       scalar = in[i].x*(data_max - data_min) + data_min;
-      std::cerr << i << "incolor " << in[i].x << " " << in[i].y <<  " " << in[i].z << " " << in[i].w << std::endl;
+      //std::cerr << i << "incolor " << in[i].x << " " << in[i].y <<  " " << in[i].z << " " << in[i].w << std::endl;
       out[i] = ::pvol::vec4f(scalar, in[i].y, in[i].z, in[i].w);
-      std::cerr << i << " color " << out[i].x << " " << out[i].y << " " << out[i].z << " " << out[i].w << std::endl;
+      //std::cerr << i << " color " << out[i].x << " " << out[i].y << " " << out[i].z << " " << out[i].w << std::endl;
       //scalar += data_step;
     }
     theVolumeVis->SetColorMap( count, out );
@@ -198,7 +198,7 @@ PVolAdapter::PVolAdapter(std::shared_ptr<gvt::render::data::primitives::Data> d,
 
   theVolumeVis->SetTheData(theVolume);
   theVolumeVis->SetName("avol");
-  std::cerr << "pvoladapter: commit theVolumevis " << std::endl;
+  //std::cerr << "pvoladapter: commit theVolumevis " << std::endl;
   theVolumeVis->Commit(theDataset);
   //std::cerr << "pvoladapter: add volumevis to fisualization" << std::endl;
   theVisualization->AddVolumeVis(theVolumeVis);
@@ -360,7 +360,7 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   // trace'em
 //  std::cout << " ospadapter: ospTraceRays " << std::endl;
   ::pvol::TraceRays tracer;
-  std::cerr << " pvoladapter tracing " << theInRays.GetRayCount() << " rays " <<std::endl;
+  //std::cerr << " pvoladapter tracing " << theInRays.GetRayCount() << " rays " <<std::endl;
   //std::cerr << "pvoladapter visualization ispc pointer " << theVisualization->GetISPC() << std::endl;
   //::pvol::RayList& theOutRays = *(tracer.Trace(theLighting, theVisualization, &theInRays));
   //theInRays.print();
@@ -368,7 +368,7 @@ void PVolAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::act
   //theInRays.print();
   // push everything from out and rl into moved_rays for sorting into houses
   //std::cerr << " whats up with theOutRays " << (theOutRays == NULL) << std::endl;
-  std::cerr <<  theInRays.GetRayCount() << " input rays " << std::endl;
+  //std::cerr <<  theInRays.GetRayCount() << " input rays " << std::endl;
 
   PVOL2GVTMoved_Rays(theOutRays, theInRays, moved_rays);
   // out and rl are no longer needed since they have been copied into moved_rays so

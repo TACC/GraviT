@@ -76,7 +76,7 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(gvt::render::data::primit
 
 void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, int level, float *orig, float *spac, int *counts, float *samp) {
     gvt::render::data::primitives::griddata data;
-    std::cerr << " adding gid " << gridid << " level " << level << std::endl;
+    //std::cerr << "gvt:Volume:AddAMRGrid: gid " << gridid << " level " << level << std::endl;
     data.gridid = gridid;
     data.level = level;
     data.origin[0] = orig[0];
@@ -85,10 +85,15 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, int level, fl
     data.spacing[0] = spac[0];
     data.spacing[1] = spac[1];
     data.spacing[2] = spac[2];
-    data.counts[0] = counts[0];
-    data.counts[1] = counts[1];
-    data.counts[2] = counts[2];
-    data.samples = samp;
+    //std::cerr << "gvt:volume:AddAMRGrid: counts " << counts[0] << " " << counts[1] << " " << counts[2] << std::endl;
+    int numsamples = counts[0]*counts[1]*counts[2];
+    //std::cerr << "gvt:volume:AddAMRGrid: numsamples " << numsamples << std::endl;
+    data.samples = new float[numsamples];
+    for(int i = 0;i<numsamples;i++) 
+        data.samples[i] = samp[i];
+    data.counts[0] = counts[0]-1;
+    data.counts[1] = counts[1]-1;
+    data.counts[2] = counts[2]-1;
     numberofgridsinvolume +=1;
     gridvector.push_back(data);
     std::map<int,int>::iterator lngit = lng.find(level);
@@ -100,8 +105,8 @@ void gvt::render::data::primitives::Volume::AddAMRGrid(int gridid, int level, fl
 }
 gvt::render::data::primitives::griddata gvt::render::data::primitives::Volume::GetAMRGrid(int gid)
 {
-    std::cerr << " gid " << gid << " gridvector size " << gridvector.size() << std::endl;
-    std::cerr << gridvector[gid].origin[0] << " " << gridvector[gid].origin[1] << " " << gridvector[gid].origin[2] << std::endl;
+    //std::cerr << " gid " << gid << " gridvector size " << gridvector.size() << std::endl;
+    //std::cerr << gridvector[gid].origin[0] << " " << gridvector[gid].origin[1] << " " << gridvector[gid].origin[2] << std::endl;
        //return gridvector[gid];
        return gridvector.at(gid);
 }

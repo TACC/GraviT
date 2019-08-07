@@ -1,0 +1,6 @@
+<?xml?>
+<AMRVolume>
+  <fileName>1000.floatAMR</fileName>
+  <brickSize>1</brickSize>
+  <clamp>0 100000</clamp>
+</AMRVolume>

@@ -8,6 +8,7 @@ import os
 import numpy
 
 compile_args = ['-std=c++11','-DGVT_BUILD_VOLUME']
+#compile_args = ['-std=c++11']
 
 try:
     embree_inc = os.sep.join([os.environ["embree_DIR"], "include"])
@@ -24,6 +25,15 @@ except KeyError:
     print("Please set the environment variable embree_DIR")
     sys.exit(1)
 
+try:
+    qhull_dir = os.environ["qhull_DIR"]
+    if os.path.exists(os.sep.join([qhull_dir,'lib'])):
+        qhull_lib = os.sep.join([qhull_dir,'lib'])
+    else:
+        raise RuntimeError("Cannot identify qhull lib")
+except KeyError:
+    print("Please set the environment variable qhull_dir")
+    sys.exit(1)
 
 try:
     os.environ["gvt_DIR"]
@@ -91,21 +101,22 @@ extensions = [
                  mpi_inc,
                  numpy.get_include()],
               libraries=[
-                 "gvtRender", "gvtCore",
+                 "gvtRender", "gvtCore","qhullcpp",
                  "IceTGL", "IceTMPI", "IceTCore",
-                 "embree3",
+                 "embree3","qhull_r",
                  "mpi",
                  mpi_cxx_lib,
                  "ospray",
                  "gxy_data",
                  "gxy_framework",
                  "gxy_renderer",
-                 "gxy_sampler",
+                 "gxy_sampler"
               ],
               library_dirs=[
                  embree_lib,
                  mpi_lib,
                  gvt_lib,
+                 qhull_lib,
                  os.environ["IceT_LIB_DIR"],
                  os.environ["ospray_LIB_DIR"],
                  os.environ["Galaxy_LIB_DIR"],

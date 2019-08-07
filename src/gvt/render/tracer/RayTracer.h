@@ -41,6 +41,7 @@
 #include <tbb/tick_count.h>
 
 #ifdef GVT_RENDER_ADAPTER_EMBREE
+#include <gvt/render/actor/ORays.h>
 #include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
 #endif
 
