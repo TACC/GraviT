@@ -42,7 +42,7 @@ make && make install
 Currently volume rendering support must be enabled at compile time. Rather than using the default `cmake` flags, instead build `GraviT` with the following `cmake` invocation:
 
 ```
-embree_DIR=../third-party/embree cmake -DGVT_VOLUME=True -DGVT_RENDER_ADAPTER_GREGSPRAY=True -DGVT_VOL_APP=True -DGVT_TIMING=False -DGVT_TESTING=False -DCMAKE_INSTALL_PREFIX:PATH=$PWD/../install ../
+embree_DIR=../third-party/embree cmake -DGVT_VOLUME=True -DGVT_RENDER_ADAPTER_GALAXY=True -DGVT_VOL_APP=True -DGVT_TIMING=False -DGVT_TESTING=False -DGVT_RENDER_ADAPTER_EMBREE=False -DGVT_RENDER_ADAPTER_EMBREE_STREAM=False -DCMAKE_INSTALL_PREFIX:PATH=$PWD/../install ../
 ```
 
 This turns on several compile-time flags needed by the volume renderer and disables the testing option, which currently conflicts with the volume renderer.
@@ -53,7 +53,7 @@ Once you have build `GraviT` itself, you can optionally build the python binding
 
 ```
 cd pygvt
-embree_DIR=../third-party/embree/install gvt_DIR=../install/ IceT_LIB_DIR=../third-party/icet/install/lib MPI_DIR=/usr/local/ GregSpray_LIB_DIR=../third-party/GregSpray/install/lib python setup.py develop
+embree_DIR=../third-party/embree/install gvt_DIR=../install/ IceT_LIB_DIR=../third-party/icet/install/lib MPI_DIR=/usr/local/ Galaxy_LIB_DIR=../third-party/galaxy/install/lib python setup.py develop
 ```
 
 If you would prefer to avoid setting these environment variables at the command line manually, you can source the `setenv.sh` script instead.
@@ -63,7 +63,7 @@ You will need cython and setuptools installed in your python environment for thi
 Now you should be able to run the volume rendering example included with the `GraviT` repository:
 
 ```
-LD_LIBRARY_PATH=../install/lib:../third-party/icet/install/lib:../third-party/embree/install/lib:../third-party/GregSpray/install/lib mpirun -np 2 python gvtVol.py
+LD_LIBRARY_PATH=../install/lib:../third-party/icet/install/lib:../third-party/embree/install/lib:../third-party/galaxy/install/lib mpirun -np 2 python gvtVol.py
 ```
 
 This will produce an image named `PythonVolRenderer.ppm` in the current directory.
