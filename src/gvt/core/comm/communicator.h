@@ -129,7 +129,7 @@ struct communicator {
      \return Message type identifer in the communicator
   */
 
-  template <class M> static int RegisterMessageType() {
+  template <class M> static size_t RegisterMessageType() {
     static_assert(std::is_base_of<comm::Message, M>::value, "M must inherit from comm::Message");
     std::string classname = typeid(M).name();
     if (registry_ids.find(classname) != registry_ids.end()) {

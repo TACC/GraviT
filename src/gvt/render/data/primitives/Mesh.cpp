@@ -40,12 +40,18 @@ Mesh::Mesh(Material *mat) : mat(mat), haveNormals(false) {}
 Mesh::Mesh(const Mesh &orig) {
   mat = orig.mat;
   vertices = orig.vertices;
+  tets = orig.tets;
   normals = orig.normals;
   faces = orig.faces;
   boundingBox = orig.boundingBox;
 }
 
-Mesh::~Mesh() { delete mat; }
+Mesh::~Mesh() {
+  delete mat;
+  for (auto &m : materials) {
+    delete m;
+  }
+}
 
 void Mesh::addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal, glm::vec3 texUV) {
   vertices.push_back(vertex);
@@ -86,6 +92,13 @@ void Mesh::setMaterial(Material *mat_) {
   *(this->mat) = *mat_;
 }
 
+void Mesh::addTetrahedralCell(int v0, int v1, int v2, int v3) {
+    GVT_ASSERT((v0>=0) && v0 < vertices.size(), "Vertex index 0 outside bounds: " << v0 );
+    GVT_ASSERT((v1>=0) && v1 < vertices.size(), "Vertex index 0 outside bounds: " << v1 );
+    GVT_ASSERT((v2>=0) && v2 < vertices.size(), "Vertex index 0 outside bounds: " << v2 );
+    GVT_ASSERT((v3>=0) && v3 < vertices.size(), "Vertex index 0 outside bounds: " << v3 );
+    tets.push_back(TetrahedralCell(v0-1,v1-1,v2-1,v3-1));
+}
 void Mesh::addFace(int v0, int v1, int v2) {
   GVT_ASSERT((v0 - 1 >= 0) && v0 - 1 < vertices.size(), "Vertex index 0 outside bounds : " << (v0 - 1));
   GVT_ASSERT((v1 - 1 >= 0) && v1 - 1 < vertices.size(), "Vertex index 1 outside bounds : " << (v1 - 1));
@@ -111,9 +124,9 @@ void Mesh::generateNormals() {
   for (int i = 0; i < normals.size(); ++i) normals[i] = glm::vec3(0.0f, 0.0f, 0.0f);
 
   for (int i = 0; i < faces.size(); ++i) {
-    int I = faces[i].get<0>();
-    int J = faces[i].get<1>();
-    int K = faces[i].get<2>();
+    int I = std::get<0>(faces[i]);
+    int J = std::get<1>(faces[i]);
+    int K = std::get<2>(faces[i]);
     glm::vec3 const &a = vertices[I];
     glm::vec3 const &b = vertices[J];
     glm::vec3 const &c = vertices[K];
@@ -197,7 +210,7 @@ void Mesh::writeobj(std::string filename) {
     for (auto &vn : normals) file << "vn " << vn[0] << " " << vn[1] << " " << vn[2] << std::endl;
 
     file << "#vertices " << faces.size() << std::endl;
-    for (auto &f : faces) file << "f " << f.get<0>() + 1 << " " << f.get<1>() + 1 << " " << f.get<2>() + 1 << std::endl;
+    for (auto &f : faces) file << "f " << std::get<0>(f) + 1 << " " << std::get<1>(f) + 1 << " " << std::get<2>(f) + 1 << std::endl;
     file.close();
   }
 }

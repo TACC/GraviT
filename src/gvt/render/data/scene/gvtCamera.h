@@ -28,6 +28,11 @@
 //
 // Dave Semeraro - May 2015
 //
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <RayFlags.h> // .TODO this is included from galaxy. Protect it.
+#else
+#include <gvt/render/actor/ORays.h>
+#endif
 #include <gvt/core/Math.h>
 #include <gvt/core/math/RandEngine.h>
 #include <gvt/render/data/Primitives.h>
@@ -101,6 +106,7 @@ public:
   void setMaxDepth(int depth);
 
   void setJitterWindowSize(int windowSize);
+  void dumpraystostdout();
 
   /** Bunch-o-rays */
   gvt::render::actor::RayVector rays;
@@ -119,7 +125,7 @@ public:
   }
 
   /** Fill the ray data structure */
-  virtual void generateRays() = 0;
+  virtual void generateRays(bool volume = false) = 0;
 
   /** Set the field of view angle in degrees*/
   virtual void setFOV(const float fov) = 0;
@@ -164,7 +170,7 @@ public:
   void setFOV(const float fov);
 
   /** Fill the ray data structure */
-  virtual void generateRays();
+  virtual void generateRays(bool volume = false);
 
 protected:
   float field_of_view; //!< Angle subtended by the film plane height from eye_point

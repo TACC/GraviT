@@ -34,9 +34,13 @@
 
 //#include <stdio.h>
 #include <glm/glm.hpp>
+#include <gvt/render/actor/Ray.h>
+#include <gvt/render/data/primitives/Shade.h>
+#include <gvt/render/data/scene/Light.h>
 
 //#include <cmath>
 //#include <gvt/render/data/DerivedTypes.h>
+//#include <gvt/render/data/primitives/Shade.h>
 
 namespace gvt {
 namespace render {
@@ -44,7 +48,7 @@ namespace data {
 namespace primitives {
 
 typedef enum {
-  LAMBERT,
+  LAMBERT = 0,
   PHONG,
   BLINN,
   EMBREE_MATERIAL_METAL,
@@ -58,6 +62,7 @@ struct Material {
   Material() {
     type = LAMBERT;
     // type = EMBREE_MATERIAL_MATTE;
+    ka = glm::vec3(0.f);
     kd = glm::vec3(.5, .5, .5);
     ks = glm::vec3(.5, .5, .5);
     alpha = 1.f;
@@ -71,6 +76,7 @@ struct Material {
 
   int type;
 
+  glm::vec3 ka; // ambient k
   glm::vec3 ks; // diffuse k
   glm::vec3 kd; // specular k
   float alpha;

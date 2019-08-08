@@ -30,12 +30,13 @@
  */
 #include <algorithm>
 #include <gvt/core/Math.h>
-#include <gvt/core/context/Variant.h>
-#include <gvt/render/RenderContext.h>
 #include <gvt/render/Renderer.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/data/Domains.h>
+
+#include <gvt/core/cntx/context.h>
+
 #include <set>
 #include <vector>
 
@@ -59,8 +60,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
-
 #include <iostream>
 
 #ifdef __USE_TAU
@@ -68,10 +67,10 @@
 #endif
 
 #include "ParseCommandLine.h"
-#define USEAPI
-#ifdef USEAPI
+
 #include <gvt/render/api/api.h>
-#endif
+#include <gvt/render/cntx/rcontext.h>
+
 using namespace std;
 using namespace gvt::render;
 
@@ -80,11 +79,43 @@ using namespace gvt::render::schedule;
 using namespace gvt::render::data::primitives;
 
 void test_bvh(gvtPerspectiveCamera &camera);
+void conemesh() {
+    std::vector<float> vertex = { 0.5,0.0,0.0,-0.5,0.5,0.0,-0.5,0.25,0.433013,-0.5,-0.25,
+                         0.43013,-0.5,-0.5,0.0,-0.5,-0.25,-0.433013,-0.5,0.25,-0.433013};
+    std::vector<unsigned> faces = {1,2,3,1,3,4,1,4,5,1,5,6,1,6,7,1,7,2};
+    float kd[] = { 1.f, 1.f, 1.f };
+    api::createMesh("conemesh");
+    api::addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
+    api::addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
+    api::addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
+    api::finishMesh("conemesh");
+}
+void cubemesh() {
+    std::vector<float> vertex = {-0.5,-0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,0.5,0.5,
+                                 -0.5,-0.5,-0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,
+                                  0.5,0.5,0.5,-0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,-0.5,
+                                 -0.5,-0.5,0.5,0.5,-0.5,0.5,-0.5,-0.5,-0.5,0.5,-0.5,-0.5,
+                                  0.5,-0.5,0.5,0.5,0.5,0.5,0.5,-0.5,-0.5,0.5,0.5,-0.5,
+                                -0.5,-0.5,0.5,-0.5,0.5,0.5,-0.5,-0.5,-0.5,-0.5,0.5,-0.5};
+    std::vector<unsigned> faces = {
+      1,  2,  3,  1,  3,  4,  17, 19, 20, 17, 20, 18, 6,  5,  8,  6,  8,  7,
+      23, 21, 22, 23, 22, 24, 10, 9,  11, 10, 11, 12, 13, 15, 16, 13, 16, 14,
+    };
+    float kd[] = { 1.f, 1.f, 1.f };
+    api::createMesh("cubemesh");
+    api::addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
+    api::addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
+    api::addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
+    api::finishMesh("cubemesh");
+}
 
 int main(int argc, char **argv) {
 
-  ParseCommandLine cmd("gvtSimple");
+  // gvtInit(argc, argv);
+  api::gvtInit(argc, argv);
+  cntx::rcontext &db = cntx::rcontext::instance();
 
+  ParseCommandLine cmd("gvtSimple");
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
@@ -109,225 +140,52 @@ int main(int argc, char **argv) {
   tbb::task_scheduler_init *init;
   if (!cmd.isSet("threads")) {
     init = new tbb::task_scheduler_init(std::thread::hardware_concurrency());
+    db.getUnique("threads") = std::thread::hardware_concurrency();
   } else {
     init = new tbb::task_scheduler_init(cmd.get<int>("threads"));
+    db.getUnique("threads") = unsigned(cmd.get<int>("threads"));
   }
 
-  gvtInit(argc, argv);
-
-  // create a cone mesh with a particular material
-  {
-
-#if 1
-
-    std::vector<float> vertex = { 0.5,     0.0,  0.0,  -0.5, 0.5,  0.0,   -0.5,      0.25, 0.433013, -0.5,     -0.25,
-                                  0.43013, -0.5, -0.5, 0.0,  -0.5, -0.25, -0.433013, -0.5, 0.25,     -0.433013 };
-
-    std::vector<unsigned> faces = { 1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 6, 1, 6, 7, 1, 7, 2 };
-
-    createMesh("conemesh");
-    addMeshVertices("conemesh", vertex.size() / 3, &vertex[0]);
-    addMeshTriangles("conemesh", faces.size() / 3, &faces[0]);
-
-    float kd[] = { 1.f, 1.f, 1.f };
-    addMeshMaterial("conemesh", (unsigned)LAMBERT, kd, 1.f);
-
-    finishMesh("conemesh");
-
-#else
-    Material *m = new Material();
-    m->type = LAMBERT;
-    // m->type = EMBREE_MATERIAL_MATTE;
-    m->kd = glm::vec3(1.0, 1.0, 1.0);
-    m->ks = glm::vec3(1.0, 1.0, 1.0);
-    m->alpha = 0.5;
-
-    // m->type = EMBREE_MATERIAL_METAL;
-    // copper metal
-    m->eta = glm::vec3(.19, 1.45, 1.50);
-    m->k = glm::vec3(3.06, 2.40, 1.88);
-    m->roughness = 0.05;
-
-    Mesh *mesh = new Mesh(m);
-    int numPoints = 7;
-    glm::vec3 points[7];
-    points[0] = glm::vec3(0.5, 0.0, 0.0);
-    points[1] = glm::vec3(-0.5, 0.5, 0.0);
-    points[2] = glm::vec3(-0.5, 0.25, 0.433013);
-    points[3] = glm::vec3(-0.5, -0.25, 0.43013);
-    points[4] = glm::vec3(-0.5, -0.5, 0.0);
-    points[5] = glm::vec3(-0.5, -0.25, -0.433013);
-    points[6] = glm::vec3(-0.5, 0.25, -0.433013);
-
-    for (int i = 0; i < numPoints; i++) {
-      mesh->addVertex(points[i]);
-    }
-    mesh->addFace(1, 2, 3);
-    mesh->addFace(1, 3, 4);
-    mesh->addFace(1, 4, 5);
-    mesh->addFace(1, 5, 6);
-    mesh->addFace(1, 6, 7);
-    mesh->addFace(1, 7, 2);
-    mesh->generateNormals();
-
-    // calculate bbox
-    glm::vec3 lower = points[0], upper = points[0];
-    for (int i = 1; i < numPoints; i++) {
-      for (int j = 0; j < 3; j++) {
-        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+  if (cmd.isSet("domain")){
+      if (db.cntx_comm.rank % 2 == 0) {
+      conemesh();
       }
-    }
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
-    // add cone mesh to the database
-    string meshname("conemesh");
-    std::cerr << "adding conemesh" << std::endl;
-    addMesh(meshbbox, mesh, meshname);
-#endif
-  }
-
-  // and now a cube
-  {
-#if 1
-    std::vector<float> vertex = { -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,
-
-                                  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
-
-                                  0.5,  0.5,  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  -0.5,
-
-                                  -0.5, -0.5, 0.5,  0.5,  -0.5, 0.5,  -0.5, -0.5, -0.5, 0.5,  -0.5, -0.5,
-
-                                  0.5,  -0.5, 0.5,  0.5,  0.5,  0.5,  0.5,  -0.5, -0.5, 0.5,  0.5,  -0.5,
-
-                                  -0.5, -0.5, 0.5,  -0.5, 0.5,  0.5,  -0.5, -0.5, -0.5, -0.5, 0.5,  -0.5
-
-    };
-
-    std::vector<unsigned> faces = {
-      1,  2,  3,  1,  3,  4,  17, 19, 20, 17, 20, 18, 6,  5,  8,  6,  8,  7,
-      23, 21, 22, 23, 22, 24, 10, 9,  11, 10, 11, 12, 13, 15, 16, 13, 16, 14,
-
-    };
-
-    createMesh("cubemesh");
-    addMeshVertices("cubemesh", vertex.size() / 3, &vertex[0]);
-    addMeshTriangles("cubemesh", faces.size() / 3, &faces[0]);
-
-    float kd[] = { 1.f, 1.f, 1.f };
-    addMeshMaterial("cubemesh", (unsigned)LAMBERT, kd, 1.f);
-
-    finishMesh("cubemesh");
-#else
-    Material *m = new Material();
-    m->type = LAMBERT;
-    // m->type = EMBREE_MATERIAL_MATTE;
-    m->kd = glm::vec3(1.0, 1.0, 1.0);
-    m->ks = glm::vec3(1.0, 1.0, 1.0);
-    m->alpha = 0.5;
-
-    // m->type = EMBREE_MATERIAL_METAL;
-    // copper metal
-    m->eta = glm::vec3(.19, 1.45, 1.50);
-    m->k = glm::vec3(3.06, 2.40, 1.88);
-    m->roughness = 0.05;
-
-    Mesh *mesh = new Mesh(m);
-
-    int numPoints = 24;
-    glm::vec3 points[24];
-    points[0] = glm::vec3(-0.5, -0.5, 0.5);
-    points[1] = glm::vec3(0.5, -0.5, 0.5);
-    points[2] = glm::vec3(0.5, 0.5, 0.5);
-    points[3] = glm::vec3(-0.5, 0.5, 0.5);
-    points[4] = glm::vec3(-0.5, -0.5, -0.5);
-    points[5] = glm::vec3(0.5, -0.5, -0.5);
-    points[6] = glm::vec3(0.5, 0.5, -0.5);
-    points[7] = glm::vec3(-0.5, 0.5, -0.5);
-
-    points[8] = glm::vec3(0.5, 0.5, 0.5);
-    points[9] = glm::vec3(-0.5, 0.5, 0.5);
-    points[10] = glm::vec3(0.5, 0.5, -0.5);
-    points[11] = glm::vec3(-0.5, 0.5, -0.5);
-
-    points[12] = glm::vec3(-0.5, -0.5, 0.5);
-    points[13] = glm::vec3(0.5, -0.5, 0.5);
-    points[14] = glm::vec3(-0.5, -0.5, -0.5);
-    points[15] = glm::vec3(0.5, -0.5, -0.5);
-
-    points[16] = glm::vec3(0.5, -0.5, 0.5);
-    points[17] = glm::vec3(0.5, 0.5, 0.5);
-    points[18] = glm::vec3(0.5, -0.5, -0.5);
-    points[19] = glm::vec3(0.5, 0.5, -0.5);
-
-    points[20] = glm::vec3(-0.5, -0.5, 0.5);
-    points[21] = glm::vec3(-0.5, 0.5, 0.5);
-    points[22] = glm::vec3(-0.5, -0.5, -0.5);
-    points[23] = glm::vec3(-0.5, 0.5, -0.5);
-
-    for (int i = 0; i < numPoints; i++) {
-      mesh->addVertex(points[i]);
-    }
-    // faces are 1 indexed
-    mesh->addFace(1, 2, 3);
-    mesh->addFace(1, 3, 4);
-    mesh->addFace(17, 19, 20);
-    mesh->addFace(17, 20, 18);
-    mesh->addFace(6, 5, 8);
-    mesh->addFace(6, 8, 7);
-    mesh->addFace(23, 21, 22);
-    mesh->addFace(23, 22, 24);
-    mesh->addFace(10, 9, 11);
-    mesh->addFace(10, 11, 12);
-    mesh->addFace(13, 15, 16);
-    mesh->addFace(13, 16, 14);
-    mesh->generateNormals();
-
-    // calculate bbox
-    glm::vec3 lower = points[0], upper = points[0];
-    for (int i = 1; i < numPoints; i++) {
-      for (int j = 0; j < 3; j++) {
-        lower[j] = (lower[j] < points[i][j]) ? lower[j] : points[i][j];
-        upper[j] = (upper[j] > points[i][j]) ? upper[j] : points[i][j];
+      if (db.cntx_comm.rank % 2 == 1 || db.cntx_comm.size == 1) {
+       cubemesh();
       }
-    }
-    Box3D *meshbbox = new gvt::render::data::primitives::Box3D(lower, upper);
-
-    string meshname("cubemesh");
-    std::cerr << "adding cubemesh" << std::endl;
-    addMesh(meshbbox, mesh, meshname);
-#endif
+  } else {
+      conemesh();
+      cubemesh();
   }
+//
+  db.sync();
 
-  // this should happen first thing in the render call
+  if (db.cntx_comm.rank == 0) {
+  // create a NxM grid of alternating cones / cubes, offset using i and j
+  int instId = 0;
+  int ii[2] = { -2, 3 }; // i range
+  int jj[2] = { -2, 3 }; // j range
+  for (int i = ii[0]; i < ii[1]; i++) {
+    for (int j = jj[0]; j < jj[1]; j++) {
+      auto m = new glm::mat4(1.f);
+      *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
+      *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
+      string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
+      string instanceName = "inst" + std::to_string(instId);
 
-  int rank = -1;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if (rank == 0) {
-    // create a NxM grid of alternating cones / cubes, offset using i and j
-    int instId = 0;
-    int ii[2] = { -2, 3 }; // i range
-    int jj[2] = { -2, 3 }; // j range
-    for (int i = ii[0]; i < ii[1]; i++) {
-      for (int j = jj[0]; j < jj[1]; j++) {
-        auto m = new glm::mat4(1.f);
-        *m = glm::translate(*m, glm::vec3(0.0, i * 0.5, j * 0.5));
-        *m = glm::scale(*m, glm::vec3(0.4, 0.4, 0.4));
-        string instanceMeshname = (instId % 2) ? "cubemesh" : "conemesh";
-        string instanceName = "inst" + std::to_string(instId);
+      auto &mi = (*m);
 
-        auto &mi = (*m);
+      float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
+                     mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
 
-        float mf[] = { mi[0][0], mi[0][1], mi[0][2], mi[0][3], mi[1][0], mi[1][1], mi[1][2], mi[1][3],
-                       mi[2][0], mi[2][1], mi[2][2], mi[2][3], mi[3][0], mi[3][1], mi[3][2], mi[3][3] };
-
-        addInstance(instanceMeshname, mf);
-
-        // addInstance(instanceName, instanceMeshname, instId, m);
-        instId++;
-      }
+      api::addInstance(instanceName, instanceMeshname, mf);
+      instId++;
     }
   }
+  }
+
+  db.sync();
+  db.printtreebyrank(std::cout);
 
   auto lpos = glm::vec3(1.0, 0.0, -1.0);
   auto lcolor = glm::vec3(1.0, 1.0, 1.0);
@@ -342,9 +200,10 @@ int main(int argc, char **argv) {
     gvt::core::Vector<float> color = cmd.getValue<float>("lcolor");
     lcolor = glm::vec3(color[0], color[1], color[2]);
   }
-  std::cerr << "add point light" << std::endl;
 
-  addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
+  api::addPointLight(lightname, glm::value_ptr(lpos), glm::value_ptr(lcolor));
+  db.sync();
+
 
   // camera bits..
   auto eye = glm::vec3(4.0, 0.0, 0.0);
@@ -364,9 +223,10 @@ int main(int argc, char **argv) {
   int raySamples = (int)1;
   float jitterWindowSize = (float)0.5;
   string camname = "conecam";
-  std::cerr << " add Camera " << std::endl;
-  addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
+  api::addCamera(camname, glm::value_ptr(eye), glm::value_ptr(focus), glm::value_ptr(upVector), fov, rayMaxDepth, raySamples,
             jitterWindowSize);
+
+  db.sync();
   // film bits..
   string filmname = "conefilm";
   int width = (int)512;
@@ -381,10 +241,11 @@ int main(int argc, char **argv) {
     gvt::core::Vector<std::string> output = cmd.getValue<std::string>("output");
     outputpath = output[0];
   }
-  std::cerr << " add film " << std::endl;
-  addFilm(filmname, width, height, outputpath);
+  api::addFilm(filmname, width, height, outputpath);
+
+  db.sync();
+
   // render bits (schedule and adapter)
-  std::cerr << "render bits" << std::endl;
   string rendername("Enzoschedule");
   int schedtype;
   int adaptertype;
@@ -400,7 +261,7 @@ int main(int argc, char **argv) {
     adapter = "optix";
   }
   if (adapter.compare("embree") == 0) {
-    std::cerr << " embree adapter " << std::endl;
+
 #ifdef GVT_RENDER_ADAPTER_EMBREE
     adaptertype = gvt::render::adapter::Embree;
 #else
@@ -408,7 +269,7 @@ int main(int argc, char **argv) {
     exit(1);
 #endif
   } else if (adapter.compare("manta") == 0) {
-    std::cerr << " manta adapter " << std::endl;
+
 #ifdef GVT_RENDER_ADAPTER_MANTA
     adaptertype = gvt::render::adapter::Manta;
 #else
@@ -427,13 +288,24 @@ int main(int argc, char **argv) {
     std::cerr << "unknown adapter, " << adapter << ", specified." << std::endl;
     exit(1);
   }
-  std::cerr << "simplsApp: database setup complete - adding renderer" << std::endl;
-  addRenderer(rendername, adaptertype, schedtype);
-  render(rendername);
+
+  api::addRenderer(rendername, adaptertype, schedtype, camname, filmname);
+  db.sync();
+//  db.printtreebyrank(std::cout);
+  api::render(rendername);
+  api::writeimage(rendername,outputpath);
+  eye[1] = 1.0;
+  api::modifyCamera(camname,glm::value_ptr(eye),glm::value_ptr(focus),glm::value_ptr(upVector),fov);
+  api::render(rendername);
+  api::writeimage(rendername,outputpath+"0");
+
+#if 0
   writeimage(rendername);
   // gvt::render::gvtRenderer *ren = gvt::render::gvtRenderer::instance();
   // ren->render();
   // ren->WriteImage();
 
-  if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
+#endif
+
+  MPI_Finalize();
 }

@@ -29,6 +29,7 @@
 
 #include <embree2/rtcore.h>
 #include <embree2/rtcore_ray.h>
+#include <embree2/rtcore_scene.h>
 
 namespace gvt {
 namespace render {
@@ -47,7 +48,7 @@ public:
    *
    * Initializes Embree the first time it is called.
    */
-  EmbreeStreamMeshAdapter(gvt::render::data::primitives::Mesh *mesh);
+  EmbreeStreamMeshAdapter(std::shared_ptr<gvt::render::data::primitives::Data> mesh);
 
   /**
    * Release Embree copy of the mesh.
@@ -55,7 +56,7 @@ public:
   virtual ~EmbreeStreamMeshAdapter();
 
   virtual void trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays, glm::mat4 *m,
-                     glm::mat4 *minv, glm::mat3 *normi, gvt::core::Vector<gvt::render::data::scene::Light *> &lights,
+                     glm::mat4 *minv, glm::mat3 *normi, gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights,
                      size_t begin = 0, size_t end = 0);
 
   /**

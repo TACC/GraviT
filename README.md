@@ -1,26 +1,87 @@
-<h1>GraviT: A Comprehensive Ray Tracing Framework for Visualization in Distributed-Memory Parallel Environments </h1>
+# GraviT: A Comprehensive Ray Tracing Framework for Visualization in Distributed-Memory Parallel Environments
 
-<h1><a href="http://tacc.github.io/GraviT/">http://tacc.github.io/GraviT/</a></h1>
+Find GraviT on the [TACC GitHub site](http://tacc.github.io/GraviT/)!
 
-<h2>Overview</h2>
+## Building GraviT
+
+GraviT uses the [CMake](http://cmake.org/) build system to configure the build environment and `make` to perform the actual build. There are a number of libraries on which GraviT depends, which all are provided in the `third-party` subdirectory, either as git submodules or as direct insertions into the repository.
+
+The sequence below should provide a basic GraviT build for recent Linux flavors and for recent MacOS versions, provided that all requirements for the dependencies are also present (in particular, [Qt4](https://www.qt.io/) and a version doxygen with graphviz support must be installed). Please note that the GraviT CMake should find third-party dependencies installed to `third-party/<dependency>/install`, but the dependencies themselves may need help (e.g. [Embree](http://embree.github.io/) and [OSPRay](http://ospray.org/) finding `ispc`).  If you encounter any issues, please file a [issue on GitHub](https://github.com/TACC/GraviT/issues).
+
+```bash
+git clone https://github.com/TACC/GraviT.git
+cd GraviT
+git submodule init
+git submodule update
+cd third-party/ispc
+./get-ispc.sh <os>      # where os: [ linux | osx ]
+# build embree, install to `third-party/embree/install`
+cd ../embree
+# note that the path to ISPC will need to be adjusted
+# depending on your OS
+cmake -DCMAKE_PREFIX_PATH=../ispc/ispc-v1.9.2-osx -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install .
+make install
+cd ../GregSpray         # a TACC-specific fork of OSPRay that enables ray communication
+# build GregSpray / OSPRay, install to `third-party/GregSpray/install`
+embree_DIR=../embree cmake -DTBB_LIBRARY_DEBUG=/usr/local/lib/libtbb.dylib -DTBB_LIBRARY_MALLOC_DEBUG=/usr/local/lib/libtbbmalloc.dylib -DCMAKE_PREFIX_PATH=../ispc/ispc-v1.9.2-osx -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install -DOSPRAY_MODULE_OPENGL_UTIL=True -DOSPRAY_USE_EXTERNAL_EMBREE=True -DCMAKE_BUILD_TYPE=Release .
+make install
+# build icet, install to `third-party/icet/install`
+cd ../icet
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/install -DBUILD_SHARED_LIBS=True .
+make install
+cd ../..
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PWD/../install ../
+# configure GraviT
+make && make install
+```
+
+## Building with volume rendering support
+
+Currently volume rendering support must be enabled at compile time. Rather than using the default `cmake` flags, instead build `GraviT` with the following `cmake` invocation:
+
+```
+embree_DIR=../third-party/embree cmake -DGVT_VOLUME=True -DGVT_RENDER_ADAPTER_GALAXY=True -DGVT_VOL_APP=True -DGVT_TIMING=False -DGVT_TESTING=False -DGVT_RENDER_ADAPTER_EMBREE=False -DGVT_RENDER_ADAPTER_EMBREE_STREAM=False -DCMAKE_INSTALL_PREFIX:PATH=$PWD/../install ../
+```
+
+This turns on several compile-time flags needed by the volume renderer and disables the testing option, which currently conflicts with the volume renderer.
+
+## Building the Python interface
+
+Once you have build `GraviT` itself, you can optionally build the python bindings to `GraviT`, `pygvt`. To build them, navigate to the `pygvt` folder and build the cython wrapper around the `GraviT` C++ API:
+
+```
+cd pygvt
+embree_DIR=../third-party/embree/install gvt_DIR=../install/ IceT_LIB_DIR=../third-party/icet/install/lib MPI_DIR=/usr/local/ Galaxy_LIB_DIR=../third-party/galaxy/install/lib python setup.py develop
+```
+
+If you would prefer to avoid setting these environment variables at the command line manually, you can source the `setenv.sh` script instead.
+
+You will need cython and setuptools installed in your python environment for this to work correctly. In addition, this assumes you have an MPI installation in `/usr/local`/ If your local MPI installation is in a different place, adjust `MPI_DIR`.
+
+Now you should be able to run the volume rendering example included with the `GraviT` repository:
+
+```
+LD_LIBRARY_PATH=../install/lib:../third-party/icet/install/lib:../third-party/embree/install/lib:../third-party/galaxy/install/lib mpirun -np 2 python gvtVol.py
+```
+
+This will produce an image named `PythonVolRenderer.ppm` in the current directory.
+
+## Design Philosophy
 
 GraviT is a software library for the class of simulation problems where insight is derived from actors operating on scientific data, i.e., data that has physical coordinates.  This data is often so large that it cannot reside in the memory of a single compute node.  While GraviT is designed with many types of actors and use cases in mind, the canonical usage of GraviT is with the actors that are rays and data that are tessellated surfaces.  In this case, GraviT produces ray-traced renderings.
 
 GraviT’s design focuses on three key elements: interface, scheduler, and engine.   The interface element is how users interact with GraviT.  The scheduler element focuses on how to bring together actors with the appropriate pieces of data to advance the calculation.  The engine element performs the specified operations of the actor upon the data. This design is intentionally modular: developers can opt to extend GraviT with their own implementations of interface, scheduler, or engine, and to re-use the implementations from the other areas.   In short, GraviT provides a fully working system, but also one that can be easily extended.  Finally, GraviT is intended for very computationally heavy problems, so it aims to carry out calculations in the most efficient way possible while maintaining modularity and generality.  This goal impacts the scheduler and engine elements in particular.  
 
-GraviT is divided into “core” infrastructure and domain-specific library.  The “core” infrastructure, abbreviated GVT-Core, contains abstract types, as well as implementations that are common to domain-specific libraries, for example scheduling.  The domain-specific libraries build on GVT-Core to create a functional system that is specialized to their area.  The domain-specific libraries that have been discussed by the GraviT team are:
-<ul>
-<li>GVT-Render, for ray-tracing geometric surfaces</li>
-<li>GVT-Volume, for volume rendering</li>
-<li>GVT-Advect, for particle advection</li>
-<li>GVT-Photo, for modeling photon interactions</li>
-</ul>
+GraviT is divided into “core” infrastructure and domain-specific library.  The “core” infrastructure, abbreviated GVT-Core, contains abstract types, as well as implementations that are common to domain-specific libraries, for example scheduling.  The domain-specific libraries build on GVT-Core to create a functional system that is specialized to their area.  At present,
+***GVT-Render***, for ray-tracing geometric surfaces and for volume rendering, is the only specialization implemented, though others are on the long-term roadmap.
 
-<h2>Engines</h2>
+### Engines
 
-GraviT’s engines are the modules that carry out the calculation to advance an actor using information from the appropriate data.  The choice of the word “engine” conveys a connotation that this operation is computationally intensive, and this is purposeful.  GraviT is aimed at problems where determining the behavior of an actor is time-intensive because (1) there are many actors, (2) the data is very large, or (3) both.  Building high-quality engines takes significant development time.  Fortunately, existing third-party products can fill this role in key instances.  GraviT’s development strategy is inclusive of these third-party products, and provides options for leveraging them.  For these cases, the GraviT engine acts as an adaptor, converting requests from scheduler into instructions that the third-party product can accept.  At this time, the third-party products most considered by the GraviT team are Intel’s Embree/OSPRay and NVIDIA’s Optix Prime/Optix.  These libraries are being used for GVT-Render, but also have been discussed for GVT-Volume and GVT-Advect.  Of course, a GraviT engine does not need to be an adaptor around a third-party product.  Native GraviT engines are also supported, i.e., engines that take instructions from the schedules and carry them out directly.   An example of a native engine is the ray tracer written specifically for GraviT, using data-parallel primitives in the EAVL framework.
+GraviT’s engines are the modules that carry out the calculation to advance an actor using information from the appropriate data.  The choice of the word “engine” conveys a connotation that this operation is computationally intensive, and this is purposeful.  GraviT is aimed at problems where determining the behavior of an actor is time-intensive because (1) there are many actors, (2) the data is very large, or (3) both.  Building high-quality engines takes significant development time.  Fortunately, existing third-party products can fill this role in key instances.  GraviT’s development strategy is inclusive of these third-party products, and provides options for leveraging them.  For these cases, the GraviT engine acts as an adapter, converting requests from scheduler into instructions that the third-party product can accept.  At this time, the third-party products most considered by the GraviT team are Intel’s Embree/OSPRay and NVIDIA’s Optix Prime/Optix.  These libraries are being used for GVT-Render for geometry and volume rendering (where supported).  
 
-<h2>Interfaces</h2>
+### Interfaces 
 
 GraviT’s interface is how external applications interact with GraviT.  GraviT has a single interface, and all domain-specific applications use this interface.  The interface is key-based, which means that each must specify its set of supported keys, and document that list for library users.  (For example, GVT-Render will support the notion of a camera position, and its documentation must make clear that the key associated with this position is “Camera”, as opposed to “CamPosition”.)  One motivation behind this design is the code for the interface can be written once, and re-used for each domain-specific application, modulo defining the sets of keys that are used.   
 
@@ -28,7 +89,7 @@ Beyond the general interface, new interfaces to GraviT can added as wrappers aro
 
 GraviT’s interface also sometimes needs to affect application behavior.  This is done through callbacks.  Applications can register callbacks to load or unload data with GraviT, and GraviT’s schedule can issue these callbacks while it is executing.  
 
-<h2>Data Model</h2>
+### Data Model
 
 GraviT’s data model varies from domain-specific library to domain-specific library.  The application callbacks to load data need to be aware of the data model of the domain-specific library to load it into GraviT’s form.  Our team has discussed issues such as “zero-copy” in situ, but this discussion has not yet led to a fixed model.  As this issue is large in scope, our short-term plan appears to be that we make a copy of the data in GraviT’s format.
 

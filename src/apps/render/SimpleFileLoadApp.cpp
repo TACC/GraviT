@@ -25,6 +25,7 @@
 // Simple gravit application.
 // Load some geometry and render it.
 //
+#if 0 // TODO: pnav - update SimpleFileLoadApp to use new context
 #include <algorithm>
 #include <gvt/core/Math.h>
 #include <gvt/render/RenderContext.h>
@@ -58,7 +59,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
 
 #include <iostream>
 
@@ -77,6 +77,8 @@ int main(int argc, char **argv) {
   cmd.addoption("wsize", ParseCommandLine::INT, "Window size", 2);
   cmd.addoption("eye", ParseCommandLine::FLOAT, "Camera position", 3);
   cmd.addoption("look", ParseCommandLine::FLOAT, "Camera look at", 3);
+  cmd.addoption("up", ParseCommandLine::FLOAT, "Camera up vector", 3);
+  cmd.addoption("point-light", ParseCommandLine::FLOAT, "Point light position and color (px,py,pz,cx,cy,cz)", 6);
   cmd.addoption("image", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("domain", ParseCommandLine::NONE, "Use embeded scene", 0);
   cmd.addoption("threads", ParseCommandLine::INT, "Number of threads to use (default number cores + ht)", 1);
@@ -86,6 +88,10 @@ int main(int argc, char **argv) {
   cmd.addoption("embree-stream", ParseCommandLine::NONE, "Embree Adapter Type (Stream)", 0);
   cmd.addoption("manta", ParseCommandLine::NONE, "Manta Adapter Type", 0);
   cmd.addoption("optix", ParseCommandLine::NONE, "Optix Adapter Type", 0);
+
+  cmd.addoption("material", ParseCommandLine::INT,
+                "Material type (0: Lambert, 1: Phong, 2: Blinn, 3: Embree_Metal, 4: Embree_Velvet, 5: Embree_Matte )",
+                1);
 
   cmd.addconflict("embree", "manta");
   cmd.addconflict("embree", "optix");
@@ -132,14 +138,20 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH bunnyMeshNode = dataNodes.getChildren()[0];
 
   {
-
+    // path assumes binary is run as bin/gvtFileApp
     std::string objPath = std::string("../data/geom/bunny.obj");
     if (cmd.isSet("obj")) {
       objPath = cmd.getValue<std::string>("obj")[0];
     }
 
-    // path assumes binary is run as bin/gvtFileApp
-    gvt::render::data::domain::reader::ObjReader objReader(objPath);
+    int material_type = 0;
+    if (cmd.isSet("material")) {
+      gvt::core::Vector<int> type = cmd.getValue<int>("material");
+      material_type = type[0];
+    }
+
+    gvt::render::data::domain::reader::ObjReader objReader(objPath, material_type);
+
     // right now mesh must be converted to gvt format
     Mesh *mesh = objReader.getMesh();
     mesh->generateNormals();
@@ -226,7 +238,7 @@ int main(int argc, char **argv) {
   gvt::core::DBNodeH filmNode = cntxt->createNodeFromType("Film", "film", root.UUID());
   filmNode["width"] = 512;
   filmNode["height"] = 512;
-  filmNode["outputPath"] = (std::string) "bunny";
+  filmNode["outputPath"] = cmd.isSet("obj") ? std::string("output") : std::string("bunny");
 
   if (cmd.isSet("eye")) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("eye");
@@ -237,6 +249,18 @@ int main(int argc, char **argv) {
     gvt::core::Vector<float> eye = cmd.getValue<float>("look");
     camNode["focus"] = glm::vec3(eye[0], eye[1], eye[2]);
   }
+
+  if (cmd.isSet("up")) {
+    gvt::core::Vector<float> up = cmd.getValue<float>("up");
+    camNode["upVector"] = glm::vec3(up[0], up[1], up[2]);
+  }
+
+  if (cmd.isSet("point-light")) {
+    gvt::core::Vector<float> light = cmd.getValue<float>("point-light");
+    lightNode["position"] = glm::vec3(light[0], light[1], light[2]);
+    lightNode["color"] = glm::vec3(light[3], light[4], light[5]);
+  }
+
   if (cmd.isSet("wsize")) {
     gvt::core::Vector<int> wsize = cmd.getValue<int>("wsize");
     filmNode["width"] = wsize[0];
@@ -326,3 +350,4 @@ int main(int argc, char **argv) {
   myimage.Write();
   if (MPI::COMM_WORLD.Get_size() > 1) MPI_Finalize();
 }
+#endif // TODO: pnav - update SimpleFileLoadApp to use new context

@@ -27,66 +27,97 @@ using namespace gvt::render;
 
 gvtRenderer *gvtRenderer::__singleton = nullptr;
 
-gvtRenderer::~gvtRenderer() { delete camera; delete myimage; delete tracer; delete ctx; }
+gvtRenderer::~gvtRenderer() {}
 gvtRenderer::gvtRenderer() {
-  // First grab the context and sync it.
-  //
-  ctx = RenderContext::instance(); 
-  ctx->syncContext();
-  rootnode = ctx->getRootNode();
-  //ctx->database()->printTree(rootnode.UUID(), 10, std::cout);
-  datanode = rootnode["Data"];
-  instancesnode = rootnode["Instances"];
-  lightsnode = rootnode["Lights"];
-  cameranode = rootnode["Camera"];
-  filmnode = rootnode["Film"];
-  // build out concrete instances of scene objects. 
-  // camera 
-  camera = new data::scene::gvtPerspectiveCamera();
-  glm::vec3 cameraposition = cameranode["eyePoint"].value().tovec3();
-  glm::vec3 focus = cameranode["focus"].value().tovec3();
-  glm::vec3 up = cameranode["upVector"].value().tovec3();
-  //
-  camera->setMaxDepth(cameranode["rayMaxDepth"].value().toInteger());
-  camera->setSamples(cameranode["raySamples"].value().toInteger());
-  camera->setJitterWindowSize(cameranode["jitterWindowSize"].value().toFloat());
-  camera->lookAt(cameraposition, focus, up);
-  camera->setFOV(cameranode["fov"].value().toFloat());
-  camera->setFilmsize(filmnode["width"].value().toInteger(),filmnode["height"].value().toInteger());
-  // image plane setup. 
-  myimage = new data::scene::Image(camera->getFilmSizeWidth(),camera->getFilmSizeHeight(),filmnode["outputPath"].value().toString());
-  // allocate rays (needed by tracer constructor)
-  camera->AllocateCameraRays();
-  camera->generateRays();
-  // now comes the tricky part. setting up the renderer itself. 
-  switch(rootnode["Schedule"]["type"].value().toInteger()) {
-    case scheduler::Image: {
-      tracer = new  algorithm::Tracer<schedule::ImageScheduler>(camera->rays,*myimage);
-      break;
-    }
-    case scheduler::Domain: {
-      tracer = new algorithm::Tracer<schedule::DomainScheduler>(camera->rays,*myimage);
-      break;
-    }
-    default: {
-    }
-  }
 
-  
+  cntx::rcontext &db = cntx::rcontext::instance();
+
 }
-void gvtRenderer::render() {
+
+void gvtRenderer::reload(std::string const &name) {
+
+  if (name == current_scheduler) return;
+  cntx::rcontext &db = cntx::rcontext::instance();
+
+  auto &ren = db.getUnique(name);
+  GVT_ASSERT(!ren.getid().isInvalid(), "Suplied renderer " << name << " is not valid");
+
+  auto &cam = db.getUnique(db.getChild(ren, "camera"));
+  auto &fil = db.getUnique(db.getChild(ren, "film"));
+
+  camera = std::make_shared<data::scene::gvtPerspectiveCamera>();
+
+  glm::vec3 cameraposition = db.getChild(cam, "eyePoint");
+  glm::vec3 focus = db.getChild(cam, "focus");
+  glm::vec3 up = db.getChild(cam, "upVector"); // cameranode["upVector"].value().tovec3();
+
+  camera->setMaxDepth(db.getChild(cam, "rayMaxDepth"));
+  camera->setSamples(db.getChild(cam, "raySamples"));
+  camera->setJitterWindowSize((float)db.getChild(cam, "jitterWindowSize"));
+  camera->lookAt(cameraposition, focus, up);
+  camera->setFOV((float)db.getChild(cam, "fov"));
+
+  camera->setFilmsize(db.getChild(fil, "width"), db.getChild(fil, "height"));
+
+  // image plane setup.
+  myimage = std::make_shared<composite::IceTComposite>(camera->getFilmSizeWidth(), camera->getFilmSizeHeight());
+  // allocate rays (needed by tracer constructor)
+//  camera->AllocateCameraRays();
+//  camera->generateRays();
+  // now comes the tricky part. setting up the renderer itself.
+
+  volume = db.getChild(ren, "volume").to<bool>();
+
+  switch (db.getChild(ren, "type").to<int>()) {
+  case scheduler::Image: {
+    tracersync = std::make_shared<algorithm::Tracer<schedule::ImageScheduler> >(camera, myimage, cam, fil, name);
+    db.tracer = tracerasync = nullptr;
+    break;
+  }
+  case scheduler::Domain: {
+    //std::cerr << " domain shed tracer use count " << tracersync.use_count() << std::endl;
+    if(tracersync.use_count() != 0 ) {
+    //    std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
+        tracersync.reset(new algorithm::Tracer<schedule::DomainScheduler>(camera,myimage,cam,fil,name)); 
+    } else {
+     //   std::cerr << "cam: " << cam << " fil: " << fil << " name: " << name << std::endl;
+    tracersync = std::make_shared<algorithm::Tracer<schedule::DomainScheduler> >(camera, myimage, cam, fil, name);
+    }
+    //std::cerr << " domain set db.tracer to nullptr " << std::endl;
+    db.tracer = tracerasync = nullptr;
+    break;
+  }
+  case scheduler::AsyncDomain: {
+    db.tracer = tracerasync = std::make_shared<gvt::render::DomainTracer>(name,camera,myimage);
+    tracersync = nullptr;
+    break;
+  }
+  case scheduler::AsyncImage: {
+    db.tracer = tracerasync = std::make_shared<gvt::render::ImageTracer>(name,camera,myimage);
+    tracersync = nullptr;
+    break;
+  }
+  default: {}
+  }
+  //std::cerr << " renderer reloaded " << std::endl;
+  // db.tracer = tracer;
+}
+
+void gvtRenderer::render(std::string const &name) {
+  reload(name);
   camera->AllocateCameraRays();
-  camera->generateRays();
-  (*tracer)();
+  camera->generateRays(volume);
+  if (tracersync) {
+    (*tracersync.get())();
+  } else if (tracerasync) {
+    (*tracerasync.get())();
+  }
 }
-void gvtRenderer::WriteImage() {
-  myimage->Write();
-}
+void gvtRenderer::WriteImage(std::string const &name) { myimage->write(name); }
 
 gvtRenderer *gvtRenderer::instance() {
-    if(__singleton == nullptr) {
-        __singleton = new gvtRenderer();
-    }
-    return __singleton;
+  if (__singleton == nullptr) {
+    __singleton = new gvtRenderer();
+  }
+  return __singleton;
 }
-

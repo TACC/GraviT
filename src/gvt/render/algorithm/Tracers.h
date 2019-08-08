@@ -35,7 +35,6 @@
 #include <gvt/render/algorithm/ImageTracer.h>
 // NOTE: hybrid is currentlydisabled
 //#include <gvt/render/algorithm/HybridTracer.h>
-#include <gvt/render/algorithm/ImageTracer.h>
 #include <gvt/render/algorithm/TracerBase.h>
 
 /// single include file for all tracers

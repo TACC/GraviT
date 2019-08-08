@@ -29,14 +29,14 @@
 #include <gvt/core/comm/communicator.h>
 #include <gvt/core/utils/global_counter.h>
 #include <gvt/core/utils/timer.h>
+#include <gvt/render/cntx/rcontext.h>
 
 namespace gvt {
 namespace render {
 
 bool DomainTracer::areWeDone() {
   std::shared_ptr<gvt::comm::communicator> comm = gvt::comm::communicator::singleton();
-  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
-  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntxt.tracer());
+  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntx::rcontext::instance().tracer);
   if (!tracer || tracer->getGlobalFrameFinished()) return false;
   bool ret = tracer->isDone();
   return ret;
@@ -44,21 +44,24 @@ bool DomainTracer::areWeDone() {
 
 void DomainTracer::Done(bool T) {
   std::shared_ptr<gvt::comm::communicator> comm = gvt::comm::communicator::singleton();
-  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
-  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntxt.tracer());
+  //  gvt::render::RenderContext &cntxt = *gvt::render::RenderContext::instance();
+  std::shared_ptr<DomainTracer> tracer = std::dynamic_pointer_cast<DomainTracer>(cntx::rcontext::instance().tracer);
   if (!tracer) return;
   if (T) {
-    // std::lock_guard<std::mutex> _lock(tracer->_queue._protect);
-    // tracer->_queue._queue.clear();
     tracer->setGlobalFrameFinished(true);
   }
 }
-DomainTracer::DomainTracer() : gvt::render::RayTracer() {
+
+DomainTracer::DomainTracer(const std::string &name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+                           std::shared_ptr<gvt::render::composite::ImageComposite> img)
+    : gvt::render::RayTracer(name, cam, img) {
   RegisterMessage<gvt::comm::EmptyMessage>();
   RegisterMessage<gvt::comm::SendRayList>();
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
   v = std::make_shared<comm::vote::vote>(DomainTracer::areWeDone, DomainTracer::Done);
   comm.setVote(v);
+
+  auto &db = cntx::rcontext::instance();
 
   queue_mutex = new std::mutex[meshRef.size()];
   for (auto &m : meshRef) {
@@ -66,26 +69,25 @@ DomainTracer::DomainTracer() : gvt::render::RayTracer() {
   }
 
   instances_in_node.clear();
-  gvt::core::Map<std::string, std::set<int> > remote_location;
-  gvt::core::DBNodeH rootnode = cntxt->getRootNode();
-  gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
-  // build location map, where meshes are by mpi node
-  for (size_t i = 0; i < dataNodes.size(); i++) {
-    gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
-    for (auto loc : locations) {
-      remote_location[dataNodes[i].UUID().toString()].insert(loc.value().toInteger());
-    }
+
+  auto inst = db.getChildren(db.getUnique("Instances"));
+  auto data = db.getChildren(db.getUnique("Data"));
+  gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
+  for (auto &rn : data) {
+    auto &m = rn.get();
+    lastAssigned[rn.get().getid()] = 0;
   }
 
-  gvt::core::Vector<gvt::core::DBNodeH> instancenodes = rootnode["Instances"].getChildren();
-  for (int i = 0; i < instancenodes.size(); i++) {
-    std::string UUID = instancenodes[i]["meshRef"].deRef().UUID().toString();
-    if (remote_location[UUID].find(comm.id()) != remote_location[UUID].end()) {
-      instances_in_node[i] = true;
-    } else {
-      instances_in_node[i] = false;
-      remote[i] = remote_location[UUID];
-    }
+  unsigned icount = 0;
+
+  for (auto &ri : inst) {
+    auto &i = ri.get();
+    auto &m = db.deRef(db.getChild(i, "meshRef"));
+    size_t id = db.getChild(i, "id");
+    std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
+    remote[id] = loc[lastAssigned[m.getid()] % loc.size()];
+    instances_in_node[id] = (remote[id] == db.cntx_comm.rank);
+    lastAssigned[m.getid()]++;
   }
 }
 
@@ -96,7 +98,8 @@ DomainTracer::~DomainTracer() {
 
 void DomainTracer::resetBVH() {
   RayTracer::resetBVH();
-  if (queue_mutex != nullptr) delete[] queue_mutex;
+  //  if (queue_mutex != nullptr) delete[] queue_mutex;
+
   for (auto &m : meshRef) {
     queue[m.first] = gvt::render::actor::RayVector();
     queue[m.first].reserve(8192);
@@ -122,11 +125,6 @@ void DomainTracer::operator()() {
   gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
   gvt::util::global_counter gc_sent("Number of rays sent :");
 
-  img->reset();
-  t_camera.resume();
-  cam->AllocateCameraRays();
-  cam->generateRays();
-  t_camera.stop();
   t_filter.resume();
   gc_filter.add(cam->rays.size());
   processRaysAndDrop(cam->rays);
@@ -161,9 +159,7 @@ void DomainTracer::operator()() {
       gc_shuffle.add(returned_rays.size());
       processRays(returned_rays, target);
       t_shuffle.stop();
-    }
-
-    if (target == -1) {
+    } else {
       t_send.resume();
       for (auto &q : queue) {
         if (isInNode(q.first) || q.second.empty()) continue;
@@ -196,10 +192,9 @@ void DomainTracer::operator()() {
 }
 
 inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays) {
-
+  auto &db = cntx::rcontext::instance();
   gvt::comm::communicator &comm = gvt::comm::communicator::instance();
-  const int chunksize =
-      MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+  const int chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
   tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
@@ -229,35 +224,103 @@ inline void DomainTracer::processRaysAndDrop(gvt::render::actor::RayVector &rays
 
 inline void DomainTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
 
-  const int chunksize =
-      MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
+  auto &db = cntx::rcontext::instance();
+
+  const int chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
   gvt::render::data::accel::BVH &acc = *bvh.get();
   static tbb::auto_partitioner ap;
-  tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
-                    [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
+  tbb::parallel_for(
+      tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
+      [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 
-                      gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-                          acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), src);
+        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), src);
 
-                      gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-                      for (size_t i = 0; i < hits.size(); i++) {
-                        gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                        if (hits[i].next != -1) {
-                          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
-                          local_queue[hits[i].next].push_back(r);
-                        } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
-                          img->localAdd(r.id, r.color * r.w, 1.f, r.t);
-                        }
-                      }
-                      for (auto &q : local_queue) {
-                        queue_mutex[q.first].lock();
-                        queue[q.first].insert(queue[q.first].end(),
-                                              std::make_move_iterator(local_queue[q.first].begin()),
-                                              std::make_move_iterator(local_queue[q.first].end()));
-                        queue_mutex[q.first].unlock();
-                      }
-                    },
-                    ap);
+        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+        for (size_t i = 0; i < hits.size(); i++) {
+          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+          //                        if (hits[i].next != -1) {
+          //                          r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
+          //                          local_queue[hits[i].next].push_back(r);
+          //                        } else if (r.type == gvt::render::actor::Ray::SHADOW && glm::length(r.color) > 0) {
+          //                          img->localAdd(r.id, r.color * r.w, 1.f, r.t);
+          //                        }
+          bool write_to_fb = false;
+          int target_queue = -1;
+          //#ifdef GVT_RENDER_ADAPTER_OSPRAY
+          if ( adapterType == gvt::render::adapter::Pvol 
+            || adapterType == gvt::render::adapter::Ospray ) {
+            // std::cout << "initially ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type " <<
+            // std::bitset<8>(r.type) << " r.color " << r.color <<std::endl;
+            if (r.mice.depth & RAY_BOUNDARY) {
+              // check to see if this ray hit anything in bvh
+              if (hits[i].next != -1) {
+                r.mice.depth &= ~RAY_BOUNDARY;
+                r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * (1.0f + std::numeric_limits<float>::epsilon()));
+                target_queue = hits[i].next;
+                // local_queue[hits[i].next].push_back(r);
+              } else {
+                r.mice.depth &= ~RAY_BOUNDARY;
+                r.mice.depth |= RAY_EXTERNAL_BOUNDARY;
+                target_queue = -1;
+              }
+            }
+            // std::cout << "after boundary test ray " << r.id << " r.depth " << std::bitset<8>(r.depth)<< " r.type "
+            // << std::bitset<8>(r.type) << std::endl; check types
+            if (r.mice.type == RAY_PRIMARY) {
+              if ((r.mice.depth & RAY_OPAQUE) | (r.mice.depth & RAY_EXTERNAL_BOUNDARY)) {
+                write_to_fb = true;
+                target_queue = -1;
+              } else if (r.mice.depth & ~RAY_BOUNDARY) {
+                target_queue = src;
+              }
+            } else if (r.mice.type == RAY_SHADOW) {
+              if (r.mice.depth & RAY_EXTERNAL_BOUNDARY) {
+                //                              tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                // colorBuf[r.id] += glm::vec4(r.color, r.w);
+                img->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
+              } else if (r.mice.depth & RAY_BOUNDARY) {
+                r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 1.00f);
+                local_queue[hits[i].next].push_back(r);
+              }
+            } else if (r.mice.type == RAY_AO) {
+              if (r.mice.depth & (RAY_EXTERNAL_BOUNDARY | RAY_TIMEOUT)) {
+                //                              tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+                //                colorBuf[r.id] += glm::vec4(r.color, r.w);
+                img->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
+              } else if (r.mice.depth & RAY_BOUNDARY) {
+                r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 1.00f);
+                local_queue[hits[i].next].push_back(r);
+              }
+            }
+            if (write_to_fb) {
+              //                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              // std::cout << "TB: writing colorBuf["<<r.id<<"] "<< r.color << std::endl;
+              // colorBuf[r.id] += glm::vec4(r.color, r.w);
+              img->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
+            }
+            if (target_queue != -1) {
+              local_queue[target_queue].push_back(r);
+            }
+          } else {
+            if (hits[i].next != -1) {
+              r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
+              local_queue[hits[i].next].push_back(r);
+            } else if (r.mice.type == gvt::render::actor::Ray::SHADOW && glm::length(r.mice.color) > 0) {
+              //                            tbb::mutex::scoped_lock fbloc(colorBuf_mutex[r.id % width]);
+              // colorBuf[r.id] += glm::vec4(r.color, r.w);
+              img->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.f, r.mice.t);
+            }
+          }
+        }
+        for (auto &q : local_queue) {
+          queue_mutex[q.first].lock();
+          queue[q.first].insert(queue[q.first].end(), std::make_move_iterator(local_queue[q.first].begin()),
+                                std::make_move_iterator(local_queue[q.first].end()));
+          queue_mutex[q.first].unlock();
+        }
+      },
+      ap);
 
   rays.clear();
 }
@@ -278,5 +341,5 @@ bool DomainTracer::isDone() {
   return true;
 }
 bool DomainTracer::hasWork() { return !_GlobalFrameFinished; }
-}
-}
+} // namespace render
+} // namespace gvt

@@ -22,7 +22,6 @@
    ACI-1339881 and ACI-1339840
    ======================================================================================= */
 #include <gvt/core/comm/communicator.h>
-
 #include <cassert>
 #include <iostream>
 #include <mpi.h>
@@ -48,7 +47,9 @@ communicator::~communicator() {}
 void communicator::init(int argc, char *argv[], bool start_thread) {
   assert(communicator::_instance);
   if (start_thread) tg.run([&]() { communicator::_instance->run(); });
-  RegisterMessageType<gvt::comm::Message>();
+
+  size_t a = RegisterMessageType<gvt::comm::Message>();
+
 }
 
 std::shared_ptr<communicator> communicator::singleton() {

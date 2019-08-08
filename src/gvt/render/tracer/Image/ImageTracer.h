@@ -30,6 +30,7 @@
 
 namespace gvt {
 namespace render {
+
 /**
  * \Brief ray trace Image Decomposition scheduler
  *
@@ -41,7 +42,8 @@ class ImageTracer : public gvt::render::RayTracer {
 private:
 protected:
 public:
-  ImageTracer();
+  ImageTracer(const std::string& name,std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+              std::shared_ptr<gvt::render::composite::ImageComposite> img);
   ~ImageTracer();
 
   /**
@@ -94,7 +96,7 @@ public:
    */
   virtual void resetBVH();
 };
-};
-};
+}; // namespace render
+}; // namespace gvt
 
 #endif /*GVT_RENDER_IMAGETRACER*/

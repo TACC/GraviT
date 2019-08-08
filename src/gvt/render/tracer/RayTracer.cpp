@@ -23,33 +23,21 @@
    ======================================================================================= */
 
 #include <cassert>
+#include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/tracer/RayTracer.h>
-#if 0
-#ifdef GVT_RENDER_ADAPTER_EMBREE
-#include <gvt/render/adapter/embree/EmbreeMeshAdapter.h>
-#endif
 
-#ifdef GVT_RENDER_ADAPTER_MANTA
-#include <gvt/render/adapter/manta/MantaMeshAdapter.h>
-#endif
-
-#ifdef GVT_RENDER_ADAPTER_OPTIX
-#include <gvt/render/adapter/optix/OptixMeshAdapter.h>
-#endif
-
-#if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
-#include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
-#endif
-#endif
-
-#include <boost/timer/timer.hpp>
 
 namespace gvt {
 namespace render {
 
-RayTracer::RayTracer() : cntxt(gvt::render::RenderContext::instance()) {
-  resetCamera();
-  resetFilm();
+RayTracer::RayTracer(const std::string &name, std::shared_ptr<gvt::render::data::scene::gvtCameraBase> cam,
+                     std::shared_ptr<gvt::render::composite::ImageComposite> img)
+    : cam(cam), img(img) {
+  auto &db = cntx::rcontext::instance();
+  adapterType = db.getChild(db.getUnique(name), "adapter");
+  std::string filmname = db.getChild(db.getUnique(name), "film");
+  width = db.getChild(db.getUnique(filmname), "width");
+  height = db.getChild(db.getUnique(filmname), "height");
   resetBVH();
 };
 
@@ -72,7 +60,7 @@ bool RayTracer::hasWork() { return true; };
 
 void RayTracer::processRays(gvt::render::actor::RayVector &rays, const int src, const int dst) {
   for (gvt::render::actor::Ray &r : rays) {
-    img->localAdd(r.id, r.color * r.w, 1.0, r.t);
+    img->localAdd(r.mice.id, r.mice.color * r.mice.w, 1.0, r.mice.t);
   }
 }
 
@@ -80,8 +68,9 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
                             gvt::render::actor::RayVector &moved_rays) {
   std::shared_ptr<gvt::render::Adapter> adapter;
 
-  gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
-  auto it = adapterCache.find(mesh);
+  std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
+
+  auto it = adapterCache.find(mesh.get());
 
   if (it != adapterCache.end()) {
     adapter = it->second;
@@ -99,6 +88,16 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
 #ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
     case gvt::render::adapter::EmbreeStream:
       adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter>(mesh);
+      break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+    case gvt::render::adapter::Ospray:
+      adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
+      break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+    case gvt::render::adapter::Pvol:
+      adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
       break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
@@ -120,86 +119,120 @@ void RayTracer::calladapter(const int instTarget, gvt::render::actor::RayVector 
     default:
       GVT_ERR_MESSAGE("Image scheduler: unknown adapter type: " << adapterType);
     }
-    adapterCache[mesh] = adapter;
+    adapterCache[mesh.get()] = adapter;
   }
   GVT_ASSERT(adapter != nullptr, "image scheduler: adapter not set");
   {
     moved_rays.reserve(toprocess.size() * 10);
-    adapter->trace(toprocess, moved_rays, instM[instTarget], instMinv[instTarget], instMinvN[instTarget], lights);
+    adapter->trace(toprocess, moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
+                   instMinvN[instTarget].get(), lights);
     toprocess.clear();
   }
 }
 
 float *RayTracer::getImageBuffer() { return img->composite(); };
+
 void RayTracer::resetCamera() {
-  assert(cntxt != nullptr);
-  cam = std::make_shared<gvt::render::data::scene::gvtPerspectiveCamera>();
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH camNode = root["Camera"];
-  gvt::core::DBNodeH filmNode = root["Film"];
-  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
-  glm::vec3 focus = camNode["focus"].value().tovec3();
-  float fov = camNode["fov"].value().toFloat();
-  glm::vec3 up = camNode["upVector"].value().tovec3();
-  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
-  int raySamples = camNode["raySamples"].value().toInteger();
-  cam->lookAt(cameraposition, focus, up);
-  cam->setMaxDepth(rayMaxDepth);
-  cam->setSamples(raySamples);
-  cam->setFOV(fov);
-  cam->setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
+  //  assert(cntxt != nullptr);
+  //  cam = std::make_shared<gvt::render::data::scene::gvtPerspectiveCamera>();
+  //
+  //
+  //  gvt::core::DBNodeH root = cntxt->getRootNode();
+  //  gvt::core::DBNodeH camNode = root["Camera"];
+  //  gvt::core::DBNodeH filmNode = root["Film"];
+  //  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  //  glm::vec3 focus = camNode["focus"].value().tovec3();
+  //  float fov = camNode["fov"].value().toFloat();
+  //  glm::vec3 up = camNode["upVector"].value().tovec3();
+  //  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  //  int raySamples = camNode["raySamples"].value().toInteger();
+  //
+  //  auto& db = cntx::rcontext::instance();
+  //
+  //
+  //  glm::vec3 cameraposition = camNode["eyePoint"].value().tovec3();
+  //  glm::vec3 focus = camNode["focus"].value().tovec3();
+  //  float fov = camNode["fov"].value().toFloat();
+  //  glm::vec3 up = camNode["upVector"].value().tovec3();
+  //  int rayMaxDepth = camNode["rayMaxDepth"].value().toInteger();
+  //  int raySamples = camNode["raySamples"].value().toInteger();
+  //
+  //
+  //  cam->lookAt(cameraposition, focus, up);
+  //  cam->setMaxDepth(rayMaxDepth);
+  //  cam->setSamples(raySamples);
+  //  cam->setFOV(fov);
+  //  cam->setFilmsize(filmNode["width"].value().toInteger(), filmNode["height"].value().toInteger());
 }
 
 void RayTracer::resetFilm() {
-  assert(cntxt != nullptr);
-  img = std::make_shared<gvt::render::composite::IceTComposite>();
-  gvt::core::DBNodeH root = cntxt->getRootNode();
-  gvt::core::DBNodeH filmNode = root["Film"];
-  img = std::make_shared<gvt::render::composite::IceTComposite>(filmNode["width"].value().toInteger(),
-                                                                filmNode["height"].value().toInteger());
+  //  assert(cntxt != nullptr);
+  //  img = std::make_shared<gvt::render::composite::IceTComposite>();
+  //  gvt::core::DBNodeH root = cntxt->getRootNode();
+  //  gvt::core::DBNodeH filmNode = root["Film"];
+  //  img = std::make_shared<gvt::render::composite::IceTComposite>(filmNode["width"].value().toInteger(),
+  //                                                                filmNode["height"].value().toInteger());
 }
 
 void RayTracer::resetBVH() {
-  assert(cntxt != nullptr);
-  gvt::core::DBNodeH rootnode = cntxt->getRootNode();
+  auto &db = cntx::rcontext::instance();
 
-  gvt::core::Vector<gvt::core::DBNodeH> instancenodes = rootnode["Instances"].getChildren();
-  adapterType = rootnode["Schedule"]["adapter"].value().toInteger();
+  cntx::rcontext::children_vector instancenodes = db.getChildren(db.getUnique("Instances"));
   int numInst = instancenodes.size();
   meshRef.clear();
   instM.clear();
   instMinv.clear();
   instMinvN.clear();
-  for (auto &l : lights) {
-    delete l;
+  lights.clear();
+
+  bvh = std::make_shared<gvt::render::data::accel::BVH>(instancenodes);
+
+  queue_mutex = new std::mutex[bvh->instanceSet.size()];
+
+  for (auto &nref : bvh->instanceSet) {
+    auto &n = nref.get();
+    size_t id = db.getChild(n, "id");
+    //meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr");
+    if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+        .v.is<std::shared_ptr<gvt::render::data::primitives::Mesh> >()) {
+      meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+          .to<std::shared_ptr<gvt::render::data::primitives::Mesh> >();
+    }
+#ifdef GVT_BUILD_VOLUME  
+    else if (db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+        .v.is<std::shared_ptr<gvt::render::data::primitives::Volume> >()) {
+      meshRef[id] = db.getChild(db.deRef(db.getChild(n, "meshRef")), "ptr")
+          .to<std::shared_ptr<gvt::render::data::primitives::Volume> >();
+    } 
+#endif // GVT_BUILD_VOLUME
+    else {
+      meshRef[id] = nullptr;
+    }
+    instM[id] = db.getChild(n, "mat");
+    instMinv[id] = db.getChild(n, "matinv");
+    instMinvN[id] = db.getChild(n, "normi");
   }
 
-  lights.clear();
-  bvh = std::make_shared<gvt::render::data::accel::BVH>(instancenodes);
-  for (int i = 0; i < instancenodes.size(); i++) {
-    meshRef[i] =
-        (gvt::render::data::primitives::Mesh *)instancenodes[i]["meshRef"].deRef()["ptr"].value().toULongLong();
-    instM[i] = (glm::mat4 *)instancenodes[i]["mat"].value().toULongLong();
-    instMinv[i] = (glm::mat4 *)instancenodes[i]["matInv"].value().toULongLong();
-    instMinvN[i] = (glm::mat3 *)instancenodes[i]["normi"].value().toULongLong();
-  }
-  auto lightNodes = rootnode["Lights"].getChildren();
-  lights.reserve(2);
+  auto lightNodes = db.getChildren(db.getUnique("Lights"));
+
+  lights.reserve(lightNodes.size());
   for (auto lightNode : lightNodes) {
-    auto color = lightNode["color"].value().tovec3();
-    if (lightNode.name() == std::string("PointLight")) {
-      auto pos = lightNode["position"].value().tovec3();
-      lights.push_back(new gvt::render::data::scene::PointLight(pos, color));
-    } else if (lightNode.name() == std::string("AmbientLight")) {
-      lights.push_back(new gvt::render::data::scene::AmbientLight(color));
-    } else if (lightNode.name() == std::string("AreaLight")) {
-      auto pos = lightNode["position"].value().tovec3();
-      auto normal = lightNode["normal"].value().tovec3();
-      auto width = lightNode["width"].value().toFloat();
-      auto height = lightNode["height"].value().toFloat();
-      lights.push_back(new gvt::render::data::scene::AreaLight(pos, color, normal, width, height));
+    auto &light = lightNode.get();
+    glm::vec3 color = db.getChild(light, "color");
+    std::string type = db.getChild(light, "type");
+    if (type == std::string("PointLight")) {
+      glm::vec3 pos = db.getChild(light, "position");
+      lights.push_back(std::make_shared<gvt::render::data::scene::PointLight>(pos, color));
+    } else if (type == std::string("AmbientLight")) {
+      lights.push_back(std::make_shared<gvt::render::data::scene::AmbientLight>(color));
+    } else if (type == std::string("AreaLight")) {
+      glm::vec3 pos = db.getChild(light, "position");
+      glm::vec3 normal = db.getChild(light, "normal");
+      auto width = db.getChild(light, "width");
+      auto height = db.getChild(light, "height");
+      lights.push_back(std::make_shared<gvt::render::data::scene::AreaLight>(pos, color, normal, width, height));
     }
   }
 }
-}
-}
+} // namespace render
+} // namespace gvt

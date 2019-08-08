@@ -11,34 +11,36 @@ from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 
 
-cdef extern from "api.h":
-  void _gvtInit"gvtInit"(int argc, char** argv)
-  void _createMesh"createMesh"(string)
-  void _addMeshVertices"addMeshVertices"(string name, unsigned &n, float *vertices)
-  void _addMeshTriangles"addMeshTriangles"( string name,  unsigned &n,  unsigned *triangles)
-  void _addMeshFaceNormals"addMeshFaceNormals"( string name,  unsigned &n,  float *normals)
-  void _addMeshVertexNormals"addMeshVertexNormals"( string name,  unsigned &n,  float *normals)
-  void _finishMesh"finishMesh"( string name, bool compute_normal)
-  void _addMeshMaterial"addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float alpha)
-  void _addMeshMaterial2"addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks,
-                        float alpha )
-  void _addMeshMaterials"addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd,
-                         float *ks,  float *alpha)
-  void _addInstance"addInstance"(string name,  float *m)
-  void _addPointLight"addPointLight"(string name,  float *pos,  float *color)
-  void _addAreaLight"addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
-  void _modifyLight"modifyLight"(string name,  float *pos,  float *color)
-  void _modifyLight"modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
-  void _addCamera"addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth,
-                 int samples, float jitter)
-  void _modifyCamera"modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth,
-                    int samples, float jitter)
-  void _modifyCamera"modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov)
-  void _addFilm"addFilm"(string name, int w, int h, string path)
-  void _modifyFilm"modifyFilm"(string name, int w, int h, string path)
-  void _render"render"(string name)
-  void _writeimage"writeimage"(string name, string output)
-  void _addRenderer"addRenderer"(string name, int adapter, int schedule)
+cdef extern from "gravit/api.h" namespace "api":
+  void _gvtsync "api::gvtsync"()
+  void _gvtInit "api::gvtInit"(int argc, char** argv)
+  void _createMesh "api::createMesh"(string)
+  void _addMeshVertices "api::addMeshVertices"(string name, unsigned &n, float *vertices)
+  void _addMeshTriangles "api::addMeshTriangles"( string name,  unsigned &n,  unsigned *triangles)
+  void _addMeshFaceNormals "api::addMeshFaceNormals"( string name,  unsigned &n,  float *normals)
+  void _addMeshVertexNormals "api::addMeshVertexNormals"( string name,  unsigned &n,  float *normals)
+  void _finishMesh "api::finishMesh"( string name, bool compute_normal)
+  void _addMeshMaterial "api::addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float alpha)
+  void _addMeshMaterial2 "api::addMeshMaterial"( string name,  unsigned mattype,  float *kd,  float *ks, float alpha )
+  void _addMeshMaterials "api::addMeshMaterials"( string name,  unsigned n,  unsigned *mattype,  float *kd, float *ks,  float *alpha)
+  void _addInstance "api::addInstance"(string name, string meshname, float *m)
+  void _createVolume"api::createVolume"(string name,bool amr)
+  void _addVolumeTransferFunctions"api::addVolumeTransferFunctions"(string name, string colortfname, string opacityfname, float low, float high)
+  void _addVolumeSamples"api::addVolumeSamples"(string name, float *samples, int *counts, float *origin, float* deltas, float samplingrate, double *bounds)
+  void _addAmrSubgrid"api::addAmrSubgrid"(string name, int gridid, int level, float *samples, int *counts, float *origin, float *deltas)
+  void _addPointLight "api::addPointLight"(string name,  float *pos,  float *color)
+  void _addAreaLight "api::addAreaLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
+  void _modifyLight "api::modifyLight"(string name,  float *pos,  float *color)
+  void _modifyLight2 "api::modifyLight"(string name,  float *pos,  float *color,  float *n, float w, float h)
+  void _addCamera "api::addCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
+  void _modifyCamera "api::modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov, int depth, int samples, float jitter)
+  void _modifyCamera "api::modifyCamera"(string name,  float *pos,  float *focus,  float *up, float fov)
+  void _addFilm "api::addFilm"(string name, int w, int h, string path)
+  void _modifyFilm "api::modifyFilm"(string name, int w, int h, string path)
+  void _render "api::render"(string name)
+  void _writeimage "api::writeimage"(string name, string output)
+  void _addRenderer "api::addRenderer"(string name, int adapter, int schedule,
+          string camera_name, string film_name, bool volume)
 #void gvtInit(int &argc, char **&argv)
 
 def gvtInit():
@@ -63,9 +65,16 @@ def gvtInit():
   #   argv[i] = ctypes.create_string_buffer(enc_arg)
   # _gvtInit(argc,argv)
 
+def gvtsync():
+  _gvtsync()
 def createMesh(str name):
   _createMesh(name.encode())
-
+def addVolumeTransferFunctions(str name, str colortfname, str opacityfname, float low, float high):
+   _addVolumeTransferFunctions(name.encode(),colortfname.encode(),opacityfname.encode(),low,high)
+def addVolumeSamples(str name, np.ndarray[float, ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin, np.ndarray[float,ndim=1,mode="c"] deltas,float samplingrate,np.ndarray[double,ndim=1,mode="c"] bounds):
+   _addVolumeSamples(name.encode(),<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data,samplingrate,<double*>bounds.data)
+def addAmrSubgrid(str name, int gridid, int level,np.ndarray[float,ndim=1,mode="c"] samples, np.ndarray[int,ndim=1,mode="c"] counts, np.ndarray[float,ndim=1,mode="c"] origin,np.ndarray[float,ndim=1,mode="c"] deltas):
+    _addAmrSubgrid(name.encode(),gridid,level,<float*>samples.data,<int*>counts.data,<float*>origin.data,<float*>deltas.data)
 def addMeshVertices(str name, int size, np.ndarray[float, ndim=1, mode="c"] vertices not None):
   _addMeshVertices(name.encode(),size,<float*> vertices.data)
 
@@ -90,8 +99,10 @@ def addMeshMaterialSpecular( str name,  unsigned mattype,  np.ndarray[float, ndi
 # def addMeshMaterials( str name,  unsigned n,  np.ndarray[uint32, ndim=1, mode="c"] mattype,  np.ndarray[float, ndim=1, mode="c"] kd, np.ndarray[float, ndim=1, mode="c"] ks,  np.ndarray[float, ndim=1, mode="c"] alpha):
 #   _addMeshMaterials(name.encode(),n,<unsigned*> mattype.data, <float*> kd.data, <float*> ks.float, <float*> alpha.data)
 
-def addInstance(str name,  np.ndarray[float, ndim=1, mode="c"] m):
-  _addInstance(name.encode(),<float*> m.data)
+def addInstance(str s, str name,  np.ndarray[float, ndim=1, mode="c"] m):
+  _addInstance(s.encode(),name.encode(),<float*> m.data)
+def createVolume(str name,bool amr = False):
+      _createVolume(name.encode(),amr)
 
 def addPointLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color):
   _addPointLight(name.encode(),<float*> pos.data, <float*> color.data)
@@ -102,8 +113,8 @@ def addAreaLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray
 def modifyLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color):
   _modifyLight(name.encode(),<float*>pos.data, <float*> color.data)
 
-def modifyLight(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color,  np.ndarray[float, ndim=1, mode="c"] n, float w, float h):
-  _modifyLight(name.encode(),<float*>pos.data,<float*>color.data,<float*>n.data,w,h)
+def modifyLight2(str name,  np.ndarray[float, ndim=1, mode="c"] pos,  np.ndarray[float, ndim=1, mode="c"] color,  np.ndarray[float, ndim=1, mode="c"] n, float w, float h):
+  _modifyLight2(name.encode(),<float*>pos.data,<float*>color.data,<float*>n.data,w,h)
 
 def addCamera(str name,  np.ndarray[float, ndim=1, mode="c"]  pos,  np.ndarray[float, ndim=1, mode="c"]  focus,  np.ndarray[float, ndim=1, mode="c"]  up, float fov, int depth, int samples, float jitter):
   _addCamera(name.encode(), <float*> pos.data, <float*>focus.data,<float*>up.data,fov,depth,samples,jitter)
@@ -117,8 +128,10 @@ def addFilm(str name, int w, int h, str path):
 def modifyFilm(str name, int w, int h, str path):
   _modifyFilm(name.encode(),w,h,path.encode())
 
-def addRenderer(str name, int adapter, int schedule):
-  _addRenderer(name.encode(),adapter,schedule)
+def addRenderer(str name, int adapter, int schedule, str camera_name,
+        str film_name, bool volume):
+  _addRenderer(name.encode(),adapter,schedule,camera_name.encode(),
+          film_name.encode(),volume)
 
 def render(str name):
   _render(name.encode())

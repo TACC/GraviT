@@ -27,8 +27,11 @@
 #include <memory>
 #include <mpi.h>
 
-#include <gvt/core/context/CoreContext.h>
+
 #include <gvt/core/tracer/tracer.h>
+#include <gvt/core/cntx/context.h>
+#include <gvt/render/cntx/rcontext.h>
+
 
 namespace gvt {
 namespace comm {
@@ -102,8 +105,11 @@ void scomm::run() {
         msg->size(data_size);
         std::lock_guard<std::mutex> l(minbox);
         if (msg->system_tag() == CONTROL_USER_TAG) {
-          gvt::core::CoreContext &cntxt = *gvt::core::CoreContext::instance();
-          cntxt.tracer()->MessageManager(msg);
+           //gvt::core::CoreContext &cntxt = *gvt::core::CoreContext::instance();
+
+          //gvt::render::
+
+          cntx::rcontext::instance().tracer->MessageManager(msg);
 
           //        	_inbox.push_back(msg);
         }

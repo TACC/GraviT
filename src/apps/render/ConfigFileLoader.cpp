@@ -28,12 +28,11 @@
  * Created on January 21, 2015, 12:15 PM
  */
 
+#if 0 // TODO: pnav - update to use new context
 #include "ConfigFileLoader.h"
 
 #include <gvt/render/data/reader/ObjReader.h>
 
-#include <boost/regex.h>
-#include <boost/regex.hpp>
 #include <fstream>
 #include <gvt/core/Math.h>
 #include <gvt/render/RenderContext.h>
@@ -288,3 +287,4 @@ ConfigFileLoader::ConfigFileLoader(const std::string filename) {
 ConfigFileLoader::ConfigFileLoader(const ConfigFileLoader &orig) {}
 
 ConfigFileLoader::~ConfigFileLoader() {}
+#endif // TODO: pnav - update to use new context

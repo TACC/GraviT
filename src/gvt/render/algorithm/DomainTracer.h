@@ -31,7 +31,6 @@
 #ifndef GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 #define GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H
 
-#include <gvt/render/RenderContext.h>
 #include <gvt/render/Schedulers.h>
 #include <gvt/render/Types.h>
 #include <gvt/render/algorithm/TracerBase.h>
@@ -54,10 +53,15 @@
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
 #include <gvt/render/adapter/heterogeneous/HeterogeneousMeshAdapter.h>
 #endif
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+#include <gvt/render/adapter/ospray/OSPRayAdapter.h>
+#endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+#include <gvt/render/adapter/galaxy/PVolAdapter.h>
+#endif
+
 
 #include <gvt/core/utils/global_counter.h>
-
-#include <boost/foreach.hpp>
 
 #include <set>
 
@@ -90,119 +94,88 @@ public:
 
   size_t rays_start, rays_end;
 
-  // caches meshes that are converted into the adapter's format
-  gvt::core::Map<gvt::render::data::primitives::Mesh *, gvt::render::Adapter *> adapterCache;
   gvt::core::Map<int, int> mpiInstanceMap;
 
-  Tracer(gvt::render::actor::RayVector &rays, gvt::render::data::scene::Image &image) : AbstractTrace(rays, image) {
+  Tracer(std::shared_ptr<gvt::render::data::scene::gvtCameraBase> camera,
+         std::shared_ptr<gvt::render::composite::ImageComposite> image, std::string const &camname = "Camera",
+         std::string const &filmname = "Film", std::string const &schedulername = "Scheduler")
+      : AbstractTrace(camera, image, camname, filmname, schedulername) {
 
+          //std::cerr << "initialize domain tracer " << std::endl;
     Initialize();
   }
 
   void resetInstances() {
     AbstractTrace::resetInstances();
-    for (auto a : adapterCache) {
-      delete a.second;
-    }
     adapterCache.clear();
     mpiInstanceMap.clear();
     Initialize();
   }
 
   virtual void Initialize() {
-
-    std::cout << "Entered here" << std::endl;
-
-    gvt::core::Vector<gvt::core::DBNodeH> dataNodes = rootnode["Data"].getChildren();
-    gvt::core::Map<int, std::set<std::string> > meshAvailbyMPI;         // where meshes are by mpi node
-    gvt::core::Map<int, std::set<std::string> >::iterator lastAssigned; // instance-node round-robin assigment
-
-    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
-
-    for (size_t i = 0; i < mpi.world_size; i++) meshAvailbyMPI[i].clear();
-
-    // build location map, where meshes are by mpi node
-    for (size_t i = 0; i < dataNodes.size(); i++) {
-      gvt::core::Vector<gvt::core::DBNodeH> locations = dataNodes[i]["Locations"].getChildren();
-      for (auto loc : locations) {
-        meshAvailbyMPI[loc.value().toInteger()].insert(dataNodes[i].UUID().toString());
-      }
+      //std::cerr << "get inst" << std::endl;
+    auto inst = db.getChildren(db.getUnique("Instances"));
+      //std::cerr << "get data" << std::endl;
+    auto data = db.getChildren(db.getUnique("Data"));
+      //std::cerr << "get lastAssigned" << std::endl;
+    gvt::core::Map<cntx::identifier, unsigned> lastAssigned;
+    for (auto &rn : data) {
+      auto &m = rn.get();
+      lastAssigned[rn.get().getid()] = 0;
     }
 
-    lastAssigned = meshAvailbyMPI.begin();
+    unsigned icount = 0;
 
-    // create a map of instances to mpi rank
-    for (size_t i = 0; i < instancenodes.size(); i++) {
-
-      mpiInstanceMap[i] = -1;
-      if (instancenodes[i]["meshRef"].value().toUuid() != gvt::core::Uuid::null()) {
-
-        gvt::core::DBNodeH meshNode = instancenodes[i]["meshRef"].deRef();
-
-        // Instance to mpi-node Round robin assignment considering mesh availability
-        auto startedAt = lastAssigned;
-        do {
-          if (lastAssigned->second.size() > 0) { // if mpi-node has no meshes, don't bother
-            if (lastAssigned->second.find(meshNode.UUID().toString()) != lastAssigned->second.end()) {
-              mpiInstanceMap[i] = lastAssigned->first;
-              lastAssigned++;
-              if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-              break;
-            } else {
-              // branch out from lastAssigned and search for a mpi-node with the mesh
-              // keep lastAssigned to continue with round robin
-              auto branchOutSearch = lastAssigned;
-              do {
-                if (branchOutSearch->second.find(meshNode.UUID().toString()) != branchOutSearch->second.end()) {
-                  mpiInstanceMap[i] = branchOutSearch->first;
-                  break;
-                }
-                branchOutSearch++;
-                if (branchOutSearch == meshAvailbyMPI.end()) branchOutSearch = meshAvailbyMPI.begin();
-              } while (branchOutSearch != lastAssigned);
-              break; // If the branch-out didn't found a node, break the main loop, meaning that no one has the mesh
-            }
-          }
-          lastAssigned++;
-          if (lastAssigned == meshAvailbyMPI.end()) lastAssigned = meshAvailbyMPI.begin();
-        } while (lastAssigned != startedAt);
-      }
+    //std::cerr << "DomainTracer: loop on inst" << std::endl;
+    for (auto &ri : inst) {
+      //std::cerr << " get ri " << std::endl;
+      auto &i = ri.get();
+      //std::cerr << " get m " << std::endl;
+      auto &m = db.deRef(db.getChild(i, "meshRef"));
+      //std::cerr << " get id " << std::endl;
+      size_t id = db.getChild(i, "id");
+      //std::cerr << " get loc " << std::endl;
+      std::vector<int> &loc = *(db.getChild(m, "Locations").to<std::shared_ptr<std::vector<int> > >().get());
+      //std::cerr << " map instances " << std::endl;
+      mpiInstanceMap[id] = loc[lastAssigned[m.getid()] % loc.size()];
+      lastAssigned[m.getid()]++;
     }
+    //std::cerr << " done looping on inst " << std::endl;
   }
 
   virtual ~Tracer() {}
 
   void shuffleDropRays(gvt::render::actor::RayVector &rays) {
 
-    const size_t chunksize =
-        MAX(4096, rays.size() / (gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger() * 4));
-    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration);
+    const size_t chunksize = MAX(4096, rays.size() / (db.getUnique("threads").to<unsigned>() * 4));
+
+    static gvt::render::data::accel::BVH &acc = *dynamic_cast<gvt::render::data::accel::BVH *>(acceleration.get());
     static tbb::simple_partitioner ap;
 
     tbb::parallel_for(tbb::blocked_range<gvt::render::actor::RayVector::iterator>(rays.begin(), rays.end(), chunksize),
                       [&](tbb::blocked_range<gvt::render::actor::RayVector::iterator> raysit) {
 
-                        gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
-                            acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
-                        gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
-                        for (size_t i = 0; i < hits.size(); i++) {
-                          gvt::render::actor::Ray &r = *(raysit.begin() + i);
-                          if (hits[i].next != -1) {
-                            r.origin = r.origin + r.direction * (hits[i].t * 0.95f);
-                            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
-                            if (inRank) local_queue[hits[i].next].push_back(r);
-                          }
-                        }
+       gvt::core::Vector<gvt::render::data::accel::BVH::hit> hits =
+          acc.intersect<GVT_SIMD_WIDTH>(raysit.begin(), raysit.end(), -1);
+       gvt::core::Map<int, gvt::render::actor::RayVector> local_queue;
+       for (size_t i = 0; i < hits.size(); i++) {
+          gvt::render::actor::Ray &r = *(raysit.begin() + i);
+          if (hits[i].next != -1) {
+            r.mice.origin = r.mice.origin + r.mice.direction * (hits[i].t * 0.95f);
+            const bool inRank = mpiInstanceMap[hits[i].next] == mpi.rank;
+            if (inRank) local_queue[hits[i].next].push_back(r);
+          }
+       }
 
-                        for (auto &q : local_queue) {
-                          queue_mutex[q.first].lock();
-                          queue[q.first].insert(queue[q.first].end(),
-                                                std::make_move_iterator(local_queue[q.first].begin()),
-                                                std::make_move_iterator(local_queue[q.first].end()));
-                          queue_mutex[q.first].unlock();
-                        }
-                      },
-                      ap);
+       for (auto &q : local_queue) {
+          queue_mutex[q.first].lock();
+          queue[q.first].insert(queue[q.first].end(),
+          std::make_move_iterator(local_queue[q.first].begin()),
+          std::make_move_iterator(local_queue[q.first].end()));
+          queue_mutex[q.first].unlock();
+       }
+               },
+         ap);
 
     rays.clear();
   }
@@ -227,10 +200,9 @@ public:
     gvt::util::global_counter gc_shuffle("Number of rays shuffled :");
     gvt::util::global_counter gc_sent("Number of rays sent :");
 
-    gvt::core::DBNodeH root = gvt::render::RenderContext::instance()->getRootNode();
-
     clearBuffer();
-    int adapterType = root["Schedule"]["adapter"].value().toInteger();
+    //int adapterType = db.getChild(db.getUnique(schedulername), "adapter");
+    adapterType = db.getChild(db.getUnique(schedulername), "adapter");
 
     t_filter.resume();
     gc_filter.add(rays.size());
@@ -261,7 +233,6 @@ public:
         t_sort.resume();
 
         for (auto &q : queue) {
-
           const bool inRank = mpiInstanceMap[q.first] == mpi.rank;
           if (inRank && q.second.size() > instTargetCount) {
             instTargetCount = q.second.size();
@@ -270,16 +241,16 @@ public:
         }
         t_sort.stop();
 
+        //std::cerr << " instTarget " << instTarget << std::endl;
         if (instTarget >= 0) {
+
           t_adapter.resume();
-          gvt::render::Adapter *adapter = 0;
-          // gvt::core::DBNodeH meshNode = instancenodes[instTarget]["meshRef"].deRef();
+          //std::cout << " domaintracer: create empty adapter shared pointer" << std::endl;
+          std::shared_ptr<gvt::render::Adapter> adapter = 0;
 
-          gvt::render::data::primitives::Mesh *mesh = meshRef[instTarget];
+          //std::cout << " domaintracer: grab mesh shared pointer " << std::endl;
+          std::shared_ptr<gvt::render::data::primitives::Data> mesh = meshRef[instTarget];
 
-          // TODO: Make cache generic needs to accept any kind of adpater
-
-          // 'getAdapterFromCache' functionality
           auto it = adapterCache.find(mesh);
           if (it != adapterCache.end()) {
             adapter = it->second;
@@ -290,28 +261,38 @@ public:
             switch (adapterType) {
 #ifdef GVT_RENDER_ADAPTER_EMBREE
             case gvt::render::adapter::Embree:
-              adapter = new gvt::render::adapter::embree::data::EmbreeMeshAdapter(mesh);
+              adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeMeshAdapter>(mesh);
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_EMBREE_STREAM
             case gvt::render::adapter::EmbreeStream:
-              adapter = new gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter(mesh);
+              adapter = std::make_shared<gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter>(mesh);
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_MANTA
             case gvt::render::adapter::Manta:
-              adapter = new gvt::render::adapter::manta::data::MantaMeshAdapter(mesh);
+              adapter = std::make_shared<gvt::render::adapter::manta::data::MantaMeshAdapter>(mesh.get());
               break;
 #endif
 #ifdef GVT_RENDER_ADAPTER_OPTIX
             case gvt::render::adapter::Optix:
-              adapter = new gvt::render::adapter::optix::data::OptixMeshAdapter(mesh);
+              adapter = std::make_shared<gvt::render::adapter::optix::data::OptixMeshAdapter>(mesh.get());
               break;
 #endif
-
+#ifdef GVT_RENDER_ADAPTER_OSPRAY
+            case gvt::render::adapter::Ospray:
+              adapter = std::make_shared<gvt::render::adapter::ospray::data::OSPRayAdapter>(mesh, width, height);
+              break;
+#endif
+#ifdef GVT_RENDER_ADAPTER_GALAXY
+            case gvt::render::adapter::Pvol:
+              adapter = std::make_shared<gvt::render::adapter::galaxy::data::PVolAdapter>(mesh, width, height);
+              break;
+#endif
 #if defined(GVT_RENDER_ADAPTER_OPTIX) && defined(GVT_RENDER_ADAPTER_EMBREE)
             case gvt::render::adapter::Heterogeneous:
-              adapter = new gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter(mesh);
+              adapter =
+                  std::make_shared<gvt::render::adapter::heterogeneous::data::HeterogeneousMeshAdapter>(mesh.get());
               break;
 #endif
             default:
@@ -326,13 +307,13 @@ public:
 
           {
             t_trace.resume();
+
             gc_rays.add(this->queue[instTarget].size());
             moved_rays.reserve(this->queue[instTarget].size() * 10);
-            adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget], instMinv[instTarget],
-                           instMinvN[instTarget], lights);
+            adapter->trace(this->queue[instTarget], moved_rays, instM[instTarget].get(), instMinv[instTarget].get(),
+                           instMinvN[instTarget].get(), lights);
 
             this->queue[instTarget].clear();
-
             t_trace.stop();
           }
 
@@ -514,7 +495,7 @@ public:
     return false;
   }
 };
-}
-}
-}
+} // namespace algorithm
+} // namespace render
+} // namespace gvt
 #endif /* GVT_RENDER_ALGORITHM_DOMAIN_TRACER_H */

@@ -31,42 +31,27 @@
 #ifndef GVT_RENDER_DATA_PRIMITIVES_MESH_H
 #define GVT_RENDER_DATA_PRIMITIVES_MESH_H
 
-#include <gvt/render/data/primitives/BBox.h>
+#include <gvt/render/data/primitives/Data.h>
 #include <gvt/render/data/primitives/Material.h>
 #include <gvt/render/data/scene/Light.h>
-
 #include <vector>
 
-#include <boost/container/vector.hpp>
-#include <boost/tuple/tuple.hpp>
 
 namespace gvt {
 namespace render {
 namespace data {
 namespace primitives {
 
-/// base class for mesh
-class AbstractMesh {
-public:
-  AbstractMesh() {}
-
-  AbstractMesh(const AbstractMesh &) {}
-
-  ~AbstractMesh() {}
-
-  virtual AbstractMesh *getMesh() { return this; }
-
-  virtual gvt::render::data::primitives::Box3D *getBoundingBox() { return NULL; }
-};
-
 /// geometric mesh
 /** geometric mesh used within geometric domains
 \sa GeometryDomain
 */
-class Mesh : public AbstractMesh {
+//class Mesh : public AbstractMesh {
+class Mesh : public Data {
 public:
-  typedef boost::tuple<int, int, int> Face;
-  typedef boost::tuple<int, int, int> FaceToNormals;
+  typedef std::tuple<int, int, int> Face;
+  typedef std::tuple<int, int, int, int> TetrahedralCell;
+  typedef std::tuple<int, int, int> FaceToNormals;
 
   Mesh(gvt::render::data::primitives::Material *mat = NULL);
   Mesh(const Mesh &orig);
@@ -79,9 +64,11 @@ public:
 
   virtual void addVertexNormalTexUV(glm::vec3 vertex, glm::vec3 normal = glm::vec3(), glm::vec3 texUV = glm::vec3());
   virtual void addVertex(glm::vec3 vertex);
+  virtual void addVertexColor(glm::vec3 color) { vertex_colors.push_back(color); }
   virtual void addNormal(glm::vec3 normal);
   virtual void addTexUV(glm::vec3 texUV);
   virtual void addFace(int v0, int v1, int v2);
+  virtual void addTetrahedralCell(int v0, int v1, int v2, int v3);
   virtual void addFaceToNormals(FaceToNormals);
 
   virtual gvt::render::data::primitives::Box3D computeBoundingBox();
@@ -89,30 +76,26 @@ public:
   virtual void generateNormals();
 
   virtual gvt::render::data::primitives::Material *getMaterial() { return mat; }
-  //  virtual gvt::render::data::Color shade(const gvt::render::actor::Ray &r, const glm::vec3 &normal,
-  //                                         const gvt::render::data::scene::Light *lsource,
-  //                                         const glm::vec3 areaLightPosition);
-  //
-  //  virtual gvt::render::data::Color shadeFace(const int face_id, const gvt::render::actor::Ray &r,
-  //                                             const glm::vec3 &normal, const gvt::render::data::scene::Light
-  //                                             *lsource);
-  //
-  //  virtual gvt::render::data::Color shadeFaceAreaLight(const int face_id, const gvt::render::actor::Ray &r,
-  //                                                      const glm::vec3 &normal,
-  //                                                      const gvt::render::data::scene::Light *lsource,
-  //                                                      const glm::vec3 areaLightPosition);
 
   void writeobj(std::string filename);
+
+  virtual std::shared_ptr<Data> getData() {
+    return std::shared_ptr<Data>(this);
+  }
+
 
 public:
   gvt::render::data::primitives::Material *mat;
   gvt::core::Vector<glm::vec3> vertices;
+  gvt::core::Vector<glm::vec3> vertex_colors;
   gvt::core::Vector<glm::vec3> mapuv;
   gvt::core::Vector<glm::vec3> normals;
   gvt::core::Vector<Face> faces;
+  gvt::core::Vector<TetrahedralCell> tets;
   gvt::core::Vector<FaceToNormals> faces_to_normals;
   gvt::core::Vector<glm::vec3> face_normals;
   gvt::core::Vector<Material *> faces_to_materials;
+  std::vector<Material *> materials;
   gvt::render::data::primitives::Box3D boundingBox;
   bool haveNormals;
 };

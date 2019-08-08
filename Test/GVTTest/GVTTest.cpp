@@ -57,8 +57,6 @@
 #include <gvt/render/data/scene/Image.h>
 #include <gvt/render/data/scene/gvtCamera.h>
 
-#include <boost/range/algorithm.hpp>
-
 #include "../iostuff.h"
 #include "../timer.h"
 #include <math.h>

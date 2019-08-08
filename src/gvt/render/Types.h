@@ -30,12 +30,16 @@ namespace gvt {
 namespace render {
 namespace adapter {
 /// render engine used
-enum RenderType {
+enum RenderType {  // TODO: guard these with proper #defs so they only appear if built
+#ifdef GVT_BUILD_VOLUME  
   Volume,
+#endif  
   Surface,
   Manta,
   Optix,
   Embree,
+  Ospray,
+  Pvol,
   EmbreeStream,
   Heterogeneous
 };
@@ -46,6 +50,8 @@ namespace scheduler {
 enum ScheduleType {
   Image,
   Domain,
+  AsyncImage,
+  AsyncDomain,
   RayWeightedSpread, // PAN: from EGPGV 2012 paper, deprecated, now called LoadOnce
   LoadOnce,          // PAN: from TVCG 2013 paper
   LoadAnyOnce,       // PAN: from TVCG 2013 paper

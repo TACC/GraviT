@@ -25,10 +25,10 @@
 #define TBB_PREVIEW_STATIC_PARTITIONER 1
 
 #include "gvt/render/adapter/embree/EmbreeStreamMeshAdapter.h"
-#include "gvt/render/RenderContext.h"
 #include <gvt/core/Debug.h>
 #include <gvt/core/Math.h>
 #include <gvt/render/actor/Ray.h>
+#include <gvt/render/cntx/rcontext.h>
 #include <gvt/render/data/DerivedTypes.h>
 #include <gvt/render/adapter/embree/EmbreeMaterial.h>
 #include <gvt/render/data/primitives/Material.h>
@@ -39,10 +39,6 @@
 #include <atomic>
 #include <future>
 #include <thread>
-
-#include <boost/atomic.hpp>
-#include <boost/foreach.hpp>
-#include <boost/timer/timer.hpp>
 
 #include <tbb/blocked_range.h>
 #include <tbb/mutex.h>
@@ -65,7 +61,7 @@
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
 #define GVT_EMBREE_INTERSECTION rtcIntersect16
 #define GVT_EMBREE_OCCULUSION rtcOccluded16
-#elif(defined(GVT_AVX512KNL_TARGET) || defined(GVT_AVX512SKX_TARGET))
+#elif (defined(GVT_AVX512KNL_TARGET) || defined(GVT_AVX512SKX_TARGET))
 #define GVT_EMBREE_ALGORITHM RTC_INTERSECT16
 #define GVT_EMBREE_PACKET_SIZE 16
 #define GVT_EMBREE_PACKET_TYPE RTCRay16
@@ -127,7 +123,8 @@ static void error_handler(const RTCError code, const char *str = nullptr) {
   exit(1);
 }
 
-EmbreeStreamMeshAdapter::EmbreeStreamMeshAdapter(gvt::render::data::primitives::Mesh *mesh) : Adapter(mesh) {
+EmbreeStreamMeshAdapter::EmbreeStreamMeshAdapter(std::shared_ptr<gvt::render::data::primitives::Data> m) : Adapter(m) {
+  std::shared_ptr<gvt::render::data::primitives::Mesh> mesh = std::dynamic_pointer_cast<gvt::render::data::primitives::Mesh>(m);
   GVT_ASSERT(mesh, "EmbreeStreamMeshAdapter: mesh pointer in the database is null");
   mesh->generateNormals();
 
@@ -155,9 +152,9 @@ EmbreeStreamMeshAdapter::EmbreeStreamMeshAdapter(gvt::render::data::primitives::
   embTriangle *triangles = (embTriangle *)rtcMapBuffer(scene, geomId, RTC_INDEX_BUFFER);
   for (int i = 0; i < numTris; i++) {
     gvt::render::data::primitives::Mesh::Face f = mesh->faces[i];
-    triangles[i].v0 = f.get<0>();
-    triangles[i].v1 = f.get<1>();
-    triangles[i].v2 = f.get<2>();
+    triangles[i].v0 = std::get<0>(f);
+    triangles[i].v1 = std::get<1>(f);
+    triangles[i].v2 = std::get<2>(f);
   }
   rtcUnmapBuffer(scene, geomId, RTC_INDEX_BUFFER);
 
@@ -211,7 +208,7 @@ struct embreeStreamParallelTrace {
   /**
    * Stored transformation matrix in the current instance
    */
-  const gvt::core::Vector<gvt::render::data::scene::Light *> &lights;
+  const gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights;
 
   /**
    * Count the number of rays processed by the current trace() call.
@@ -241,11 +238,11 @@ struct embreeStreamParallelTrace {
   embreeStreamParallelTrace(gvt::render::adapter::embree::data::EmbreeStreamMeshAdapter *adapter,
                             gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                             const size_t workSize, glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                            gvt::core::Vector<gvt::render::data::scene::Light *> &lights,
-                            gvt::render::data::primitives::Mesh *mesh, std::atomic<size_t> &counter, const size_t begin,
+                            gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> >&lights,
+                            std::shared_ptr<gvt::render::data::primitives::Mesh> mesh, std::atomic<size_t> &counter, const size_t begin,
                             const size_t end)
       : adapter(adapter), rayList(rayList), moved_rays(moved_rays), workSize(workSize), m(m), minv(minv), normi(normi),
-        lights(lights), counter(counter), begin(begin), end(end), mesh(mesh) {}
+        lights(lights), counter(counter), begin(begin), end(end), mesh(mesh.get()) {}
   /**
    * Convert a set of rays from a vector into a GVT_EMBREE_PACKET_TYPE ray packet.
    *
@@ -274,12 +271,12 @@ struct embreeStreamParallelTrace {
     for (int i = 0; i < localPacketSize; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        ray4.orgx[i] = r.origin[0];
-        ray4.orgy[i] = r.origin[1];
-        ray4.orgz[i] = r.origin[2];
-        ray4.dirx[i] = r.direction[0];
-        ray4.diry[i] = r.direction[1];
-        ray4.dirz[i] = r.direction[2];
+        ray4.orgx[i] = r.mice.origin[0];
+        ray4.orgy[i] = r.mice.origin[1];
+        ray4.orgz[i] = r.mice.origin[2];
+        ray4.dirx[i] = r.mice.direction[0];
+        ray4.diry[i] = r.mice.direction[1];
+        ray4.dirz[i] = r.mice.direction[2];
         ray4.tnear[i] = gvt::render::actor::Ray::RAY_EPSILON;
         ray4.tfar[i] = FLT_MAX;
         ray4.geomID[i] = RTC_INVALID_GEOMETRY_ID;
@@ -308,8 +305,8 @@ struct embreeStreamParallelTrace {
     for (int i = 0; i < GVT_EMBREE_STREAM_SIZE_M; i++) {
       if (valid[i]) {
         const Ray &r = rays[startIdx + i];
-        const auto origin = (*minv) * glm::vec4(r.origin, 1.f); // transform ray to local space
-        const auto direction = (*minv) * glm::vec4(r.direction, 0.f);
+        const auto origin = (*minv) * glm::vec4(r.mice.origin, 1.f); // transform ray to local space
+        const auto direction = (*minv) * glm::vec4(r.mice.direction, 0.f);
 
         ray[i].org[0] = origin[0];
         ray[i].org[1] = origin[1];
@@ -325,8 +322,8 @@ struct embreeStreamParallelTrace {
         ray[i].mask = -1;
         ray[i].time = gvt::render::actor::Ray::RAY_EPSILON;
       } else {
-        ray[i].tnear = (float)(1e100f);
-        ray[i].tfar = (float)(-1e100f);
+        ray[i].tnear = (float)(FLT_MAX);
+        ray[i].tfar = (float)(-FLT_MAX);
       }
     }
   }
@@ -349,8 +346,8 @@ struct embreeStreamParallelTrace {
       for (int n = 0; n < GVT_EMBREE_PACKET_SIZE_N; ++n) {
         if (valid[offset]) {
           const Ray &r = rays[startIdx + offset];
-          const auto origin = (*minv) * glm::vec4(r.origin, 1.f);
-          const auto direction = (*minv) * glm::vec4(r.direction, 0.f);
+          const auto origin = (*minv) * glm::vec4(r.mice.origin, 1.f);
+          const auto direction = (*minv) * glm::vec4(r.mice.direction, 0.f);
 
           RTCRayN_org_x(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = origin[0];
           RTCRayN_org_y(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = origin[1];
@@ -371,8 +368,8 @@ struct embreeStreamParallelTrace {
           RTCRayN_time(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = gvt::render::actor::Ray::RAY_EPSILON;
 
         } else {
-          RTCRayN_tnear(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(1e100f);
-          RTCRayN_tfar(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(-1e100f);
+          RTCRayN_tnear(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(FLT_MAX);
+          RTCRayN_tfar(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n) = (float)(-FLT_MAX);
         }
         ++offset;
       }
@@ -414,7 +411,7 @@ struct embreeStreamParallelTrace {
                           gvt::render::data::primitives::Material *material, unsigned int *randSeed,
                           gvt::render::actor::RayVector &shadowRays) {
 
-    for (gvt::render::data::scene::Light *light : lights) {
+    for (std::shared_ptr<gvt::render::data::scene::Light>light : lights) {
       GVT_ASSERT(light, "generateShadowRays: light is null for some reason");
 
       // Try to ensure that the shadow ray is on the correct side of the
@@ -425,28 +422,28 @@ struct embreeStreamParallelTrace {
       gvt::render::data::Color c;
       glm::vec3 lightPos;
       if (light->LightT == gvt::render::data::scene::Light::Area) {
-        lightPos = ((gvt::render::data::scene::AreaLight *)light)->GetPosition(randSeed);
+        lightPos = ((gvt::render::data::scene::AreaLight *)light.get())->GetPosition(randSeed);
       } else {
         lightPos = light->position;
       }
 
-      if (!gvt::render::data::primitives::Shade(material, r, normal, light, lightPos, c)) continue;
+      if (!gvt::render::data::primitives::Shade(material, r, normal, light.get(), lightPos, c)) continue;
 
       const float multiplier = 1.0f - gvt::render::actor::Ray::RAY_EPSILON * 16;
-      const float t_shadow = multiplier * r.t;
+      const float t_shadow = multiplier * r.mice.t;
 
-      const glm::vec3 origin = r.origin + r.direction * t_shadow;
+      const glm::vec3 origin = r.mice.origin + r.mice.direction * t_shadow;
       const glm::vec3 dir = lightPos - origin;
       const float t_max = dir.length();
 
       // note: ray copy constructor is too heavy, so going to build it manually
-      shadowRays.push_back(Ray(r.origin + r.direction * t_shadow, dir, r.w, Ray::SHADOW, r.depth));
+      shadowRays.push_back(Ray(r.mice.origin + r.mice.direction * t_shadow, dir, r.mice.w, Ray::SHADOW, r.mice.depth));
 
       Ray &shadow_ray = shadowRays.back();
-      shadow_ray.t = r.t;
-      shadow_ray.id = r.id;
-      shadow_ray.t_max = t_max;
-      shadow_ray.color = glm::vec3(c[0], c[1], c[2]);
+      shadow_ray.mice.t = r.mice.t;
+      shadow_ray.mice.id = r.mice.id;
+      shadow_ray.mice.t_max = t_max;
+      shadow_ray.mice.color = glm::vec3(c[0], c[1], c[2]);
     }
   }
 
@@ -545,55 +542,55 @@ struct embreeStreamParallelTrace {
     shadowRays.clear();
   }
 
-  /**
-   * Trace function.
-   *
-   * Loops through rays in `rayList`, converts them to embree format, and traces
-   * against embree's scene
-   *
-   * Threads work on rays in chunks of `workSize` units.  An atomic add on
-   * `sharedIdx` distributes
-   * the ranges of rays to work on.
-   *
-   * After getting a chunk of rays to work with, the adapter loops through in
-   * sets of `packetSize`.  Right
-   * now this supports a 4 wide packet [Embree has support for 8 and 16 wide
-   * packets].
-   *
-   * The packet is traced and re-used until all of the 4 rays and their
-   * secondary rays have been traced to
-   * completion.  Shadow rays are added to a queue and are tested after each
-   * intersection test.
-   *
-   * The `while(validRayLeft)` loop behaves something like this:
-   *
-   * r0: primary -> secondary -> secondary -> ... -> terminated
-   * r1: primary -> secondary -> secondary -> ... -> terminated
-   * r2: primary -> secondary -> secondary -> ... -> terminated
-   * r3: primary -> secondary -> secondary -> ... -> terminated
-   *
-   * It is possible to get diverging packets such as:
-   *
-   * r0: primary   -> secondary -> terminated
-   * r1: secondary -> secondary -> terminated
-   * r2: shadow    -> terminated
-   * r3: primary   -> secondary -> secondary -> secondary -> terminated
-   *
-   * TODO: investigate switching terminated rays in the vector with active rays
-   * [swap with ones at the end]
-   *
-   * Terminated above means:
-   * - shadow ray hits object and is occluded
-   * - primary / secondary ray miss and are passed out of the queue
-   *
-   * After a packet is completed [including its generated rays], the system
-   * moves on * to the next packet
-   * in its chunk. Once a chunk is completed, the thread increments `sharedIdx`
-   * again to get more work.
-   *
-   * If `sharedIdx` grows to be larger than the incoming ray size, then the
-   * thread is complete.
-   */
+/**
+ * Trace function.
+ *
+ * Loops through rays in `rayList`, converts them to embree format, and traces
+ * against embree's scene
+ *
+ * Threads work on rays in chunks of `workSize` units.  An atomic add on
+ * `sharedIdx` distributes
+ * the ranges of rays to work on.
+ *
+ * After getting a chunk of rays to work with, the adapter loops through in
+ * sets of `packetSize`.  Right
+ * now this supports a 4 wide packet [Embree has support for 8 and 16 wide
+ * packets].
+ *
+ * The packet is traced and re-used until all of the 4 rays and their
+ * secondary rays have been traced to
+ * completion.  Shadow rays are added to a queue and are tested after each
+ * intersection test.
+ *
+ * The `while(validRayLeft)` loop behaves something like this:
+ *
+ * r0: primary -> secondary -> secondary -> ... -> terminated
+ * r1: primary -> secondary -> secondary -> ... -> terminated
+ * r2: primary -> secondary -> secondary -> ... -> terminated
+ * r3: primary -> secondary -> secondary -> ... -> terminated
+ *
+ * It is possible to get diverging packets such as:
+ *
+ * r0: primary   -> secondary -> terminated
+ * r1: secondary -> secondary -> terminated
+ * r2: shadow    -> terminated
+ * r3: primary   -> secondary -> secondary -> secondary -> terminated
+ *
+ * TODO: investigate switching terminated rays in the vector with active rays
+ * [swap with ones at the end]
+ *
+ * Terminated above means:
+ * - shadow ray hits object and is occluded
+ * - primary / secondary ray miss and are passed out of the queue
+ *
+ * After a packet is completed [including its generated rays], the system
+ * moves on * to the next packet
+ * in its chunk. Once a chunk is completed, the thread increments `sharedIdx`
+ * again to get more work.
+ *
+ * If `sharedIdx` grows to be larger than the incoming ray size, then the
+ * thread is complete.
+ */
 // Reason for having GVT_EMBREE_STREAM_NM and GVT_EMBREE_STREAM_1M separately
 // From Embree's manual:
 // Please note that there is some incompatibility in the layout of a single ray
@@ -694,7 +691,6 @@ struct embreeStreamParallelTrace {
                 // old fixme: fix embree normal calculation to remove dependency
                 // from gvt mesh
 
-
                 glm::vec3 manualNormal;
 
                 float ngx = RTCRayN_Ng_x(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
@@ -745,7 +741,36 @@ struct embreeStreamParallelTrace {
 
                 unsigned primID = RTCRayN_primID(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
 
-                if (mesh->faces_to_materials.size() && mesh->faces_to_materials[primID]) {
+                if (!mesh->vertex_colors.empty()) { // per-vertex color available, create material here
+                  // Get vertex indexes
+                  gvt::render::data::primitives::Mesh::Face face = mesh->faces[primID];
+
+                  int v0 = face.get<0>();
+                  int v1 = face.get<1>();
+                  int v2 = face.get<2>();
+
+                  // Get U V Coordinates
+
+                  float u = RTCRayN_u(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
+                  float v = RTCRayN_v(&rayNM[m], GVT_EMBREE_PACKET_SIZE_N, n);
+
+                  // Get color at each vertex
+                  glm::vec3 c0 = mesh->vertex_colors[v0];
+                  glm::vec3 c1 = mesh->vertex_colors[v1];
+                  glm::vec3 c2 = mesh->vertex_colors[v2];
+
+                  // Interpolate colors
+                  // given vertices v0, v1, v2, u and v are defined as
+                  // u: v1-v0
+                  // v: v2-v0
+                  glm::vec3 ci = (c0 * (1.f - u - v)) + (c1 * u) + (c2 * v);
+
+                  // Create Material
+                  mat = new gvt::render::data::primitives::Material;
+                  mat->type = LAMBERT;
+                  mat->kd = ci;
+
+                } else if (mesh->faces_to_materials.size() && mesh->faces_to_materials[primID]) {
                   mat = mesh->faces_to_materials[primID];
                   // mat = mesh->faces_to_materials[rayNM[m].primID[n]];
                   // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray1M[pi].primID]) {
@@ -761,6 +786,11 @@ struct embreeStreamParallelTrace {
                 }
 
                 generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
+
+                // In case we have per-vertex color information, destruct the material temporarily created
+                if (!mesh->vertex_colors.empty()) {
+                  delete mat;
+                }
 
                 int ndepth = r.depth - 1;
 
@@ -873,13 +903,13 @@ struct embreeStreamParallelTrace {
             if (ray1M[pi].geomID != (int)RTC_INVALID_GEOMETRY_ID) {
               // ray has hit something
               // shadow ray hit something, so it should be dropped
-              if (r.type == gvt::render::actor::Ray::SHADOW) {
+              if (r.mice.type == gvt::render::actor::Ray::SHADOW) {
                 continue;
               }
 
               // float t = rayNM[m].tfar[n];
               float t = ray1M[pi].tfar;
-              r.t = t;
+              r.mice.t = t;
 
               // FIXME: embree does not take vertex normal information, the
               // examples have the application calculate the normal using
@@ -908,9 +938,9 @@ struct embreeStreamParallelTrace {
                                                                                           // to store
                                                                                           // `faces_to_normals`
                                                                                           // list
-                const glm::vec3 &a = mesh->normals[normals.get<1>()];
-                const glm::vec3 &b = mesh->normals[normals.get<2>()];
-                const glm::vec3 &c = mesh->normals[normals.get<0>()];
+                const glm::vec3 &a = mesh->normals[std::get<1>(normals)];
+                const glm::vec3 &b = mesh->normals[std::get<2>(normals)];
+                const glm::vec3 &c = mesh->normals[std::get<0>(normals)];
                 manualNormal = a * u + b * v + c * (1.0f - u - v);
                 manualNormal = glm::normalize((*normi) * manualNormal);
 #else
@@ -921,15 +951,45 @@ struct embreeStreamParallelTrace {
               }
 
               // backface check, requires flat normal
-              if (glm::dot(-r.direction, normalflat) <= 0.f) {
+              if (glm::dot(-r.mice.direction, normalflat) <= 0.f) {
                 manualNormal = -manualNormal;
               }
 
               const glm::vec3 &normal = manualNormal;
 
               Material *mat;
-              // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[rayNM[m].primID[n]])
-              if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray1M[pi].primID]) {
+
+              if (!mesh->vertex_colors.empty()) { // per-vertex color available, create material here
+                // Get vertex indexes
+                gvt::render::data::primitives::Mesh::Face face = mesh->faces[ray1M[pi].primID];
+
+                int v0 = std::get<0>(face);
+                int v1 = std::get<1>(face);
+                int v2 = std::get<2>(face);
+
+                // Get U V Coordinates
+
+                float u = ray1M[pi].u;
+                float v = ray1M[pi].v;
+
+                // Get color at each vertex
+                glm::vec3 c0 = mesh->vertex_colors[v0];
+                glm::vec3 c1 = mesh->vertex_colors[v1];
+                glm::vec3 c2 = mesh->vertex_colors[v2];
+
+                // Interpolate colors
+                // given vertices v0, v1, v2, u and v are defined as
+                // u: v1-v0
+                // v: v2-v0
+                glm::vec3 ci = (c0 * (1.f - u - v)) + (c1 * u) + (c2 * v);
+
+                // Create Material
+                mat = new gvt::render::data::primitives::Material;
+                mat->type = LAMBERT;
+                mat->kd = ci;
+
+                // if (mesh->faces_to_materials.size() && mesh->faces_to_materials[rayNM[m].primID[n]])
+              } else if (mesh->faces_to_materials.size() && mesh->faces_to_materials[ray1M[pi].primID]) {
                 // mat = mesh->faces_to_materials[rayNM[m].primID[n]];
                 mat = mesh->faces_to_materials[ray1M[pi].primID];
               } else {
@@ -937,27 +997,32 @@ struct embreeStreamParallelTrace {
               }
 
               // reduce contribution of the color that the shadow rays get
-              if (r.type == gvt::render::actor::Ray::SECONDARY) {
+              if (r.mice.type == gvt::render::actor::Ray::SECONDARY) {
                 t = (t > 1) ? 1.f / t : t;
-                r.w = r.w * t;
+                r.mice.w = r.mice.w * t;
               }
 
               generateShadowRays(r, normal, mat, randEngine.ReturnSeed(), shadowRays);
 
-              int ndepth = r.depth - 1;
+              // In case we have per-vertex color information, destruct the material temporarily created
+              if (!mesh->vertex_colors.empty()) {
+                delete mat;
+              }
+
+              int ndepth = r.mice.depth - 1;
 
               float p = 1.f - randEngine.fastrand(0, 1); //(float(rand()) / RAND_MAX);
               // replace current ray with generated secondary ray
-              if (ndepth > 0 && r.w > p) {
-                r.type = gvt::render::actor::Ray::SECONDARY;
+              if (ndepth > 0 && r.mice.w > p) {
+                r.mice.type = gvt::render::actor::Ray::SECONDARY;
                 const float multiplier =
                     1.0f - 16.0f * std::numeric_limits<float>::epsilon(); // TODO: move out somewhere / make static
-                const float t_secondary = multiplier * r.t;
-                r.origin = r.origin + r.direction * t_secondary;
-                r.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
+                const float t_secondary = multiplier * r.mice.t;
+                r.mice.origin = r.mice.origin + r.mice.direction * t_secondary;
+                r.mice.direction = CosWeightedRandomHemisphereDirection2(normal, randEngine);
 
-                r.w = r.w * glm::dot(r.direction, normal);
-                r.depth = ndepth;
+                r.mice.w = r.mice.w * glm::dot(r.mice.direction, normal);
+                r.mice.depth = ndepth;
                 validRayLeft = true; // we still have a valid ray in the packet to trace
               } else {
                 // secondary ray is terminated, so disable its valid bit
@@ -990,8 +1055,10 @@ struct embreeStreamParallelTrace {
 
 void EmbreeStreamMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt::render::actor::RayVector &moved_rays,
                                     glm::mat4 *m, glm::mat4 *minv, glm::mat3 *normi,
-                                    gvt::core::Vector<gvt::render::data::scene::Light *> &lights, size_t _begin,
+                                    gvt::core::Vector<std::shared_ptr<gvt::render::data::scene::Light> > &lights, size_t _begin,
                                     size_t _end) {
+
+  cntx::rcontext& db = cntx::rcontext::instance();
 
   // // TODO if I don't apply rtcSetTrasform, I get correct images
   // // disabling instancing for now
@@ -1011,7 +1078,7 @@ void EmbreeStreamMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt:
   this->begin = _begin;
   this->end = _end;
 
-  const size_t numThreads = gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
+  const size_t numThreads = db.getUnique("threads");//gvt::core::CoreContext::instance()->getRootNode()["threads"].value().toInteger();
 
   const size_t workSize = std::max((size_t)4096, (size_t)((end - begin) / (numThreads * 2))); // size of 'chunk'
                                                                                               // of rays to work
@@ -1021,7 +1088,7 @@ void EmbreeStreamMeshAdapter::trace(gvt::render::actor::RayVector &rayList, gvt:
   tbb::parallel_for(tbb::blocked_range<size_t>(begin, end, workSize),
                     [&](tbb::blocked_range<size_t> chunk) {
                       embreeStreamParallelTrace(this, rayList, moved_rays, chunk.end() - chunk.begin(), m, minv, normi,
-                                                lights, mesh, counter, chunk.begin(), chunk.end())();
+                                                lights,std::static_pointer_cast<gvt::render::data::primitives::Mesh>(data), counter, chunk.begin(), chunk.end())();
                     },
                     ap);
   // rtcDeleteScene(global_scene);
