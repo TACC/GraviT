@@ -1,3 +1,4 @@
+
 /* ========================================================================== //
  * This file is released as part of GraviT2 - scalable, platform independent  //
  * ray tracing tacc.github.io/GraviT2                                         //
@@ -19,27 +20,3 @@
  * See the License for the specific language governing permissions and        //
  * limitations under the License.                                             //
  * ========================================================================== */
-#ifndef GVT2_RAY_H
-#define GVT2_RAY_H
-
-#include <float.h>
-#include "vec.h"
-
-namespace gvt2 {
-/**
- * \brief A single Ray class. 
- */
-class Ray {
-    public:
-            vec3f origin;
-            vec3f direction;
-            float t_min; 
-            float t_max;
-            float t;
-            int id;
-            int type;
-    public:
-        Ray(const vec3f& origin, const vec3f& direction) ;
-};
-}// end of namespace gvt2
-#endif /* GVT2_RAY_H */
