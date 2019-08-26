@@ -36,6 +36,7 @@ class vec3f {
             v[0] = v1; v[1] = v2; v[2] = v3;
         };
         vec3f() { v[0] = 0.;v[1]=0.;v[2]=0.; };
+        vec3f(const vec4f vin) {v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
         inline float operator[](int i) const {return v[i];};
         inline float& operator[](int i) {return v[i];};
 };
@@ -49,6 +50,13 @@ class vec4f {
         vec4f() {v[0]=0.;v[1]=0.;v[2]=0.;v[3]=0.;};
         inline float operator[](int i) const {return v[i];};
         inline float& operator[](int i) {return v[i];};
+};
+class mat4f {
+    private:
+        float m[16];
+    public:
+        mat4f() {for(int i=0;i<16;i++) m[i]=0.0;}
+        identity() {mat4f();for(int i=0;i<4;i++) m[i*5]=1.0;}
 };
 }
 #endif /* GVT2_VEC_H */
