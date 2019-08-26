@@ -22,19 +22,19 @@
 cmake_minimum_required(VERSION 2.8)
 project(gvt2_data)
 
-#include_directories(${gvt2_data_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR})
 set(DATA_SOURCES
     Ray.cpp
     )
 
 add_library(${PROJECT_NAME} ${DATA_SOURCES})
+install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 #
 # data library test code
 #
 add_executable(${PROJECT_NAME}_tests ${PROJECT_NAME}_tests.cpp)
 target_link_libraries(${PROJECT_NAME}_tests ${PROJECT_NAME})
-install(TARGETS ${PROJECT_NAME} DESTINATION lib)
+install(TARGETS ${PROJECT_NAME}_tests DESTINATION bin)
 
 install(FILES
     Ray.h
