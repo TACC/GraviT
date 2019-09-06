@@ -22,24 +22,25 @@
 #ifndef GVT2_RAYGroup_H
 #define GVT2_RAYGroup_H
 
+#include "Ray.h"
+#include <memory>
 #include <float.h>
 #include "vec.h"
 
 namespace gvt2 {
 /**
  * \brief A container class for a group of rays. 
+ *
+ * The group of rays is stored in a struct of arrays style to
+ * accomodate vectorization. 
  */
 class RayGroup {
+    private:
+        std::shared_ptr<double> ray_data;
+        size_t size;
     public:
-            vec3f origin;
-            vec3f direction;
-            float t_min; 
-            float t_max;
-            float t;
-            int id;
-            int type;
-    public:
-        RayGroup(const vec3f& origin, const vec3f& direction) ;
+        ~RayGroup();
+        RayGroup(size_t n);
 };
 }// end of namespace gvt2
 #endif /* GVT2_RAYGroup_H */

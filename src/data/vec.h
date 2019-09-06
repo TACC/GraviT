@@ -30,15 +30,28 @@
 namespace gvt2 {
 class vec3f {
     private:
-        float v[3];
+        float* v = NULL;
     public:
         vec3f(const float v1,const float v2, const float v3) {
+            v = new float[3];
             v[0] = v1; v[1] = v2; v[2] = v3;
         };
-        vec3f() { v[0] = 0.;v[1]=0.;v[2]=0.; };
-        vec3f(const vec4f vin) {v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
+        vec3f() {v=new float[3]; v[0] = 0.;v[1]=0.;v[2]=0.; };
+        vec3f(const vec4f vin) {v=new float[3];v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
         inline float operator[](int i) const {return v[i];};
         inline float& operator[](int i) {return v[i];};
+};
+class vec3d {
+    private:
+        double v[3];
+    public:
+        vec3d(const double v1,const double v2, const double v3) {
+            v[0] = v1; v[1] = v2; v[2] = v3;
+        };
+        vec3d() { v[0] = 0.;v[1]=0.;v[2]=0.; };
+        vec3d(const vec4f vin) {v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
+        inline double operator[](int i) const {return v[i];};
+        inline double& operator[](int i) {return v[i];};
 };
 class vec4f {
     private:
@@ -51,6 +64,17 @@ class vec4f {
         inline float operator[](int i) const {return v[i];};
         inline float& operator[](int i) {return v[i];};
 };
+class vec4d {
+    private:
+        double v[4];
+    public:
+        vec4d(const double v1,const double v2, const double v3, const double v4) {
+            v[0]=v1; v[1]=v2; v[2]=v3; v[3]=v4;
+        };
+        vec4d() {v[0]=0.;v[1]=0.;v[2]=0.;v[3]=0.;};
+        inline double operator[](int i) const {return v[i];};
+        inline double& operator[](int i) {return v[i];};
+};
 class mat4f {
     private:
         float m[16];
@@ -58,5 +82,11 @@ class mat4f {
         mat4f() {for(int i=0;i<16;i++) m[i]=0.0;}
         identity() {mat4f();for(int i=0;i<4;i++) m[i*5]=1.0;}
 };
+class mat4d {
+    private:
+        double m[16];
+    public:
+        mat4d() {for(int i=0;i<16;i++) m[i]=0.0;}
+        identity() {mat4d();for(int i=0;i<4;i++) m[i*5]=1.0;}
 }
 #endif /* GVT2_VEC_H */
