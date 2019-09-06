@@ -1,3 +1,5 @@
+#ifndef GVT2_RAY_H
+#define GVT2_RAY_H
 /* ========================================================================== //
  * This file is released as part of GraviT2 - scalable, platform independent  //
  * ray tracing tacc.github.io/GraviT2                                         //
@@ -19,9 +21,6 @@
  * See the License for the specific language governing permissions and        //
  * limitations under the License.                                             //
  * ========================================================================== */
-#ifndef GVT2_RAY_H
-#define GVT2_RAY_H
-
 #include <float.h>
 #include "vec.h"
 

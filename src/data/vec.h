@@ -1,3 +1,6 @@
+
+#ifndef GVT2_VEC_H
+#define GVT2_VEC_H
 /* ========================================================================== //
  * This file is released as part of GraviT2 - scalable, platform independent  //
  * ray tracing tacc.github.io/GraviT2                                         //
@@ -20,8 +23,6 @@
  * limitations under the License.                                             //
  * ========================================================================== */
 
-#ifndef GVT2_VEC_H
-#define GVT2_VEC_H
 
 /**
  * \brief A local set of mathematical vectors
@@ -30,14 +31,13 @@
 namespace gvt2 {
 class vec3f {
     private:
-        float* v = NULL;
+        float v[3];
     public:
         vec3f(const float v1,const float v2, const float v3) {
-            v = new float[3];
             v[0] = v1; v[1] = v2; v[2] = v3;
         };
-        vec3f() {v=new float[3]; v[0] = 0.;v[1]=0.;v[2]=0.; };
-        vec3f(const vec4f vin) {v=new float[3];v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
+        vec3f() {v[0]=0.;v[1]=0.;v[2]=0.; };
+        vec3f(const vec4f vin) {v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
         inline float operator[](int i) const {return v[i];};
         inline float& operator[](int i) {return v[i];};
 };
@@ -48,7 +48,7 @@ class vec3d {
         vec3d(const double v1,const double v2, const double v3) {
             v[0] = v1; v[1] = v2; v[2] = v3;
         };
-        vec3d() { v[0] = 0.;v[1]=0.;v[2]=0.; };
+        vec3d() {v[0]=0.;v[1]=0.;v[2]=0.; };
         vec3d(const vec4f vin) {v[0]=vin[0];v[1]=vin[1];v[2]=vin[2];};
         inline double operator[](int i) const {return v[i];};
         inline double& operator[](int i) {return v[i];};
